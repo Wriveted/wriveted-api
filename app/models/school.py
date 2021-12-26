@@ -5,7 +5,7 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    Enum
+    Enum, UniqueConstraint, Index
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
@@ -21,13 +21,35 @@ class SchoolState(str, enum.Enum):
 
 class School(Base):
 
-    id = Column(String(36), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
+    country_code = Column(String(3), ForeignKey('countries.id', name="fk_school_country"), index=True)
+    official_identifier = Column(String(64))
+
+    Index("index_schools_by_country", country_code, official_identifier, unique=True)
+    #UniqueConstraint(country_code, official_identifier, name="unique_schools")
+
     state = Column(Enum(SchoolState), nullable=False, default=SchoolState.ACTIVE)
 
     name = Column(String(100), nullable=False)
 
+    # e.g. "canterbury.ac.nz" if all student email addresses have the form
+    # brian.thorne@canterbury.ac.nz - allows automatic registration
+    student_domain = Column(String(100), nullable=True)
+
+    # All users with this email domain will be granted teacher rights
+    teacher_domain = Column(String(100), nullable=True)
+
+    # Extra info:
+    # school website
+    # Suburb,State,Postcode,
+    # Type,Sector,Status,Geolocation,
+    # Parent School ID,AGE ID,
+    # Latitude,Longitude
     info = Column(JSON)
 
+    country = relationship('Country')
     collection = relationship('CollectionItem')
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects

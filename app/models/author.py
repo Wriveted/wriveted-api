@@ -1,7 +1,6 @@
 from sqlalchemy import (
     Column,
     Computed,
-    ForeignKey,
     Integer,
     String,
     JSON,
@@ -12,7 +11,7 @@ from app.models.author_work_association import author_work_association_table
 
 
 class Author(Base):
-    id = Column(String(36), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
     first_name = Column(String(200))
     last_name = Column(String(200), nullable=False)

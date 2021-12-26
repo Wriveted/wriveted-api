@@ -36,30 +36,32 @@ async def root(session: Session = Depends(get_session),):
 
 @app.post("/book")
 async def add_book(session: Session = Depends(get_session),):
-    new_author_id = uuid.uuid4().hex[:6].lower()
+
 
     new_author = Author(
-        id=new_author_id,
-        first_name=uuid.uuid4().hex[:4].lower(),
-        last_name="Author",
 
+        first_name=uuid.uuid4().hex[:4].lower(),
+        last_name="Rowling",
     )
 
     new_series = Series(
-        id=uuid.uuid4().hex[:6].lower(),
-        title="Harry Potter"
+        title="Harry Potter",
+        info={
+            'description': """Orphan Harry learns he is a wizard on his 11th birthday when Hagrid escorts him to magic-teaching Hogwarts School. As a baby, his mother's love protected him and vanquished the villain Voldemort, leaving the child famous as "The Boy who Lived." With his friends Hermione and Ron, Harry has to defeat the returned "He Who Must Not Be Named."
+            """
+        }
     )
 
     new_work = Work(
-        id=uuid.uuid4().hex[:6].lower(),
         authors=[new_author],
-        series=new_series,
+        #series=new_series,
         title="Harry Potter and the Prisoner of Azkaban",
         #info={}
     )
 
+    new_series.works.append(new_work)
+
     new_edition = Edition(
-        id=uuid.uuid4().hex[:6].lower(),
         ISBN="9780545582933",
         #id=uuid.uuid4().hex[:6].lower(),
         cover_url="https://static.wikia.nocookie.net/harrypotter/images/a/a8/Harry_Potter_and_the_Prisoner_of_Azkaban_2.jpg/revision/latest?cb=20130803163319",
@@ -68,6 +70,7 @@ async def add_book(session: Session = Depends(get_session),):
     )
 
     session.add(new_author)
+    session.add(new_series)
     session.add(new_work)
     session.add(new_edition)
     session.commit()
