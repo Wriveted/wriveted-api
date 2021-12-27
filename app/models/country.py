@@ -19,3 +19,5 @@ class Country(Base):
 
     name = Column(String(100), nullable=False)
 
+    def __repr__(self):
+        return f"<Country id={self.id} - '{self.name}'>"

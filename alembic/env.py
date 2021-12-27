@@ -3,7 +3,6 @@ from __future__ import with_statement
 import os
 import sys
 
-from google.cloud.sql.connector import connector
 from alembic import context
 from alembic.ddl import DefaultImpl
 from sqlalchemy import create_engine, pool, engine_from_config

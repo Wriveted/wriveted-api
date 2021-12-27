@@ -1,15 +1,16 @@
-import enum
-
 from sqlalchemy import (
     Column,
-    Computed,
     ForeignKey,
     Integer,
     String,
-    JSON,
+    JSON, select
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.sql.functions import coalesce
+
 from app.db import Base
+from app.models.work import Work
 from app.models.illustrator_edition_association import illustrator_edition_association_table
 
 
@@ -24,7 +25,20 @@ class Edition(Base):
     )
 
     # this might be a localized title
-    title = Column(String(100), nullable=True)
+    edition_title = Column(String(512), nullable=True)
+
+    title = column_property(
+        select(
+            coalesce(
+                edition_title,
+                Work.title
+            )
+        )
+        .where(Work.id == work_id)
+        .correlate_except(Work)
+        .scalar_subquery()
+    )
+
 
     ISBN = Column(String(200), nullable=False, index=True)
 
@@ -37,8 +51,14 @@ class Edition(Base):
 
     work = relationship('Work', back_populates='editions')
 
+    # Proxy the authors from the related work
+    authors = association_proxy('work', 'authors')
+
     illustrators = relationship(
         'Illustrator',
         secondary=illustrator_edition_association_table,
         back_populates='editions'
     )
+
+    def __repr__(self):
+        return f"<Edition '{self.title}'>"

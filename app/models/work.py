@@ -28,7 +28,7 @@ class Work(Base):
     #series_id = Column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
 
     # TODO may want to look at a TSVector GIN index for decent full text search
-    title = Column(String(100), nullable=False, index=True)
+    title = Column(String(512), nullable=False, index=True)
 
     info = Column(JSON)
 
@@ -40,9 +40,15 @@ class Work(Base):
         back_populates="works"
     )
 
+    # TODO edition count
+
     # Handle Multiple Authors via a secondary association table
     authors = relationship(
         'Author',
         secondary=author_work_association_table,
         back_populates='books'
     )
+
+    def __repr__(self):
+        return f"<Work id={self.id} - '{self.title}'>"
+

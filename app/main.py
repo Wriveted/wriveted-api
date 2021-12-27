@@ -7,7 +7,22 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import Work, Author, Series, Edition
 
+from app.api.version import router as version_router
+from app.api.editions import router as edition_router
+from app.api.works import router as work_router
+from app.api.schools import router as school_router
+from app.api.authors import router as author_router
+from app.api.illustrators import router as illustrator_router
+from app.api.collections import router as collections_router
 app = FastAPI()
+
+app.include_router(author_router)
+app.include_router(illustrator_router)
+app.include_router(edition_router)
+app.include_router(school_router)
+app.include_router(work_router)
+app.include_router(collections_router)
+app.include_router(version_router)
 
 
 @app.get("/")
@@ -37,9 +52,7 @@ async def root(session: Session = Depends(get_session),):
 @app.post("/book")
 async def add_book(session: Session = Depends(get_session),):
 
-
     new_author = Author(
-
         first_name=uuid.uuid4().hex[:4].lower(),
         last_name="Rowling",
     )
@@ -54,7 +67,6 @@ async def add_book(session: Session = Depends(get_session),):
 
     new_work = Work(
         authors=[new_author],
-        #series=new_series,
         title="Harry Potter and the Prisoner of Azkaban",
         #info={}
     )
@@ -62,6 +74,7 @@ async def add_book(session: Session = Depends(get_session),):
     new_series.works.append(new_work)
 
     new_edition = Edition(
+        edition_title="Blah",
         ISBN="9780545582933",
         #id=uuid.uuid4().hex[:6].lower(),
         cover_url="https://static.wikia.nocookie.net/harrypotter/images/a/a8/Harry_Potter_and_the_Prisoner_of_Azkaban_2.jpg/revision/latest?cb=20130803163319",
@@ -69,11 +82,14 @@ async def add_book(session: Session = Depends(get_session),):
         #info={}
     )
 
+
     session.add(new_author)
     session.add(new_series)
     session.add(new_work)
     session.add(new_edition)
     session.commit()
+
+    print("Added", new_edition.title)
 
     return {
         "message": "Added book to database",
@@ -82,9 +98,4 @@ async def add_book(session: Session = Depends(get_session),):
         "ISBN": new_edition.ISBN
     }
 
-
-@app.get("/books/{isbn}")
-async def get_book(isbn: str, session: Session = Depends(get_session)):
-    e = session.query(Edition).filter(Edition.ISBN == isbn)
-    return {"Title": e.all()[0].work.title}
 

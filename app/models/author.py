@@ -3,20 +3,20 @@ from sqlalchemy import (
     Computed,
     Integer,
     String,
-    JSON,
+    JSON, select, func, and_,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, column_property
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
+from app.models.work import Work
 
 
 class Author(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    first_name = Column(String(200))
-    last_name = Column(String(200), nullable=False)
+    last_name = Column(String(200), nullable=False, index=True)
 
-    full_name = Column(String(400), Computed("COALESCE(first_name || ' ', '') || last_name"))
+    full_name = Column(String(400), nullable=False)
 
     info = Column(JSON)
 
@@ -26,3 +26,16 @@ class Author(Base):
         back_populates="authors"
         #cascade="all, delete-orphan"
     )
+
+    # Ref https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#using-column-property
+    book_count = column_property(
+        select(func.count(Work.id)).where(
+            and_(
+                author_work_association_table.c.author_id == id,
+                author_work_association_table.c.work_id == Work.id,
+            )
+        ).scalar_subquery()
+    )
+
+    def __repr__(self):
+        return f"<Author id={self.id} - '{self.full_name}'>"
