@@ -42,12 +42,15 @@ async def bulk_add_editions(
         bulk_edition_data: List[EditionCreateIn],
         session: Session = Depends(get_session)
 ):
+    # TODO ideally this should use a bulk api
+    # Need to account for new authors, works, and series created
+    # in a single upload and referenced multiple times though...
 
     editions = [
-        create_new_edition(session, edition_data, commit=False)
+        create_new_edition(session, edition_data, commit=True)
         for edition_data in bulk_edition_data
     ]
-    session.commit()
+    #session.commit()
     return {
         "msg": f"Bulk load of {len(editions)} editions complete"
     }

@@ -13,7 +13,7 @@ class Series(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    title = Column(String(100), nullable=False)
+    title = Column(String(512), nullable=False, unique=True, index=True)
 
     # description etc
     info = Column(JSON)
