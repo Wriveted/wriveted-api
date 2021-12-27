@@ -13,6 +13,8 @@ from app.db import Base
 
 import enum
 
+from app.models.service_account_school_association import service_account_school_association_table
+
 
 class SchoolState(str, enum.Enum):
     ACTIVE = "active"
@@ -58,6 +60,14 @@ class School(Base):
     works = association_proxy('collection_items', 'work')
     editions = association_proxy('collection_items', 'edition')
 
+    events = relationship("Event", back_populates="school")
+    users = relationship("User", back_populates="school")
+
+    service_accounts = relationship(
+        "ServiceAccount",
+        secondary=service_account_school_association_table,
+        back_populates="schools"
+    )
 
     def __repr__(self):
         return f"<School '{self.name}' ({self.official_identifier} - {self.country.name})>"

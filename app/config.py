@@ -21,13 +21,13 @@ class Settings(BaseSettings):
             # If a string is provided (e.g. via environment variable) we just use that
             return v
         project_id = values.get("GOOGLE_PROJECT_ID")
-        spanner_instance_id = values.get("GOOGLE_SQL_INSTANCE_ID")
-        spanner_db_id = values.get("GOOGLE_SQL_DATABASE_ID")
+        cloud_sql_instance_id = values.get("GOOGLE_SQL_INSTANCE_ID")
+        cloud_sql_db_id = values.get("GOOGLE_SQL_DATABASE_ID")
 
-        path = f"projects/{project_id}/instances/{spanner_instance_id}/databases/{spanner_db_id}"
+        path = f"projects/{project_id}/instances/{cloud_sql_instance_id}/databases/{cloud_sql_db_id}"
 
         return AnyUrl.build(
-            scheme="postgres",
+            scheme="postgresql",
             host="/",
             path=path,
         )

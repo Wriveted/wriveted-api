@@ -9,7 +9,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.db.session import get_session
-from app.models import CollectionItem
+from app.models import CollectionItem, Event
 from app.schemas.collection import SchoolCollection
 from app.schemas.edition import EditionCreateIn
 
@@ -67,11 +67,16 @@ async def set_school_collection(
     crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
     logger.info("Created new editions")
 
+    session.add(Event(
+        title="Updating collection",
+        description=f"Updating {len(existing_editions)} existing editions, adding {len(isbns_to_create)} new editions",
+        school=school
+    ))
+
     # Now all editions should exist
     for edition in crud.edition.get_multi(session, ids=isbns):
         school.collection.append(
             CollectionItem(
-                work=edition.work,
                 edition=edition,
                 info={
                     "Updated": str(datetime.datetime.utcnow())
@@ -81,3 +86,6 @@ async def set_school_collection(
     logger.info("Commiting collection to database")
     session.add(school)
     session.commit()
+    return {
+        'msg': "updated"
+    }

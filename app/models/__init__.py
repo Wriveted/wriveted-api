@@ -9,3 +9,6 @@ from .series import Series
 from .illustrator import Illustrator
 from .school import School, SchoolState
 from .work import Work
+from .user import User
+from .event import Event, EventLevel
+from .service_account import ServiceAccountType, ServiceAccount
