@@ -61,7 +61,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         after all filters. You can't call filters after the ``apply_pagination`` static
         method.
         """
-        return self.get_all_query(db, order_by=order_by).filter(self.model.id.in_(ids))
+        return self.get_all_query(db, order_by=order_by).where(self.model.id.in_(ids))
 
     @staticmethod
     def apply_pagination(query: Query, *, skip: int = None, limit: int = None):

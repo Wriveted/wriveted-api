@@ -13,6 +13,9 @@ from app.schemas.work import WorkCreateIn
 
 class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
 
+    # def create_in_bulk(self, db: Session, work_data: List[WorkCreateIn]) -> List[Work]:
+    #     pass
+
     def get_or_create(self,
                       db: Session,
                       work_data: WorkCreateIn,
@@ -48,7 +51,6 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
 
         return work
 
-
     def get_or_create_series(self, db, series_title):
         try:
             series = db.execute(
@@ -57,3 +59,6 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         except NoResultFound:
             series = Series(title=series_title)
         return series
+
+
+work = CRUDWork(Work)

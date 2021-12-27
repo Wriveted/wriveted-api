@@ -44,14 +44,23 @@ async def bulk_add_schools(
         schools: List[SchoolCreateIn],
         session: Session = Depends(get_session)
 ):
+    logger.info("Bulk adding schools")
     # Create a dict for each school
-    bulk_mapping = [s.dict() for s in schools]
-
-    crud.school.create_in_bulk(
-        db=session,
-        bulk_mappings_in=bulk_mapping
-    )
-    return "done"
+    new_schools = [
+        crud.school.create(
+            db=session,
+            obj_in=school_data,
+            commit=False
+        )
+        for school_data in schools]
+    logger.debug(f"created {len(new_schools)} school orm objects")
+    try:
+        session.commit()
+        logger.debug("committed now school orm objects")
+        return {"msg": f"Added {len(new_schools)} new schools"}
+    except:
+        logger.warning("there was an issue importing bulk school data")
+        raise HTTPException(500, "Error bulk importing schools")
 
 
 @router.post("/school", response_model=SchoolDetail)
@@ -72,7 +81,7 @@ async def add_school(
         )
 
 
-@router.put("/school/{country-code}/{school-id}", response_model=SchoolDetail)
+@router.put("/school/{country_code}/{school_id}", response_model=SchoolDetail)
 async def update_school(
         school: SchoolUpdateIn,
         country_code: str = Path(..., description="ISO 3166-1 Alpha-3 code for a country. E.g New Zealand is NZL, and Australia is AUS"),

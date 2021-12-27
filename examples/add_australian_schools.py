@@ -50,7 +50,7 @@ with open("australian_schools.csv", newline='') as csv_file:
 
 print("Uploading in bulk")
 start_time = time.time()
-httpx.post(settings.WRIVETED_API + "/schools", json=school_data)
+print(httpx.post(settings.WRIVETED_API + "/schools", json=school_data).json())
 end_time = time.time()
 
 print("Finished")

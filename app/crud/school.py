@@ -24,3 +24,5 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
                 detail=f"School with id {official_id} in {country_code} not found."
             )
 
+
+school = CRUDSchool(School)

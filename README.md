@@ -28,7 +28,7 @@ Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstar
 cloud_sql_proxy -instances=hardbyte-wriveted-development:australia-southeast1:wriveted=tcp:5432
 ```
 
-Set the environment variable `SQLALCHEMY_DATABASE_URI` with the path:
+Set the environment variable `SQLALCHEMY_DATABASE_URI` with the proxied database path (otherwise it will create a local sqlite database):
 
 ```
 export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres

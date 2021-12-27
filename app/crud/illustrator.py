@@ -18,3 +18,5 @@ class CRUDIllustrator(CRUDBase[Illustrator, Any, Any]):
         except NoResultFound:
             orm_obj = self.create(db, obj_in=data, commit=commit)
         return orm_obj
+
+illustrator = CRUDIllustrator(Illustrator)

@@ -40,7 +40,7 @@ class SchoolCreateIn(BaseModel):
 
 # Note can't change the country code or official identifier
 class SchoolUpdateIn(BaseModel):
-    name: str
+    name: Optional[str]
     info: Optional[Any]
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]

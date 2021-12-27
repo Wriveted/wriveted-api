@@ -27,3 +27,4 @@ class CRUDAuthor(CRUDBase[Author, Any, Any]):
         return author
 
 
+author = CRUDAuthor(Author)
