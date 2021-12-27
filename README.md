@@ -24,6 +24,10 @@ gcloud auth application-default login
 
 Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstart-proxy-test?authuser=1).
 
+```shell
+cloud_sql_proxy -instances=hardbyte-wriveted-development:australia-southeast1:wriveted=tcp:5432
+```
+
 Set the environment variable `SQLALCHEMY_DATABASE_URI` with the path:
 
 ```

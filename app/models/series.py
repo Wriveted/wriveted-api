@@ -1,20 +1,26 @@
 from sqlalchemy import (
     Column,
-    Computed,
-    ForeignKey,
     Integer,
     String,
     JSON,
 )
 from sqlalchemy.orm import relationship
 from app.db import Base
+from app.models.series_works_association import series_works_association_table
 
 
 class Series(Base):
 
-    id = Column(String(36), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
     title = Column(String(100), nullable=False)
+
+    # description etc
     info = Column(JSON)
-    works = relationship('Work', back_populates="series")
 
-
+    # TODO order this relationship by the secondary table
+    works = relationship(
+        'Work',
+        secondary=series_works_association_table,
+        back_populates="series"
+    )
