@@ -25,7 +25,7 @@ async def get_schools(
     return crud.school.get_all(session, skip=pagination.skip, limit=pagination.limit)
 
 
-@router.get("/school/{country-code}/{school-id}", response_model=SchoolDetail)
+@router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)
 async def get_school(
         country_code: str = Path(...,
                                  description="ISO 3166-1 Alpha-3 code for a country. E.g New Zealand is NZL, and Australia is AUS"),

@@ -25,7 +25,7 @@ class User(Base):
     )
     is_active = Column(Boolean(), default=True)
 
-    school_id = Column(ForeignKey('schools.id', name="fk_event_school"), nullable=True)
+    school_id = Column(ForeignKey('schools.id', name="fk_user_school"), nullable=True)
     school = relationship("School", back_populates='users')
 
     is_superuser = Column(Boolean(), default=False)
@@ -41,3 +41,12 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     events = relationship("Event", back_populates='user')
+
+    def __repr__(self):
+        summary = "Active" if self.is_active else "Inactive"
+        if self.is_superuser:
+            summary += " superuser "
+
+        if self.school_id is not None:
+            summary += f" (linked to school {self.school_id}) "
+        return f"<User {self.name} - {summary}>"

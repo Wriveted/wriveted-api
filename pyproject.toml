@@ -16,6 +16,9 @@ structlog = "^21.5.0"
 psycopg2-binary = "^2.9.2"
 SQLAlchemy = "^1.4.29"
 httpx = "^0.21.1"
+fastapi-cloudauth = "^0.4.0"
+cryptography = "^36.0.1"
+pydantic = {extras = ["email"], version = "^1.8.2"}
 
 [tool.poetry.dev-dependencies]
 

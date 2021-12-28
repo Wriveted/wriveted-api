@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
-from app.config import get_settings, Settings
+from app.config import get_settings
 
 
 @lru_cache()
