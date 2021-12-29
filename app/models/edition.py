@@ -39,7 +39,6 @@ class Edition(Base):
         .scalar_subquery()
     )
 
-
     ISBN = Column(String(200), nullable=False, index=True)
 
     cover_url = Column(String(200), nullable=True)
@@ -49,7 +48,7 @@ class Edition(Base):
     # number of pages.
     info = Column(JSON)
 
-    work = relationship('Work', back_populates='editions')
+    work = relationship('Work', back_populates='editions', lazy='selectin')
 
     # Proxy the authors from the related work
     authors = association_proxy('work', 'authors')
@@ -57,7 +56,8 @@ class Edition(Base):
     illustrators = relationship(
         'Illustrator',
         secondary=illustrator_edition_association_table,
-        back_populates='editions'
+        back_populates='editions',
+        lazy="subquery"
     )
 
     def __repr__(self):

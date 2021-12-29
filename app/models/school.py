@@ -52,7 +52,8 @@ class School(Base):
     info = Column(JSON)
 
     country = relationship('Country')
-    collection = relationship('CollectionItem')
+
+    collection = relationship('CollectionItem', lazy="dynamic", cascade="all, delete")
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
     # association proxy of "collectionitems" collection

@@ -1,21 +1,24 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
-from app.models.work import WorkType
 from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn
-from app.schemas.work import WorkCreateIn
+
 
 logger = get_logger()
 router = APIRouter(
-    tags=["Books"]
+    tags=["Books"],
+    dependencies=[
+        Security(get_current_active_user_or_service_account)
+    ]
 )
 
 

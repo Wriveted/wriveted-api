@@ -1,0 +1,38 @@
+from datetime import datetime
+from typing import Optional, List
+
+from pydantic import BaseModel, EmailStr, UUID4
+
+from app.models import ServiceAccountType
+from app.schemas.event import EventBrief
+
+
+class ServiceAccountBrief(BaseModel):
+    id: UUID4
+    name: str
+    type: ServiceAccountType
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+
+class ServiceAccountDetail(ServiceAccountBrief):
+    info: Optional[dict]
+    created_at: datetime
+    updated_at: datetime
+    events: List[EventBrief]
+
+
+class ServiceAccountCreatedResponse(ServiceAccountBrief):
+    access_token: str
+
+
+class ServiceAccountCreateIn(BaseModel):
+
+    name: str
+    type: ServiceAccountType
+
+    info: Optional[dict]
+
+    #schools: Optional[List[str]]

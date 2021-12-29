@@ -10,6 +10,15 @@ print("Script to add all australian schools to Wriveted API")
 print("Connecting")
 print(httpx.get(settings.WRIVETED_API + "/version").json())
 
+
+# A User Account Token
+user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE0MzAzOTYsImlhdCI6MTY0MDczOTE5Niwic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OmFhNmZiYjZmLWRhM2MtNDRhZi1iOGM4LWYwMTMxZjJiMTQwZiJ9.rlFDPjYumRfuKFSKHeVC2nI2_Y0-pbY0x9ARI2_cX6A"
+
+# A Service Account Token
+service_account_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDM4MTEzMjMsImlhdCI6MTY0MDczOTMyMywic3ViIjoid3JpdmV0ZWQ6c2VydmljZS1hY2NvdW50OjE2ZmI1ZWFmLWNkMzMtNDljZi05MzBlLWQ2MjhiZjhjNjU2OSJ9.Q8eN0IsstZlD7Wehg0diQlvvtyuVjFY1NP1sE2HzuFg"
+
+token = user_token
+
 book_data = []
 
 with open("Wriveted-books.csv", newline='') as csv_file:
@@ -70,19 +79,29 @@ with open("Wriveted-books.csv", newline='') as csv_file:
             book_data.append(
                 new_edition_data
             )
-schools = httpx.get(settings.WRIVETED_API + "/schools", params={
-    'limit': 10
-}).json()
 
+schools_response = httpx.get(
+    settings.WRIVETED_API + "/schools",
+    headers={
+        "Authorization": f"Bearer {token}"
+    },
+    params={
+    'limit': 10
+})
+schools_response.raise_for_status()
+schools = schools_response.json()
 
 for school in schools:
     collection_data = random.choices(book_data, k=100)
-
+    print("Updating school", school['name'])
     print(
         httpx.post(
             f"{settings.WRIVETED_API}/school/{school['country_code']}/{school['official_identifier']}/collection",
             json=collection_data,
-            timeout=60
+            timeout=60,
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
         ).json()
     )
     #raise SystemExit

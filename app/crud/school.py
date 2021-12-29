@@ -11,6 +11,7 @@ from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
 class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
 
     def get_by_official_id_or_404(self, db: Session, country_code: str, official_id: str):
+
         query = (
             select(School)
             .where(School.country_code == country_code)

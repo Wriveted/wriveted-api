@@ -46,7 +46,9 @@ class Work(Base):
     authors = relationship(
         'Author',
         secondary=author_work_association_table,
-        back_populates='books'
+        back_populates='books',
+        # https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#selectin-eager-loading
+        lazy="selectin"
     )
 
     def __repr__(self):

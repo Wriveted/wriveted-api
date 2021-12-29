@@ -16,6 +16,8 @@ from app.api.authors import router as author_router
 from app.api.illustrators import router as illustrator_router
 from app.api.collections import router as collections_router
 from app.api.auth import router as auth_router
+from app.api.users import router as user_router
+from app.api.service_accounts import router as service_account_router
 
 settings = get_settings()
 app = FastAPI(
@@ -33,12 +35,14 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(auth_router)
+app.include_router(user_router)
 app.include_router(author_router)
 app.include_router(illustrator_router)
 app.include_router(edition_router)
 app.include_router(school_router)
 app.include_router(work_router)
 app.include_router(collections_router)
+app.include_router(service_account_router)
 app.include_router(version_router)
 
 

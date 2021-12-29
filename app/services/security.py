@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, Union, Dict, Optional
 
 from jose import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, constr, validator
 
 from app.config import get_settings
 
@@ -19,10 +19,16 @@ def get_raw_payload_from_access_token(token) -> Dict[str, Any]:
 class TokenPayload(BaseModel):
     sub: str
 
+    @validator('sub')
+    def sub_must_start_with_wriveted(cls, v):
+        if not v.startswith("wriveted") and ':' not in v:
+            raise ValueError('Invalid JWT subject')
+        return v.title()
+
 
 def get_payload_from_access_token(token) -> TokenPayload:
     payload = get_raw_payload_from_access_token(token)
-    return TokenPayload(**payload)
+    return TokenPayload.parse_obj(payload)
 
 
 def create_access_token(

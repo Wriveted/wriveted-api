@@ -1,7 +1,9 @@
-from typing import Optional
+from datetime import datetime
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, UUID4
 
+from app.schemas.event import EventBrief
 from app.schemas.school import SchoolBrief
 
 
@@ -26,3 +28,12 @@ class UserBrief(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class UserDetail(UserBrief):
+    info: dict
+
+    created_at: datetime
+    updated_at: datetime
+
+    events: List[EventBrief]

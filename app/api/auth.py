@@ -1,3 +1,5 @@
+from typing import Union
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -5,11 +7,12 @@ from fastapi_cloudauth.firebase import FirebaseCurrentUser, FirebaseClaims
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.security import get_current_active_user
+from app.api.dependencies.security import get_current_active_user, get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.session import get_session
-from app.models import User
-from app.schemas.user import UserBrief, UserCreateIn
+from app.models import User, ServiceAccount
+from app.schemas.service_account import ServiceAccountBrief
+from app.schemas.user import UserBrief, UserCreateIn, UserDetail
 from app.services.security import create_access_token
 
 logger = get_logger()
@@ -74,7 +77,7 @@ def secure_user_endpoint(
         raise HTTPException(status_code=401, detail="Inactive user")
 
     wriveted_access_token = create_access_token(
-        subject=user.id,
+        subject=f"wriveted:user-account:{user.id}",
         #extra_claims={}
     )
     logger.info("Access token generated for user", token=wriveted_access_token)
@@ -85,11 +88,13 @@ def secure_user_endpoint(
     }
 
 
-@router.get("/auth/me", response_model=UserBrief)
-async def get_current_user(current_user: User = Depends(get_current_active_user)):
+@router.get("/auth/me", response_model=Union[UserDetail, ServiceAccountBrief])
+async def get_current_user(
+        current_user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account)
+):
     """
-    Test that the presented credentials are valid, returning details on the logged in user.
+    Test that the presented credentials are valid, returning details on the logged in user or service account.
     """
-    logger.info("Testing user token", user=current_user)
-    return current_user
+    logger.info("Testing user token", account=current_user_or_service_account)
+    return current_user_or_service_account
 
