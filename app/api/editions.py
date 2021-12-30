@@ -11,7 +11,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn
-
+from app.services.collections import create_missing_editions
 
 logger = get_logger()
 router = APIRouter(
@@ -57,10 +57,10 @@ async def bulk_add_editions(
         bulk_edition_data: List[EditionCreateIn],
         session: Session = Depends(get_session)
 ):
-    editions = crud.edition.create_in_bulk(session, bulk_edition_data=bulk_edition_data)
+    isbns, created, existing = await create_missing_editions(session, new_edition_data=bulk_edition_data)
 
     return {
-        "msg": f"Bulk load of {len(editions)} editions complete"
+        "msg": f"Bulk load of {len(isbns)} editions complete. Created {len(created)} new editions."
     }
 
 

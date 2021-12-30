@@ -27,10 +27,16 @@ class WorkDetail(WorkBrief):
         orm_mode = True
 
 
+class SeriesCreateIn(BaseModel):
+    title: str
+    info: Optional[Any]
+
+
 class WorkCreateIn(BaseModel):
     type: WorkType
     title: str
     authors: List[AuthorCreateIn]
     info: Optional[Any]
 
-    series_title: Optional[str]
+    series: Optional[SeriesCreateIn]
+

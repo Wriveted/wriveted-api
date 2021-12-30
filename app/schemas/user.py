@@ -31,7 +31,7 @@ class UserBrief(BaseModel):
 
 
 class UserDetail(UserBrief):
-    info: dict
+    info: Optional[dict]
 
     created_at: datetime
     updated_at: datetime

@@ -87,12 +87,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.execute(query).scalars().all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType, commit=True) -> ModelType:
-        obj_in_data = jsonable_encoder(obj_in)
-        db_obj = self.model(**obj_in_data)  # type: ignore
+        db_obj = self.build_orm_object(obj_in)
         db.add(db_obj)
+
         if commit:
             db.commit()
             db.refresh(db_obj)
+        return db_obj
+
+    def build_orm_object(self, obj_in: CreateSchemaType) -> ModelType:
+        """An uncommitted ORM object from the input data"""
+        obj_in_data = jsonable_encoder(obj_in)
+        db_obj = self.model(**obj_in_data)  # type: ignore
         return db_obj
 
     def create_in_bulk(self, db: Session, *, bulk_mappings_in):

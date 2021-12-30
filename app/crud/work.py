@@ -3,12 +3,12 @@ from typing import Any, List
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, Query
-
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app import crud
 from app.crud import CRUDBase
 from app.models import Work, Author, Series
 from app.models.work import WorkType
-from app.schemas.work import WorkCreateIn
+from app.schemas.work import WorkCreateIn, SeriesCreateIn
 
 
 class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
@@ -40,8 +40,8 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
                 info=work_data.info,
                 authors=authors
             )
-            if work_data.series_title is not None:
-                series = self.get_or_create_series(db, work_data.series_title)
+            if work_data.series is not None:
+                series = self.get_or_create_series(db, work_data.series.title)
                 work.series.append(series)
 
             db.add(work)
@@ -59,6 +59,20 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         except NoResultFound:
             series = Series(title=series_title)
         return series
+
+    def bulk_create_series(self, db: Session, bulk_series_data: List[SeriesCreateIn]):
+        print(bulk_series_data)
+        insert_stmt = pg_insert(Series).on_conflict_do_nothing()
+        values = [
+            {
+                "title": series.title,
+                "info": {} if series.info is None else series.info
+            }
+            for series in bulk_series_data
+        ]
+
+        db.execute(insert_stmt, values)
+        db.flush()
 
 
 work = CRUDWork(Work)

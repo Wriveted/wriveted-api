@@ -1,28 +1,27 @@
-import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Path, Security
-from sqlalchemy import delete, select
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, Security
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.school import get_school_from_path
-from app.api.dependencies.security import get_current_active_user, get_current_active_user_or_service_account, \
-    get_account_allowed_to_update_school
+from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
-from app.models import CollectionItem, Event, School, Edition
+from app.models import CollectionItem, School
+from app.permissions import Permission
 from app.schemas.collection import CollectionItemBrief, CollectionUpdate, CollectionUpdateType
 from app.schemas.edition import EditionCreateIn
-from app.services.events import create_event
+from app.services.collections import add_editions_to_collection
 
 logger = get_logger()
 
 router = APIRouter(
     tags=["Schools"],
     dependencies=[
+        # Shouldn't be necessary
         Security(get_current_active_user_or_service_account)
     ]
 )
@@ -31,17 +30,10 @@ router = APIRouter(
 @router.get("/school/{country_code}/{school_id}/collection",
             response_model=List[CollectionItemBrief])
 async def get_school_collection(
-        country_code: str = Path(...,
-                                 description="ISO 3166-1 Alpha-3 code for a country. E.g New Zealand is NZL, and Australia is AUS"),
-        school_id: str = Path(..., description="Official school Identifier. E.g in ACARA ID"),
+        school: School = Permission("read", get_school_from_path),
         pagination: PaginatedQueryParams = Depends(),
         session: Session = Depends(get_session)
 ):
-    school = crud.school.get_by_official_id_or_404(
-        db=session,
-        country_code=country_code,
-        official_id=school_id
-    )
     collection_items = session.scalars(
         school.collection.statement.offset(pagination.skip).limit(pagination.limit)
     ).all()
@@ -51,14 +43,11 @@ async def get_school_collection(
 
 @router.post(
     "/school/{country_code}/{school_id}/collection",
-    dependencies=[
-        Security(get_account_allowed_to_update_school),
-    ]
 )
 async def set_school_collection(
         collection_data: List[EditionCreateIn],
-        school: School = Depends(get_school_from_path),
-        account = Depends(get_account_allowed_to_update_school),
+        school: School = Permission("batch", get_school_from_path),
+        account = Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
     """
@@ -66,81 +55,47 @@ async def set_school_collection(
     """
     logger.info("Resetting the entire collection for school", school=school, account=account)
     session.execute(delete(CollectionItem).where(CollectionItem.school == school))
-
-    school.collection = []
-
-    # get all the existing editions in one query
-    isbns = {e.ISBN for e in collection_data if len(e.ISBN) > 0}
-    existing_editions = crud.edition.get_multi(session, ids=isbns)
-    logger.info(f"Got {len(existing_editions)} existing editions")
-    existing_isbns = {e.ISBN for e in existing_editions}
-    isbns_to_create = isbns.difference(existing_isbns)
-
-    logger.info(f"Will have to create {len(isbns_to_create)} new editions")
-    new_edition_data = [data for data in collection_data if data.ISBN in isbns_to_create]
-    crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
-    logger.info("Created new editions")
-
-    create_event(
-        session=session,
-        title="Updating collection",
-        description=f"Updating {len(existing_editions)} existing editions, adding {len(isbns_to_create)} new editions",
-        school=school,
-        account=account
-    )
-
-    # Now all editions should exist
-    for edition in crud.edition.get_multi(session, ids=isbns):
-        school.collection.append(
-            CollectionItem(
-                edition=edition,
-                info={
-                    "Updated": str(datetime.datetime.utcnow())
-                },
-            )
-        )
-    logger.info("Commiting collection to database")
-
-    session.add(school)
     session.commit()
+
+    await add_editions_to_collection(session, collection_data, school, account)
 
     return {
         'msg': "updated"
     }
 
 
-
-@router.put(
-    "/school/{country_code}/{school_id}/collection",
-    dependencies=[
-        Security(get_account_allowed_to_update_school),
-    ]
-)
+@router.put("/school/{country_code}/{school_id}/collection",)
 async def update_school_collection(
-        collection_update_data: List[CollectionUpdate],
-        school: School = Depends(get_school_from_path),
-        account = Depends(get_account_allowed_to_update_school),
-        session: Session = Depends(get_session)
+    collection_update_data: List[CollectionUpdate],
+    school: School = Permission("batch", get_school_from_path),
+    account = Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session)
 ):
     """
     Update a school library collection with a list of changes.
     """
     logger.info("Updating collection for school", school=school, account=account)
 
-    isbns_to_delete = []
+    isbns_to_remove = []
+    editions_to_add: List[EditionCreateIn] = []
 
     for update in collection_update_data:
         if update.action == CollectionUpdateType.REMOVE:
-            isbns_to_delete.append(update.ISBN)
-
+            isbns_to_remove.append(update.ISBN)
+        elif update.action == CollectionUpdateType.ADD:
+            if update.edition_info is None:
+                # this is a bit hacky
+                update.edition_info = EditionCreateIn.parse_obj(crud.edition.get(session, id=update.ISBN))
+            logger.info("Edition to add", new_edition=update.edition_info)
+            editions_to_add.append(update.edition_info)
         else:
             raise NotImplemented("TODO...")
 
-    if len(isbns_to_delete) > 0:
-        logger.info(f"Removing {len(isbns_to_delete)} items from collection")
+    if len(isbns_to_remove) > 0:
+        logger.info(f"Removing {len(isbns_to_remove)} items from collection")
 
         editions = session.scalars(
-            crud.edition.get_multi_query(session, ids=isbns_to_delete)
+            crud.edition.get_multi_query(session, ids=isbns_to_remove)
         )
 
         edition_ids = [e.id for e in editions]
@@ -152,4 +107,11 @@ async def update_school_collection(
         session.execute(stmt)
         session.commit()
 
+    if len(editions_to_add) > 0:
+        logger.info(f"Adding {len(editions_to_add)} editions to collection")
 
+        await add_editions_to_collection(session, editions_to_add, school, account)
+
+    return {
+        'msg': "updated"
+    }

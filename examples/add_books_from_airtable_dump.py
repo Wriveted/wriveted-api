@@ -10,6 +10,7 @@ print("Connecting")
 print(httpx.get(settings.WRIVETED_API + "/version").json())
 
 book_data = []
+user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE1MzAyNDMsImlhdCI6MTY0MDgzOTA0Mywic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OjQyNmZhZGRmLWY0MTYtNGQ0ZS1hYjQwLWY2MWQ3ODBhOGNiZiJ9.hqn8tiv_QwymELIk-dsOr9KFb_LQ0yil2omrO-pncSw"
 
 with open("Wriveted-books.csv", newline='') as csv_file:
     reader = csv.reader(csv_file)
@@ -28,10 +29,23 @@ with open("Wriveted-books.csv", newline='') as csv_file:
     for i, book_row in enumerate(reader):
         authors = []
         if len(book_row[1]) > 1:
+            if ';' in book_row[1]:
+                author, _ = book_row[1].split(';')
+            else:
+                author = book_row[1]
+            if ',' in author:
+                # If there is a comma it is likely the last name is first
+                last_name, _ = author.split(",")
+            else:
+                # Otherwise grab the last word
+                last_name = author.split()[-1]
             authors.append(
                 {
-                    "last_name": book_row[1].split()[-1],
-                    "full_name": book_row[1],
+                    "last_name": last_name,
+                    "full_name": author,
+                    "info": {
+                        "raw": book_row[1]
+                    }
                 })
 
         cover_url = None
@@ -63,7 +77,10 @@ with open("Wriveted-books.csv", newline='') as csv_file:
                 # Add the series title
                 try:
                     (series_title, *_ ) = book_row[80].split(';')
-                    new_edition_data['series_title'] = series_title.strip()
+                    new_edition_data['series'] = {
+                        'title': series_title.strip()
+                    }
+
                 except ValueError:
                     print("Not adding this series - row was ", book_row[80])
 
@@ -79,11 +96,16 @@ with open("Wriveted-books.csv", newline='') as csv_file:
             )
 
         if i >= 100 and i % 100 == 0:
-            print(
-                httpx.post(
+            response = httpx.post(
                     settings.WRIVETED_API + "/editions",
                     json=book_data,
+                    headers={
+                        "Authorization": f"Bearer {user_token}"
+                    },
                     timeout=60
-                ).json()
-            )
+                )
+            response.raise_for_status()
+            print(response.json())
             book_data = []
+
+

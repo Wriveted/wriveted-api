@@ -16,7 +16,8 @@ class Author(Base):
 
     last_name = Column(String(200), nullable=False, index=True)
 
-    full_name = Column(String(400), nullable=False)
+    # Admittedly bold move making author's full names unique...
+    full_name = Column(String(400), nullable=False, unique=True)
 
     info = Column(JSON)
 

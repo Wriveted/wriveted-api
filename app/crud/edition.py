@@ -2,16 +2,20 @@ from typing import Any, List
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, Query
+from structlog import get_logger
 
+from app import crud
 from app.crud import CRUDBase
 from app.crud.author import author as crud_author
 from app.crud.work import work as crud_work
 from app.crud.illustrator import illustrator as crud_illustrator
 
-from app.models import Edition, Work, Illustrator
+from app.models import Edition, Work, Illustrator, Author
 from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
-from app.schemas.work import WorkCreateIn
+from app.schemas.work import WorkCreateIn, SeriesCreateIn
+
+logger = get_logger()
 
 
 class CRUDEdition(CRUDBase[Edition, Any, Any]):
@@ -63,10 +67,46 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         # Working end to end is more important than working fast right now though, so
         # this is left as a future improvement.
 
-        editions = [
-            self.create_new_edition(session, edition_data, commit=True)
-            for edition_data in bulk_edition_data
-        ]
+        # There might be duplicate editions in the input, so we keep a list of what
+        # we've seen
+        seen_isbns = set()
+        new_edition_data = []
+        for edition_data in bulk_edition_data:
+            if edition_data.ISBN not in seen_isbns:
+                seen_isbns.add(edition_data.ISBN)
+                new_edition_data.append(edition_data)
+
+        # TODO this part could be done in bulk - make all series, make all authors, works etc
+        # Dedupe Author data by "full_name"
+        bulk_author_data = {}
+        bulk_series_titles = set()
+        for edition_data in bulk_edition_data:
+            for author_data in edition_data.authors:
+                bulk_author_data.setdefault(author_data.full_name, author_data)
+            if edition_data.series_title is not None and len(edition_data.series_title) > 0:
+                bulk_series_titles.add(edition_data.series_title)
+
+        crud.author.create_in_bulk(db=session, bulk_author_data_in=bulk_author_data.values())
+        logger.info("Authors created")
+
+        # Series
+        if len(bulk_series_titles) > 0:
+            crud.work.bulk_create_series(
+                session,
+                bulk_series_data=[
+                    SeriesCreateIn(title=series_title) for series_title in bulk_series_titles]
+            )
+        logger.info("Series created")
+
+
+        # TODO keep bulkifying this...
+
+        editions = []
+        for edition_data in new_edition_data:
+            editions.append(
+                self.create_new_edition(session, edition_data=edition_data, commit=True)
+            )
+        logger.info("Work, Illustrators and Editions created")
         return editions
 
     def create_new_edition(self, session, edition_data: EditionCreateIn, commit=True):

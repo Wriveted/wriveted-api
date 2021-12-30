@@ -38,7 +38,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('service_account_id', 'school_id')
     )
     op.add_column('events', sa.Column('service_account_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_foreign_key('fk_event_user', 'events', 'users', ['user_id'], ['id'])
     op.create_foreign_key('fk_event_service_account', 'events', 'service_accounts', ['service_account_id'], ['id'])
     # ### end Alembic commands ###
 

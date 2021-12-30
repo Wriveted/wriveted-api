@@ -1,7 +1,9 @@
-from typing import Optional, Union
+import enum
+from typing import Optional, Union, List
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, HTTPAuthorizationCredentials, HTTPBearer
+from fastapi_permissions import Everyone, Authenticated
 
 from jose import jwt
 from pydantic import ValidationError
@@ -15,24 +17,25 @@ from app.db.session import get_session
 from app.models import User, ServiceAccount, ServiceAccountType, School
 from app.services.security import get_payload_from_access_token, TokenPayload
 
-
 logger = get_logger()
 
 auth_scheme = OAuth2PasswordBearer(tokenUrl="/auth/access-token")
 
-
-def get_auth_header_data(
-    http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
-) -> str:
-    token = http_auth.credentials
-
-    logger.info("Header", authorization=token)
-
-    credentials_exception = HTTPException(
+credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+def get_auth_header_data(
+        http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
+) -> str:
+
+    if http_auth is None:
+        raise credentials_exception
+
+    token = http_auth.credentials
+
     if not token:
         raise credentials_exception
 
@@ -52,8 +55,8 @@ def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPay
 
 
 def get_optional_user(
-    db: Session = Depends(get_session),
-    token_data: TokenPayload = Depends(get_valid_token_data),
+        db: Session = Depends(get_session),
+        token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
@@ -62,13 +65,15 @@ def get_optional_user(
     if access_token_type == "user-account":
         user = crud.user.get(db, id=identifier)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found")
         return user
 
 
 def get_optional_service_account(
-    db: Session = Depends(get_session),
-    token_data: TokenPayload = Depends(get_valid_token_data),
+        db: Session = Depends(get_session),
+        token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
@@ -78,16 +83,13 @@ def get_optional_service_account(
         return crud.service_account.get_or_404(db, id=identifier)
 
 
-def get_current_user(
-    db: Session = Depends(get_session),
-    current_user: Optional[User] = Depends(get_optional_user),
-) -> User:
+def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:
     assert current_user is not None
     return current_user
 
 
 def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
 ) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
@@ -95,10 +97,9 @@ def get_current_active_user(
 
 
 def get_current_active_user_or_service_account(
-    maybe_user: Optional[User] = Depends(get_optional_user),
-    maybe_service_account: Optional[ServiceAccount] = Depends(get_optional_service_account),
+        maybe_user: Optional[User] = Depends(get_optional_user),
+        maybe_service_account: Optional[ServiceAccount] = Depends(get_optional_service_account),
 ) -> Union[User, ServiceAccount]:
-
     # We need either a valid user or service account given the auth token
     if maybe_user is not None and maybe_user.is_active:
         return maybe_user
@@ -109,7 +110,7 @@ def get_current_active_user_or_service_account(
 
 
 def get_current_active_superuser_or_backend_service_account(
-    user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
+        user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
 ) -> Union[User, ServiceAccount]:
     if isinstance(user_or_service_account, User):
         if not user_or_service_account.is_superuser:
@@ -125,7 +126,7 @@ def get_current_active_superuser_or_backend_service_account(
 
 
 def get_current_active_superuser(
-    current_user: User = Depends(get_current_active_user),
+        current_user: User = Depends(get_current_active_user),
 ) -> User:
     """
     Require administrator access
@@ -137,18 +138,62 @@ def get_current_active_superuser(
     return current_user
 
 
-def get_account_allowed_to_update_school(
-        account = Depends(get_current_active_user_or_service_account),
-        school: School = Depends(get_school_from_path)
+
+def get_active_principals(
+    maybe_user: Optional[User] = Depends(get_optional_user),
+    maybe_service_account: Optional[ServiceAccount] = Depends(get_optional_service_account),
 ):
-    permission_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Insufficient permission"
-    )
-    if isinstance(account, User):
-        if not account.is_superuser and account.school_id != school.id:
-            raise permission_exception
-    elif isinstance(account, ServiceAccount):
-        if account.type not in {ServiceAccountType.BACKEND, ServiceAccountType.LMS, ServiceAccountType.SCHOOL}:
-            raise permission_exception
-    return account
+    """
+    RBAC Access Control using https://github.com/holgi/fastapi-permissions
+
+    Principals:
+    - role:admin
+    - role:lms
+    - role:school
+    - role:kiosk
+    - user:{id}
+    - school:{id}
+    - Authenticated
+    - Everyone
+
+    Future Principals:
+    - role:student
+    - role:parent
+    - role:teacher
+
+    Permissions:
+    - CRUD (create, read, update, delete)
+
+    Future permissions?
+    - batch
+    - share
+    """
+
+    principals = [Everyone]
+
+    if maybe_user is not None and maybe_user.is_active:
+        user = maybe_user
+        principals.append(Authenticated)
+        if user.is_superuser:
+            principals.append("role:admin")
+
+        principals.append(f'user:{user.id}')
+        if user.school_id is not None:
+            principals.append(f'school:{user.school_id}')
+
+    elif maybe_service_account is not None and maybe_service_account.is_active:
+        service_account = maybe_service_account
+        principals.append(Authenticated)
+        if service_account.type == ServiceAccountType.BACKEND:
+            principals.append("role:admin")
+        elif service_account.type == ServiceAccountType.LMS:
+            principals.append("role:lms")
+        elif service_account.type == ServiceAccountType.SCHOOL:
+            principals.append("role:school")
+        elif service_account.type == ServiceAccountType.KIOSK:
+            principals.append("role:kiosk")
+
+        for school in service_account.schools:
+            principals.append(f"school:{school.id}")
+
+    return principals

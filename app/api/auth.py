@@ -7,12 +7,12 @@ from fastapi_cloudauth.firebase import FirebaseCurrentUser, FirebaseClaims
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.security import get_current_active_user, get_current_active_user_or_service_account
+from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import User, ServiceAccount
-from app.schemas.service_account import ServiceAccountBrief
-from app.schemas.user import UserBrief, UserCreateIn, UserDetail
+from app.schemas.auth import AuthenticatedAccountBrief
+from app.schemas.user import UserCreateIn
 from app.services.security import create_access_token
 
 logger = get_logger()
@@ -88,7 +88,7 @@ def secure_user_endpoint(
     }
 
 
-@router.get("/auth/me", response_model=Union[UserDetail, ServiceAccountBrief])
+@router.get("/auth/me", response_model=AuthenticatedAccountBrief)
 async def get_current_user(
         current_user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account)
 ):
@@ -96,5 +96,10 @@ async def get_current_user(
     Test that the presented credentials are valid, returning details on the logged in user or service account.
     """
     logger.info("Testing user token", account=current_user_or_service_account)
-    return current_user_or_service_account
+    if isinstance(current_user_or_service_account, User):
+        return AuthenticatedAccountBrief(account_type="user", user=current_user_or_service_account)
+    elif isinstance(current_user_or_service_account, ServiceAccount):
+        return AuthenticatedAccountBrief(account_type="service account", service_account=current_user_or_service_account)
+    else:
+        raise NotImplemented("Hmm")
 

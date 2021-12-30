@@ -39,7 +39,7 @@ class Edition(Base):
         .scalar_subquery()
     )
 
-    ISBN = Column(String(200), nullable=False, index=True)
+    ISBN = Column(String(200), nullable=False, index=True, unique=True)
 
     cover_url = Column(String(200), nullable=True)
 

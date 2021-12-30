@@ -1,3 +1,4 @@
+import enum
 from sqlalchemy import (
     Column,
     Computed,
@@ -9,9 +10,17 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
+from fastapi_permissions import (
+    Allow,
+    Authenticated,
+    Deny,
+    Everyone,
+    configure_permissions,
+    list_permissions,
+)
 from app.db import Base
 
-import enum
+
 
 from app.models.service_account_school_association import service_account_school_association_table
 
@@ -72,3 +81,33 @@ class School(Base):
 
     def __repr__(self):
         return f"<School '{self.name}' ({self.official_identifier} - {self.country.name})>"
+
+    def __acl__(self):
+        """ defines who can do what to the instance
+        the function returns a list containing tuples in the form of
+        (Allow or Deny, principal identifier, permission name)
+
+        If a role is not listed (like "role:user") the access will be
+        automatically denied.
+
+        (Deny, Everyone, All) is automatically appended at the end.
+        """
+        return [
+            # Let's not allow anyone to view any school
+            #(Allow, Authenticated, "read"),
+
+            (Allow, "role:admin", "create"),
+            (Allow, "role:admin", "read"),
+            (Allow, "role:admin", "update"),
+            (Allow, "role:admin", "delete"),
+            (Allow, "role:admin", "batch"),
+
+            (Allow, "role:lms", "batch"),
+            (Allow, "role:lms", "update"),
+
+            (Deny, "role:student", "update"),
+            (Deny, "role:student", "delete"),
+
+            (Allow, f"school:{self.id}", "read"),
+            (Allow, f"school:{self.id}", "update"),
+        ]

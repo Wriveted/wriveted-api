@@ -9,7 +9,6 @@ print("Script to add all australian schools to Wriveted API")
 print("Connecting")
 print(httpx.get(settings.WRIVETED_API + "/version").json())
 
-
 school_data = []
 
 with open("australian_schools.csv", newline='') as csv_file:
@@ -49,8 +48,31 @@ with open("australian_schools.csv", newline='') as csv_file:
             )
 
 print("Uploading in bulk")
+
+# A User Account Token
+user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE1MzAyNDMsImlhdCI6MTY0MDgzOTA0Mywic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OjQyNmZhZGRmLWY0MTYtNGQ0ZS1hYjQwLWY2MWQ3ODBhOGNiZiJ9.hqn8tiv_QwymELIk-dsOr9KFb_LQ0yil2omrO-pncSw"
+
+
+response = httpx.get(
+    settings.WRIVETED_API + "/schools",
+    headers={
+        "Authorization": f"Bearer {user_token}"
+    }
+)
+response.raise_for_status()
+print("Current schools")
+print(response.json())
+
 start_time = time.time()
-print(httpx.post(settings.WRIVETED_API + "/schools", json=school_data).json())
+response = httpx.post(
+    settings.WRIVETED_API + "/schools",
+    json=school_data,
+    headers={
+        "Authorization": f"Bearer {user_token}"
+    }
+)
+response.raise_for_status()
+print(response.json())
 end_time = time.time()
 
 print("Finished")
