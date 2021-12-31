@@ -30,6 +30,8 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
     def create_in_bulk(self, db: Session, *, bulk_author_data_in: List[AuthorCreateIn]):
         """
         Upsert via https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#insert-on-conflict-upsert
+
+        Note this relies on the clearly incorrect assumption that Author's names are unique.
         """
         insert_stmt = pg_insert(Author).on_conflict_do_nothing(
             #index_elements=['full_name']

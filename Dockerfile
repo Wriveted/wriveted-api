@@ -1,7 +1,10 @@
-FROM python:3.9
+FROM python:3.10-slim
 #FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9
 
 LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
+
+# Allow statements and log messages to immediately appear in the Knative logs
+ENV PYTHONUNBUFFERED True
 
 WORKDIR /app/
 
@@ -37,5 +40,8 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install ; else poetry i
 
 ENV PYTHONPATH=/app
 
-EXPOSE 8000
-CMD uvicorn "app.main:app" --port 8000 --host 0.0.0.0
+
+#CMD uvicorn "app.main:app" --port $PORT --host 0.0.0.0
+
+# If we would rather have multiple processes in our container
+CMD gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app.main:app

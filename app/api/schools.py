@@ -36,7 +36,6 @@ bulk_school_access_control_list = [
     # Should we let LMS accounts create new schools?
     (Deny, "role:lms", "create"),
     (Deny, "role:lms", "batch"),
-
 ]
 
 

@@ -8,12 +8,20 @@ from pydantic import AnyHttpUrl, BaseSettings, SecretStr, validator, FilePath, D
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
-    GOOGLE_PROJECT_ID: str = "hardbyte-wriveted-development"
     FIREBASE_PROJECT_ID: str = "hardbyte-wriveted-development"
 
-    GOOGLE_SQL_INSTANCE_ID: str = "wriveted"
-    GOOGLE_SQL_DATABASE_ID: str = "alembic-test"
-    GOOGLE_SQL_DATABASE_PASSWORD: str = "gJduFxMylJN1v44B"
+    # # TODO these should be optional, we could support deployment on AWS (e.g. RDS + Fargate)
+    # # GCP specific configuration
+    GCP_PROJECT_ID: str = "hardbyte-wriveted-development"
+    GCP_CLOUD_SQL_INSTANCE_ID: str = "wriveted"
+    GCP_LOCATION: str = "australia-southeast1"
+
+    POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]    # e.g. /cloudsql
+
+    POSTGRESQL_SERVER: str = "/"
+    POSTGRESQL_DATABASE: str = "postgres"
+    POSTGRESQL_USER: str = "postgres"
+    POSTGRESQL_PASSWORD: str
 
     SQLALCHEMY_DATABASE_URI: str = None
 
@@ -22,16 +30,34 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             # If a string is provided (e.g. via environment variable) we just use that
             return v
-        project_id = values.get("GOOGLE_PROJECT_ID")
-        cloud_sql_instance_id = values.get("GOOGLE_SQL_INSTANCE_ID")
-        cloud_sql_db_id = values.get("GOOGLE_SQL_DATABASE_ID")
 
-        path = f"projects/{project_id}/instances/{cloud_sql_instance_id}/databases/{cloud_sql_db_id}"
+        # Otherwise, assemble a sqlalchemy connection string from the other provided values.
+        db_host = values.get("POSTGRESQL_SERVER")
+        db_user = values.get("POSTGRESQL_USER")
+        db_password = values.get("POSTGRESQL_PASSWORD")
+        db_name = values.get("POSTGRESQL_DATABASE")
+
+        query = None
+        # Connect to Cloud SQL using unix socket instead of TCP socket
+        # https://cloud.google.com/sql/docs/postgres/connect-run?authuser=1#connecting_to
+        socket_path = values.get('POSTGRESQL_DATABASE_SOCKET_PATH')
+
+        if socket_path is not None:
+            project = values.get('GCP_PROJECT_ID')
+            location = values.get('GCP_LOCATION')
+            cloud_sql_instance_id = values.get('GCP_CLOUD_SQL_INSTANCE_ID')
+            cloud_sql_instance_connection = f"{project}:{location}:{cloud_sql_instance_id}"
+            query = f"host={socket_path}/{cloud_sql_instance_connection}"
+
+        print("query", query)
 
         return AnyUrl.build(
             scheme="postgresql",
-            host="/",
-            path=path,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            path=db_name,
+            query=query,
         )
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
@@ -41,6 +67,10 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        # Brian's test Cloud Run deployments
+        "https://wriveted-api-vud2s2v5sq-ts.a.run.app",
+        "https://wriveted-ui-vud2s2v5sq-ts.a.run.app",
+
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
@@ -53,7 +83,7 @@ class Settings(BaseSettings):
 
     # This must be set for JWT token to persist and be valid between multiple
     # API processes create with `secrets.token_urlsafe(32)`
-    SECRET_KEY: str = 'CjZNhAWKT7hrkqiEpnXgGCkgYk2O5mXKePFML-1iC8M'
+    SECRET_KEY: str
 
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
