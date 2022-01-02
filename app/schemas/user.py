@@ -15,7 +15,10 @@ class UserCreateIn(BaseModel):
 
 
 class UserUpdateIn(BaseModel):
-    pass
+    name: Optional[str]
+    is_active: Optional[bool]
+    school: Optional[SchoolBrief]
+    info: Optional[dict]
 
 
 class UserBrief(BaseModel):

@@ -11,7 +11,8 @@ def create_event(
         description: str,
         level: EventLevel = EventLevel.NORMAL,
         school=None,
-        account: Union[ServiceAccount, User] = None
+        account: Union[ServiceAccount, User] = None,
+
 ):
     user = account if isinstance(account, User) else None
     service_account = account if isinstance(account, ServiceAccount) else None
