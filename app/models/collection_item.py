@@ -23,6 +23,9 @@ class CollectionItem(Base):
     # Information from this particular school's LMS
     info = Column(JSON)
 
+    copies_available = Column(Integer, default=1, nullable=False)
+    copies_on_loan = Column(Integer, default=0, nullable=False)
+
     school = relationship(
         "School",
         back_populates="collection"
@@ -34,3 +37,6 @@ class CollectionItem(Base):
 
     edition = relationship('Edition', lazy="joined")
 
+    def __repr__(self):
+        copies = f"{self.copies_available}/{self.copies_available + self.copies_on_loan}"
+        return f"<CollectionItem '{self.work.title}' @ '{self.school.name}' ({copies} available)>"
