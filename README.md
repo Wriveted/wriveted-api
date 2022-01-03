@@ -1,4 +1,13 @@
 
+This repository implements a REST API to add, edit, and remove information about 
+Users, Books, Schools and Library Collections for Wriveted.
+
+The API is designed for use by multiple users:
+* Library Management Systems. In particular see the section on updating and setting Schools collections.
+* Wriveted Staff either directly via scripts or via an admin UI.
+* End users via Huey chatbot or other Wriveted applications.
+
+
 ## Poetry
 
 Install poetry, then install dependencies with:
@@ -75,13 +84,15 @@ At a minimum you'll have to add the secrets to Secret Manager, then attach
 the `roles/secretmanager.secretAccessor` role to the service account used by 
 Cloud Run for those secrets.
 
+You will be prompted to allow unauthenticated invocations: respond `y`. We 
+implement our own authentication in the FastAPI app.
 
-You will be prompted to allow unauthenticated invocations: respond `y`.
+Note you will have to configure the Cloud SQL database manually 
+(orchestrating with Terraform is left as an exercise for the reader 👋).
 
-Note you will have to configure the Cloud SQL database manually (for now).
-
-- Add a private IP address.
-- Add a Serverless VPC Access connector - https://cloud.google.com/vpc/docs/configure-serverless-vpc-access?authuser=1#create-connector
+Use a public IP address for the Cloud SQL instance (don't worry about the
+private VPC method it is way more expensive).
+Smallest instance with shared CPU is fine 
 
 
 
