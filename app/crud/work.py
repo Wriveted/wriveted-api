@@ -61,7 +61,6 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         return series
 
     def bulk_create_series(self, db: Session, bulk_series_data: List[SeriesCreateIn]):
-        print(bulk_series_data)
         insert_stmt = pg_insert(Series).on_conflict_do_nothing()
         values = [
             {

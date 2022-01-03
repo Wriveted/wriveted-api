@@ -32,6 +32,7 @@ class EditionDetail(BaseModel):
         orm_mode = True
 
 
+
 class EditionCreateIn(BaseModel):
 
     work_id: Optional[str]

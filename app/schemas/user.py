@@ -17,6 +17,7 @@ class UserCreateIn(BaseModel):
 class UserUpdateIn(BaseModel):
     name: Optional[str]
     is_active: Optional[bool]
+    is_superuser: Optional[bool]
     school: Optional[SchoolBrief]
     info: Optional[dict]
 

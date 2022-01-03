@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr, UUID4
 
 from app.models import ServiceAccountType
 from app.schemas.event import EventBrief
+from app.schemas.school import SchoolIdentity
 
 
 class ServiceAccountBrief(BaseModel):
@@ -35,4 +36,4 @@ class ServiceAccountCreateIn(BaseModel):
 
     info: Optional[dict]
 
-    #schools: Optional[List[str]]
+    schools: Optional[List[SchoolIdentity]]

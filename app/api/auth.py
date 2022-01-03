@@ -99,7 +99,7 @@ async def get_current_user(
     if isinstance(current_user_or_service_account, User):
         return AuthenticatedAccountBrief(account_type="user", user=current_user_or_service_account)
     elif isinstance(current_user_or_service_account, ServiceAccount):
-        return AuthenticatedAccountBrief(account_type="service account", service_account=current_user_or_service_account)
+        return AuthenticatedAccountBrief(account_type="service-account", service_account=current_user_or_service_account)
     else:
         raise NotImplemented("Hmm")
 

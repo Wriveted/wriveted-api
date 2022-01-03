@@ -9,3 +9,5 @@ class PaginatedQueryParams:
         self.skip = skip
         self.limit = limit
 
+    def __repr__(self):
+        return f"<Pagination skip={self.skip}, limit={self.limit}>"

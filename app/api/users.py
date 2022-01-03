@@ -56,7 +56,7 @@ async def update_user(
     return updated_user
 
 
-@router.delete("/users/{uuid}")
+@router.delete("/user/{uuid}")
 async def deactivate_user(
         uuid: str,
         purge: bool = False,
@@ -66,8 +66,8 @@ async def deactivate_user(
     """
     Mark user INACTIVE.
 
-    Delete user entirely from database if `purge` is `True`.
-
+    If `purge` is `True` we instead delete the user entirely from the database.
+    Note the user can then sign up again and a purge will delete all associated events.
     """
     user = crud.user.get(db=session, id=uuid)
     logger.info("Request to delete a user", user_to_delete=user, account=account)
@@ -86,3 +86,4 @@ async def deactivate_user(
         session.delete(user)
 
     session.commit()
+    return "ok"

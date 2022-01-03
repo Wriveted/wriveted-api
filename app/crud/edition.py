@@ -86,8 +86,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             if edition_data.series_title is not None and len(edition_data.series_title) > 0:
                 bulk_series_titles.add(edition_data.series_title)
 
-        crud.author.create_in_bulk(db=session, bulk_author_data_in=bulk_author_data.values())
-        logger.info("Authors created")
+        if len(bulk_author_data) > 0:
+            crud.author.create_in_bulk(db=session, bulk_author_data_in=bulk_author_data.values())
+            logger.info("Authors created")
 
         # Series
         if len(bulk_series_titles) > 0:
@@ -100,6 +101,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
 
         # TODO keep bulkifying this...
+        # Work next
 
         editions = []
         for edition_data in new_edition_data:

@@ -5,14 +5,16 @@ from pydantic import BaseModel, AnyHttpUrl, constr
 from app.models import SchoolState
 
 
+class SchoolIdentity(BaseModel):
+    official_identifier: str
+    country_code: str
 
 
-class SchoolBrief(BaseModel):
+class SchoolBrief(SchoolIdentity):
     official_identifier: str
     state: SchoolState
 
     name: str
-    country_code: str
 
     class Config:
         orm_mode = True

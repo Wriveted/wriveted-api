@@ -17,6 +17,7 @@ from app.models import School
 from app.permissions import Permission
 from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolUpdateIn
 from app.api.dependencies.school import get_school_from_path
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -26,7 +27,6 @@ router = APIRouter(
         Security(get_current_active_user_or_service_account)
     ]
 )
-
 
 bulk_school_access_control_list = [
     (Allow, Authenticated, "read"),
@@ -141,3 +141,22 @@ async def update_school(
 ):
     logger.info("School update", school=school, account=account)
     return crud.school.update(db=session, obj_in=school_update_data, db_obj=school)
+
+
+@router.delete(
+    "/school/{country_code}/{school_id}",
+    response_model=SchoolBrief
+)
+async def delete_school(
+        school: School = Permission("delete", get_school_from_path),
+        account=Depends(get_current_active_user_or_service_account),
+        session: Session = Depends(get_session)
+):
+    logger.info("Deleting a school", account=account, school=school)
+    create_event(
+        session=session,
+        title="Deleting school",
+        description=f"School {school.name} in {school.country.name} deleted.",
+        account=account,
+    )
+    return crud.school.remove(db=session, obj_in=school)

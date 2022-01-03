@@ -1,15 +1,19 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.schemas.author import AuthorBrief, AuthorDetail
 
 router = APIRouter(
-    tags=["Authors"]
+    tags=["Authors"],
+    dependencies=[
+        Security(get_current_active_user_or_service_account)
+    ]
 )
 
 

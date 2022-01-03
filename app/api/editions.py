@@ -13,6 +13,7 @@ from app.models import Edition
 from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn
 from app.services.collections import create_missing_editions
 
+
 logger = get_logger()
 router = APIRouter(
     tags=["Books"],

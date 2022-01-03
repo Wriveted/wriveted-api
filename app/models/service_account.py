@@ -40,8 +40,6 @@ class ServiceAccount(Base):
     is_active = Column(Boolean(), default=True)
     type = Column(Enum(ServiceAccountType), nullable=False, index=True)
 
-    # TODO should probably be a many to many relationship to schools
-
     schools = relationship(
         'School',
         secondary=service_account_school_association_table,

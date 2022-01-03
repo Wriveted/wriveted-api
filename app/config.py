@@ -49,8 +49,6 @@ class Settings(BaseSettings):
             cloud_sql_instance_connection = f"{project}:{location}:{cloud_sql_instance_id}"
             query = f"host={socket_path}/{cloud_sql_instance_connection}"
 
-        print("query", query)
-
         return AnyUrl.build(
             scheme="postgresql",
             user=db_user,
