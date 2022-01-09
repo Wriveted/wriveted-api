@@ -94,9 +94,16 @@ Note you will have to configure the Cloud SQL database manually
 
 Use a public IP address for the Cloud SQL instance (don't worry about the
 private VPC method it is way more expensive).
-Smallest instance with shared CPU is fine 
+Smallest instance with shared CPU is fine.
 
+Create a `cloudrun` user, then once you have a connection
+reduce the rights with:
 
+```postgresql
+ALTER ROLE cloudrun with NOCREATEDB NOCREATEROLE;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
+```
 
 ## 🚨 Authorization
 
@@ -124,3 +131,10 @@ access_control_list = [
     (Allow, f"school:{self.id}", "update"),
 ]
 ```
+
+
+# Logs
+
+Available in Cloud Run:
+
+https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
