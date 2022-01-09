@@ -9,6 +9,7 @@ from sqlalchemy import (
     JSON,
     DateTime, Boolean, ForeignKey, Enum,
 )
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db import Base
@@ -46,7 +47,7 @@ class ServiceAccount(Base):
         back_populates='service_accounts'
     )
 
-    info = Column(JSON, nullable=True)
+    info = Column(MutableDict.as_mutable(JSON), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

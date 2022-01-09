@@ -18,6 +18,9 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
     # TODO handle create student account linked to school
 
     def get_or_create(self, db: Session, user_data: UserCreateIn, commit=True) -> User:
+        """
+        Get a user by email, creating a new user if required.
+        """
         q = select(User).where(User.email == user_data.email)
         try:
             user = db.execute(q).scalar_one()

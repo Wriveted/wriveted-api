@@ -11,7 +11,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import User, ServiceAccount
-from app.schemas.auth import AuthenticatedAccountBrief
+from app.schemas.auth import AuthenticatedAccountBrief, AccountType
 from app.schemas.user import UserCreateIn
 from app.services.security import create_access_token
 
@@ -48,7 +48,8 @@ def secure_user_endpoint(
 ):
     """Login to Wriveted API by exchanging a firebase token.
 
-    Creates a new user if required.
+    Creates a new user if required, updates existing users with the latest SSO data
+    (e.g. their profile picture).
     """
 
     # If we have gotten this far the user has a valid firebase token
@@ -64,17 +65,29 @@ def secure_user_endpoint(
     user_data = UserCreateIn(
         name=name,
         email=email,
-        info={
-            "sign_in_provider": raw_data['firebase'].get("sign_in_provider"),
-            "picture": picture
-        }
+        # info={
+        #     "sign_in_provider": raw_data['firebase'].get("sign_in_provider"),
+        #     "picture": picture
+        # }
     )
 
     user = crud.user.get_or_create(session, user_data)
+
+
+
     logger.info("Request to login from user", user=user)
 
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Inactive user")
+
+    # Note this replaces the user's info with the SSO data including their name and info.
+    #crud.user.update(db=session, db_obj=user, obj_in=user_data)
+    # Instead we only update the fields we want
+    user.info["picture"] = picture
+    user.info["sign_in_provider"] = raw_data['firebase'].get("sign_in_provider")
+
+    session.add(user)
+    session.commit()
 
     wriveted_access_token = create_access_token(
         subject=f"wriveted:user-account:{user.id}",
@@ -97,9 +110,9 @@ async def get_current_user(
     """
     logger.info("Testing user token", account=current_user_or_service_account)
     if isinstance(current_user_or_service_account, User):
-        return AuthenticatedAccountBrief(account_type="user", user=current_user_or_service_account)
+        return AuthenticatedAccountBrief(account_type=AccountType.user, user=current_user_or_service_account)
     elif isinstance(current_user_or_service_account, ServiceAccount):
-        return AuthenticatedAccountBrief(account_type="service-account", service_account=current_user_or_service_account)
+        return AuthenticatedAccountBrief(account_type=AccountType.service_account, service_account=current_user_or_service_account)
     else:
         raise NotImplemented("Hmm")
 
