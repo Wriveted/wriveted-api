@@ -28,16 +28,18 @@ poetry add pydantic
 Login to GCP:
 
 ```shell
-gcloud auth application-default login
+gcloud --project wriveted-api auth application-default login
 ```
 
-Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstart-proxy-test?authuser=1).
+Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstart-proxy-test).
 
 ```shell
-cloud_sql_proxy -instances=hardbyte-wriveted-development:australia-southeast1:wriveted=tcp:5432
+cloud_sql_proxy -instances=wriveted-api:australia-southeast1:wriveted=tcp:5432
 ```
 
 Set the environment variable `SQLALCHEMY_DATABASE_URI` with the proxied database path (otherwise it will create a local sqlite database):
+
+Export the devops credentials for the production database:
 
 ```
 export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres
@@ -64,13 +66,13 @@ Cloud Build + Cloud SQL + Cloud Run
 
 Build the Docker image using Cloud Build:
 
-`gcloud builds submit --tag gcr.io/hardbyte-wriveted-development/wriveted-api`
+`gcloud builds submit --tag gcr.io/wriveted-api/wriveted-api`
 
 Then deploy it (or use the Google Console):
 
 ```shell
 gcloud run deploy wriveted-api \
-  --image gcr.io/hardbyte-wriveted-development/wriveted-api \
+  --image gcr.io/wriveted-api/wriveted-api \
   --add-cloudsql-instances=wriveted \
   --platform managed \
   --set-env-vars="POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql" \
