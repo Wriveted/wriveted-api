@@ -8,7 +8,7 @@ from pydantic import AnyHttpUrl, BaseSettings, SecretStr, validator, FilePath, D
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
-    FIREBASE_PROJECT_ID: str = "hardbyte-wriveted-development"
+    FIREBASE_PROJECT_ID: str = "wriveted-api"
 
     # # TODO these should be optional, we could support deployment on AWS (e.g. RDS + Fargate)
     # # GCP specific configuration
