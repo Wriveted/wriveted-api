@@ -15,7 +15,7 @@ logger = get_logger()
 class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Any]):
     def create(self, db: Session, *, obj_in: ServiceAccountCreateIn, commit=True) -> ServiceAccount:
         # Remove the schools, create the service account, then link to the schools
-        schools = obj_in.schools
+        schools = list(obj_in.schools)
         del obj_in.schools
         svc_account = super().create(db=db, obj_in=obj_in, commit=False)
         for school in schools:
@@ -30,5 +30,6 @@ class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Any]):
             db.refresh(svc_account)
 
         return svc_account
+
 
 service_account = CRUDServiceAccount(ServiceAccount)
