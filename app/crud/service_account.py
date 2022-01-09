@@ -15,8 +15,13 @@ logger = get_logger()
 class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Any]):
     def create(self, db: Session, *, obj_in: ServiceAccountCreateIn, commit=True) -> ServiceAccount:
         # Remove the schools, create the service account, then link to the schools
-        schools = list(obj_in.schools)
-        del obj_in.schools
+        if obj_in.schools is not None:
+            # Copy the list of schools to link to
+            schools = list(obj_in.schools)
+            del obj_in.schools
+        else:
+            shools = []
+
         svc_account = super().create(db=db, obj_in=obj_in, commit=False)
         for school in schools:
             svc_account.schools.append(crud.school.get_by_official_id_or_404(
@@ -24,7 +29,7 @@ class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Any]):
                 country_code=school.country_code,
                 official_id=school.official_identifier
             ))
-        db.add(svc_account)
+
         if commit:
             db.commit()
             db.refresh(svc_account)
