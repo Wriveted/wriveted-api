@@ -19,7 +19,8 @@ class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Any]):
         if obj_in.schools is not None:
             # Copy the list of schools to link to
             schools = list(obj_in.schools)
-            obj_in.schools = []
+
+        obj_in.schools = []
 
         svc_account = super().create(db=db, obj_in=obj_in, commit=False)
         for school in schools:
