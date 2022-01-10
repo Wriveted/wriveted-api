@@ -84,7 +84,8 @@ def get_optional_service_account(
 
 
 def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:
-    assert current_user is not None
+    if current_user is None:
+        raise HTTPException(status_code=403, detail="API requires a user")
     return current_user
 
 

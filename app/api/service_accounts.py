@@ -32,7 +32,8 @@ async def get_service_accounts(
         session: Session = Depends(get_session)
 ):
     """
-    List all users
+    List all service accounts.
+
     """
     logger.info("Listing service accounts", user=current_user)
     query = crud.service_account.get_all_query(db=session)
