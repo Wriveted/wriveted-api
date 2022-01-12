@@ -62,9 +62,9 @@ class Settings(BaseSettings):
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://actual.domain.com"]'
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
-        #"http://localhost:3000",
-        #"http://localhost:8000",
-        #"http://127.0.0.1:8000",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
 
         # Brian's test Cloud Run deployments
         #"https://wriveted-api-vud2s2v5sq-ts.a.run.app",
