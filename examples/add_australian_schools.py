@@ -49,18 +49,18 @@ with open("australian_schools.csv", newline='') as csv_file:
 
 print("Uploading in bulk")
 
-# A User Account Token
-user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE1MzAyNDMsImlhdCI6MTY0MDgzOTA0Mywic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OjQyNmZhZGRmLWY0MTYtNGQ0ZS1hYjQwLWY2MWQ3ODBhOGNiZiJ9.hqn8tiv_QwymELIk-dsOr9KFb_LQ0yil2omrO-pncSw"
+# An account Token with sufficient rights to add schools in bulk
+api_token = settings.WRIVETED_API_TOKEN
 
 
 response = httpx.get(
     settings.WRIVETED_API + "/schools",
     headers={
-        "Authorization": f"Bearer {user_token}"
+        "Authorization": f"Bearer {api_token}"
     }
 )
 response.raise_for_status()
-print("Current schools")
+print("Current schools:")
 print(response.json())
 
 start_time = time.time()
@@ -68,7 +68,7 @@ response = httpx.post(
     settings.WRIVETED_API + "/schools",
     json=school_data,
     headers={
-        "Authorization": f"Bearer {user_token}"
+        "Authorization": f"Bearer {api_token}"
     }
 )
 response.raise_for_status()
