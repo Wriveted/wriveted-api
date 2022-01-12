@@ -1,4 +1,3 @@
-import pydantic
 from pydantic import BaseSettings
 
 

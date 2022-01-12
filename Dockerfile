@@ -39,7 +39,7 @@ COPY app/ /app/app
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install ; else poetry install --no-dev ; fi"
 
 ENV PYTHONPATH=/app
-
+ENV PORT=8000
 
 #CMD uvicorn "app.main:app" --port $PORT --host 0.0.0.0
 

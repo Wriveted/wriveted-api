@@ -103,6 +103,9 @@ reduce the rights with:
 ALTER ROLE cloudrun with NOCREATEDB NOCREATEROLE;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public to cloudrun;
+
 ```
 
 ## 🚨 Authorization
