@@ -6,18 +6,11 @@ from pydantic import AnyHttpUrl
 
 from examples.config import settings
 
-print("Script to add all australian schools to Wriveted API")
+print("Script to add a selection of books to the collections of a selection of australian schools")
 print("Connecting")
 print(httpx.get(settings.WRIVETED_API + "/version").json())
 
-
-# A User Account Token
-user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE0MzAzOTYsImlhdCI6MTY0MDczOTE5Niwic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OmFhNmZiYjZmLWRhM2MtNDRhZi1iOGM4LWYwMTMxZjJiMTQwZiJ9.rlFDPjYumRfuKFSKHeVC2nI2_Y0-pbY0x9ARI2_cX6A"
-
-# A Service Account Token
-service_account_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDM4MTEzMjMsImlhdCI6MTY0MDczOTMyMywic3ViIjoid3JpdmV0ZWQ6c2VydmljZS1hY2NvdW50OjE2ZmI1ZWFmLWNkMzMtNDljZi05MzBlLWQ2MjhiZjhjNjU2OSJ9.Q8eN0IsstZlD7Wehg0diQlvvtyuVjFY1NP1sE2HzuFg"
-
-token = user_token
+token = settings.WRIVETED_API_TOKEN
 
 book_data = []
 
@@ -47,38 +40,39 @@ with open("Wriveted-books.csv", newline='') as csv_file:
             cover_url = book_row[17]
 
         for ISBN in book_row[28].split(','):
+            ISBN = ISBN.strip()
+            if len(ISBN) > 0:
+                new_edition_data = {
+                    # "work_title": "string",
 
-            new_edition_data = {
-                # "work_title": "string",
-
-                "title": book_row[0].strip(),
-                "ISBN": ISBN.strip(),
-                "cover_url": cover_url,
-                "info": {
-                    "Genre": book_row[20],
-                    "Illustration Style": book_row[18],
-                    "AirTableDump": book_row
-                },
-                "authors": authors,
-                "illustrators": [
-                    # {
-                    #     "full_name": "string",
-                    #     "info": "string"
-                    # }
-                ]
-            }
-            if book_row[80] is not None and len(book_row[80]) > 1:
-                # Add the series title
-                try:
-                    (series_title, *_ ) = book_row[80].split(';')
-                    new_edition_data['series_title'] = series_title.strip()
-                except ValueError:
-                    print("Not adding this series - row was ", book_row[80])
+                    "title": book_row[0].strip(),
+                    "ISBN": ISBN,
+                    "cover_url": cover_url,
+                    "info": {
+                        "Genre": book_row[20],
+                        "Illustration Style": book_row[18],
+                        "AirTableDump": book_row
+                    },
+                    "authors": authors,
+                    "illustrators": [
+                        # {
+                        #     "full_name": "string",
+                        #     "info": "string"
+                        # }
+                    ]
+                }
+                if book_row[80] is not None and len(book_row[80]) > 1:
+                    # Add the series title
+                    try:
+                        (series_title, *_ ) = book_row[80].split(';')
+                        new_edition_data['series_title'] = series_title.strip()
+                    except ValueError:
+                        print("Not adding this series - row was ", book_row[80])
 
 
-            book_data.append(
-                new_edition_data
-            )
+                book_data.append(
+                    new_edition_data
+                )
 
 schools_response = httpx.get(
     settings.WRIVETED_API + "/schools",
@@ -93,15 +87,33 @@ schools = schools_response.json()
 
 for school in schools:
     collection_data = random.choices(book_data, k=100)
-    print("Updating school", school['name'])
-    print(
-        httpx.post(
+
+    if False:
+        print("Updating school by setting entire collection", school['name'])
+        print(
+            httpx.post(
+                f"{settings.WRIVETED_API}/school/{school['country_code']}/{school['official_identifier']}/collection",
+                json=collection_data,
+                timeout=60,
+                headers={
+                    "Authorization": f"Bearer {token}"
+                },
+            ).json()
+        )
+    else:
+        print("Updating school with collection changes", school['name'])
+
+        collection_changes = [
+            {
+                "action": "add",
+                "ISBN": d['ISBN'],
+                "edition_info": d,
+                "copies_on_loan": 0,
+                "copies_available": 1,
+            } for d in collection_data]
+        res = httpx.put(
             f"{settings.WRIVETED_API}/school/{school['country_code']}/{school['official_identifier']}/collection",
-            json=collection_data,
-            timeout=60,
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
-        ).json()
-    )
+            json=collection_changes, timeout=60, headers={"Authorization": f"Bearer {token}"}, )
+        res.raise_for_status()
+        print(res.json())
     #raise SystemExit

@@ -10,7 +10,7 @@ print("Connecting")
 print(httpx.get(settings.WRIVETED_API + "/version").json())
 
 book_data = []
-user_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDE1MzAyNDMsImlhdCI6MTY0MDgzOTA0Mywic3ViIjoid3JpdmV0ZWQ6dXNlci1hY2NvdW50OjQyNmZhZGRmLWY0MTYtNGQ0ZS1hYjQwLWY2MWQ3ODBhOGNiZiJ9.hqn8tiv_QwymELIk-dsOr9KFb_LQ0yil2omrO-pncSw"
+api_token = settings.WRIVETED_API_TOKEN
 
 with open("Wriveted-books.csv", newline='') as csv_file:
     reader = csv.reader(csv_file)
@@ -100,7 +100,7 @@ with open("Wriveted-books.csv", newline='') as csv_file:
                     settings.WRIVETED_API + "/editions",
                     json=book_data,
                     headers={
-                        "Authorization": f"Bearer {user_token}"
+                        "Authorization": f"Bearer {api_token}"
                     },
                     timeout=60
                 )

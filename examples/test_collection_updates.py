@@ -8,9 +8,9 @@ from examples.config import settings
 """
 Script to test out the collection mechanisms of the Wriveted API.
 
-Warning: Don't run against a real deployment!
+Warning: Don't run against a real deployment! ☠
 
-Plan:
+
 - Check the token is valid
 - If the token is for a super-user:
     - Create a test school in Antarctica (ATA)
