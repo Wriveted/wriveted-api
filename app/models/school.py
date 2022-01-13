@@ -1,27 +1,21 @@
 import enum
 from sqlalchemy import (
     Column,
-    Computed,
     ForeignKey,
     Integer,
     String,
     JSON,
-    Enum, UniqueConstraint, Index
+    Enum, Index, select, func
 )
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, column_property
 from fastapi_permissions import (
     Allow,
-    Authenticated,
     Deny,
-    Everyone,
-    configure_permissions,
-    list_permissions,
 )
 from app.db import Base
 
-
-
+from app.models.collection_item import CollectionItem
 from app.models.service_account_school_association import service_account_school_association_table
 
 
@@ -63,6 +57,14 @@ class School(Base):
     country = relationship('Country')
 
     collection = relationship('CollectionItem', lazy="dynamic", cascade="all, delete")
+
+    # https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#mapper-column-property-sql-expressions
+    labeled_collection_count = column_property(
+        select(func.count(CollectionItem.id))
+            .where(CollectionItem.school_id == id)
+            .correlate_except(CollectionItem)
+            .scalar_subquery()
+    )
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
     # association proxy of "collectionitems" collection
