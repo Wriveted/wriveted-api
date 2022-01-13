@@ -59,7 +59,7 @@ class School(Base):
     collection = relationship('CollectionItem', lazy="dynamic", cascade="all, delete")
 
     # https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#mapper-column-property-sql-expressions
-    labeled_collection_count = column_property(
+    collection_count = column_property(
         select(func.count(CollectionItem.id))
             .where(CollectionItem.school_id == id)
             .correlate_except(CollectionItem)
