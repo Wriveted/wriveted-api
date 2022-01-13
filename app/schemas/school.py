@@ -15,6 +15,7 @@ class SchoolBrief(SchoolIdentity):
     state: SchoolState
 
     name: str
+    labeled_collection_count: int
 
     class Config:
         orm_mode = True
