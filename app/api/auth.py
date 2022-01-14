@@ -65,10 +65,10 @@ def secure_user_endpoint(
     user_data = UserCreateIn(
         name=name,
         email=email,
-        # info={
-        #     "sign_in_provider": raw_data['firebase'].get("sign_in_provider"),
-        #     "picture": picture
-        # }
+        info={
+            "sign_in_provider": raw_data['firebase'].get("sign_in_provider"),
+            "picture": picture
+        }
     )
 
     user = crud.user.get_or_create(session, user_data)
