@@ -15,7 +15,7 @@ from app import crud
 from app.api.dependencies.school import get_school_from_path
 from app.db.session import get_session
 from app.models import User, ServiceAccount, ServiceAccountType, School
-from app.services.security import get_payload_from_access_token, TokenPayload
+from app.services.security import create_access_token, get_payload_from_access_token, TokenPayload
 
 logger = get_logger()
 
@@ -26,6 +26,7 @@ credentials_exception = HTTPException(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
 
 def get_auth_header_data(
         http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
@@ -43,7 +44,7 @@ def get_auth_header_data(
 
 
 def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPayload:
-    logger.debug("Have an auth token", token=token)
+    logger.debug("Headers contains an Authorization component")
     try:
         return get_payload_from_access_token(token)
 
@@ -198,3 +199,12 @@ def get_active_principals(
             principals.append(f"school:{school.id}")
 
     return principals
+
+
+def create_user_access_token(user):
+    wriveted_access_token = create_access_token(
+        subject=f"wriveted:user-account:{user.id}",
+        # extra_claims={}
+    )
+    logger.debug("Access token generated for user", user=user)
+    return wriveted_access_token

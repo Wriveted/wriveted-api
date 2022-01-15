@@ -7,13 +7,12 @@ from fastapi_cloudauth.firebase import FirebaseCurrentUser, FirebaseClaims
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import create_user_access_token, get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import User, ServiceAccount
 from app.schemas.auth import AuthenticatedAccountBrief, AccountType
 from app.schemas.user import UserCreateIn
-from app.services.security import create_access_token
 
 logger = get_logger()
 config = get_settings()
@@ -73,8 +72,6 @@ def secure_user_endpoint(
 
     user = crud.user.get_or_create(session, user_data)
 
-
-
     logger.info("Request to login from user", user=user)
 
     if not user.is_active:
@@ -89,11 +86,7 @@ def secure_user_endpoint(
     session.add(user)
     session.commit()
 
-    wriveted_access_token = create_access_token(
-        subject=f"wriveted:user-account:{user.id}",
-        #extra_claims={}
-    )
-    logger.info("Access token generated for user", token=wriveted_access_token)
+    wriveted_access_token = create_user_access_token(user)
 
     return {
         "access_token": wriveted_access_token,
