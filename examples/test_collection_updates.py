@@ -1,6 +1,7 @@
 import csv
 import random
 import secrets
+import time
 
 import httpx
 from examples.config import settings
@@ -41,8 +42,8 @@ is_admin = (account_details['account_type'] == "user" and account_details['user'
 )
 test_school_id = "42"
 
-INITIAL_NUMBER_OF_BOOKS = 1000
-UPDATED_NUMBER_OF_BOOKS = 50    # There is something fishy in the data if this is higher than 50
+INITIAL_NUMBER_OF_BOOKS = 1500
+UPDATED_NUMBER_OF_BOOKS = 500
 ADDED_NUMBER_OF_BOOKS = 500
 REMOVED_NUMBER_OF_BOOKS = 50
 
@@ -145,7 +146,7 @@ with open("Wriveted-books.csv", newline='') as csv_file:
             cover_url = book_row[17]
 
         for ISBN in book_row[28].split(','):
-            ISBN = ISBN.strip()
+            ISBN = ISBN.strip().upper()
             if ISBN not in seen_isbns and len(ISBN) > 0:
 
                 new_edition_data = {
@@ -178,8 +179,8 @@ with open("Wriveted-books.csv", newline='') as csv_file:
                 book_data.append(
                     new_edition_data
                 )
-            else:
-                seen_isbns.add(ISBN)
+
+            seen_isbns.add(ISBN)
 
 
 print(f"{len(book_data)} Books loaded. Setting the collection to the first {INITIAL_NUMBER_OF_BOOKS} books")
@@ -222,7 +223,7 @@ assert len(collection) == INITIAL_NUMBER_OF_BOOKS, f"Expected the collection to 
 # Update the collection by changing the loan status of a subset of the books.
 books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
 print("Bulk updating loan status via `PUT .../collection` API")
-
+time.sleep(0.5)
 collection_changes = [
     {
         "action": "update",
@@ -241,7 +242,7 @@ httpx.put(
     },
 ).json()
 print("Updated loan status")
-
+time.sleep(0.5)
 get_collection_response = httpx.get(
         f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
         headers={"Authorization": f"Bearer {token}"},
