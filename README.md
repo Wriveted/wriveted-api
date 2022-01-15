@@ -35,6 +35,12 @@ poetry update
 ## Database Migrations
 
 Modify or add an SQLAlchemy ORM model in the `app.models` package.
+Set the environment variable `SQLALCHEMY_DATABASE_URI` with the appropriate database path:
+
+For example to connect to the docker-compose database:
+```
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@localhost/postgres
+```
 
 Then create a new migration:
 
@@ -109,6 +115,7 @@ Create a `cloudrun` user, then once you have a connection
 reduce the rights with:
 
 ```postgresql
+
 ALTER ROLE cloudrun with NOCREATEDB NOCREATEROLE;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;

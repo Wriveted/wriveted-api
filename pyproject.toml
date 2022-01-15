@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wriveted-api"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Brian Thorne <brian@hardbyte.nz>"]
 packages = [
@@ -10,7 +10,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 fastapi = "^0.71"
-uvicorn = {extras = ["standard"], version = "^0.16"}
+uvicorn = {extras = ["standard"], version = "^0.17"}
 alembic = "^1.7.5"
 structlog = "^21.5.0"
 psycopg2-binary = "^2.9.3"
