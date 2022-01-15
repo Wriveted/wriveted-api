@@ -60,7 +60,7 @@ async def set_school_collection(
     session.commit()
     if len(collection_data) > 0:
         await add_editions_to_collection(session, collection_data, school, account)
-        session.commit()
+
 
     return {
         'msg': "updated"
@@ -113,7 +113,7 @@ async def update_school_collection(
 
     isbns_to_remove = []
     editions_to_add: List[EditionCreateIn] = []
-    skipped_edditions: List[str] = []
+    skipped_editions: List[str] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
@@ -129,7 +129,7 @@ async def update_school_collection(
                 except ValidationError:
                     # The caller didn't give us information, and we don't
                     # have this edition in the database. We will skip and report this to the caller.
-                    skipped_edditions.append(update_info.ISBN)
+                    skipped_editions.append(update_info.ISBN)
             else:
 
                 editions_to_add.append(update_info.edition_info)
@@ -182,5 +182,5 @@ async def update_school_collection(
 
     return {
         'msg': "updated",
-        "skipped": skipped_edditions
+        "skipped": skipped_editions
     }
