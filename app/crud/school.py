@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from fastapi import HTTPException
 from sqlalchemy import select, delete, update
 from sqlalchemy.exc import NoResultFound
@@ -10,8 +12,31 @@ from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
 
 class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
 
-    def get_by_official_id_or_404(self, db: Session, country_code: str, official_id: str):
+    def get_all_query_with_optional_filters(
+            self,
+            db: Session,
+            country_code: Optional[str] = None,
+            query_string: Optional[str] = None
+    ):
+        school_query = self.get_all_query(db)
+        if country_code is not None:
+            school_query = school_query.where(School.country_code == country_code)
+        if query_string is not None:
+            # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
+            school_query = school_query.where(School.name.contains(query_string))
 
+        return school_query
+
+    def get_all_with_optional_filters(
+        self,
+        db: Session,
+        country_code: Optional[str] = None,
+        query_string: Optional[str] = None
+    ) -> List[School]:
+        query = self.get_all_query_with_optional_filters(db, country_code=country_code, query_string=query_string)
+        return db.execute(query).scalars().all()
+
+    def get_by_official_id_or_404(self, db: Session, country_code: str, official_id: str):
         query = (
           select(School)
             .where(School.country_code == country_code.upper())

@@ -63,17 +63,8 @@ async def get_schools(
     Provide a country code and/or search query to further filter the schools.
     """
 
-    school_query = crud.school.get_all_query(session)
-    if country_code is not None:
-        school_query = school_query.where(School.country_code == country_code)
-    if q is not None:
-        # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
-        school_query = school_query.where(School.name.startswith(q))
-
-    schools = session.execute(school_query).scalars().all()
-    allowed_schools = [school for school in schools
-                       if has_permission(principals, "read", school)]
-
+    schools = crud.school.get_all_with_optional_filters(session, country_code=country_code, query_string=q)
+    allowed_schools = [school for school in schools if has_permission(principals, "read", school)]
     paginated_schools = allowed_schools[pagination.skip:pagination.limit]
     logger.debug(f"Returning {len(paginated_schools)} schools")
     return paginated_schools
