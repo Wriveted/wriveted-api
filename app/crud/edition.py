@@ -76,7 +76,6 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 seen_isbns.add(edition_data.ISBN)
                 new_edition_data.append(edition_data)
 
-        # TODO this part could be done in bulk - make all series, make all authors, works etc
         # Dedupe Author data by "full_name"
         bulk_author_data = {}
         bulk_series_titles = set()

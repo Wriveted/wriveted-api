@@ -62,7 +62,7 @@ settings = get_settings()
 app = FastAPI(
     title="Wriveted API",
     description=api_docs,
-
+    debug=settings.DEBUG
 )
 
 # Set all CORS enabled origins
@@ -91,4 +91,3 @@ app.include_router(version_router)
 async def root():
     return RedirectResponse('/docs',
                             status_code=status.HTTP_307_TEMPORARY_REDIRECT)
-
