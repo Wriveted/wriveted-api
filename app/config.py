@@ -58,22 +58,21 @@ class Settings(BaseSettings):
             query=query,
         )
 
-    # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
+    # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://actual.domain.com"]'
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+        # Local development URLs
         "http://localhost:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
 
-        # Brian's test Cloud Run deployments
-        #"https://wriveted-api-vud2s2v5sq-ts.a.run.app",
-        #"https://wriveted-ui-vud2s2v5sq-ts.a.run.app",
+        # Production URL
+        "https://api.wriveted.com",
 
-        # Production Cloud Run Deployments
+        # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
-
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
@@ -93,6 +92,8 @@ class Settings(BaseSettings):
 
     # 2 years
     SERVICE_ACCOUNT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365 * 2
+
+    DEBUG: bool = False
 
     class Config:
         case_sensitive = True

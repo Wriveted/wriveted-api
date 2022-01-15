@@ -135,7 +135,6 @@ async def update_school_collection(
                 editions_to_add.append(update_info.edition_info)
         elif update_info.action == CollectionUpdateType.UPDATE:
             # Update the "copies_available" and "copies_on_loan"
-            # TODO consider a bulk update version of this
             stmt = (
                 update(CollectionItem)
                     .where(CollectionItem.school_id == school.id)
