@@ -23,6 +23,7 @@ class ServiceAccountDetail(ServiceAccountBrief):
     created_at: datetime
     updated_at: datetime
     events: List[EventBrief]
+    schools: List[SchoolIdentity]
 
 
 class ServiceAccountCreatedResponse(ServiceAccountBrief):
@@ -36,4 +37,11 @@ class ServiceAccountCreateIn(BaseModel):
 
     info: Optional[dict]
 
+    schools: Optional[List[SchoolIdentity]]
+
+
+class ServiceAccountUpdateIn(BaseModel):
+
+    name: Optional[str]
+    info: Optional[dict]
     schools: Optional[List[SchoolIdentity]]
