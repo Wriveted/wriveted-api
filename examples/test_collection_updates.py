@@ -63,7 +63,8 @@ if is_admin:
             "info": {
                 "msg": "Created for test purposes"
             }
-        }
+        },
+        timeout=120
     )
     new_test_school_response.raise_for_status()
     school_info = new_test_school_response.json()

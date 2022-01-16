@@ -142,7 +142,8 @@ cloud_sql_proxy -instances=wriveted-api:australia-southeast1:wriveted=tcp:5432
 
 Set the environment variable `SQLALCHEMY_DATABASE_URI` with the proxied database path (otherwise it will create a local sqlite database):
 
-Export the devops credentials for the production database:
+Export the devops credentials for the production database. Note the actual password can be found in
+[Secret Manager](https://console.cloud.google.com/security/secret-manager?project=wriveted-api):
 
 ```
 export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres
