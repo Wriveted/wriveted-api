@@ -1,0 +1,26 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/ui/**",
+        "run": {
+          "serviceId": "wriveted-admin-ui",
+          "region": "australia-southeast1"
+        }
+      },
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "wriveted-api",
+          "region": "australia-southeast1"
+        }
+      }
+    ]
+  }
+}
