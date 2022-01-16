@@ -48,7 +48,7 @@ async def get_school_collection(
 )
 async def set_school_collection(
         collection_data: List[CollectionItemIn],
-        school: School = Permission("batch", get_school_from_path),
+        school: School = Permission("update", get_school_from_path),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
@@ -61,7 +61,6 @@ async def set_school_collection(
     if len(collection_data) > 0:
         await add_editions_to_collection(session, collection_data, school, account)
 
-
     return {
         'msg': "updated"
     }
@@ -70,7 +69,7 @@ async def set_school_collection(
 @router.put("/school/{country_code}/{school_id}/collection", )
 async def update_school_collection(
         collection_update_data: List[CollectionUpdate],
-        school: School = Permission("batch", get_school_from_path),
+        school: School = Permission("update", get_school_from_path),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):

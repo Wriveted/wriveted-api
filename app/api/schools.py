@@ -33,7 +33,7 @@ bulk_school_access_control_list = [
     (Allow, "role:admin", "create"),
     (Allow, "role:admin", "batch"),
 
-    # Should we let LMS accounts create new schools?
+    # The following explicitly blocks LMS accounts from creating new schools
     (Deny, "role:lms", "create"),
     (Deny, "role:lms", "batch"),
 ]
