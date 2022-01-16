@@ -8,6 +8,7 @@ from sqlalchemy import (
     Enum, Index, select, func
 )
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property
 from fastapi_permissions import (
     Allow,
@@ -28,14 +29,15 @@ class School(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
+
     country_code = Column(String(3), ForeignKey('countries.id', name="fk_school_country"), index=True)
     official_identifier = Column(String(512))
 
+    # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
     Index("index_schools_by_country", country_code, official_identifier, unique=True)
     #UniqueConstraint(country_code, official_identifier, name="unique_schools")
 
-    state = Column(Enum(SchoolState), nullable=False, default=SchoolState.ACTIVE)
+    state = Column(Enum(SchoolState), nullable=False, default=SchoolState.INACTIVE)
 
     name = Column(String(256), nullable=False)
 
@@ -52,7 +54,9 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    info = Column(JSON)
+    # TODO need to define the schema that will be stored here, and a possibly different
+    # schema that will be exposed via the school API
+    info = Column(MutableDict.as_mutable(JSON))
 
     country = relationship('Country')
 

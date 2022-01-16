@@ -80,6 +80,8 @@ def secure_user_endpoint(
     # Note this replaces the user's info with the SSO data including their name and info.
     #crud.user.update(db=session, db_obj=user, obj_in=user_data)
     # Instead we only update the fields we want
+    if user.info is None:
+        user.info = {}
     user.info["picture"] = picture
     user.info["sign_in_provider"] = raw_data['firebase'].get("sign_in_provider")
 

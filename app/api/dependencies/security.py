@@ -44,10 +44,9 @@ def get_auth_header_data(
 
 
 def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPayload:
-    logger.debug("Headers contains an Authorization component")
+    #logger.debug("Headers contain an Authorization component")
     try:
         return get_payload_from_access_token(token)
-
     except (jwt.JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
