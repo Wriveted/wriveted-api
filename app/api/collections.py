@@ -147,6 +147,10 @@ async def update_school_collection(
                         # CollectionItem.edition_id.in_(
                         #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
                         # )
+
+                        # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
+                        # fields directly, then at the end commit them.
+
                     )
                     .values(
                         copies_available=update_info.copies_available,
