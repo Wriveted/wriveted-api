@@ -1,15 +1,14 @@
 import textwrap
-import uuid
 
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from fastapi import FastAPI, HTTPException
 from starlette import status
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import RedirectResponse
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
+from structlog import get_logger
 
 from app.config import get_settings
-from app.db.session import get_session
-from app.models import Work, Author, Series, Edition
+
 
 from app.api.version import router as version_router
 from app.api.editions import router as edition_router
@@ -59,14 +58,46 @@ to add new schools or edit collections.
 """)
 
 settings = get_settings()
+logger = get_logger()
 app = FastAPI(
     title="Wriveted API",
     description=api_docs,
     debug=settings.DEBUG
 )
 
+
+async def catch_exceptions_middleware(request: Request, call_next):
+    """
+    This global middleware allows us to log any unexpected exceptions and ensure
+    we don't return any unsanitized output to clients.
+    """
+    try:
+        return await call_next(request)
+    except HTTPException as e:
+        # This exception is assumed fine for end users
+        raise e
+    except Exception as e:
+        logger.error(
+            "An uncaught exception occurred in a request handler",
+            request=request.url,
+            exc_info=e,
+        )
+        return Response(
+            "Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# Note without this handler being added before the CORS middleware, internal errors
+# don't include CORS headers - which masks the underlying internal error as a CORS error
+# to clients.
+app.middleware("http")(catch_exceptions_middleware)
+
+
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
+    logger.info(
+        "Enabling cross origin restrictions", cors_origins=settings.BACKEND_CORS_ORIGINS
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
