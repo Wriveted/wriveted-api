@@ -198,3 +198,9 @@ class School:
 Available in Cloud Run:
 
 https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
+
+
+# Limitations
+
+Not much effort has been putting into scaling. Running half a dozen `test_collection_updates.py` examples
+concurrently will stress the system - each execution might take 90 seconds or so.

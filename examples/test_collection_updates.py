@@ -29,7 +29,8 @@ Warning: Don't run against a real deployment! ☠
 
 """
 print(f"Connecting to {settings.WRIVETED_API}")
-print(httpx.get(settings.WRIVETED_API + "/version").json())
+start_time = time.time()
+print(httpx.get(settings.WRIVETED_API + "/version", timeout=30).json())
 
 token = settings.WRIVETED_API_TOKEN
 print("Checking authorization")
@@ -201,7 +202,7 @@ print(f"Updating school by setting new collection of {len(original_collection)} 
 set_collection_response = httpx.post(
     f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
     json=original_books,
-    timeout=60,
+    timeout=120,
     headers={"Authorization": f"Bearer {token}"},
 )
 print(
@@ -212,7 +213,8 @@ print("Checking the collection")
 get_collection_response = httpx.get(
         f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
         headers={"Authorization": f"Bearer {token}"},
-        params={"skip": 0, "limit": 2000}
+        params={"skip": 0, "limit": 2000},
+        timeout=120
     )
 
 get_collection_response.raise_for_status()
@@ -233,20 +235,23 @@ collection_changes = [
     } for b in books_to_update]
 
 print(f"Sending through {len(collection_changes)} updates")
-httpx.put(
+r = httpx.put(
     f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
     json=collection_changes,
-    timeout=10,
+    timeout=120,
     headers={
         "Authorization": f"Bearer {token}"
     },
-).json()
+)
+print(r.status_code)
+print(r.json())
 print("Updated loan status")
-time.sleep(0.5)
+
 get_collection_response = httpx.get(
         f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
         headers={"Authorization": f"Bearer {token}"},
-        params={"skip": 0, "limit": 2000}
+        params={"skip": 0, "limit": 2000},
+        timeout=120
     )
 get_collection_response.raise_for_status()
 collection = get_collection_response.json()
@@ -280,7 +285,7 @@ collection_changes.extend([
 httpx.put(
     f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
     json=collection_changes,
-    timeout=30,
+    timeout=120,
     headers={
         "Authorization": f"Bearer {token}"
     },
@@ -289,7 +294,8 @@ print("Added and removed books from collection")
 get_collection_response = httpx.get(
         f"{settings.WRIVETED_API}/school/ATA/{test_school_id}/collection",
         headers={"Authorization": f"Bearer {token}"},
-        params={"skip": 0, "limit": 2000}
+        params={"skip": 0, "limit": 2000},
+        timeout=120
     )
 get_collection_response.raise_for_status()
 collection = get_collection_response.json()
@@ -302,7 +308,7 @@ if is_admin:
     remove_test_school_response = httpx.delete(
         settings.WRIVETED_API + f"/school/ATA/{test_school_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
-        timeout=60,
+        timeout=120,
     )
     remove_test_school_response.raise_for_status()
     print("Test School Removed")
@@ -310,6 +316,9 @@ if is_admin:
     print("Removing the service account")
     remove_svc_account_response = httpx.delete(
         settings.WRIVETED_API + f"/service-account/{service_account_details['id']}",
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=120
     )
     remove_svc_account_response.raise_for_status()
+
+print(f"Processing took: {time.time() - start_time:.2f} seconds")

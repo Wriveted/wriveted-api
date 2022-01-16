@@ -44,4 +44,5 @@ ENV PORT=8000
 #CMD uvicorn "app.main:app" --port $PORT --host 0.0.0.0
 
 # If we would rather have multiple processes in our container
-CMD gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app.main:app
+# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
+CMD gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app.main:app --timeout 0
