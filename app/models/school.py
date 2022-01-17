@@ -111,6 +111,7 @@ class School(Base):
 
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
+            (Allow, "role:lms", "read"),
 
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
