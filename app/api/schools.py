@@ -54,6 +54,7 @@ bulk_school_access_control_list = [
 async def get_schools(
         country_code: Optional[str] = Query(None, description="Filter schools by country"),
         q: Optional[str] = Query(None, description='Filter schools by name'),
+        is_active: Optional[bool] = Query(None, description="Return active or inactive schools. Default is all."),
         pagination: PaginatedQueryParams = Depends(),
         session: Session = Depends(get_session),
         principals: List = Depends(get_active_principals),
@@ -63,8 +64,7 @@ async def get_schools(
 
     Provide a country code and/or search query to further filter the schools.
     """
-
-    schools = crud.school.get_all_with_optional_filters(session, country_code=country_code, query_string=q)
+    schools = crud.school.get_all_with_optional_filters(session, country_code=country_code, query_string=q, is_active=is_active)
     allowed_schools = [school for school in schools if has_permission(principals, "read", school)]
     paginated_schools = allowed_schools[pagination.skip:pagination.limit]
     logger.debug(f"Returning {len(paginated_schools)} schools")

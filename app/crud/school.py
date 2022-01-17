@@ -16,7 +16,8 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             self,
             db: Session,
             country_code: Optional[str] = None,
-            query_string: Optional[str] = None
+            query_string: Optional[str] = None,
+            is_active: Optional[bool] = None,
     ):
         school_query = self.get_all_query(db)
         if country_code is not None:
@@ -24,16 +25,18 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             school_query = school_query.where(School.name.contains(query_string))
-
+        if is_active is not None:
+            school_query = school_query.where(School.state == ("active" if is_active else "inactive"))
         return school_query
 
     def get_all_with_optional_filters(
         self,
         db: Session,
         country_code: Optional[str] = None,
-        query_string: Optional[str] = None
+        query_string: Optional[str] = None,
+        is_active: Optional[bool] = None,
     ) -> List[School]:
-        query = self.get_all_query_with_optional_filters(db, country_code=country_code, query_string=query_string)
+        query = self.get_all_query_with_optional_filters(db, country_code=country_code, query_string=query_string, is_active=is_active)
         return db.execute(query).scalars().all()
 
     def get_by_official_id_or_404(self, db: Session, country_code: str, official_id: str):
