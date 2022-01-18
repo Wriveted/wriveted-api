@@ -108,3 +108,11 @@ async def root():
     Redirects to the OpenAPI documentation for the current version
     """
     return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+@app.get("/docs")
+async def redirect_old_docs_route():
+    """
+    Redirects to the OpenAPI documentation for the current version
+    """
+    return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
