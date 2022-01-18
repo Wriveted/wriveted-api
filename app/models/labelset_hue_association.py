@@ -6,14 +6,15 @@ class Ordinal(str, enum.Enum):
     PRIMARY   = "primary"
     SECONDARY = "secondary"
     TERTIARY  = "tertiary"
+    
 
-hue_work_association_table = Table(
-    'hue_work_association', Base.metadata,
-    Column('work_id',
-           ForeignKey('works.id', name="fk_hue_works_association_work_id"),
+labelset_hue_association_table = Table(
+    'labelset_hue_association', Base.metadata,
+    Column('labelset_id',
+           ForeignKey('works.id', name="fk_labelset_hue_association_labelset_id"),
            primary_key=True),
     Column('hue_id',
-           ForeignKey('hues.id', name="fk_hue_works_association_hue_id"),
+           ForeignKey('hues.id', name="fk_labelset_hue_association_hue_id"),
            primary_key=True),
     Column('ordinal', 
            Enum(Ordinal), 

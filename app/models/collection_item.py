@@ -26,6 +26,12 @@ class CollectionItem(Base):
     copies_available = Column(Integer, default=1, nullable=False)
     copies_on_loan = Column(Integer, default=0, nullable=False)
 
+    # Potential future feature for "starring" certain books?
+    # (say if a school gets an influx of a particular author
+    # and want to encourage the group to pick one, Huey could
+    # help pick from the starred subset... or something.
+        # starred_pick = Column(Boolean(), default=False)
+
     school = relationship(
         "School",
         back_populates="collection"
