@@ -7,19 +7,8 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from structlog import get_logger
 
+from app.api import api_router
 from app.config import get_settings
-
-
-from app.api.version import router as version_router
-from app.api.editions import router as edition_router
-from app.api.works import router as work_router
-from app.api.schools import router as school_router
-from app.api.authors import router as author_router
-from app.api.illustrators import router as illustrator_router
-from app.api.collections import router as collections_router
-from app.api.auth import router as auth_router
-from app.api.users import router as user_router
-from app.api.service_accounts import router as service_account_router
 
 
 api_docs = textwrap.dedent("""
@@ -36,14 +25,15 @@ The API is designed for use by multiple users:
 - **Wriveted Staff** either directly via scripts or via an admin UI.
 - **Huey** chatbot (eventually)
 
-Note all requests require credentials.
+Note all requests require credentials, with the exceptions of getting the application
+version and security policy.
 
 ## 🔐 Authentication
 
-The good news is that you as an API user should just need to send an access token
+The good news is that as an API user should just need to send an access token
 in the `Authorization` header and all endpoints should *just work*. The
 notable exception being the `/auth/firebase` endpoint which exchanges a firebase
-token for a Wriveted API Access Token.
+SSO token for a Wriveted API Access Token.
 
 As a developer your access token will be provided to you by the Wriveted team.
 
@@ -106,19 +96,14 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-app.include_router(auth_router)
-app.include_router(user_router)
-app.include_router(author_router)
-app.include_router(illustrator_router)
-app.include_router(edition_router)
-app.include_router(school_router)
-app.include_router(work_router)
-app.include_router(collections_router)
-app.include_router(service_account_router)
-app.include_router(version_router)
+
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")
 async def root():
+    """
+    Redirects to the OpenAPI documentation.
+    """
     return RedirectResponse('/docs',
                             status_code=status.HTTP_307_TEMPORARY_REDIRECT)

@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -28,6 +28,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             logger.info("Creating new user", data=user_data)
             user = self.create(db, obj_in=user_data, commit=commit)
         return user
+
+    def get_by_account_email(self, db: Session, email: str) -> Optional[User]:
+        """ return User with given email (or account identifier) or None """
+        return db.execute(select(User).where(User.email == email)).scalar_one_or_none()
 
 
 user = CRUDUser(User)

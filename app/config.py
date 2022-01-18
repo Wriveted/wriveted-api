@@ -6,7 +6,7 @@ from pydantic import AnyHttpUrl, BaseSettings, SecretStr, validator, FilePath, D
 
 
 class Settings(BaseSettings):
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/v1"
 
     FIREBASE_PROJECT_ID: str = "wriveted-api"
 
