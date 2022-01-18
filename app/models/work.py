@@ -12,6 +12,7 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
+from app.models.hue_work_association import hue_work_association_table
 
 
 class WorkType(str, enum.Enum):
@@ -48,6 +49,14 @@ class Work(Base):
         secondary=author_work_association_table,
         back_populates='books',
         # https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#selectin-eager-loading
+        lazy="selectin"
+    )
+
+    # Handle Multiple Hues via a secondary association table, discerned via an 'ordinal' (primary/secondary/tertiary)
+    hues = relationship(
+        'Hue',
+        secondary=hue_work_association_table,
+        back_populates='books',
         lazy="selectin"
     )
 
