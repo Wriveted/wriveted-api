@@ -5,14 +5,15 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    Enum
+    Enum,
+    Boolean,
+    DateTime
 )
 from sqlalchemy.orm import relationship
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
-from app.models.hue_work_association import hue_work_association_table
 
 
 class WorkType(str, enum.Enum):
@@ -23,7 +24,7 @@ class WorkType(str, enum.Enum):
 class Work(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-
+    
     type = Column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
 
     #series_id = Column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
@@ -52,13 +53,7 @@ class Work(Base):
         lazy="selectin"
     )
 
-    # Handle Multiple Hues via a secondary association table, discerned via an 'ordinal' (primary/secondary/tertiary)
-    hues = relationship(
-        'Hue',
-        secondary=hue_work_association_table,
-        back_populates='books',
-        lazy="selectin"
-    )
+    labelset = relationship('LabelSet', uselist=False, back_populates="work")
 
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"
