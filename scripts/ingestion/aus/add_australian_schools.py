@@ -7,7 +7,7 @@ from config import settings
 print("Script to add all australian schools to Wriveted via the API")
 
 print("Checking the connection")
-print(httpx.get(settings.WRIVETED_API + "/version").json())
+print(httpx.get(settings.WRIVETED_API + "/v1/version").json())
 
 
 with open("aus-schools.json") as raw_file:
@@ -60,7 +60,7 @@ api_token = settings.WRIVETED_API_TOKEN
 
 
 response = httpx.get(
-    settings.WRIVETED_API + "/schools",
+    settings.WRIVETED_API + "/v1/schools",
     headers={
         "Authorization": f"Bearer {api_token}"
     }
@@ -71,7 +71,7 @@ print(response.json())
 
 start_time = time.time()
 response = httpx.post(
-    settings.WRIVETED_API + "/schools",
+    settings.WRIVETED_API + "/v1/schools",
     json=school_data,
     headers={
         "Authorization": f"Bearer {api_token}"

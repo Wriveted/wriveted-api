@@ -1,8 +1,8 @@
-from pydantic import BaseSettings
+from pydantic import BaseSettings, AnyHttpUrl
 
 
 class Settings(BaseSettings):
-    WRIVETED_API: str = "http://0.0.0.0:8000"
+    WRIVETED_API: AnyHttpUrl = "http://0.0.0.0:8000"
 
     # This can be a service account or user account token
     WRIVETED_API_TOKEN: str
