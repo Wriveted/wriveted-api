@@ -52,6 +52,8 @@ logger = get_logger()
 app = FastAPI(
     title="Wriveted API",
     description=api_docs,
+    docs_url="/v1/docs",
+    redoc_url="/v1/redoc",
     debug=settings.DEBUG
 )
 
@@ -103,7 +105,6 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 async def root():
     """
-    Redirects to the OpenAPI documentation.
+    Redirects to the OpenAPI documentation for the current version
     """
-    return RedirectResponse('/docs',
-                            status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)

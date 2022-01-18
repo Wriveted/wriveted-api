@@ -8,14 +8,14 @@
     ],
     "rewrites": [
       {
-        "source": "/admin/**",
+        "source": "/admin**",
         "run": {
           "serviceId": "wriveted-admin-ui",
           "region": "australia-southeast1"
         }
       },
       {
-        "source": "/v1/**",
+        "source": "**",
         "run": {
           "serviceId": "wriveted-api",
           "region": "australia-southeast1"
