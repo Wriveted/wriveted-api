@@ -34,12 +34,17 @@ poetry update
 
 ## Database Migrations
 
-Modify or add an SQLAlchemy ORM model in the `app.models` package.
+Modify or add an SQLAlchemy ORM model in the `app.models` package.  
+Add an import for any new models to `app.models.__init__.py`.  
 Set the environment variable `SQLALCHEMY_DATABASE_URI` with the appropriate database path:
 
 For example to connect to the docker-compose database:
 ```
-export SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@localhost/postgres
+// Terminal
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
+
+// Powershell
+$SQLALCHEMY_DATABASE_URI = "postgresql://postgres:password@localhost/postgres"
 ```
 
 Then create a new migration:
