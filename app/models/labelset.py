@@ -52,7 +52,7 @@ class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    work_id = Column(Integer, ForeignKey('parent.id'))
+    work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True)
     work = relationship('Work', back_populates='labelset')
 
     # Handle Multiple Hues via a secondary association table, 
@@ -60,7 +60,7 @@ class LabelSet(Base):
     hues = relationship(
         'Hue',
         secondary=labelset_hue_association_table,
-        back_populates='books',
+        back_populates='labelsets',
         lazy="selectin"
     )
 
@@ -69,8 +69,8 @@ class LabelSet(Base):
     doe_code = Column(Enum(DoeCode), nullable=True)
 
     # likely to be more robust than tagged concepts of a range i.e. "3to6" and "5to7"
-    min_age = Column(Integer(3), nullable=True)
-    max_age = Column(Integer(3), nullable=True)
+    min_age = Column(Integer, nullable=True)
+    max_age = Column(Integer, nullable=True)
 
     # e.g. 1000L
     lexile = Column(String(length=5), nullable=True)
@@ -80,10 +80,6 @@ class LabelSet(Base):
     huey_pick = Column(Boolean(), default=False)
 
     labelled_by_id = Column(ForeignKey('users.id', name="fk_labeller_labelset"), nullable=True)
-    labelled_by = relationship("User",
-                                back_populates='labelsets',
-                                foreign_keys=[labelled_by_id]
-                                )
 
     # Could possibly add a pg trigger to update a last_modified timestamp for each
     # row, which could be compared against last_checked to enable a more meaningful

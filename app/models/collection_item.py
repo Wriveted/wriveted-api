@@ -23,8 +23,8 @@ class CollectionItem(Base):
     # Information from this particular school's LMS
     info = Column(JSON)
 
-    copies_available = Column(Integer, default=1, nullable=False)
-    copies_on_loan = Column(Integer, default=0, nullable=False)
+    copies_total = Column(Integer, default=1, nullable=False)
+    copies_available = Column(Integer, default=0, nullable=False)
 
     # For potential future feature of "starring" certain books.
     # (say if a school gets an influx of a particular author

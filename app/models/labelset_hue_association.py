@@ -11,7 +11,7 @@ class Ordinal(str, enum.Enum):
 labelset_hue_association_table = Table(
     'labelset_hue_association', Base.metadata,
     Column('labelset_id',
-           ForeignKey('works.id', name="fk_labelset_hue_association_labelset_id"),
+           ForeignKey('labelsets.id', name="fk_labelset_hue_association_labelset_id"),
            primary_key=True),
     Column('hue_id',
            ForeignKey('hues.id', name="fk_labelset_hue_association_hue_id"),
