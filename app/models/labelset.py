@@ -79,7 +79,9 @@ class LabelSet(Base):
     # (e.g. will huey pick depending on illustrator and cover? or just text)
     huey_pick = Column(Boolean(), default=False)
 
-    labelled_by_id = Column(ForeignKey('users.id', name="fk_labeller_labelset"), nullable=True)
+    # service accounts and users could potentially label works
+    labelled_by_user_id = Column(ForeignKey('users.id', name="fk_labeller-user_labelset"), nullable=True)
+    labelled_by_sa_id = Column(ForeignKey('service_accounts.id', name="fk_labeller-sa_labelset"), nullable=True)
 
     # Could possibly add a pg trigger to update a last_modified timestamp for each
     # row, which could be compared against last_checked to enable a more meaningful
