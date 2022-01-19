@@ -51,7 +51,7 @@ class DoeCode(str, enum.Enum):
 class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-
+    
     work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True)
     work = relationship('Work', back_populates='labelset')
 
