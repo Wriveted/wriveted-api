@@ -3,7 +3,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column,
-
     String,
     JSON,
     DateTime, Boolean, ForeignKey,

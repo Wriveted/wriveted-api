@@ -14,3 +14,4 @@ from .event import Event, EventLevel
 from .service_account import ServiceAccountType, ServiceAccount
 from .hue import Hue
 from .labelset import LabelSet
+from .db_job import DbJob

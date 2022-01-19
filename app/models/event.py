@@ -36,17 +36,24 @@ class Event(Base):
     school_id = Column(ForeignKey('schools.id', name="fk_event_school"), nullable=True)
     user_id = Column(ForeignKey('users.id', name="fk_event_user"), nullable=True)
     service_account_id = Column(ForeignKey('service_accounts.id', name="fk_event_service_account"), nullable=True)
+    db_job_id = Column(ForeignKey('db_jobs.id', name="fk_event_db_job"), nullable=True)
 
     school = relationship("School", back_populates='events')
+
     user = relationship("User",
                         back_populates='events',
                         foreign_keys=[user_id]
                         )
 
     service_account = relationship("ServiceAccount",
-                                   foreign_keys=[service_account_id],
-                                   back_populates='events'
-                                   )
+                        foreign_keys=[service_account_id],
+                        back_populates='events'
+                        )
+
+    db_job = relationship("DbJob",
+                        foreign_keys=[db_job_id],
+                        back_populates='events'
+                        )
 
     def __repr__(self):
         return f"<Event {self.title} - {self.description}>"
