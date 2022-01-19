@@ -4,7 +4,7 @@ name: Test Alembic Migrations
 
 on:
   push:
-    branches: [ "test/migrations", $default-branch ]
+    branches: [ $default-branch ]
   pull_request:
     branches: [ $default-branch ]
 
@@ -14,52 +14,44 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SQLALCHEMY_DATABASE_URI: postgresql://postgres:secret@localhost:5432
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: 🐍 Set up Python 3.10
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Get full Python version
-      id: full-python-version
-      shell: bash
-      run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
-    - name: Set up PostgreSQL
+        python-version: "3.10"
+    - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
       with:
         postgresql version: '14.1'  # See https://hub.docker.com/_/postgres for available versions
         postgresql user: postgres
         postgresql password: secret
-    - name: Install poetry
+    - name: ➕ Install poetry
       shell: bash
       run: |
         curl -sSL https://install.python-poetry.org | python -
         # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#adding-a-system-path
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-    - name: Configure poetry
+    - name: 🔧 Configure poetry
       shell: bash
       run: poetry config virtualenvs.in-project true
 
-    - name: Set up cache
+    - name: 🔧 Set up cache
       uses: actions/cache@v2.1.7
       id: cache
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
 
-    - name: Install dependencies
+    - name: ➕ Install dependencies
       run: |
         poetry install
-    - name: Run migragtions
+    - name: ⚡ Run forward migrations
       run: |
         poetry run alembic upgrade head
-    - name: test migration downgrade to base
+    - name: ⚡ Run backwards migrations
       run: |
         poetry run alembic downgrade base
-    - name: retest alembic upgrade head
+    - name: ⚡ Retest forward migrations
       run: |
         poetry run alembic upgrade head
