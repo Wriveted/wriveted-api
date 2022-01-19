@@ -56,4 +56,7 @@ def downgrade():
     op.drop_table('labelsets')
     op.drop_index(op.f('ix_hues_name'), table_name='hues')
     op.drop_table('hues')
+    op.execute('DROP TYPE readingability')
+    op.execute('DROP TYPE doecode')
+    op.execute('DROP TYPE ordinal')
     # ### end Alembic commands ###
