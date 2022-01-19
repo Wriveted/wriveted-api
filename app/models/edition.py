@@ -53,9 +53,6 @@ class Edition(Base):
     # Proxy the authors from the related work
     authors = association_proxy('work', 'authors')
 
-    # Proxy the hues from the related work
-    hues = association_proxy('work', 'hues')
-
     illustrators = relationship(
         'Illustrator',
         secondary=illustrator_edition_association_table,

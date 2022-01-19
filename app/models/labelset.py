@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
@@ -46,6 +47,7 @@ class DoeCode(str, enum.Enum):
     DOE_4L = "4L"
 
 
+# an abstraction of the "label" related properties of a Work, which are likely to be human-provided
 class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -77,12 +79,18 @@ class LabelSet(Base):
     # (e.g. will huey pick depending on illustrator and cover? or just text)
     huey_pick = Column(Boolean(), default=False)
 
-    labelled_by = Column(String(length=30), nullable=True)
+    labelled_by_id = Column(ForeignKey('users.id', name="fk_labeller_labelset"), nullable=True)
+    labelled_by = relationship("User",
+                                back_populates='labelsets',
+                                foreign_keys=[labelled_by_id]
+                                )
 
     # Could possibly add a pg trigger to update a last_modified timestamp for each
     # row, which could be compared against last_checked to enable a more meaningful
     # query in "show me works with unchecked updates". But repeated modifications to 
     # the labelset probably aren't likely at this stage, so the boolean will do for now.
+    # alternative: instead of updating a row, replace it altogether, defaulting checked
+    # back to false and achieving the same queries without timestamps
         # last_checked = Column(DateTime(), nullable=True)
     checked = Column(Boolean(), default=False)
 
