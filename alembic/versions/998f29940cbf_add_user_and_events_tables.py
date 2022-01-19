@@ -59,7 +59,9 @@ def downgrade():
     op.create_index('ix_collection_items_work_id', 'collection_items', ['work_id'], unique=False)
     op.drop_index(op.f('ix_events_level'), table_name='events')
     op.drop_table('events')
+    op.execute("DROP TYPE eventlevel")
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+
     # ### end Alembic commands ###
