@@ -2,6 +2,7 @@ import enum
 
 from sqlalchemy import (
     Enum,
+    JSON,
     ForeignKey,
     Column,
     Integer,
@@ -51,7 +52,7 @@ class DoeCode(str, enum.Enum):
 class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
+
     work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True)
     work = relationship('Work', back_populates='labelset')
 
@@ -82,6 +83,8 @@ class LabelSet(Base):
     # service accounts and users could potentially label works
     labelled_by_user_id = Column(ForeignKey('users.id', name="fk_labeller-user_labelset"), nullable=True)
     labelled_by_sa_id = Column(ForeignKey('service_accounts.id', name="fk_labeller-sa_labelset"), nullable=True)
+
+    info = Column(JSON)
 
     # Could possibly add a pg trigger to update a last_modified timestamp for each
     # row, which could be compared against last_checked to enable a more meaningful
