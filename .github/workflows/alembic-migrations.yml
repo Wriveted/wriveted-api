@@ -9,7 +9,8 @@ on:
     branches: [ $default-branch ]
 
 jobs:
-  build:
+  migrations:
+    name: ⚗ Test Alembic Migrations
     runs-on: ubuntu-latest
     env:
       SQLALCHEMY_DATABASE_URI: postgresql://postgres:secret@localhost:5432
@@ -53,7 +54,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry install
-    - name: execute all db migragtions
+    - name: Run migragtions
       run: |
         poetry run alembic upgrade head
     - name: test migration downgrade to base
