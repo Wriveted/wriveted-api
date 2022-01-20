@@ -4,7 +4,9 @@ import uuid
 from sqlalchemy import (
     Column,
     Integer,
-    Enum
+    Enum,
+    DateTime,
+    JSON
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -34,6 +36,8 @@ class DbJob(Base):
 
     job_status = Column(Enum(JobStatus), nullable=False, default=JobStatus.PENDING)
 
+    summary = Column(JSON(), nullable=True)
+
     total_items = Column(Integer)
 
     successes = Column(Integer)
@@ -41,6 +45,12 @@ class DbJob(Base):
     errors = Column(Integer)
 
     events = relationship("Event", back_populates='db_job', cascade="all, delete-orphan")
+
+    created_timestamp = Column(DateTime)
+
+    started_timestamp = Column(DateTime)
+
+    ended_timestamp = Column(DateTime)
 
     def __repr__(self):
         return f"<Event {self.title} - {self.description}>"
