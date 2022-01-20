@@ -17,6 +17,7 @@ from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
 from app.models.labelset_hue_association import labelset_hue_association_table
+from app.models.labelset_genre_association import labelset_genre_association_table
 
 
 class ReadingAbility(str, enum.Enum):
@@ -61,6 +62,13 @@ class LabelSet(Base):
     hues = relationship(
         'Hue',
         secondary=labelset_hue_association_table,
+        back_populates='labelsets',
+        lazy="selectin"
+    )
+
+    genres = relationship(
+        'Genre',
+        secondary=labelset_genre_association_table,
         back_populates='labelsets',
         lazy="selectin"
     )
