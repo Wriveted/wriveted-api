@@ -47,7 +47,6 @@ to add new schools or edit collections.
 """)
 
 
-
 def create_application(settings: Settings):
 
     app = FastAPI(

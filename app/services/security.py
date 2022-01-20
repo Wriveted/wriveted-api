@@ -8,10 +8,11 @@ from pydantic import BaseModel, constr, validator
 from app.config import get_settings
 
 ALGORITHM = "HS256"
-settings = get_settings()
+
 
 
 def get_raw_payload_from_access_token(token) -> Dict[str, Any]:
+    settings = get_settings()
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     return payload
 
@@ -36,6 +37,8 @@ def create_access_token(
     expires_delta: Optional[timedelta] = None,
     extra_claims: Optional[Dict[str, str]] = None,
 ) -> str:
+    settings = get_settings()
+
     if expires_delta is not None:
         expire = datetime.utcnow() + expires_delta
     else:
