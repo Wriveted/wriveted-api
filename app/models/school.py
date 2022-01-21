@@ -72,6 +72,7 @@ class School(Base):
     works = association_proxy('collection_items', 'work')
     editions = association_proxy('collection_items', 'edition')
 
+    booklists = relationship("BookList", back_populates="school", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="school")
     users = relationship("User", back_populates="school")
 

@@ -40,6 +40,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    booklists = relationship("BookList", back_populates="user", cascade="all, delete-orphan")
     events = relationship("Event", back_populates='user', cascade="all, delete-orphan")
 
     def __repr__(self):

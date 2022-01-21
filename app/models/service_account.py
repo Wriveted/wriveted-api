@@ -15,7 +15,6 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.service_account_school_association import service_account_school_association_table
 
-
 class ServiceAccountType(str, enum.Enum):
     BACKEND = "backend"
     LMS = "lms"
@@ -46,6 +45,8 @@ class ServiceAccount(Base):
         secondary=service_account_school_association_table,
         back_populates='service_accounts'
     )
+
+    booklists = relationship("BookList", back_populates="service_account")
 
     info = Column(MutableDict.as_mutable(JSON), nullable=True)
 

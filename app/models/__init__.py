@@ -16,3 +16,4 @@ from .hue import Hue
 from .labelset import LabelSet
 from .db_job import DbJob
 from .genre import Genre
+from .booklist import BookList
