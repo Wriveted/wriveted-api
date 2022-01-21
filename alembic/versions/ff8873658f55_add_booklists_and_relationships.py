@@ -47,4 +47,5 @@ def downgrade():
     op.drop_table('booklist_work_association')
     op.drop_index(op.f('ix_book_lists_name'), table_name='book_lists')
     op.drop_table('book_lists')
+    op.execute('DROP TYPE listtype')
     # ### end Alembic commands ###
