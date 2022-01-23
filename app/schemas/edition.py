@@ -5,10 +5,10 @@ from pydantic import BaseModel, AnyHttpUrl
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 
-class EditionInfo:
-    pages: Optional[int]
-    other: Optional[any]   
+class EditionInfo(BaseModel):
+    pages: Optional[int] 
     version: Optional[str]
+    other: Optional[dict]  
 
 
 class EditionBrief(BaseModel):

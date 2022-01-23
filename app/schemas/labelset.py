@@ -24,7 +24,7 @@ class LabelSetDetail(LabelSetBrief):
     lexile: str
     labelled_by_user_id: Optional[int]
     labelled_by_sa_id: Optional[int]
-    info: Optional[Any]
+    info: Optional[dict]
     checked: bool
 
 
@@ -41,4 +41,4 @@ class LabelSetUpdateIn(BaseModel):
     lexile: Optional[str]
     labelled_by_user_id: Optional[int]
     labelled_by_sa_id: Optional[int]
-    info: Optional[Any]
+    info: Optional[dict]
