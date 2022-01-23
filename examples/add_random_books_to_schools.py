@@ -1,8 +1,6 @@
 import csv
 import random
-
 import httpx
-from pydantic import AnyHttpUrl
 
 from examples.config import settings
 
@@ -92,7 +90,7 @@ for school in schools:
         print("Updating school by setting entire collection", school['name'])
         print(
             httpx.post(
-                f"{settings.WRIVETED_API}/school/{school['country_code']}/{school['official_identifier']}/collection",
+                f"{settings.WRIVETED_API}/v1/school/{school['country_code']}/{school['official_identifier']}/collection",
                 json=collection_data,
                 timeout=60,
                 headers={
@@ -112,7 +110,7 @@ for school in schools:
                 "copies_available": 1,
             } for d in collection_data]
         res = httpx.put(
-            f"{settings.WRIVETED_API}/school/{school['country_code']}/{school['official_identifier']}/collection",
+            f"{settings.WRIVETED_API}/v1/school/{school['country_code']}/{school['official_identifier']}/collection",
             json=collection_changes, timeout=60, headers={"Authorization": f"Bearer {token}"}, )
         res.raise_for_status()
         print(res.json())

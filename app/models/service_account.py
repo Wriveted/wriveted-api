@@ -54,3 +54,8 @@ class ServiceAccount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     events = relationship("Event", back_populates="service_account")
+
+    def __repr__(self):
+        active = "Active" if self.is_active else "Inactive"
+        summary = f'{self.type} {active}'
+        return f"<ServiceAccount {self.name} - {summary}>"

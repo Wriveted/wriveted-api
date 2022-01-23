@@ -8,7 +8,10 @@ The API is designed for use by multiple users:
 * End users via Huey chatbot or other Wriveted applications.
 
 
-## Poetry
+# Development
+
+
+## Python Dependencies are managed with Poetry
 
 Install poetry, then install dependencies with:
 
@@ -22,27 +25,26 @@ Add a new dependency e.g. `pydantic` with:
 poetry add pydantic
 ```
 
+Update the lock file and install the latest compatible versions of our dependencies every so often with:
+
+```shell
+poetry update
+```
+
 
 ## Database Migrations
 
-Login to GCP:
+Modify or add an SQLAlchemy ORM model in the `app.models` package.  
+Add an import for any new models to `app.models.__init__.py`.  
+Set the environment variable `SQLALCHEMY_DATABASE_URI` with the appropriate database path:
 
-```shell
-gcloud --project wriveted-api auth application-default login
+For example to connect to the docker-compose database:
 ```
+// Terminal
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
 
-Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstart-proxy-test).
-
-```shell
-cloud_sql_proxy -instances=wriveted-api:australia-southeast1:wriveted=tcp:5432
-```
-
-Set the environment variable `SQLALCHEMY_DATABASE_URI` with the proxied database path (otherwise it will create a local sqlite database):
-
-Export the devops credentials for the production database:
-
-```
-export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres
+// Powershell
+$SQLALCHEMY_DATABASE_URI = "postgresql://postgres:password@localhost/postgres"
 ```
 
 Then create a new migration:
@@ -51,11 +53,29 @@ Then create a new migration:
 poetry run alembic revision --autogenerate -m "Create first tables"
 ```
 
+Open the generated file in `alembic/versions` and review it - is it empty?
+You may have to manually tweak the migration.
+
 Apply all migrations:
 
 ```shell
 poetry run alembic upgrade head
 ```
+
+
+## Running locally
+
+Can use `docker-compose` to bring up an API and postgresql database locally.
+You can also run your own database, or proxy to a cloud SQL instance.
+
+Note, you will have to manually apply the migrations.
+
+Running the app using `uvicorn` directly (without docker) is particularly handy for 
+[debugging](https://fastapi.tiangolo.com/tutorial/debugging/).
+
+In `scripts` there are Python scripts that will connect directly to the 
+database outside of the FastAPI application. For example `get_auth_token.py`
+can be run to generate an auth token for any user.
 
 
 # Deployment
@@ -100,6 +120,7 @@ Create a `cloudrun` user, then once you have a connection
 reduce the rights with:
 
 ```postgresql
+
 ALTER ROLE cloudrun with NOCREATEDB NOCREATEROLE;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
@@ -107,6 +128,39 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public to cloudrun;
 
 ```
+
+## Production Database Migrations
+
+For now, we have to manually apply database migrations.
+
+Login to GCP:
+
+```shell
+gcloud --project wriveted-api auth application-default login
+```
+
+Start the [Cloud SQL proxy](https://cloud.google.com/sql/docs/postgres/quickstart-proxy-test).
+
+```shell
+cloud_sql_proxy -instances=wriveted-api:australia-southeast1:wriveted=tcp:5432
+```
+
+Set the environment variable `SQLALCHEMY_DATABASE_URI` with the proxied database path (otherwise it will create a local sqlite database):
+
+Export the devops credentials for the production database. Note the actual password can be found in
+[Secret Manager](https://console.cloud.google.com/security/secret-manager?project=wriveted-api):
+
+```
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres
+```
+
+Then apply all migrations with:
+
+```shell
+poetry run alembic upgrade head
+```
+
+# Security
 
 ## 🚨 Authorization
 
@@ -117,22 +171,31 @@ different principals to access the resource at that endpoint. For example to acc
 the access control list could look like this:
 
 ```python
-access_control_list = [
-    (Allow, "role:admin", "create"),
-    (Allow, "role:admin", "read"),
-    (Allow, "role:admin", "update"),
-    (Allow, "role:admin", "delete"),
-    (Allow, "role:admin", "batch"),
+from fastapi_permissions import Allow, Deny
 
-    (Allow, "role:lms", "batch"),
-    (Allow, "role:lms", "update"),
 
-    (Deny, "role:student", "update"),
-    (Deny, "role:student", "delete"),
-
-    (Allow, f"school:{self.id}", "read"),
-    (Allow, f"school:{self.id}", "update"),
-]
+class School:
+    id = ...
+    
+    ...
+    
+    def __acl__(self):
+        return [
+            (Allow, "role:admin", "create"),
+            (Allow, "role:admin", "read"),
+            (Allow, "role:admin", "update"),
+            (Allow, "role:admin", "delete"),
+            (Allow, "role:admin", "batch"),
+        
+            (Allow, "role:lms", "batch"),
+            (Allow, "role:lms", "update"),
+        
+            (Deny, "role:student", "update"),
+            (Deny, "role:student", "delete"),
+        
+            (Allow, f"school:{self.id}", "read"),
+            (Allow, f"school:{self.id}", "update"),
+        ]
 ```
 
 
@@ -141,3 +204,9 @@ access_control_list = [
 Available in Cloud Run:
 
 https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
+
+
+# Limitations
+
+Not much effort has been putting into scaling. Running half a dozen `test_collection_updates.py` examples
+concurrently will stress the system - each execution might take 90 seconds or so.

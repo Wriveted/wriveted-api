@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String, JSON, Integer
+from sqlalchemy import Column, ForeignKey, Index, String, JSON, Integer, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,9 @@ class CollectionItem(Base):
         ForeignKey('editions.id',
                    name="fk_collection_items_edition_id"),
         nullable=False)
+
+    Index("index_editions_per_collection", school_id, edition_id, unique=True)
+    #UniqueConstraint(school_id, edition_id, name="unique_editions_per_collection")
 
     # Information from this particular school's LMS
     info = Column(JSON)

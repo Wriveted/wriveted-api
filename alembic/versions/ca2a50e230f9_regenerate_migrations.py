@@ -135,4 +135,7 @@ def downgrade():
     op.drop_table('illustrators')
     op.drop_index(op.f('ix_authors_last_name'), table_name='authors')
     op.drop_table('authors')
+    op.execute("DROP TYPE worktype")
+    op.execute("DROP TYPE schoolstate")
+
     # ### end Alembic commands ###

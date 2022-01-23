@@ -11,7 +11,8 @@ from app.api.dependencies.security import get_current_active_superuser
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import User, Event, ServiceAccount
-from app.schemas.service_account import ServiceAccountCreateIn, ServiceAccountCreatedResponse, ServiceAccountBrief
+from app.schemas.service_account import ServiceAccountCreateIn, ServiceAccountCreatedResponse, ServiceAccountBrief, \
+    ServiceAccountDetail, ServiceAccountUpdateIn
 from app.services.security import create_access_token
 
 logger = get_logger()
@@ -57,7 +58,7 @@ async def create_service_account(
 
     session.add(Event(
         title="Service account created",
-        description=f"Service account {new_service_account.name} created by {current_user}",
+        description=f"Service account {new_service_account.name} created by {current_user.name}",
         user=current_user,
         service_account=new_service_account,
     ))
@@ -76,6 +77,24 @@ async def create_service_account(
         **ServiceAccountBrief.from_orm(new_service_account).dict(),
         "access_token": access_token
     }
+
+
+@router.get("/service-account/{service_account_id}", response_model=ServiceAccountDetail)
+async def get_service_account_detail(
+    service_account_id: str,
+    session: Session = Depends(get_session)
+):
+    return crud.service_account.get_or_404(db=session, id=service_account_id)
+
+
+@router.put("/service-account/{service_account_id}", response_model=ServiceAccountDetail)
+async def update_service_account(
+    service_account_id: str,
+    service_account_data: ServiceAccountUpdateIn,
+    session: Session = Depends(get_session)
+):
+    service_account = crud.service_account.get_or_404(db=session, id=service_account_id)
+    return crud.service_account.update(db=session, db_obj=service_account, obj_in=service_account_data)
 
 
 @router.delete("/service-account/{service_account_id}", response_model=ServiceAccountBrief)

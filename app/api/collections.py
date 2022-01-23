@@ -48,7 +48,7 @@ async def get_school_collection(
 )
 async def set_school_collection(
         collection_data: List[CollectionItemIn],
-        school: School = Permission("batch", get_school_from_path),
+        school: School = Permission("update", get_school_from_path),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
@@ -60,7 +60,6 @@ async def set_school_collection(
     session.commit()
     if len(collection_data) > 0:
         await add_editions_to_collection(session, collection_data, school, account)
-        session.commit()
 
     return {
         'msg': "updated"
@@ -70,7 +69,7 @@ async def set_school_collection(
 @router.put("/school/{country_code}/{school_id}/collection", )
 async def update_school_collection(
         collection_update_data: List[CollectionUpdate],
-        school: School = Permission("batch", get_school_from_path),
+        school: School = Permission("update", get_school_from_path),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
@@ -113,7 +112,7 @@ async def update_school_collection(
 
     isbns_to_remove = []
     editions_to_add: List[EditionCreateIn] = []
-    skipped_edditions: List[str] = []
+    skipped_editions: List[str] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
@@ -129,12 +128,12 @@ async def update_school_collection(
                 except ValidationError:
                     # The caller didn't give us information, and we don't
                     # have this edition in the database. We will skip and report this to the caller.
-                    skipped_edditions.append(update_info.ISBN)
+                    skipped_editions.append(update_info.ISBN)
             else:
 
                 editions_to_add.append(update_info.edition_info)
         elif update_info.action == CollectionUpdateType.UPDATE:
-            # Update the "copies_total and "copies_onavailable"
+            # Update the "copies_total and "copies_available"
             # TODO consider a bulk update version of this
             stmt = (
                 update(CollectionItem)
@@ -149,6 +148,10 @@ async def update_school_collection(
                         # CollectionItem.edition_id.in_(
                         #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
                         # )
+
+                        # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
+                        # fields directly, then at the end commit them.
+
                     )
                     .values(
                         copies_total=update_info.copies_total,
@@ -183,5 +186,5 @@ async def update_school_collection(
 
     return {
         'msg': "updated",
-        "skipped": skipped_edditions
+        "skipped": skipped_editions
     }

@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from fastapi_permissions import Allow, Authenticated, has_permission, Deny
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,8 +9,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_current_active_superuser_or_backend_service_account, \
-    get_current_active_user_or_service_account, \
+from app.api.dependencies.security import get_current_active_user_or_service_account, \
     get_active_principals
 from app.db.session import get_session
 from app.models import School
@@ -33,7 +32,8 @@ bulk_school_access_control_list = [
     (Allow, "role:admin", "create"),
     (Allow, "role:admin", "batch"),
 
-    # Should we let LMS accounts create new schools?
+    (Allow, "role:lms", "read"),
+    # The following explicitly blocks LMS accounts from creating new schools
     (Deny, "role:lms", "create"),
     (Deny, "role:lms", "batch"),
 ]
@@ -52,20 +52,23 @@ bulk_school_access_control_list = [
     ]
 )
 async def get_schools(
+        country_code: Optional[str] = Query(None, description="Filter schools by country"),
+        q: Optional[str] = Query(None, description='Filter schools by name'),
+        is_active: Optional[bool] = Query(None, description="Return active or inactive schools. Default is all."),
         pagination: PaginatedQueryParams = Depends(),
         session: Session = Depends(get_session),
         principals: List = Depends(get_active_principals),
 ):
     """
-    List of schools the current account has permission to view.
+    List of schools (that the current account has permission to view).
+
+    Provide a country code and/or search query to further filter the schools.
     """
-
-    schools = crud.school.get_all(session, skip=pagination.skip, limit=pagination.limit)
-    allowed_schools = [school for school in schools
-                       if has_permission(principals, "read", school)]
-
-    logger.debug(f"Returning {len(allowed_schools)}")
-    return allowed_schools
+    schools = crud.school.get_all_with_optional_filters(session, country_code=country_code, query_string=q, is_active=is_active)
+    allowed_schools = [school for school in schools if has_permission(principals, "read", school)]
+    paginated_schools = allowed_schools[pagination.skip:pagination.limit]
+    logger.debug(f"Returning {len(paginated_schools)} schools")
+    return paginated_schools
 
 
 @router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)

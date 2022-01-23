@@ -51,4 +51,5 @@ def downgrade():
     op.drop_index(op.f('ix_service_accounts_type'), table_name='service_accounts')
     op.drop_index(op.f('ix_service_accounts_id'), table_name='service_accounts')
     op.drop_table('service_accounts')
+    op.execute("DROP TYPE serviceaccounttype")
     # ### end Alembic commands ###

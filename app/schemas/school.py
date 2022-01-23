@@ -9,6 +9,10 @@ class SchoolIdentity(BaseModel):
     official_identifier: str
     country_code: str
 
+    class Config:
+        orm_mode = True
+
+
 
 class SchoolBrief(SchoolIdentity):
     official_identifier: str

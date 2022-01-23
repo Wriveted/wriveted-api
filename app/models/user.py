@@ -35,7 +35,7 @@ class User(Base):
     name = Column(String, nullable=False)
 
     # Social stuff: Twitter, Goodreads
-    info = Column(MutableDict.as_mutable(JSON), nullable=True)
+    info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

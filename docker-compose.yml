@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+
+  db:
+    image: postgres:14
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PASSWORD=xvc8kcn
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: pg_isready -q -h db -p 5432 -U postgres
+      interval: 5s
+      timeout: 30s
+      retries: 5
+
+  api:
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
+    command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0
+    depends_on:
+      - db
+    environment:
+      - POSTGRESQL_PASSWORD=xvc8kcn
+      - POSTGRESQL_SERVER=db/
+      - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - /etc/localtime:/etc/localtime:ro
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
+volumes:
+  app-db-data:
