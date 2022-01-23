@@ -15,6 +15,8 @@ from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn, SeriesCreateIn
 
+from app.services.editions import get_definitive_isbn
+
 logger = get_logger()
 
 
@@ -24,10 +26,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     """
 
     def get_query(self, db: Session, id: Any) -> Query:
-        return select(Edition).where(Edition.ISBN == id)
+        return select(Edition).where(Edition.ISBN == get_definitive_isbn(id))
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
-        return self.get_all_query(db, order_by=order_by).where(Edition.ISBN.in_(ids))
+        return self.get_all_query(db, order_by=order_by).where(
+            Edition.ISBN.in_([get_definitive_isbn(id) for id in ids]))
 
     def create(self,
                db: Session,
@@ -43,7 +46,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         edition = Edition(
             edition_title=edition_data.title,
-            ISBN=edition_data.ISBN,
+            ISBN=get_definitive_isbn(edition_data.ISBN),
             cover_url=edition_data.cover_url,
             info=edition_data.info,
             work=work,
@@ -72,8 +75,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         seen_isbns = set()
         new_edition_data = []
         for edition_data in bulk_edition_data:
-            if edition_data.ISBN not in seen_isbns:
-                seen_isbns.add(edition_data.ISBN)
+            definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+            if definitive_isbn not in seen_isbns:
+                seen_isbns.add(definitive_isbn)
                 new_edition_data.append(edition_data)
 
         # TODO this part could be done in bulk - make all series, make all authors, works etc

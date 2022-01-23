@@ -14,7 +14,7 @@ class EditionInfo:
 class EditionBrief(BaseModel):
     title: str
     work_id: str
-    ISBN13: str
+    ISBN: str
 
     class Config:
         orm_mode = True
