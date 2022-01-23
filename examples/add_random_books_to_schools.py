@@ -108,7 +108,7 @@ for school in schools:
                 "action": "add",
                 "ISBN": d['ISBN'],
                 "edition_info": d,
-                "copies_on_loan": 0,
+                "copies_total": 2,
                 "copies_available": 1,
             } for d in collection_data]
         res = httpx.put(

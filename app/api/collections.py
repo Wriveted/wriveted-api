@@ -96,7 +96,7 @@ async def update_school_collection(
 
     - `add`
     - `remove`
-    - `update` - change the `copies_available` and `copies_on_loan`
+    - `update` - change the `copies_total` and `copies_available`
 
     ### Adding an unknown work to a collection
 
@@ -134,7 +134,7 @@ async def update_school_collection(
 
                 editions_to_add.append(update_info.edition_info)
         elif update_info.action == CollectionUpdateType.UPDATE:
-            # Update the "copies_available" and "copies_on_loan"
+            # Update the "copies_total and "copies_onavailable"
             # TODO consider a bulk update version of this
             stmt = (
                 update(CollectionItem)
@@ -151,8 +151,8 @@ async def update_school_collection(
                         # )
                     )
                     .values(
-                        copies_available=update_info.copies_available,
-                        copies_on_loan=update_info.copies_on_loan
+                        copies_total=update_info.copies_total,
+                        copies_available=update_info.copies_available
                     )
                     .execution_options(synchronize_session="fetch")
             )

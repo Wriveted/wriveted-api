@@ -44,5 +44,4 @@ class CollectionItem(Base):
     edition = relationship('Edition', lazy="joined")
 
     def __repr__(self):
-        copies = f"{self.copies_available}/{self.copies_available + self.copies_on_loan}"
-        return f"<CollectionItem '{self.work.title}' @ '{self.school.name}' ({copies} available)>"
+        return f"<CollectionItem '{self.work.title}' @ '{self.school.name}' ({self.copies_available}/{self.copies_total} available)>"

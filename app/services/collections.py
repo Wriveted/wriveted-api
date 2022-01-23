@@ -9,6 +9,7 @@ from app import crud
 from app.models import Edition, CollectionItem
 from app.schemas.collection import CollectionItemIn
 from app.services.events import create_event
+from app.services.editions import create_missing_editions
 
 logger = get_logger()
 
@@ -37,8 +38,8 @@ async def add_editions_to_collection(session, new_edition_data: List[CollectionI
                     "Updated": str(datetime.datetime.utcnow())
                 },
                 # TODO this is gross because I pass EditionCreateIn as well as CollectionCreateIn
-                copies_available=collection_item_info.copies_available if hasattr(collection_item_info, 'copies_available') else 1,
-                copies_on_loan=collection_item_info.copies_on_loan if hasattr(collection_item_info, 'copies_on_loan') else 0
+                copies_total=collection_item_info.copies_total if hasattr(collection_item_info, 'copies_total') else 1,
+                copies_available=collection_item_info.copies_available if hasattr(collection_item_info, 'copies_available') else 1
 
             )
         )
@@ -51,14 +52,3 @@ async def add_editions_to_collection(session, new_edition_data: List[CollectionI
     )
 
     session.add(school)
-
-
-async def create_missing_editions(session, new_edition_data):
-    isbns = {e.ISBN for e in new_edition_data if len(e.ISBN) > 0}
-    existing_isbns = session.execute(select(Edition.ISBN).where(Edition.ISBN.in_(isbns))).scalars().all()
-    isbns_to_create = isbns.difference(existing_isbns)
-    logger.info(f"Will have to create {len(isbns_to_create)} new editions")
-    new_edition_data = [data for data in new_edition_data if data.ISBN in isbns_to_create]
-    crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
-    logger.info("Created new editions")
-    return isbns, isbns_to_create, existing_isbns

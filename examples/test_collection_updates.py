@@ -190,8 +190,8 @@ assert len(original_books) == INITIAL_NUMBER_OF_BOOKS
 
 def randomize_loan_status(book_data):
     data = book_data.copy()
+    data['copies_total'] = random.randint(2, 4)
     data['copies_available'] = random.randint(0, 2)
-    data['copies_on_loan'] = random.randint(0, 2)
     return data
 
 
@@ -227,7 +227,7 @@ collection_changes = [
     {
         "action": "update",
         "ISBN": b['ISBN'],
-        "copies_on_loan": 99,
+        "copies_total": 99,
         "copies_available": 99,
     } for b in books_to_update]
 
@@ -252,7 +252,7 @@ collection = get_collection_response.json()
 
 number_items_with_updated_loan_status = 0
 for item in collection:
-    if item['copies_available'] == 99 and item['copies_on_loan'] == 99:
+    if item['copies_total'] == 99 and item['copies_available'] == 99:
         number_items_with_updated_loan_status += 1
 
 

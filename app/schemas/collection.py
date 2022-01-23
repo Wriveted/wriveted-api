@@ -17,16 +17,16 @@ class CollectionItemBrief(BaseModel):
 
     info: Optional[Any]
 
+    copies_total: Optional[conint(ge=0)]
     copies_available: Optional[conint(ge=0)]
-    copies_on_loan: Optional[conint(ge=0)]
 
     class Config:
         orm_mode = True
 
 
 class CollectionItemIn(EditionCreateIn):
+    copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
-    copies_on_loan: Optional[conint(ge=0)] = None
 
 
 class CollectionUpdateType(str, enum.Enum):
@@ -41,8 +41,8 @@ class CollectionUpdate(BaseModel):
     action: CollectionUpdateType
     edition_info: Optional[EditionCreateIn]
 
+    copies_total: Optional[conint(ge=0)]
     copies_available: Optional[conint(ge=0)]
-    copies_on_loan: Optional[conint(ge=0)]
 
     class Config:
         orm_mode = True
