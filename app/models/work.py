@@ -15,6 +15,7 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
+from app.models.booklist_work_association import booklist_work_association_table
 
 
 class WorkType(str, enum.Enum):
@@ -40,6 +41,12 @@ class Work(Base):
     series = relationship(
         "Series",
         secondary=series_works_association_table,
+        back_populates="works"
+    )
+
+    booklists = relationship(
+        'BookList',
+        secondary=booklist_work_association_table,
         back_populates="works"
     )
 

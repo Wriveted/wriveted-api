@@ -30,7 +30,7 @@ class BookList(Base):
     type = Column(Enum(ListType), nullable=False)
     info = Column(JSON)
 
-    books = relationship(
+    works = relationship(
         'Work',
         secondary=booklist_work_association_table,
         back_populates="booklists"
