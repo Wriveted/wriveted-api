@@ -5,11 +5,16 @@ from pydantic import BaseModel, AnyHttpUrl
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 
+class EditionInfo:
+    pages: Optional[int]
+    other: Optional[any]   
+    version: Optional[str]
+
 
 class EditionBrief(BaseModel):
     title: str
     work_id: str
-    ISBN: str
+    ISBN13: str
 
     class Config:
         orm_mode = True
@@ -23,14 +28,13 @@ class EditionDetail(BaseModel):
     ISBN: str
 
     cover_url: Optional[AnyHttpUrl]
-    info: Optional[Any]
+    info: Optional[EditionInfo]
 
     authors: List[AuthorBrief]
     illustrators: List[IllustratorBrief]
 
     class Config:
         orm_mode = True
-
 
 
 class EditionCreateIn(BaseModel):
@@ -47,7 +51,7 @@ class EditionCreateIn(BaseModel):
 
     cover_url: Optional[AnyHttpUrl]
 
-    info: Optional[Any]
+    info: Optional[EditionInfo]
 
     authors: List[AuthorCreateIn]
     illustrators: List[IllustratorCreateIn]

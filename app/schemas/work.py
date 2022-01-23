@@ -6,6 +6,13 @@ from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief
 
+class WorkInfo:
+    genre: Optional[list[str]]
+    characters: Optional[list[str]]
+    summary: Optional[str]
+    prc_reading_level: Optional[str]
+    version: Optional[str]
+
 
 class WorkBrief(BaseModel):
     id: str
@@ -19,8 +26,7 @@ class WorkBrief(BaseModel):
 
 
 class WorkDetail(WorkBrief):
-
-    info: Optional[Any]
+    info: Optional[WorkInfo]
     editions: List[EditionBrief]
 
     class Config:
@@ -36,7 +42,6 @@ class WorkCreateIn(BaseModel):
     type: WorkType
     title: str
     authors: List[AuthorCreateIn]
-    info: Optional[Any]
+    info: Optional[WorkInfo]
 
     series: Optional[SeriesCreateIn]
-

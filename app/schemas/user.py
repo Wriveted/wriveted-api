@@ -1,10 +1,15 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, EmailStr, UUID4
+from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
 
 from app.schemas.event import EventBrief
 from app.schemas.school import SchoolBrief
+
+class UserInfo:
+    sign_in_provider: str
+    # hoping pictures won't be base64 strings
+    picture: Optional[AnyHttpUrl]
 
 
 class UserCreateIn(BaseModel):
