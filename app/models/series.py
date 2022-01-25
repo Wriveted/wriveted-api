@@ -22,7 +22,7 @@ class Series(Base):
         index=True,
         nullable=False
     )
-    author = relationship('Author', back_populates='series', lazy='selectin')
+    authors = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
     info = Column(JSON)

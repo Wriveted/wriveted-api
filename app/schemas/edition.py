@@ -1,12 +1,27 @@
-from typing import Optional, Any, List
-
+from typing import Optional, Any, List, Text
 from pydantic import BaseModel, AnyHttpUrl
-
 from app.schemas.author import AuthorBrief, AuthorCreateIn
+from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 
+class WorkInfo(BaseModel):
+    short_summary: Optional[Text]
+    long_summary: Optional[Text]
+    keywords: Optional[str]
+    interest_age: Optional[str]
+    reading_age: Optional[str]
+    genres: Optional[list[Genre]]
+    series_title: Optional[str]
+
+    characters: Optional[list[str]]
+    prc_reading_level: Optional[str]
+
+    version: Optional[str]
+    other: Optional[dict]
+
+
 class EditionInfo(BaseModel):
-    pages: Optional[int] 
+    pages: Optional[int]
     version: Optional[str]
     other: Optional[dict]  
 
@@ -44,14 +59,14 @@ class EditionCreateIn(BaseModel):
     # Only required if different from title
     work_title: Optional[str]
     series_title: Optional[str]
+    series_number: Optional[str]
 
     title: str
-
     ISBN: str
-
     cover_url: Optional[AnyHttpUrl]
 
     info: Optional[EditionInfo]
+    work_info: Optional[WorkInfo]
 
     authors: List[AuthorCreateIn]
     illustrators: List[IllustratorCreateIn]

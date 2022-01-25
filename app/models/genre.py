@@ -12,6 +12,7 @@ class Genre(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     name = Column(String(50), nullable=False, index=True, unique=True)
+    bisac_code = Column(String(8), nullable=True, unique=True)
 
     labelsets = relationship(
         'LabelSet',

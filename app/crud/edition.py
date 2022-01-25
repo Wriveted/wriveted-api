@@ -131,8 +131,8 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             type=WorkType.BOOK,
             title=edition_data.work_title if edition_data.work_title is not None else edition_data.title,
             authors=edition_data.authors,
-            info=edition_data.info,
-            series_title=edition_data.series_title,
+            info=edition_data.work_info,
+            series_title=edition_data.work_info.series_title,
         )
 
         work = crud_work.get_or_create(
