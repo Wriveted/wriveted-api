@@ -25,12 +25,15 @@ async def create_missing_editions(session, new_edition_data):
 # Since *every* ISBN is representable as ISBN13, but not *every* ISBN is representable as ISBN10,
 # all Editions should be stored by ISBN13, and any queries should standardise the request into 
 # a "definitive" isbn to store or lookup.
-async def get_definitive_isbn(isbn: str):
-    assert len(isbn) in [10, 13]
-    if len(isbn) == 10:
-        return convert_10_to_13(isbn)
-    elif len(isbn) == 13:
-        return isbn
+def get_definitive_isbn(isbn: str):
+    valid_chars = ['0','1','2','3','4','5','6','7','8','9','X']
+    # strip all characters that aren't "valid" (i.e. hyphens, spaces)
+    cleaned_isbn = ''.join([i for i in isbn if i in valid_chars])
+    assert len(cleaned_isbn) in [10, 13]
+    if len(cleaned_isbn) == 10:
+        return convert_10_to_13(cleaned_isbn)
+    elif len(cleaned_isbn) == 13:
+        return cleaned_isbn
 
 
 # --- courtesy of https://code.activestate.com/recipes/498104-isbn-13-converter/ ---

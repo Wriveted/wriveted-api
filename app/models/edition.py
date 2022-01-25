@@ -23,6 +23,7 @@ class Edition(Base):
         index=True,
         nullable=False
     )
+    work = relationship('Work', back_populates='editions', lazy='selectin')
 
     # this might be a localized title
     edition_title = Column(String(512), nullable=True)
@@ -47,8 +48,6 @@ class Edition(Base):
     # Published date, published by, media (paperback/hardback/audiobook),
     # number of pages.
     info = Column(JSON)
-
-    work = relationship('Work', back_populates='editions', lazy='selectin')
 
     # Proxy the authors from the related work
     authors = association_proxy('work', 'authors')

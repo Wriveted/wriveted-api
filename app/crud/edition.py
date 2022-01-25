@@ -75,7 +75,12 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         seen_isbns = set()
         new_edition_data = []
         for edition_data in bulk_edition_data:
-            definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+            try:
+                definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+            except:
+                logger.info("Invalid ISBN. Skipping...")
+                continue
+
             if definitive_isbn not in seen_isbns:
                 seen_isbns.add(definitive_isbn)
                 new_edition_data.append(edition_data)
