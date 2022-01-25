@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Column,
+    ForeignKey,
     Integer,
     String,
     JSON,
@@ -14,6 +15,14 @@ class Series(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     title = Column(String(512), nullable=False, unique=True, index=True)
+
+    author_id = Column(
+        Integer,
+        ForeignKey("authors.id", name="fk_authors_series"),
+        index=True,
+        nullable=False
+    )
+    author = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
     info = Column(JSON)
