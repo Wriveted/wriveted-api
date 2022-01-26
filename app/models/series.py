@@ -16,13 +16,13 @@ class Series(Base):
 
     title = Column(String(512), nullable=False, unique=True, index=True)
 
-    author_id = Column(
-        Integer,
-        ForeignKey("authors.id", name="fk_authors_series"),
-        index=True,
-        nullable=False
-    )
-    authors = relationship('Author', back_populates='series', lazy='selectin')
+    # author_id = Column(
+    #     Integer,
+    #     ForeignKey("authors.id", name="fk_authors_series"),
+    #     index=True,
+    #     nullable=False
+    # )
+    # author = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
     info = Column(JSON)

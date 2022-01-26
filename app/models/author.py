@@ -28,7 +28,7 @@ class Author(Base):
         #cascade="all, delete-orphan"
     )
 
-    series = relationship('Series', cascade="all")
+    # series = relationship('Series', cascade="all")
 
     # Ref https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#using-column-property
     book_count = column_property(

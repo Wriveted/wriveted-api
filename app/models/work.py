@@ -34,7 +34,7 @@ class Work(Base):
     # TODO may want to look at a TSVector GIN index for decent full text search
     title = Column(String(512), nullable=False, index=True)
 
-    info = Column(MutableDict.as_mutable(JSON))
+    info = Column(JSON)
 
     editions = relationship('Edition', cascade="all, delete-orphan")
 
