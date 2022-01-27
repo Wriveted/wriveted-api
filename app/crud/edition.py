@@ -1,3 +1,4 @@
+import json
 from typing import Any, List
 
 from sqlalchemy import select
@@ -48,7 +49,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             edition_title=edition_data.title,
             ISBN=get_definitive_isbn(edition_data.ISBN),
             cover_url=edition_data.cover_url,
-            info=edition_data.info,
+            info=edition_data.info.__dict__,
             work=work,
             illustrators=illustrators
         )

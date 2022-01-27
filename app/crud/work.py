@@ -1,3 +1,4 @@
+import json
 from typing import Any, List
 
 from sqlalchemy import select
@@ -34,10 +35,13 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         try:
             work = db.execute(q).scalar_one()
         except NoResultFound:
+            # to prevent json serialising issues we convert python objects into their respective dicts
+            if work_data.info is not None and work_data.info.genres is not None:
+                work_data.info.genres = [g.__dict__ for g in work_data.info.genres]
             work = Work(
                 type=WorkType.BOOK,
                 title=work_data.title,
-                info=work_data.info,
+                info=work_data.info.__dict__,
                 authors=authors
             )
             if work_data.series is not None:

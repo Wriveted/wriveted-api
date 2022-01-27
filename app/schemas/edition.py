@@ -1,19 +1,20 @@
 from typing import Optional, Any, List, Text
 from pydantic import BaseModel, AnyHttpUrl
+from sqlalchemy import JSON
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 
 class WorkInfo(BaseModel):
-    short_summary: Optional[Text]
-    long_summary: Optional[Text]
+    short_summary: Optional[str]
+    long_summary: Optional[str]
     keywords: Optional[str]
     interest_age: Optional[str]
     reading_age: Optional[str]
-    genres: Optional[list[Genre]]
+    genres: Optional[List[Genre]]
     series_title: Optional[str]
 
-    characters: Optional[list[str]]
+    characters: Optional[List[str]]
     prc_reading_level: Optional[str]
 
     version: Optional[str]
@@ -23,7 +24,7 @@ class WorkInfo(BaseModel):
 class EditionInfo(BaseModel):
     pages: Optional[int]
     version: Optional[str]
-    other: Optional[dict]  
+    other: Optional[dict]
 
 
 class EditionBrief(BaseModel):
@@ -66,6 +67,8 @@ class EditionCreateIn(BaseModel):
     cover_url: Optional[AnyHttpUrl]
 
     info: Optional[EditionInfo]
+
+    # we need the workinfo to create 
     work_info: Optional[WorkInfo]
 
     authors: List[AuthorCreateIn]
