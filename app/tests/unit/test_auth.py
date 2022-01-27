@@ -24,6 +24,7 @@ def test_create_token():
     valid_for = payload.exp - payload.iat
     assert valid_for.total_seconds()/60 == approx(float(get_settings().ACCESS_TOKEN_EXPIRE_MINUTES))
 
+
 def test_extra_claims_propogated():
 
     token = create_access_token(
@@ -52,10 +53,10 @@ def test_expired_token_rejected():
 
     token = create_access_token(
         subject="Wriveted:user-account:1",
-        expires_delta=datetime.timedelta(milliseconds=500)
+        expires_delta=datetime.timedelta(seconds=1)
     )
     immediate_payload = get_payload_from_access_token(token)
-    time.sleep(1)
+    time.sleep(2)
 
     with pytest.raises(ExpiredSignatureError):
         payload = get_payload_from_access_token(token)
