@@ -19,6 +19,8 @@ def get_raw_payload_from_access_token(token) -> Dict[str, Any]:
 
 class TokenPayload(BaseModel):
     sub: str
+    iat: datetime
+    exp: datetime
 
     @validator('sub')
     def sub_must_start_with_wriveted(cls, v):

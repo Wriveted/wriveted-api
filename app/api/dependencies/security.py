@@ -202,7 +202,7 @@ def get_active_principals(
 
 def create_user_access_token(user):
     wriveted_access_token = create_access_token(
-        subject=f"wriveted:user-account:{user.id}",
+        subject=f"Wriveted:User-Account:{user.id}",
         # extra_claims={}
     )
     logger.debug("Access token generated for user", user=user)
