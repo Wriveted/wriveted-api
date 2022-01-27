@@ -5,7 +5,8 @@ from sqlalchemy import (
     String,
     JSON, select, func, and_,
     ForeignKey,
-    Enum
+    Enum,
+    DateTime
 )
 from sqlalchemy.orm import relationship, column_property
 from app.db import Base
@@ -29,6 +30,7 @@ class BookList(Base):
     name = Column(String(200), nullable=False, index=True)
     type = Column(Enum(ListType), nullable=False)
     info = Column(JSON)
+    created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 
     works = relationship(
         'Work',

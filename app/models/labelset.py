@@ -8,7 +8,8 @@ from sqlalchemy import (
     Integer,
     String,
     Boolean,
-    DateTime
+    DateTime,
+    func
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -93,6 +94,8 @@ class LabelSet(Base):
     labelled_by_sa_id = Column(ForeignKey('service_accounts.id', name="fk_labeller-sa_labelset"), nullable=True)
 
     info = Column(JSON)
+
+    created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 
     # Could possibly add a pg trigger to update a last_modified timestamp for each
     # row, which could be compared against last_checked to enable a more meaningful
