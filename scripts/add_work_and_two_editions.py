@@ -90,7 +90,7 @@ for isbn in isbns:
     print(f"{isbn} not in db. Performing Nielsen lookup...")
 
     book = nielsen_query(isbn, NielsenQueryType.INFO)
-    image = nielsen_query(isbn, NielsenQueryType.IMAGE)
+    # image = nielsen_query(isbn, NielsenQueryType.IMAGE)
 
     authors = []
     illustrators = []
@@ -112,7 +112,8 @@ for isbn in isbns:
                 })
             elif book[f"CR{i}"] in ["A12", "A35"]:
                 illustrators.append({
-                    "full_name": book[f"CNF{i}"]
+                    "first_name": book[f"ICFN{i}"],
+                    "last_name": book[f"ICKN{i}"]
                 })
 
         # look for genres
