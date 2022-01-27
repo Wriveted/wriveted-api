@@ -65,7 +65,7 @@ class LabelSet(Base):
         secondary=labelset_hue_association_table,
         back_populates='labelsets',
         lazy="selectin",
-        order_by="desc(labelset_hue_association_table.c.ordinal)"
+        order_by="desc(labelset_hue_association.c.ordinal)"
     )
 
     genres = relationship(

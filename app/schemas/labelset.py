@@ -1,8 +1,10 @@
 from typing import Optional, Any
 
 from pydantic import BaseModel
+from datetime import datetime
 
 from app.models.labelset import DoeCode, ReadingAbility
+from app.schemas.genre import Genre
 from app.schemas.hue import Hue
 
 
@@ -25,12 +27,15 @@ class LabelSetDetail(LabelSetBrief):
     labelled_by_user_id: Optional[int]
     labelled_by_sa_id: Optional[int]
     info: Optional[dict]
+    genres: list[Genre]
     checked: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
 
 
 # this is only for the case where the partial/patch method doesn't work:
 # https://fastapi.tiangolo.com/tutorial/body-updates/#partial-updates-with-patch
-class LabelSetUpdateIn(BaseModel):
+class LabelSetCreateIn(BaseModel):
     hue_primary_id: Optional[int]
     hue_secondary_id: Optional[int]
     hue_tertiary_id: Optional[int]
@@ -42,3 +47,4 @@ class LabelSetUpdateIn(BaseModel):
     labelled_by_user_id: Optional[int]
     labelled_by_sa_id: Optional[int]
     info: Optional[dict]
+    genres: list[Genre]

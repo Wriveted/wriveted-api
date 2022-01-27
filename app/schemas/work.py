@@ -1,10 +1,8 @@
-from typing import Optional, Any, List, Text
+from typing import Optional, List
 from pydantic import BaseModel
-from sqlalchemy import JSON
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, WorkInfo
-from app.schemas.genre import Genre
 
 class WorkBrief(BaseModel):
     id: str

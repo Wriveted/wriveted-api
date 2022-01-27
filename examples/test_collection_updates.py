@@ -120,7 +120,7 @@ print("Collection after reset:", collection)
 print("Loading books from CSV file")
 
 book_data = []
-with open("Wriveted-books.csv", newline='') as csv_file:
+with open("Wriveted-books.csv", newline='', encoding='cp437') as csv_file:
     reader = csv.reader(csv_file)
 
     # Eat the header line
@@ -160,9 +160,10 @@ with open("Wriveted-books.csv", newline='') as csv_file:
                     "ISBN": ISBN.strip(),
                     "cover_url": cover_url,
                     "info": {
-                        "Genre": book_row[20],
-                        "Illustration Style": book_row[18],
-                        "AirTableDump": book_row
+                        "genre": book_row[20],
+                        "other": {
+                            "airtable_dump": '|'.join(book_row)
+                        }
                     },
                     "authors": authors,
                     "illustrators": [
