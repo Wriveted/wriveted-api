@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime
 )
 from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.booklist_work_association import booklist_work_association_table
 from app.models.work import Work
@@ -29,7 +30,7 @@ class BookList(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), nullable=False, index=True)
     type = Column(Enum(ListType), nullable=False)
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
     created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 
     works = relationship(

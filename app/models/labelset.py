@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-
+from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
@@ -85,25 +85,15 @@ class LabelSet(Base):
     # e.g. 1000L
     lexile = Column(String(length=5), nullable=True)
 
-    # unsure at this stage if huey picks will classify editions or works 
-    # (e.g. will huey pick depending on illustrator and cover? or just text)
-    huey_pick = Column(Boolean(), default=False)
-
     # service accounts and users could potentially label works
     labelled_by_user_id = Column(ForeignKey('users.id', name="fk_labeller-user_labelset"), nullable=True)
     labelled_by_sa_id = Column(ForeignKey('service_accounts.id', name="fk_labeller-sa_labelset"), nullable=True)
 
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, nullable=False, onupdate=func.current_timestamp())
 
-    # Could possibly add a pg trigger to update a last_modified timestamp for each
-    # row, which could be compared against last_checked to enable a more meaningful
-    # query in "show me works with unchecked updates". But repeated modifications to 
-    # the labelset probably aren't likely at this stage, so the boolean will do for now.
-    # alternative: instead of updating a row, replace it altogether, defaulting checked
-    # back to false and achieving the same queries without timestamps
-        # last_checked = Column(DateTime(), nullable=True)
     checked = Column(Boolean(), default=False)
 
     def __repr__(self):

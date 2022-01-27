@@ -1,5 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Index, String, JSON, Integer, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -24,7 +25,7 @@ class CollectionItem(Base):
     #UniqueConstraint(school_id, edition_id, name="unique_editions_per_collection")
 
     # Information from this particular school's LMS
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     copies_total = Column(Integer, default=1, nullable=False)
     copies_available = Column(Integer, default=0, nullable=False)

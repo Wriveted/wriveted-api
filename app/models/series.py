@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.series_works_association import series_works_association_table
 
@@ -25,7 +26,7 @@ class Series(Base):
     # author = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     # TODO order this relationship by the secondary table
     works = relationship(

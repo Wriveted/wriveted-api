@@ -11,6 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
@@ -34,7 +35,7 @@ class Work(Base):
     # TODO may want to look at a TSVector GIN index for decent full text search
     title = Column(String(512), nullable=False, index=True)
 
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     editions = relationship('Edition', cascade="all, delete-orphan")
 

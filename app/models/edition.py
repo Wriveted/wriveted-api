@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON, select
 )
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.sql.functions import coalesce
 
@@ -47,7 +48,7 @@ class Edition(Base):
     # Info contains stuff like edition number, language
     # Published date, published by, media (paperback/hardback/audiobook),
     # number of pages.
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
     authors = association_proxy('work', 'authors')

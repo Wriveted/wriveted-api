@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.illustrator_edition_association import illustrator_edition_association_table
 
@@ -18,7 +19,7 @@ class Illustrator(Base):
 
     full_name = Column(String(400), Computed("COALESCE(first_name || ' ', '') || last_name"))
 
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     editions = relationship(
         'Edition',
