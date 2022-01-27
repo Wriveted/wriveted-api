@@ -1,6 +1,7 @@
 from sqlalchemy import (
     Column,
     Computed,
+    Integer,
     String,
     JSON,
 )
@@ -10,7 +11,7 @@ from app.models.illustrator_edition_association import illustrator_edition_assoc
 
 
 class Illustrator(Base):
-    id = Column(String(36), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
     first_name = Column(String(200))
     last_name = Column(String(200), nullable=False)

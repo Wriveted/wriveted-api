@@ -12,7 +12,7 @@ from app.schemas.illustrator import IllustratorCreateIn
 class CRUDIllustrator(CRUDBase[Illustrator, Any, Any]):
 
     def get_or_create(self, db: Session, data: IllustratorCreateIn, commit=True) -> Illustrator:
-        q = select(Illustrator).where(Illustrator.full_name == data.full_name)
+        q = select(Illustrator).where(Illustrator.full_name == f"{data.last_name}, {data.first_name}")
         try:
             orm_obj = db.execute(q).scalar_one()
         except NoResultFound:
