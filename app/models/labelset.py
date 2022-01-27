@@ -55,7 +55,7 @@ class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True)
+    work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True, index=True)
     work = relationship('Work', back_populates='labelset')
 
     # Handle Multiple Hues via a secondary association table, 
@@ -64,7 +64,8 @@ class LabelSet(Base):
         'Hue',
         secondary=labelset_hue_association_table,
         back_populates='labelsets',
-        lazy="selectin"
+        lazy="selectin",
+        order_by="desc(labelset_hue_association_table.c.ordinal)"
     )
 
     genres = relationship(

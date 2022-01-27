@@ -29,7 +29,6 @@ class School(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-
     country_code = Column(String(3), ForeignKey('countries.id', name="fk_school_country"), index=True)
     official_identifier = Column(String(512))
 
@@ -69,6 +68,8 @@ class School(Base):
             .correlate_except(CollectionItem)
             .scalar_subquery()
     )
+
+    db_jobs = relationship('DbJob', cascade="all, delete-orphan")
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
     # association proxy of "collectionitems" collection

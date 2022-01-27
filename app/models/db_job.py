@@ -3,10 +3,12 @@ import uuid
 
 from sqlalchemy import (
     Column,
+    ForeignKey,
     Integer,
     Enum,
     DateTime,
-    JSON
+    JSON,
+    func
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -22,6 +24,7 @@ class JobStatus(str, enum.Enum):
     PENDING = "Pending"
     RUNNING = "Running"
     COMPLETE = "Complete"
+    FAILED = "Failed"
 
 
 class DbJob(Base):
@@ -32,9 +35,9 @@ class DbJob(Base):
         primary_key=True
     )
 
-    job_type = Column(Enum(JobType), nullable=False)
+    type = Column(Enum(JobType), nullable=False)
 
-    job_status = Column(Enum(JobStatus), nullable=False, default=JobStatus.PENDING)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.PENDING)
 
     summary = Column(JSON(), nullable=True)
 
@@ -46,11 +49,19 @@ class DbJob(Base):
 
     events = relationship("Event", back_populates='db_job', cascade="all, delete-orphan")
 
-    created_timestamp = Column(DateTime)
+    created_timestamp = Column(DateTime, server_default=func.now())
 
-    started_timestamp = Column(DateTime)
+    started_timestamp = Column(DateTime, nullable=True)
 
-    ended_timestamp = Column(DateTime)
+    ended_timestamp = Column(DateTime, nullable=True)
+
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.id", name="fk_db_jobs_schools"),
+        index=True,
+        nullable=False
+    )
+    school = relationship('School', back_populates='db_jobs', lazy='selectin')
 
     def __repr__(self):
-        return f"<Event {self.title} - {self.description}>"
+        return f"<Event {self.type} - {self.status}>"
