@@ -6,7 +6,7 @@ labelset_genre_association_table = Table(
     Column('labelset_id',
            ForeignKey('labelsets.id', name="fk_labelset_genre_association_labelset_id"),
            primary_key=True),
-    Column('hue_id',
+    Column('genre_id',
            ForeignKey('genres.id', name="fk_labelset_genre_association_genre_id"),
            primary_key=True)
 )
