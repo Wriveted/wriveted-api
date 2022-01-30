@@ -1,16 +1,17 @@
-import textwrap
 
+from app.config import get_settings
+
+import textwrap
 from fastapi import FastAPI, HTTPException
 from starlette import status
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from structlog import get_logger
-
 from app.api import api_router
-from app.config import get_settings
 
 
+logger = get_logger()
 api_docs = textwrap.dedent("""
 # 🤖 
 
@@ -48,7 +49,8 @@ to add new schools or edit collections.
 """)
 
 settings = get_settings()
-logger = get_logger()
+
+
 app = FastAPI(
     title="Wriveted API",
     description=api_docs,
@@ -78,17 +80,14 @@ async def catch_exceptions_middleware(request: Request, call_next):
             "Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
 # Note without this handler being added before the CORS middleware, internal errors
 # don't include CORS headers - which masks the underlying internal error as a CORS error
 # to clients.
 app.middleware("http")(catch_exceptions_middleware)
-
-
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
     logger.info(
-        "Enabling cross origin restrictions", cors_origins=settings.BACKEND_CORS_ORIGINS
+        "Enabling cross origin restrictions", cors_origins=[str(c) for c in settings.BACKEND_CORS_ORIGINS]
     )
     app.add_middleware(
         CORSMiddleware,
@@ -98,9 +97,7 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
 
 @app.get("/")
 async def root():
@@ -109,10 +106,11 @@ async def root():
     """
     return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
-
 @app.get("/docs")
 async def redirect_old_docs_route():
     """
     Redirects to the OpenAPI documentation for the current version
     """
     return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
