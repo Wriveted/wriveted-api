@@ -29,6 +29,7 @@ def get_definitive_isbn(isbn: str):
     valid_chars = ['0','1','2','3','4','5','6','7','8','9','X']
     # strip all characters that aren't "valid" (i.e. hyphens, spaces)
     cleaned_isbn = ''.join([i for i in isbn if i in valid_chars])
+    cleaned_isbn = cleaned_isbn.zfill(10)
     assert len(cleaned_isbn) in [10, 13]
     if len(cleaned_isbn) == 10:
         return convert_10_to_13(cleaned_isbn)
