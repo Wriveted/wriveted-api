@@ -10,8 +10,9 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
-from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn
+from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn, KnownAndTaggedEditionCounts
 from app.services.collections import create_missing_editions
+from app.services.editions import compare_known_editions
 
 
 logger = get_logger()
@@ -38,6 +39,34 @@ async def get_editions(
         return session.execute(statement).scalars().all()
     else:
         return crud.edition.get_all(session, skip=pagination.skip, limit=pagination.limit)
+
+
+@router.get("/editions/compare", response_model=KnownAndTaggedEditionCounts)
+async def compare_bulk_editions(
+        isbn_list: List[str],
+        session: Session = Depends(get_session)
+):
+    """
+    Compares a list of ISBNs against the db to determine how many are known,
+    and how many have been fully tagged and checked.
+    The provided list should be a raw JSON list, i.e:
+
+    ```json
+    [  
+        "1234567890",  
+        "1234567899",  
+        "1234567898"  
+    ]  
+    ```
+
+    """
+    known, fully_tagged = await compare_known_editions(session, isbn_list)
+
+    return {
+        "num_provided": len(isbn_list),
+        "num_known": known,
+        "num_fully_tagged": fully_tagged
+    }
 
 
 @router.get("/edition/{isbn}", response_model=EditionDetail)
