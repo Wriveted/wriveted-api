@@ -9,17 +9,16 @@ logger = get_logger()
 
 async def compare_known_editions(session, isbn_list: List[str]):
     known_matches: list[Edition] = session.execute(crud.edition.get_multi_query(db=session, ids=isbn_list)).scalars().all()
-    fully_tagged_matches = []
+    fully_tagged_matches = 0
     for e in known_matches:
         try:
             if e.work.labelset.checked == True:
-                fully_tagged_matches.append(e)
+                fully_tagged_matches += 1
         except Exception as e:
             # print(e)
             continue
 
-    return len(known_matches), len(fully_tagged_matches)
-
+    return len(known_matches), fully_tagged_matches
 
 
 async def create_missing_editions(session, new_edition_data):
@@ -31,7 +30,6 @@ async def create_missing_editions(session, new_edition_data):
     crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
     logger.info("Created new editions")
     return isbns, isbns_to_create, existing_isbns
-
 
 
 # http://www.niso.org/niso-io/2020/01/new-year-new-isbn-prefix

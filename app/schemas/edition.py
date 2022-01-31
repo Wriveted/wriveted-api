@@ -73,3 +73,9 @@ class EditionCreateIn(BaseModel):
 
     authors: List[AuthorCreateIn]
     illustrators: List[IllustratorCreateIn]
+
+
+class KnownAndTaggedEditionCounts(BaseModel):
+    num_provided: int
+    num_known: int
+    num_fully_tagged: int
