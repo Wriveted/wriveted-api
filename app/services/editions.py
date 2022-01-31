@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import select
 from structlog import get_logger
 from app import crud
@@ -5,9 +6,25 @@ from app.models import Edition
 
 logger = get_logger()
 
+
+async def compare_known_editions(session, isbn_list: List[str]):
+    known_matches: list[Edition] = session.execute(crud.edition.get_multi_query(db=session, ids=isbn_list)).scalars().all()
+    fully_tagged_matches = []
+    for e in known_matches:
+        try:
+            if e.work.labelset.checked == True:
+                fully_tagged_matches.append(e)
+        except Exception as e:
+            # print(e)
+            continue
+
+    return len(known_matches), len(fully_tagged_matches)
+
+
+
 async def create_missing_editions(session, new_edition_data):
     isbns = {e.ISBN for e in new_edition_data if len(e.ISBN) > 0}
-    existing_isbns = session.execute(select(Edition.ISBN).where(Edition.ISBN.in_(isbns))).scalars().all()
+    existing_isbns = session.execute(select(Edition.ISBN).where(get_definitive_isbn(Edition.ISBN).in_(isbns))).scalars().all()
     isbns_to_create = isbns.difference(existing_isbns)
     logger.info(f"Will have to create {len(isbns_to_create)} new editions")
     new_edition_data = [data for data in new_edition_data if data.ISBN in isbns_to_create]

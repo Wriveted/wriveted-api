@@ -12,6 +12,7 @@ from app.db.session import get_session
 from app.models import Edition
 from app.schemas.edition import EditionDetail, EditionBrief, EditionCreateIn
 from app.services.collections import create_missing_editions
+from app.services.editions import compare_known_editions
 
 
 logger = get_logger()
@@ -38,6 +39,21 @@ async def get_editions(
         return session.execute(statement).scalars().all()
     else:
         return crud.edition.get_all(session, skip=pagination.skip, limit=pagination.limit)
+
+
+# from a list of ISBNs (str), compares against db to determine how many are known, and how many of those
+# are fully tagged and checked.
+@router.post("/editions/compare")
+async def compare_bulk_editions(
+        isbn_list: List[str],
+        session: Session = Depends(get_session)
+):
+    known, fully_tagged = await compare_known_editions(session, isbn_list)
+
+    return {
+        "known": known,
+        "fully_tagged": fully_tagged
+    }
 
 
 @router.get("/edition/{isbn}", response_model=EditionDetail)
