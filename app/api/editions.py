@@ -52,11 +52,11 @@ async def compare_bulk_editions(
     The provided list should be a raw JSON list, i.e:
 
     ```json
-    {  
+    [  
         "1234567890",  
         "1234567899",  
         "1234567898"  
-    }  
+    ]  
     ```
 
     """
