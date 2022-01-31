@@ -23,8 +23,8 @@ async def compare_known_editions(session, isbn_list: List[str]):
 
 
 async def create_missing_editions(session, new_edition_data):
-    isbns = {e.ISBN for e in new_edition_data if len(e.ISBN) > 0}
-    existing_isbns = session.execute(select(Edition.ISBN).where(get_definitive_isbn(Edition.ISBN).in_(isbns))).scalars().all()
+    isbns = {get_definitive_isbn(e.ISBN) for e in new_edition_data if len(e.ISBN) > 0}
+    existing_isbns = session.execute(select(Edition.ISBN).where((Edition.ISBN).in_(isbns))).scalars().all()
     isbns_to_create = isbns.difference(existing_isbns)
     logger.info(f"Will have to create {len(isbns_to_create)} new editions")
     new_edition_data = [data for data in new_edition_data if data.ISBN in isbns_to_create]
