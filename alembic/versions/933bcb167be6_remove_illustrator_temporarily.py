@@ -1,7 +1,7 @@
 """Remove illustrator temporarily
 
 Revision ID: 933bcb167be6
-Revises: a2ae7610e3e1
+Revises: 541f46c3aa65
 Create Date: 2022-01-27 13:38:13.685125
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '933bcb167be6'
-down_revision = 'a2ae7610e3e1'
+down_revision = '541f46c3aa65'
 branch_labels = None
 depends_on = None
 
