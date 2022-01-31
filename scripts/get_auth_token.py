@@ -12,7 +12,7 @@ from app import config
 from app.db.session import get_session
 from app.api.dependencies.security import create_user_access_token
 
-session = next(get_session())
+session = next(get_session(settings=config.get_settings()))
 
 user = crud.user.get_by_account_email(db=session, email="hardbyte@gmail.com")
 
