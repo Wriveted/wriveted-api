@@ -6,8 +6,10 @@ from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
 from app.schemas.event import EventBrief
 from app.schemas.school import SchoolBrief
 
+
 class UserInfo(BaseModel):
-    sign_in_provider: str
+    sign_in_provider: Optional[str]
+
     # hoping pictures won't be base64 strings
     picture: Optional[AnyHttpUrl]
     other: Optional[dict]
