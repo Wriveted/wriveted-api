@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON, select, func, and_,
 )
 from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.work import Work
@@ -19,7 +20,7 @@ class Author(Base):
     # Admittedly bold move making author's full names unique...
     full_name = Column(String(400), nullable=False, unique=True)
 
-    info = Column(JSON)
+    info = Column(MutableDict.as_mutable(JSON))
 
     books = relationship(
         'Work',
@@ -27,6 +28,8 @@ class Author(Base):
         back_populates="authors"
         #cascade="all, delete-orphan"
     )
+
+    # series = relationship('Series', cascade="all")
 
     # Ref https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#using-column-property
     book_count = column_property(

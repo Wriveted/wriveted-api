@@ -5,14 +5,18 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    Enum
+    Enum,
+    Boolean,
+    DateTime
 )
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.series_works_association import series_works_association_table
+from app.models.booklist_work_association import booklist_work_association_table
 
 
 class WorkType(str, enum.Enum):
@@ -23,7 +27,7 @@ class WorkType(str, enum.Enum):
 class Work(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-
+    
     type = Column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
 
     #series_id = Column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
@@ -41,6 +45,12 @@ class Work(Base):
         back_populates="works"
     )
 
+    booklists = relationship(
+        'BookList',
+        secondary=booklist_work_association_table,
+        back_populates="works"
+    )
+
     # TODO edition count
 
     # Handle Multiple Authors via a secondary association table
@@ -51,6 +61,8 @@ class Work(Base):
         # https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#selectin-eager-loading
         lazy="selectin"
     )
+
+    labelset = relationship('LabelSet', uselist=False, back_populates="work")
 
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"

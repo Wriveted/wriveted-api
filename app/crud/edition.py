@@ -1,3 +1,4 @@
+import json
 from typing import Any, List
 
 from sqlalchemy import select
@@ -15,6 +16,8 @@ from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn, SeriesCreateIn
 
+from app.services.editions import get_definitive_isbn
+
 logger = get_logger()
 
 
@@ -24,10 +27,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     """
 
     def get_query(self, db: Session, id: Any) -> Query:
-        return select(Edition).where(Edition.ISBN == id)
+        return select(Edition).where(Edition.ISBN == get_definitive_isbn(id))
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
-        return self.get_all_query(db, order_by=order_by).where(Edition.ISBN.in_(ids))
+        return self.get_all_query(db, order_by=order_by).where(
+            Edition.ISBN.in_([get_definitive_isbn(id) for id in ids]))
 
     def create(self,
                db: Session,
@@ -43,9 +47,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         edition = Edition(
             edition_title=edition_data.title,
-            ISBN=edition_data.ISBN,
+            ISBN=get_definitive_isbn(edition_data.ISBN),
             cover_url=edition_data.cover_url,
-            info=edition_data.info,
+            info=edition_data.info.dict(),
             work=work,
             illustrators=illustrators
         )
@@ -72,8 +76,14 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         seen_isbns = set()
         new_edition_data = []
         for edition_data in bulk_edition_data:
-            if edition_data.ISBN not in seen_isbns:
-                seen_isbns.add(edition_data.ISBN)
+            try:
+                definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+            except:
+                logger.info("Invalid ISBN. Skipping...")
+                continue
+
+            if definitive_isbn not in seen_isbns:
+                seen_isbns.add(definitive_isbn)
                 new_edition_data.append(edition_data)
 
         # Dedupe Author data by "full_name"
@@ -122,8 +132,8 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             type=WorkType.BOOK,
             title=edition_data.work_title if edition_data.work_title is not None else edition_data.title,
             authors=edition_data.authors,
-            info=edition_data.info,
-            series_title=edition_data.series_title,
+            info=edition_data.work_info,
+            series_title=edition_data.work_info.series_title,
         )
 
         work = crud_work.get_or_create(

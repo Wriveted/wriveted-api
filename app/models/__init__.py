@@ -12,3 +12,8 @@ from .work import Work
 from .user import User
 from .event import Event, EventLevel
 from .service_account import ServiceAccountType, ServiceAccount
+from .hue import Hue
+from .labelset import LabelSet
+from .db_job import DbJob
+from .genre import Genre
+from .booklist import BookList

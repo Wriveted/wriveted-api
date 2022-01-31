@@ -19,15 +19,15 @@ depends_on = None
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = orm.Session(bind=bind)
+    # bind = op.get_bind()
+    # session = orm.Session(bind=bind)
 
-    stmt = (
-        update(CollectionItem)
-            .values(copies_available=1, copies_on_loan=0)
-        )
-    session.execute(stmt)
-    session.commit()
+    # stmt = (
+    #     update(CollectionItem)
+    #         .values(copies_available=1, copies_on_loan=0)
+    #     )
+    # session.execute(stmt)
+    # session.commit()
 
     # Now alter the table
     op.alter_column('collection_items', 'copies_available',

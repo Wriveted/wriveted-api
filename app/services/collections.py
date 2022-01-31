@@ -12,6 +12,7 @@ from app import crud
 from app.models import Edition, CollectionItem
 from app.schemas.collection import CollectionItemIn
 from app.services.events import create_event
+from app.services.editions import create_missing_editions
 
 logger = get_logger()
 
@@ -42,8 +43,8 @@ async def add_editions_to_collection(session, new_edition_data: List[CollectionI
                         "Updated": str(datetime.datetime.utcnow())
                     },
                     # TODO this is gross because I pass EditionCreateIn as well as CollectionCreateIn
-                    copies_available=collection_item_info.copies_available if hasattr(collection_item_info, 'copies_available') else 1,
-                    copies_on_loan=collection_item_info.copies_on_loan if hasattr(collection_item_info, 'copies_on_loan') else 0
+                    copies_total=collection_item_info.copies_total if hasattr(collection_item_info, 'copies_total') else 1,
+                    copies_available=collection_item_info.copies_available if hasattr(collection_item_info, 'copies_available') else 1
 
                 )
             )

@@ -43,7 +43,7 @@ async def get_editions(
 @router.get("/edition/{isbn}", response_model=EditionDetail)
 async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     return crud.edition.get_or_404(db=session, id=isbn)
-
+    
 
 @router.post("/edition", response_model=EditionDetail)
 async def add_edition(

@@ -120,7 +120,7 @@ print("Collection after reset:", collection)
 print("Loading books from CSV file")
 
 book_data = []
-with open("Wriveted-books.csv", newline='') as csv_file:
+with open("Wriveted-books.csv", newline='', encoding='cp437') as csv_file:
     reader = csv.reader(csv_file)
 
     # Eat the header line
@@ -160,9 +160,10 @@ with open("Wriveted-books.csv", newline='') as csv_file:
                     "ISBN": ISBN.strip(),
                     "cover_url": cover_url,
                     "info": {
-                        "Genre": book_row[20],
-                        "Illustration Style": book_row[18],
-                        "AirTableDump": book_row
+                        "genre": book_row[20],
+                        "other": {
+                            "airtable_dump": '|'.join(book_row)
+                        }
                     },
                     "authors": authors,
                     "illustrators": [
@@ -195,8 +196,8 @@ assert len(original_books) == INITIAL_NUMBER_OF_BOOKS
 
 def randomize_loan_status(book_data):
     data = book_data.copy()
+    data['copies_total'] = random.randint(2, 4)
     data['copies_available'] = random.randint(0, 2)
-    data['copies_on_loan'] = random.randint(0, 2)
     return data
 
 
@@ -233,7 +234,7 @@ collection_changes = [
     {
         "action": "update",
         "ISBN": b['ISBN'],
-        "copies_on_loan": 99,
+        "copies_total": 99,
         "copies_available": 99,
     } for b in books_to_update]
 
@@ -261,7 +262,7 @@ collection = get_collection_response.json()
 
 number_items_with_updated_loan_status = 0
 for item in collection:
-    if item['copies_available'] == 99 and item['copies_on_loan'] == 99:
+    if item['copies_total'] == 99 and item['copies_available'] == 99:
         number_items_with_updated_loan_status += 1
 
 

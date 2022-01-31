@@ -1,11 +1,8 @@
-from typing import Optional, Any, List
-
+from typing import Optional, List
 from pydantic import BaseModel
-
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
-from app.schemas.edition import EditionBrief
-
+from app.schemas.edition import EditionBrief, WorkInfo
 
 class WorkBrief(BaseModel):
     id: str
@@ -19,8 +16,7 @@ class WorkBrief(BaseModel):
 
 
 class WorkDetail(WorkBrief):
-
-    info: Optional[Any]
+    info: Optional[WorkInfo]
     editions: List[EditionBrief]
 
     class Config:
@@ -29,14 +25,13 @@ class WorkDetail(WorkBrief):
 
 class SeriesCreateIn(BaseModel):
     title: str
-    info: Optional[Any]
+    info: Optional[WorkInfo]
 
 
 class WorkCreateIn(BaseModel):
     type: WorkType
     title: str
     authors: List[AuthorCreateIn]
-    info: Optional[Any]
+    info: Optional[WorkInfo]
 
     series: Optional[SeriesCreateIn]
-
