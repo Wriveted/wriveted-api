@@ -15,6 +15,7 @@ from app import crud
 from app.api.dependencies.school import get_school_from_path
 from app.db.session import get_session
 from app.models import User, ServiceAccount, ServiceAccountType, School
+from app.models.user import UserAccountType
 from app.services.security import create_access_token, get_payload_from_access_token, TokenPayload
 
 logger = get_logger()
@@ -114,7 +115,7 @@ def get_current_active_superuser_or_backend_service_account(
         user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
 ) -> Union[User, ServiceAccount]:
     if isinstance(user_or_service_account, User):
-        if not user_or_service_account.is_superuser:
+        if not user_or_service_account.type == UserAccountType.WRIVETED:
             raise HTTPException(
                 status_code=403, detail="Insufficient privileges"
             )
@@ -132,7 +133,7 @@ def get_current_active_superuser(
     """
     Require administrator access
     """
-    if not current_user.is_superuser:
+    if not current_user.type == UserAccountType.WRIVETED:
         raise HTTPException(
             status_code=403, detail="Insufficient privileges"
         )
@@ -175,7 +176,7 @@ def get_active_principals(
     if maybe_user is not None and maybe_user.is_active:
         user = maybe_user
         principals.append(Authenticated)
-        if user.is_superuser:
+        if user.type == UserAccountType.WRIVETED:
             principals.append("role:admin")
 
         principals.append(f'user:{user.id}')

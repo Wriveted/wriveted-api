@@ -15,6 +15,7 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.service_account_school_association import service_account_school_association_table
 
+
 class ServiceAccountType(str, enum.Enum):
     BACKEND = "backend"
     LMS = "lms"
