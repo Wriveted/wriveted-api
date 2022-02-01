@@ -3,6 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
 
+from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
 from app.schemas.school import SchoolBrief
 
@@ -25,7 +26,7 @@ class UserCreateIn(BaseModel):
 class UserUpdateIn(BaseModel):
     name: Optional[str]
     is_active: Optional[bool]
-    is_superuser: Optional[bool]
+    type: Optional[UserAccountType]
     school: Optional[SchoolBrief]
     info: Optional[UserInfo]
 
@@ -35,7 +36,7 @@ class UserBrief(BaseModel):
     name: str
     email: str
     is_active: bool
-    is_superuser: bool
+    type: UserAccountType
     school: Optional[SchoolBrief]
 
     class Config:
