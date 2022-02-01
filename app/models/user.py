@@ -37,7 +37,7 @@ class User(Base):
     )
     is_active = Column(Boolean(), default=True)
     type = Column(Enum(UserAccountType, name='enum_user_account_type'),
-                  nullable=False, index=True)
+                  nullable=False, index=True, default=UserAccountType.PUBLIC)
 
     school_id = Column(ForeignKey('schools.id', name="fk_user_school"), nullable=True)
     school = relationship("School", back_populates='users')

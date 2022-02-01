@@ -19,7 +19,6 @@ class UserInfo(BaseModel):
 class UserCreateIn(BaseModel):
     name: str
     email: EmailStr
-
     info: Optional[UserInfo]
 
 
