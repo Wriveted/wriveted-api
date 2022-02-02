@@ -67,8 +67,9 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "http://127.0.0.1:8000",
 
-        # Production URL
+        # Production URLs
         "https://api.wriveted.com",
+        "https://wriveted-library.web.app",
 
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
