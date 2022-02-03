@@ -1,3 +1,4 @@
+from uuid import UUID
 from typing import Optional, Any, List
 
 from pydantic import BaseModel, AnyHttpUrl, constr
@@ -8,10 +9,10 @@ from app.models import SchoolState
 class SchoolIdentity(BaseModel):
     official_identifier: str
     country_code: str
+    wriveted_identifier: UUID
 
     class Config:
         orm_mode = True
-
 
 
 class SchoolBrief(SchoolIdentity):

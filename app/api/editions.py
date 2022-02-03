@@ -41,7 +41,7 @@ async def get_editions(
         return crud.edition.get_all(session, skip=pagination.skip, limit=pagination.limit)
 
 
-@router.get("/editions/compare", response_model=KnownAndTaggedEditionCounts)
+@router.post("/editions/compare", response_model=KnownAndTaggedEditionCounts)
 async def compare_bulk_editions(
         isbn_list: List[str],
         session: Session = Depends(get_session)
