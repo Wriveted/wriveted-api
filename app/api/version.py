@@ -1,5 +1,6 @@
 import platform
 from importlib import metadata
+from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
 
 from alembic.runtime.migration import MigrationContext
@@ -28,7 +29,10 @@ async def get_version(session: Session = Depends(get_session)):
     if current_db_rev is None:
         current_db_rev = "development"
 
-    application_version = metadata.version("wriveted-api")
+    try:
+        application_version = metadata.version("wriveted-api")
+    except PackageNotFoundError:
+        application_version = "unknown"
     return {
         "version": application_version,
         "python_version": platform.python_version(),

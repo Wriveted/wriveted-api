@@ -69,6 +69,9 @@ class Settings(BaseSettings):
 
         # Production URLs
         "https://api.wriveted.com",
+        "https://bookbot.hellohuey.com",
+
+        # Firebase URLs
         "https://wriveted-library.web.app",
 
         # Production Cloud Run Deployments - Direct URLs
