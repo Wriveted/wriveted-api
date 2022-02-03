@@ -124,9 +124,10 @@ reduce the rights with:
 ALTER ROLE cloudrun with NOCREATEDB NOCREATEROLE;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
-
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public to cloudrun;
 
+alter default privileges in schema public grant SELECT, INSERT, UPDATE, DELETE on tables to cloudrun;
+alter default privileges in schema public grant USAGE, SELECT on sequences to cloudrun;
 ```
 
 ## Production Database Migrations
