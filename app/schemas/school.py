@@ -4,6 +4,7 @@ from typing import Optional, Any, List
 from pydantic import BaseModel, AnyHttpUrl, constr
 
 from app.models import SchoolState
+from app.schemas.country import CountryDetail
 
 
 class SchoolIdentity(BaseModel):
@@ -28,7 +29,7 @@ class SchoolBrief(SchoolIdentity):
 
 
 class SchoolDetail(SchoolBrief):
-
+    country: CountryDetail
     info: Optional[Any]
 
     student_domain: Optional[AnyHttpUrl]
