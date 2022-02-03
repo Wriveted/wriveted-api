@@ -151,6 +151,7 @@ def get_active_principals(
     Principals:
     - role:admin
     - role:lms
+    - role:library
     - role:school
     - role:kiosk
     - user:{id}
@@ -160,6 +161,7 @@ def get_active_principals(
 
     Future Principals:
     - role:student
+    - role:child
     - role:parent
     - role:teacher
 
@@ -176,25 +178,41 @@ def get_active_principals(
     if maybe_user is not None and maybe_user.is_active:
         user = maybe_user
         principals.append(Authenticated)
-        if user.type == UserAccountType.WRIVETED:
-            principals.append("role:admin")
+        match user.type:
+            case UserAccountType.WRIVETED:
+                principals.append("role:admin")
+            case UserAccountType.LMS:
+                principals.append("role:lms")
+            case UserAccountType.LIBRARY:
+                principals.append("role:library")
+            case UserAccountType.PUBLIC:
+                # No special roles given to the default public
+                # user type
+                pass
 
+        # All users have a user specific role:
         principals.append(f'user:{user.id}')
+
+        # Users can optionally be associated with a school:
         if user.school_id is not None:
             principals.append(f'school:{user.school_id}')
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account
         principals.append(Authenticated)
-        if service_account.type == ServiceAccountType.BACKEND:
-            principals.append("role:admin")
-        elif service_account.type == ServiceAccountType.LMS:
-            principals.append("role:lms")
-        elif service_account.type == ServiceAccountType.SCHOOL:
-            principals.append("role:school")
-        elif service_account.type == ServiceAccountType.KIOSK:
-            principals.append("role:kiosk")
 
+        match service_account.type:
+            case ServiceAccountType.BACKEND:
+                principals.append("role:admin")
+            case ServiceAccountType.LMS:
+                principals.append("role:lms")
+            case ServiceAccountType.SCHOOL:
+                principals.append("role:school")
+                principals.append("role:library")
+            case ServiceAccountType.KIOSK:
+                principals.append("role:kiosk")
+
+        # Service accounts can optionally be associated with multiple schools:
         for school in service_account.schools:
             principals.append(f"school:{school.id}")
 
