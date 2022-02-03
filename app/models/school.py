@@ -7,7 +7,11 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    Enum, Index, select, func, text
+    Enum,
+    Index,
+    select,
+    func,
+    text
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.dialects.postgresql import UUID
@@ -47,7 +51,10 @@ class School(Base):
 
     # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
     Index("index_schools_by_country", country_code, official_identifier, unique=True)
-    #UniqueConstraint(country_code, official_identifier, name="unique_schools")
+
+    # Index combining country code and optional state stored in the location key of info.
+    # Note alembic can't automatically deal with this, but the migration (and index) exists!
+    #Index("index_schools_by_country_state", country_code, text("(info->'location'->>'state')"))
 
     state = Column(Enum(SchoolState), nullable=False, default=SchoolState.INACTIVE)
 
