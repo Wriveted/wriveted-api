@@ -16,6 +16,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             self,
             db: Session,
             country_code: Optional[str] = None,
+            state: Optional[str] = None,
             query_string: Optional[str] = None,
             is_active: Optional[bool] = None,
     ):
@@ -27,6 +28,10 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             school_query = school_query.where(School.name.contains(query_string))
         if is_active is not None:
             school_query = school_query.where(School.state == ("active" if is_active else "inactive"))
+
+        if state is not None:
+            school_query = school_query.where(School.info['location', 'state'].as_string() == state)
+
         return school_query
 
     def get_all_with_optional_filters(
@@ -35,8 +40,15 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         country_code: Optional[str] = None,
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
+        state: Optional[str] = None,
     ) -> List[School]:
-        query = self.get_all_query_with_optional_filters(db, country_code=country_code, query_string=query_string, is_active=is_active)
+        query = self.get_all_query_with_optional_filters(
+            db,
+            country_code=country_code,
+            state=state,
+            query_string=query_string,
+            is_active=is_active
+        )
         return db.execute(query).scalars().all()
 
     def get_by_official_id_or_404(self, db: Session, country_code: str, official_id: str):

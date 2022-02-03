@@ -114,7 +114,7 @@ class School(Base):
         (Deny, Everyone, All) is automatically appended at the end.
         """
         return [
-            # This would allow anyone to view any school
+            # This would allow anyone logged in to view any school's collection
             #(Allow, Authenticated, "read"),
 
             (Allow, "role:admin", "create"),
@@ -122,7 +122,6 @@ class School(Base):
             (Allow, "role:admin", "update"),
             (Allow, "role:admin", "delete"),
             (Allow, "role:admin", "batch"),
-
 
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
@@ -132,6 +131,7 @@ class School(Base):
             (Deny, "role:student", "delete"),
 
             (Allow, f"school:{self.id}", "read"),
+
             (Allow, f"school:{self.id}", "update"),
             (Allow, f"school:{self.id}", "update"),
         ]
