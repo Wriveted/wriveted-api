@@ -1,13 +1,16 @@
 import enum
+import uuid
+
 from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
     String,
     JSON,
-    Enum, Index, select, func
+    Enum, Index, select, func, text
 )
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property
 from fastapi_permissions import (
@@ -31,6 +34,16 @@ class School(Base):
 
     country_code = Column(String(3), ForeignKey('countries.id', name="fk_school_country"), index=True)
     official_identifier = Column(String(512))
+
+    # Used for public links to school pages e.g. chatbot
+    wriveted_identifier = Column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        server_default=text('gen_random_uuid()'),
+        index=True,
+        unique=True,
+        nullable=False
+    )
 
     # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
     Index("index_schools_by_country", country_code, official_identifier, unique=True)
