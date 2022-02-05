@@ -10,11 +10,11 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
 from app.api.dependencies.security import get_current_active_user_or_service_account, \
-    get_active_principals
+    get_valid_token_data
 from app.db.session import get_session
 from app.models import School
 from app.permissions import Permission
-from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolUpdateIn
+from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolSelectorOption, SchoolUpdateIn
 from app.api.dependencies.school import get_school_from_path
 from app.services.events import create_event
 
@@ -41,39 +41,28 @@ bulk_school_access_control_list = [
 
 @router.get(
     "/schools",
-    response_model=List[SchoolBrief],
-    dependencies=[
-        # allow batch schools operations for any Authenticated user
-        # that has the "read" permission - added in the school ACL.
-        # Note we also filter the schools given the principals' permission
-        # to ensure only schools that the account is allowed to see are
-        # returned. Ref: https://github.com/holgi/fastapi-permissions/issues/3
-        Permission("read", bulk_school_access_control_list)
-    ]
+    response_model=List[SchoolSelectorOption]
 )
 async def get_schools(
         country_code: Optional[str] = Query(None, description="Filter schools by country"),
         state: Optional[str] = Query(None, description="Filter schools by state"),
         q: Optional[str] = Query(None, description='Filter schools by name'),
-        is_active: Optional[bool] = Query(None, description="Return active or inactive schools. Default is all."),
         pagination: PaginatedQueryParams = Depends(),
-        session: Session = Depends(get_session),
-        principals: List = Depends(get_active_principals),
+        session: Session = Depends(get_session)
 ):
     """
-    List of schools (that the current account has permission to view).
+    List of schools showing only publicly available information.
+    Available to any valid user, primarily for selection upon signup.
 
-    Provide a country code and/or search query to further filter the schools.
+    Provide any of country code, state/region, and/or school name query to further filter the schools.
     """
     schools = crud.school.get_all_with_optional_filters(
         session,
         country_code=country_code,
         state=state,
-        query_string=q,
-        is_active=is_active
+        query_string=q
     )
-    allowed_schools = [school for school in schools if has_permission(principals, "read", school)]
-    paginated_schools = allowed_schools[pagination.skip:pagination.limit]
+    paginated_schools = schools[pagination.skip:pagination.limit]
     logger.debug(f"Returning {len(paginated_schools)} schools")
     return paginated_schools
 
