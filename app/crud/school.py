@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import select, delete, update
+from sqlalchemy import func, select, delete, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -25,7 +25,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             school_query = school_query.where(School.country_code == country_code)
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
-            school_query = school_query.where(School.name.contains(query_string))
+            school_query = school_query.where(func.lower(School.name).contains(query_string.lower()))
         if is_active is not None:
             school_query = school_query.where(School.state == ("active" if is_active else "inactive"))
 
