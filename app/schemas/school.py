@@ -24,20 +24,19 @@ class SchoolInfo(BaseModel):
     age_id: str
 
 
-class SchoolSelectorOption(BaseModel):
+class SchoolIdentity(BaseModel):
+    official_identifier: str
+    country_code: str
     wriveted_identifier: UUID
-    name: str
-    # for access to "location:state", "location:postcode", "location:suburb"
-    info: SchoolInfo
 
     class Config:
         orm_mode = True
 
 
-class SchoolIdentity(BaseModel):
-    official_identifier: str
-    country_code: str
-    wriveted_identifier: UUID
+class SchoolSelectorOption(SchoolIdentity):
+    name: str
+    info: SchoolInfo
+    state: Optional[SchoolState]
 
     class Config:
         orm_mode = True
@@ -57,7 +56,7 @@ class SchoolBrief(SchoolIdentity):
 
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
-    info: Optional[Any]
+    info: Optional[SchoolInfo]
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]

@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
-from fastapi_permissions import Allow, Authenticated, has_permission, Deny
+from fastapi_permissions import Allow, Authenticated, Deny
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -9,7 +9,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_current_active_user_or_service_account, \
+from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, \
     get_valid_token_data
 from app.db.session import get_session
 from app.models import School
@@ -31,6 +31,7 @@ bulk_school_access_control_list = [
     (Allow, Authenticated, "read"),
     (Allow, "role:admin", "create"),
     (Allow, "role:admin", "batch"),
+    (Allow, "role:admin", "details"),
 
     (Allow, "role:lms", "read"),
     # The following explicitly blocks LMS accounts from creating new schools
@@ -41,30 +42,53 @@ bulk_school_access_control_list = [
 
 @router.get(
     "/schools",
-    response_model=List[SchoolSelectorOption]
+    response_model=List[SchoolSelectorOption],
+    dependencies=[
+        # allow batch schools operations for any Authenticated user
+        # that has the "read" permission - added in the school ACL.
+        # Note we also filter the schools given the principals' permission
+        # to ensure only schools that the account is allowed to see are
+        # returned. Ref: https://github.com/holgi/fastapi-permissions/issues/3
+        Permission("read", bulk_school_access_control_list)
+    ]
 )
 async def get_schools(
         country_code: Optional[str] = Query(None, description="Filter schools by country"),
         state: Optional[str] = Query(None, description="Filter schools by state"),
+        postcode: Optional[str] = Query(None, description="Filter schools by postcode"),
         q: Optional[str] = Query(None, description='Filter schools by name'),
+        is_active: Optional[bool] = Query(None, description="Return active or inactive schools. Default is all."),
         pagination: PaginatedQueryParams = Depends(),
+        principals: List = Depends(get_active_principals),
         session: Session = Depends(get_session)
 ):
     """
     List of schools showing only publicly available information.
     Available to any valid user, primarily for selection upon signup.
 
-    Provide any of country code, state/region, and/or school name query to further filter the schools.
+    Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
+    Admins can also opt the "is_active" query.
     """
+    admin = "role:admin" in principals
+
     schools = crud.school.get_all_with_optional_filters(
         session,
         country_code=country_code,
         state=state,
-        query_string=q
+        postcode=postcode,
+        query_string=q,
+        is_active=is_active if admin else None,
+        skip=pagination.skip, 
+        limit=pagination.limit
     )
-    paginated_schools = schools[pagination.skip:pagination.limit]
-    logger.debug(f"Returning {len(paginated_schools)} schools")
-    return paginated_schools
+    
+    logger.debug(f"Returning {len(schools)} schools")
+
+    if not admin :
+        for school in schools:
+            school.state = None
+            
+    return schools
 
 
 @router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)
