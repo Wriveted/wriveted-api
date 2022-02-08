@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.orm import relationship, column_property, backref
 from fastapi_permissions import (
     Allow,
     Deny,
@@ -100,10 +100,9 @@ class School(Base):
 
     booklists = relationship("BookList", back_populates="school", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="school")
-    students = relationship("User", back_populates="school")
 
-    admin_id = Column(ForeignKey('users.id', name="fk_school_admin"), nullable=True)
-    admin = relationship("User", back_populates='school_as_admin', foreign_keys=[admin_id])
+    admin_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    admin = relationship("User", backref=backref("school_as_admin", uselist=False), foreign_keys=[admin_id])
 
     service_accounts = relationship(
         "ServiceAccount",

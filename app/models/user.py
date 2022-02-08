@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     Enum,
+    Integer,
     String,
     JSON,
     DateTime,
@@ -39,11 +40,10 @@ class User(Base):
     type = Column(Enum(UserAccountType, name='enum_user_account_type'),
                   nullable=False, index=True, default=UserAccountType.PUBLIC)
 
-    school_id_as_student = Column(ForeignKey('schools.id', name="fk_student_school"), nullable=True)
-    school_as_student = relationship("School", back_populates='students', foreign_keys=[school_id_as_student])
+    school_id_as_student = Column(Integer, ForeignKey('schools.id', name="fk_student_school"), nullable=True)
+    school_as_student = relationship("School", backref='students', foreign_keys=[school_id_as_student])
 
-    school_id_as_admin = Column(ForeignKey('schools.id', name="fk_admin_school"), nullable=True)
-    school_as_admin = relationship("School", back_populates='admin', foreign_keys=[school_id_as_admin])
+    school_id_as_admin = Column(Integer, ForeignKey('schools.id', name="fk_admin_school"), nullable=True)
 
     email = Column(String, unique=True, index=True, nullable=False)
 
@@ -63,6 +63,8 @@ class User(Base):
         if self.type == UserAccountType.WRIVETED:
             summary += " superuser "
 
-        if self.school_id is not None:
-            summary += f" (linked to school {self.school_id}) "
+        if self.school_id_as_admin is not None:
+            summary += f" (Admin of school {self.school_id_as_admin}) "
+        if self.school_as_student is not None:
+            summary += f" (Student of school {self.school_as_student}) "
         return f"<User {self.name} - {summary}>"

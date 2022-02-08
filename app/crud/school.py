@@ -78,7 +78,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
     def get_by_wriveted_id_or_404(self, db: Session, wriveted_id: str):
         query = (
           select(School)
-            .where(func.lower(School.wriveted_identifier) == wriveted_id.lower())
+            .where((School.wriveted_identifier) == (wriveted_id))
         )
         try:
             return db.execute(query).scalar_one()

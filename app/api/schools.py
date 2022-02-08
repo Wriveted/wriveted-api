@@ -9,13 +9,13 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, \
-    get_valid_token_data
+from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_optional_user
 from app.db.session import get_session
 from app.models import School
+from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolSelectorOption, SchoolUpdateIn
-from app.api.dependencies.school import get_school_from_path
+from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id
 from app.services.events import create_event
 
 logger = get_logger()
@@ -29,6 +29,13 @@ router = APIRouter(
 
 bulk_school_access_control_list = [
     (Allow, Authenticated, "read"),
+    # if a user finds their school in the list,
+    # proceeding with onboarding will "bind" their account
+    # to the selected school
+    (Allow, Authenticated, "bind"),
+    # if a user can't find their school in the list,
+    # we need to create a school with their provided details
+    (Allow, Authenticated, "create"),
     (Allow, "role:admin", "create"),
     (Allow, "role:admin", "batch"),
     (Allow, "role:admin", "details"),
@@ -96,6 +103,32 @@ async def get_school(school: School = Permission("read", get_school_from_path)):
     """
     Detail on a particular school
     """
+    return school
+
+
+@router.put(
+    "/school/{wriveted_identifier}/admin",
+    dependencies=[
+        Permission('bind', bulk_school_access_control_list)
+    ]
+)
+async def bind_school(
+    school: School = Depends(get_school_from_wriveted_id),
+    user: Optional[User] = Depends(get_optional_user),
+    session: Session = Depends(get_session)):
+    """
+    Binds the current user to a school as its administrator.
+    Will fail if target school already has an admin.
+    """
+    if school.admin is not None:
+        raise HTTPException(409, "School already bound to an admin user.")
+
+    if user is None:
+        raise HTTPException(401, "Couldn't find a user associated with that token.")
+
+    school.admin_id = user.id
+    session.commit()
+
     return school
 
 
