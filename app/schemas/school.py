@@ -4,6 +4,7 @@ from typing import Optional, Any, List
 from pydantic import BaseModel, AnyHttpUrl, constr
 
 from app.models import SchoolState
+from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
 
 class SchoolStatus(BaseModel):
@@ -25,6 +26,7 @@ class SchoolInfo(BaseModel):
     sector: Optional[str]
     status: Optional[str]
     age_id: Optional[str]
+    lms_type: Optional[str]
 
 
 class SchoolIdentity(BaseModel):
@@ -55,6 +57,16 @@ class SchoolBrief(SchoolIdentity):
 
     class Config:
         orm_mode = True
+
+
+class SchoolBookbotInfo(BaseModel):
+    wriveted_identifier: UUID
+    name: str
+    state: SchoolState
+    bookbot_type: SchoolBookbotType  
+
+    class Config:
+        orm_mode = True  
 
 
 class SchoolDetail(SchoolBrief):

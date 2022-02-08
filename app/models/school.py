@@ -27,6 +27,12 @@ from app.models.collection_item import CollectionItem
 from app.models.service_account_school_association import service_account_school_association_table
 
 
+# which type of bookbot the school is currently using
+class SchoolBookbotType(str, enum.Enum):
+    SCHOOL_BOOKS = "school_books"
+    HUEY_BOOKS = "huey_books"
+
+
 class SchoolState(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -90,6 +96,8 @@ class School(Base):
             .scalar_subquery()
     )
 
+    bookbot_type = Column(Enum(SchoolBookbotType), nullable=False, server_default=SchoolBookbotType.HUEY_BOOKS)
+
     db_jobs = relationship('DbJob', cascade="all, delete-orphan")
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
@@ -141,7 +149,5 @@ class School(Base):
             (Deny, "role:student", "delete"),
 
             (Allow, f"school:{self.id}", "read"),
-
-            (Allow, f"school:{self.id}", "update"),
-            (Allow, f"school:{self.id}", "update"),
+            (Allow, f"school:{self.id}", "update")
         ]

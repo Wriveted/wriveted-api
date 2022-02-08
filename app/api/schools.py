@@ -13,10 +13,10 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_optional_user
 from app.db.session import get_session
 from app.models import School
-from app.models.school import SchoolState
+from app.models.school import SchoolBookbotType, SchoolState
 from app.models.user import User
 from app.permissions import Permission
-from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolSelectorOption, SchoolStatus, SchoolUpdateIn
+from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolIdentity, SchoolSelectorOption, SchoolStatus, SchoolUpdateIn
 from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id
 from app.services.events import create_event
 
@@ -101,10 +101,26 @@ async def get_schools(
     return schools
 
 
-@router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)
-async def get_school(school: School = Permission("read", get_school_from_path)):
+# @router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)
+# async def get_school(school: School = Permission("read", get_school_from_path)):
+#     """
+#     Detail on a particular school
+#     """
+#     return school
+
+
+@router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
+async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
     """
     Detail on a particular school
+    """
+    return school
+
+
+@router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
+async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
+    """
+    Directly and indirectly Bookbot-related info on a particular school
     """
     return school
 
@@ -130,10 +146,10 @@ async def bind_school(
         raise HTTPException(401, "Couldn't find a user associated with that token.")
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.id
+    user.school_id_as_admin = school.wriveted_identifier
     session.commit()
 
-    return school
+    return school.admin_id
 
 
 @router.patch(
@@ -155,6 +171,27 @@ async def update_school_status(
     session.commit()
 
     return { "original_status": status.status, "new_status": school.state }
+
+
+@router.patch(
+    "/school/{wriveted_identifier}/bookbot_type",
+    dependencies=[
+        Permission('update', bulk_school_access_control_list)
+    ]
+)
+async def update_school_bookbot_type(
+    bookbot_type: SchoolBookbotType,
+    school: School = Permission("update", get_school_from_wriveted_id),    
+    session: Session = Depends(get_session)):
+    """
+    Updates the SchoolBookbotType of the school to the input value.
+    Only available to users with the "update" principal for the
+    selected school; i.e. superusers, and its admin/owner.
+    """
+    school.bookbot_type = bookbot_type.bookbot_type
+    session.commit()
+
+    return { "original_type": bookbot_type.bookbot_type, "new_type": school.bookbot_type }
 
 
 @router.post(
