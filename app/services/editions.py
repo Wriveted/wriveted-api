@@ -52,6 +52,16 @@ def get_definitive_isbn(isbn: str):
         return cleaned_isbn
 
 
+def clean_isbns(isbns: List[str]) -> List[str]:
+    cleaned_isbns = []
+    for isbn in isbns:
+        try:
+            cleaned_isbns.append(get_definitive_isbn(isbn))
+        except:
+            continue
+    return cleaned_isbns
+
+
 # --- courtesy of https://code.activestate.com/recipes/498104-isbn-13-converter/ ---
 
 def check_digit_10(isbn):

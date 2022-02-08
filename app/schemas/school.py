@@ -7,10 +7,36 @@ from app.models import SchoolState
 from app.schemas.country import CountryDetail
 
 
+class SchoolLocation(BaseModel):
+    suburb: str
+    state: str
+    postcode: str
+    geolocation: str
+    lat: str
+    long: str
+
+
+class SchoolInfo(BaseModel):
+    location: SchoolLocation
+    type: str
+    sector: str
+    status: str
+    age_id: str
+
+
 class SchoolIdentity(BaseModel):
     official_identifier: str
     country_code: str
     wriveted_identifier: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class SchoolSelectorOption(SchoolIdentity):
+    name: str
+    info: SchoolInfo
+    state: Optional[SchoolState]
 
     class Config:
         orm_mode = True
@@ -30,7 +56,7 @@ class SchoolBrief(SchoolIdentity):
 
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
-    info: Optional[Any]
+    info: Optional[SchoolInfo]
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
