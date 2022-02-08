@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
-from fastapi_permissions import Allow, Authenticated, Deny
+from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -69,7 +69,7 @@ async def get_schools(
     Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
     Admins can also opt the "is_active" query.
     """
-    admin = "role:admin" in principals
+    admin = has_permission(principals, "details", bulk_school_access_control_list)
 
     schools = crud.school.get_all_with_optional_filters(
         session,

@@ -16,7 +16,7 @@ from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn, SeriesCreateIn
 
-from app.services.editions import get_definitive_isbn
+from app.services.editions import clean_isbns, get_definitive_isbn
 
 logger = get_logger()
 
@@ -27,11 +27,16 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     """
 
     def get_query(self, db: Session, id: Any) -> Query:
-        return select(Edition).where(Edition.ISBN == get_definitive_isbn(id))
+        try:
+            cleaned_isbn = get_definitive_isbn(id)
+        except:
+            cleaned_isbn = ""
+
+        return select(Edition).where(Edition.ISBN == cleaned_isbn)
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
         return self.get_all_query(db, order_by=order_by).where(
-            Edition.ISBN.in_([get_definitive_isbn(id) for id in ids]))
+            Edition.ISBN.in_(clean_isbns(ids)))
 
     def create(self,
                db: Session,
