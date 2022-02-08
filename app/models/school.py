@@ -100,7 +100,7 @@ class School(Base):
 
     booklists = relationship("BookList", back_populates="school", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="school")
-    users = relationship("User", back_populates="school")
+    students = relationship("User", back_populates="school")
 
     service_accounts = relationship(
         "ServiceAccount",
