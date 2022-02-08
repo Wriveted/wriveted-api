@@ -102,6 +102,9 @@ class School(Base):
     events = relationship("Event", back_populates="school")
     students = relationship("User", back_populates="school")
 
+    admin_id = Column(ForeignKey('users.id', name="fk_school_admin"), nullable=True)
+    admin = relationship("User", back_populates='school_as_admin', foreign_keys=[admin_id])
+
     service_accounts = relationship(
         "ServiceAccount",
         secondary=service_account_school_association_table,
