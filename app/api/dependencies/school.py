@@ -15,3 +15,13 @@ def get_school_from_path(
         country_code=country_code,
         official_id=school_id
     )
+
+
+def get_school_from_wriveted_id(
+        wriveted_id: str = Path(..., description="UUID representing a unique school in the Wriveted database"),
+        session: Session = Depends(get_session)
+):
+    return crud.school.get_by_wriveted_id_or_404(
+        db=session,
+        wriveted_id=wriveted_id
+    )

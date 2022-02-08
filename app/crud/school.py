@@ -75,6 +75,19 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
                 detail=f"School with id {official_id} in {country_code} not found."
             )
 
+    def get_by_wriveted_id_or_404(self, db: Session, wriveted_id: str):
+        query = (
+          select(School)
+            .where(func.lower(School.wriveted_identifier) == wriveted_id.lower())
+        )
+        try:
+            return db.execute(query).scalar_one()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail=f"School with wriveted_id {wriveted_id} not found."
+            )
+
     def remove(self, db: Session, *, obj_in: School):
         # To help the database out let's delete the collection first
         stmt = (

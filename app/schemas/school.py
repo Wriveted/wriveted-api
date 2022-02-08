@@ -11,17 +11,17 @@ class SchoolLocation(BaseModel):
     suburb: str
     state: str
     postcode: str
-    geolocation: str
-    lat: str
-    long: str
+    geolocation: Optional[str]
+    lat: Optional[str]
+    long: Optional[str]
 
 
 class SchoolInfo(BaseModel):
     location: SchoolLocation
-    type: str
-    sector: str
-    status: str
-    age_id: str
+    type: Optional[str]
+    sector: Optional[str]
+    status: Optional[str]
+    age_id: Optional[str]
 
 
 class SchoolIdentity(BaseModel):
@@ -68,8 +68,8 @@ class SchoolDetail(SchoolBrief):
 class SchoolCreateIn(BaseModel):
     name: str
     country_code: constr(min_length=3, max_length=3)
-    official_identifier: str
-    info: Optional[Any]
+    official_identifier: Optional[str]
+    info: SchoolInfo
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
 
@@ -80,4 +80,3 @@ class SchoolUpdateIn(BaseModel):
     info: Optional[Any]
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
-
