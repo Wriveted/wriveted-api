@@ -6,9 +6,12 @@ from pydantic import BaseModel, AnyHttpUrl, constr
 from app.models import SchoolState
 from app.schemas.country import CountryDetail
 
+class SchoolStatus(BaseModel):
+    status: SchoolState
+    
 
 class SchoolLocation(BaseModel):
-    suburb: str
+    suburb: Optional[str]
     state: str
     postcode: str
     geolocation: Optional[str]
@@ -25,7 +28,7 @@ class SchoolInfo(BaseModel):
 
 
 class SchoolIdentity(BaseModel):
-    official_identifier: str
+    official_identifier: Optional[str]
     country_code: str
     wriveted_identifier: UUID
 
@@ -43,7 +46,7 @@ class SchoolSelectorOption(SchoolIdentity):
 
 
 class SchoolBrief(SchoolIdentity):
-    official_identifier: str
+    official_identifier: Optional[str]
     state: SchoolState
 
     name: str

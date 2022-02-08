@@ -1,3 +1,4 @@
+from tokenize import String
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
@@ -12,9 +13,10 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_optional_user
 from app.db.session import get_session
 from app.models import School
+from app.models.school import SchoolState
 from app.models.user import User
 from app.permissions import Permission
-from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolSelectorOption, SchoolUpdateIn
+from app.schemas.school import SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolSelectorOption, SchoolStatus, SchoolUpdateIn
 from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id
 from app.services.events import create_event
 
@@ -31,8 +33,9 @@ bulk_school_access_control_list = [
     (Allow, Authenticated, "read"),
     # if a user finds their school in the list,
     # proceeding with onboarding will "bind" their account
-    # to the selected school
+    # to the selected school, and mark its status as pending
     (Allow, Authenticated, "bind"),
+    (Allow, Authenticated, "update"),
     # if a user can't find their school in the list,
     # we need to create a school with their provided details
     (Allow, Authenticated, "create"),
@@ -106,7 +109,7 @@ async def get_school(school: School = Permission("read", get_school_from_path)):
     return school
 
 
-@router.put(
+@router.patch(
     "/school/{wriveted_identifier}/admin",
     dependencies=[
         Permission('bind', bulk_school_access_control_list)
@@ -127,9 +130,31 @@ async def bind_school(
         raise HTTPException(401, "Couldn't find a user associated with that token.")
 
     school.admin_id = user.id
+    user.school_id_as_admin = school.id
     session.commit()
 
     return school
+
+
+@router.patch(
+    "/school/{wriveted_identifier}/status",
+    dependencies=[
+        Permission('update', bulk_school_access_control_list)
+    ]
+)
+async def update_school_status(
+    status: SchoolStatus,
+    school: School = Permission("update", get_school_from_wriveted_id),    
+    session: Session = Depends(get_session)):
+    """
+    Updates the SchoolState of the school to the input value.
+    Only available to users with the "update" principal for the
+    selected school; i.e. superusers, and its admin/owner.
+    """
+    school.state = status.status
+    session.commit()
+
+    return { "original_status": status.status, "new_status": school.state }
 
 
 @router.post(
