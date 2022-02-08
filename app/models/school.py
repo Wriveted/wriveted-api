@@ -30,6 +30,9 @@ from app.models.service_account_school_association import service_account_school
 class SchoolState(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
+    # Has initiated onboarding, a user has bound themselves to the school, but onboarding isn't yet completed.
+    # Useful for email prompts to remind dropoff users to upload their collections, and other KPI metrics.
+    PENDING = "pending"
 
 
 class School(Base):
@@ -73,8 +76,6 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    # TODO need to define the schema that will be stored here, and a possibly different
-    # schema that will be exposed via the school API
     info = Column(MutableDict.as_mutable(JSON))
 
     country = relationship('Country')
