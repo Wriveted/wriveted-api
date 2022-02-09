@@ -71,11 +71,13 @@ class Settings(BaseSettings):
         "https://api.wriveted.com",
         "https://bookbot.hellohuey.com",
 
+        "https://app.hueythebookbot.com",
+        "https://api.hueythebookbot.com",
+
         # Firebase URLs
         "https://wriveted-library.web.app",
 
         # Production Cloud Run Deployments - Direct URLs
-        "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
     ]
 
