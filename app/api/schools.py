@@ -163,9 +163,6 @@ async def bind_school(
 
 @router.patch(
     "/school/{wriveted_identifier}",
-    dependencies=[
-        Permission('update', bulk_school_access_control_list)
-    ]
 )
 async def update_school_extras(
     patch: SchoolPatchOptions,
