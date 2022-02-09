@@ -13,6 +13,7 @@ from app.db.session import get_session
 from app.models import User, ServiceAccount
 from app.schemas.auth import AuthenticatedAccountBrief, AccountType
 from app.schemas.user import UserCreateIn
+from app.services.events import create_event
 
 logger = get_logger()
 config = get_settings()
@@ -70,8 +71,14 @@ def secure_user_endpoint(
         }
     )
 
-    user = crud.user.get_or_create(session, user_data)
-
+    user, was_created = crud.user.get_or_create(session, user_data)
+    if was_created:
+        create_event(
+            session=session,
+            title="User account created",
+            description='',
+            account=user
+        )
     logger.info("Request to login from user", user=user)
 
     if not user.is_active:

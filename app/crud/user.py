@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
@@ -17,17 +17,18 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
     # TODO handle create student account linked to school
 
-    def get_or_create(self, db: Session, user_data: UserCreateIn, commit=True) -> User:
+    def get_or_create(self, db: Session, user_data: UserCreateIn, commit=True) -> Tuple[User, bool]:
         """
         Get a user by email, creating a new user if required.
         """
         q = select(User).where(User.email == user_data.email)
         try:
             user = db.execute(q).scalar_one()
+            return user, False
         except NoResultFound:
             logger.info("Creating new user", data=user_data)
             user = self.create(db, obj_in=user_data, commit=commit)
-        return user
+            return user, True
 
     def get_by_account_email(self, db: Session, email: str) -> Optional[User]:
         """ return User with given email (or account identifier) or None """
