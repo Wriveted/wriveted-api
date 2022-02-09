@@ -98,6 +98,8 @@ class School(Base):
 
     bookbot_type = Column(Enum(SchoolBookbotType), nullable=False, server_default=SchoolBookbotType.HUEY_BOOKS)
 
+    lms_type = Column(String(50), nullable=False, server_default="none")
+
     db_jobs = relationship('DbJob', cascade="all, delete-orphan")
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects

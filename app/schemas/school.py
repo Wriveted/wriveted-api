@@ -7,9 +7,6 @@ from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
 
-class SchoolStatus(BaseModel):
-    status: SchoolState
-    
 
 class SchoolLocation(BaseModel):
     suburb: Optional[str]
@@ -26,7 +23,6 @@ class SchoolInfo(BaseModel):
     sector: Optional[str]
     status: Optional[str]
     age_id: Optional[str]
-    lms_type: Optional[str]
 
 
 class SchoolIdentity(BaseModel):
@@ -84,6 +80,7 @@ class SchoolCreateIn(BaseModel):
     name: str
     country_code: constr(min_length=3, max_length=3)
     official_identifier: Optional[str]
+    lms_type: Optional[str]
     info: SchoolInfo
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
@@ -95,3 +92,9 @@ class SchoolUpdateIn(BaseModel):
     info: Optional[Any]
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
+
+
+class SchoolPatchOptions(BaseModel):
+    status: Optional[SchoolState]
+    bookbot_type: Optional[SchoolBookbotType]
+    lms_type: Optional[str]

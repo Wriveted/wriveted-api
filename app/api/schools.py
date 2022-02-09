@@ -16,8 +16,8 @@ from app.models import School
 from app.models.school import SchoolBookbotType, SchoolState
 from app.models.user import User
 from app.permissions import Permission
-from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolIdentity, SchoolSelectorOption, SchoolStatus, SchoolUpdateIn
-from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id
+from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolIdentity, SchoolPatchOptions, SchoolSelectorOption, SchoolUpdateIn
+from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id, get_school_from_raw_id
 from app.services.events import create_event
 
 logger = get_logger()
@@ -117,6 +117,15 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
     return school
 
 
+# Intended to be deprecated if wriveted_identifier is promoted to primary key
+@router.get("/school_raw/{id}", response_model=SchoolBookbotInfo)
+async def get_school(school: School = Permission("read", get_school_from_raw_id)):
+    """
+    Detail on a particular school, accessed via raw sql id (integer)
+    """
+    return school
+
+
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
 async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
     """
@@ -146,52 +155,48 @@ async def bind_school(
         raise HTTPException(401, "Couldn't find a user associated with that token.")
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.wriveted_identifier
+    user.school_id_as_admin = school.id
     session.commit()
 
     return school.admin_id
 
 
 @router.patch(
-    "/school/{wriveted_identifier}/status",
+    "/school/{wriveted_identifier}",
     dependencies=[
         Permission('update', bulk_school_access_control_list)
     ]
 )
-async def update_school_status(
-    status: SchoolStatus,
+async def update_school_extras(
+    patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),    
     session: Session = Depends(get_session)):
     """
-    Updates the SchoolState of the school to the input value.
+    Optional patch updates to less-essential parts of a school object.
     Only available to users with the "update" principal for the
     selected school; i.e. superusers, and its admin/owner.
     """
-    school.state = status.status
+    output = {}
+
+    if patch.status: 
+        output["original_status"] = school.state
+        school.state = patch.status
+        output["new_status"] = school.state
+
+    if patch.bookbot_type: 
+        output["original_bookbot_type"] = school.bookbot_type
+        school.bookbot_type = patch.bookbot_type
+        output["new_bookbot_type"] = school.bookbot_type
+
+    if patch.lms_type: 
+        output["original_lms_type"] = school.lms_type
+        school.lms_type = patch.lms_type
+        output["new_bookbot_type"] = school.lms_type
+
     session.commit()
 
-    return { "original_status": status.status, "new_status": school.state }
+    return output
 
-
-@router.patch(
-    "/school/{wriveted_identifier}/bookbot_type",
-    dependencies=[
-        Permission('update', bulk_school_access_control_list)
-    ]
-)
-async def update_school_bookbot_type(
-    bookbot_type: SchoolBookbotType,
-    school: School = Permission("update", get_school_from_wriveted_id),    
-    session: Session = Depends(get_session)):
-    """
-    Updates the SchoolBookbotType of the school to the input value.
-    Only available to users with the "update" principal for the
-    selected school; i.e. superusers, and its admin/owner.
-    """
-    school.bookbot_type = bookbot_type.bookbot_type
-    session.commit()
-
-    return { "original_type": bookbot_type.bookbot_type, "new_type": school.bookbot_type }
 
 
 @router.post(

@@ -25,3 +25,14 @@ def get_school_from_wriveted_id(
         db=session,
         wriveted_id=wriveted_identifier
     )
+
+
+def get_school_from_raw_id(
+        id: str = Path(..., description="Raw sql integer id for school object"),
+        session: Session = Depends(get_session)
+):
+    return crud.school.get_by_id_or_404(
+        db=session,
+        id=id
+    )
+

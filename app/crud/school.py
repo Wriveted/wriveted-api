@@ -119,4 +119,18 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         return obj_in
 
 
+    def get_by_id_or_404(self, db: Session, id: int):
+        query = (
+          select(School)
+            .where((School.id) == (id))
+        )
+        try:
+            return db.execute(query).scalar_one()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail=f"School with id {id} not found."
+            )
+
+
 school = CRUDSchool(School)
