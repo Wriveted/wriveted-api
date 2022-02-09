@@ -160,7 +160,7 @@ async def update_school_extras(
     session: Session = Depends(get_session)):
     """
     Optional patch updates to less-essential parts of a school object.
-    Only available to users with the "update" principal for the
+    Only available to users with the "update" permission for the
     selected school; i.e. superusers, and its admin/owner.
     """
     output = {}
