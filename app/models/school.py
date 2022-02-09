@@ -20,6 +20,7 @@ from sqlalchemy.orm import relationship, column_property, backref
 from fastapi_permissions import (
     Allow,
     Deny,
+    Authenticated
 )
 from app.db import Base
 
@@ -151,5 +152,7 @@ class School(Base):
             (Deny, "role:student", "delete"),
 
             (Allow, f"school:{self.id}", "read"),
-            (Allow, f"school:{self.id}", "update")
+            (Allow, f"school:{self.id}", "update"),
+
+            (Allow, Authenticated, "bind")
         ]

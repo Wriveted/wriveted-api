@@ -10,7 +10,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_optional_user
+from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_current_user, get_optional_user
 from app.db.session import get_session
 from app.models import School
 from app.models.school import SchoolBookbotType, SchoolState
@@ -134,15 +134,10 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
     return school
 
 
-@router.patch(
-    "/school/{wriveted_identifier}/admin",
-    dependencies=[
-        Permission('bind', bulk_school_access_control_list)
-    ]
-)
+@router.patch("/school/{wriveted_identifier}/admin")
 async def bind_school(
-    school: School = Depends(get_school_from_wriveted_id),
-    user: Optional[User] = Depends(get_optional_user),
+    school: School = Permission("bind", get_school_from_wriveted_id),
+    user: User = Depends(get_current_user),
     session: Session = Depends(get_session)):
     """
     Binds the current user to a school as its administrator.
@@ -151,9 +146,6 @@ async def bind_school(
     if school.admin is not None:
         raise HTTPException(409, "School already bound to an admin user.")
 
-    if user is None:
-        raise HTTPException(401, "Couldn't find a user associated with that token.")
-
     school.admin_id = user.id
     user.school_id_as_admin = school.id
     session.commit()
@@ -161,12 +153,7 @@ async def bind_school(
     return school.admin_id
 
 
-@router.patch(
-    "/school/{wriveted_identifier}",
-    dependencies=[
-        Permission('update', bulk_school_access_control_list)
-    ]
-)
+@router.patch("/school/{wriveted_identifier}")
 async def update_school_extras(
     patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),    
