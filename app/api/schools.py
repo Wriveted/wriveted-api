@@ -243,7 +243,7 @@ async def add_school(
             session=session,
             title='New school created',
             description=f"{account.name} created school '{school.name}'",
-            school=school,
+            school=school_orm,
             account=account
         )
         return school_orm
