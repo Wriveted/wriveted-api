@@ -194,8 +194,8 @@ def get_active_principals(
         principals.append(f'user:{user.id}')
 
         # Users can optionally be associated with a school:
-        if user.school_id is not None:
-            principals.append(f'school:{user.school_id}')
+        if user.school_id_as_admin is not None:
+            principals.append(f'school:{user.school_id_as_admin}')
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account

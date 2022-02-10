@@ -16,10 +16,11 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.orm import relationship, column_property, backref
 from fastapi_permissions import (
     Allow,
     Deny,
+    Authenticated
 )
 from app.db import Base
 
@@ -27,9 +28,18 @@ from app.models.collection_item import CollectionItem
 from app.models.service_account_school_association import service_account_school_association_table
 
 
+# which type of bookbot the school is currently using
+class SchoolBookbotType(str, enum.Enum):
+    SCHOOL_BOOKS = "school_books"
+    HUEY_BOOKS = "huey_books"
+
+
 class SchoolState(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
+    # Has initiated onboarding, a user has bound themselves to the school, but onboarding isn't yet completed.
+    # Useful for email prompts to remind dropoff users to upload their collections, and other KPI metrics.
+    PENDING = "pending"
 
 
 class School(Base):
@@ -73,8 +83,6 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    # TODO need to define the schema that will be stored here, and a possibly different
-    # schema that will be exposed via the school API
     info = Column(MutableDict.as_mutable(JSON))
 
     country = relationship('Country')
@@ -89,6 +97,10 @@ class School(Base):
             .scalar_subquery()
     )
 
+    bookbot_type = Column(Enum(SchoolBookbotType), nullable=False, server_default=SchoolBookbotType.HUEY_BOOKS)
+
+    lms_type = Column(String(50), nullable=False, server_default="none")
+
     db_jobs = relationship('DbJob', cascade="all, delete-orphan")
 
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
@@ -99,7 +111,9 @@ class School(Base):
 
     booklists = relationship("BookList", back_populates="school", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="school")
-    users = relationship("User", back_populates="school")
+
+    admin_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    admin = relationship("User", backref=backref("school_as_admin", uselist=False), foreign_keys=[admin_id])
 
     service_accounts = relationship(
         "ServiceAccount",
@@ -138,7 +152,7 @@ class School(Base):
             (Deny, "role:student", "delete"),
 
             (Allow, f"school:{self.id}", "read"),
+            (Allow, f"school:{self.id}", "update"),
 
-            (Allow, f"school:{self.id}", "update"),
-            (Allow, f"school:{self.id}", "update"),
+            (Allow, Authenticated, "bind")
         ]
