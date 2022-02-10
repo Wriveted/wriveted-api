@@ -82,7 +82,7 @@ async def patch_update_user(
     """
     output = {}
 
-    if patch.newsletter: 
+    if patch.newsletter is not None: 
         output["old_newsletter_preference"] = user.newsletter
         user.newsletter = patch.newsletter
         output["new_newsletter_preference"] = user.newsletter
