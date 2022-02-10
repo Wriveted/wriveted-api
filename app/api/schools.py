@@ -148,7 +148,8 @@ async def bind_school(
 @router.patch("/school/{wriveted_identifier}")
 async def update_school_extras(
     patch: SchoolPatchOptions,
-    school: School = Permission("update", get_school_from_wriveted_id),    
+    school: School = Permission("update", get_school_from_wriveted_id),
+    account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account), 
     session: Session = Depends(get_session)):
     """
     Optional patch updates to less-essential parts of a school object.
@@ -161,6 +162,14 @@ async def update_school_extras(
         output["original_status"] = school.state
         school.state = patch.status
         output["new_status"] = school.state
+        if patch.status.lower() == "active":
+            create_event(
+                session=session,
+                title='School account fully activated',
+                description=f"School '{school.name}' fully activated",
+                school=school,
+                account=account
+            )
 
     if patch.bookbot_type: 
         output["original_bookbot_type"] = school.bookbot_type
