@@ -159,18 +159,17 @@ async def update_school_extras(
     output = {}
 
     if patch.status: 
-        output["original_status"] = school.state
-        school.state = patch.status
-        output["new_status"] = school.state
-        if patch.status.lower() == "active":
+        if patch.status != school.state:
             create_event(
                 session=session,
-                title='School account fully activated',
-                description=f"School '{school.name}' fully activated",
+                title=f'School account made {patch.status.upper()}',
+                description=f"School '{school.name}' status updated to {patch.status.upper()}",
                 school=school,
                 account=account
             )
-
+        output["original_status"] = school.state
+        school.state = patch.status
+        output["new_status"] = school.state
     if patch.bookbot_type: 
         output["original_bookbot_type"] = school.bookbot_type
         school.bookbot_type = patch.bookbot_type
