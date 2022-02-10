@@ -47,9 +47,8 @@ COPY app/ /app/app
 # Now install the application itself
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install ; else poetry install --no-dev ; fi ;\
              rm -rf ~/.cache/pypoetry/{cache,artifacts}"
-ARG PORT=8000
 ENV PYTHONPATH=/app \
-    PORT=${PORT}
+    PORT=8000
 
 #CMD uvicorn "app.main:app" --port $PORT --host 0.0.0.0
 
