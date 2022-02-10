@@ -58,6 +58,8 @@ class User(Base):
     booklists = relationship("BookList", back_populates="user", cascade="all, delete-orphan")
     events = relationship("Event", back_populates='user', cascade="all, delete-orphan")
 
+    newsletter = Column(Boolean(), nullable=False, server_default="false")
+
     def __repr__(self):
         summary = "Active" if self.is_active else "Inactive"
         if self.type == UserAccountType.WRIVETED:
