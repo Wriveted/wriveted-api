@@ -8,7 +8,7 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.school import get_school_from_path
+from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import CollectionItem, School, Edition
@@ -28,10 +28,10 @@ router = APIRouter(
 )
 
 
-@router.get("/school/{country_code}/{school_id}/collection",
+@router.get("/school/{wriveted_identifier}/collection",
             response_model=List[CollectionItemBrief])
 async def get_school_collection(
-        school: School = Permission("read", get_school_from_path),
+        school: School = Permission("read", get_school_from_wriveted_id),
         pagination: PaginatedQueryParams = Depends(),
         session: Session = Depends(get_session)
 ):
@@ -44,11 +44,11 @@ async def get_school_collection(
 
 
 @router.post(
-    "/school/{country_code}/{school_id}/collection",
+    "/school/{wriveted_identifier}/collection",
 )
 async def set_school_collection(
         collection_data: List[CollectionItemIn],
-        school: School = Permission("update", get_school_from_path),
+        school: School = Permission("update", get_school_from_wriveted_id),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
@@ -66,10 +66,10 @@ async def set_school_collection(
     }
 
 
-@router.put("/school/{country_code}/{school_id}/collection", )
+@router.put("/school/{wriveted_identifier}/collection", )
 async def update_school_collection(
         collection_update_data: List[CollectionUpdate],
-        school: School = Permission("update", get_school_from_path),
+        school: School = Permission("update", get_school_from_wriveted_id),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):

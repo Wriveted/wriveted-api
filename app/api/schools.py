@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from starlette import status
 from structlog import get_logger
 
 from app import crud
@@ -76,7 +77,7 @@ async def get_schools(
     Available to any valid user, primarily for selection upon signup.
 
     Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
-    Admins can also opt the "is_active" query.
+    Admins can also optionally filter active/inactive schools using the "is_active" query parameter.
     """
     admin = has_permission(principals, "details", bulk_school_access_control_list)
 
@@ -93,19 +94,11 @@ async def get_schools(
     
     logger.debug(f"Returning {len(schools)} schools")
 
-    if not admin :
+    if not admin:
         for school in schools:
             school.state = None
             
     return schools
-
-
-# @router.get("/school/{country_code}/{school_id}", response_model=SchoolDetail)
-# async def get_school(school: School = Permission("read", get_school_from_path)):
-#     """
-#     Detail on a particular school
-#     """
-#     return school
 
 
 @router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
@@ -117,7 +110,7 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
 
 
 # Intended to be deprecated if wriveted_identifier is promoted to primary key
-@router.get("/school_raw/{id}", response_model=SchoolBookbotInfo)
+@router.get("/school_raw/{id}", response_model=SchoolBookbotInfo, deprecated=True)
 async def get_school(school: School = Permission("read", get_school_from_raw_id)):
     """
     Detail on a particular school, accessed via raw sql id (integer)
@@ -128,7 +121,7 @@ async def get_school(school: School = Permission("read", get_school_from_raw_id)
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
 async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
     """
-    Directly and indirectly Bookbot-related info on a particular school
+    Retrieve bookbot related info on a particular school.
     """
     return school
 
@@ -143,7 +136,7 @@ async def bind_school(
     Will fail if target school already has an admin.
     """
     if school.admin is not None:
-        raise HTTPException(409, "School already bound to an admin user.")
+        raise HTTPException(status.HTTP_409_CONFLICT, "School already bound to an admin user.")
 
     school.admin_id = user.id
     user.school_id_as_admin = school.id
@@ -256,12 +249,12 @@ async def add_school(
 
 
 @router.put(
-    "/school/{country_code}/{school_id}",
+    "/school/{wriveted_identifier}",
     response_model=SchoolDetail
 )
 async def update_school(
         school_update_data: SchoolUpdateIn,
-        school: School = Permission("update", get_school_from_path),
+        school: School = Permission("update", get_school_from_wriveted_id),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
@@ -275,11 +268,11 @@ async def update_school(
 
 
 @router.delete(
-    "/school/{country_code}/{school_id}",
+    "/school/{wriveted_identifier}",
     response_model=SchoolBrief
 )
 async def delete_school(
-        school: School = Permission("delete", get_school_from_path),
+        school: School = Permission("delete", get_school_from_wriveted_id),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
