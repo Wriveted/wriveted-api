@@ -49,3 +49,5 @@ class UserDetail(UserBrief):
     updated_at: datetime
 
     events: List[EventBrief]
+
+    school_id_as_admin: Optional[str]

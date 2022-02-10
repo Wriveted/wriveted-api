@@ -87,7 +87,7 @@ users = []
 unhandled_contacts = []
 
 for contact in contacts:
-    user = crud.user.get_or_create(
+    user, created = crud.user.get_or_create(
         db=session,
         user_data=UserCreateIn(
             name=f"{contact.first_name.title()} {contact.last_name.title()}",
