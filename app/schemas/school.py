@@ -1,5 +1,6 @@
 from uuid import UUID
-from typing import Optional, Any, List
+from typing import Optional, Any
+from datetime import datetime
 
 from pydantic import BaseModel, AnyHttpUrl, constr
 
@@ -68,6 +69,9 @@ class SchoolBookbotInfo(BaseModel):
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
+
+    created_at: datetime
+    updated_at: datetime
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
