@@ -1,8 +1,10 @@
 import enum
 import uuid
+from datetime import datetime
 
 from sqlalchemy import (
     Column,
+    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -120,6 +122,9 @@ class School(Base):
         secondary=service_account_school_association_table,
         back_populates="schools"
     )
+
+    created_at = Column(DateTime, server_default=func.current_timestamp(), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, server_default=func.current_timestamp(), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f"<School '{self.name}' ({self.official_identifier} - {self.country.name})>"
