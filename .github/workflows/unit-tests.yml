@@ -41,7 +41,10 @@ jobs:
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           poetry run pytest app/tests/unit
 
-  check-linters:
+name: linters
+on: [pull_request]
+jobs:
+  hadolint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
