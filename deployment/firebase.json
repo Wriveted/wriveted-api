@@ -8,7 +8,14 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "openapi.json",
+        "run": {
+          "serviceId": "wriveted-api",
+          "region": "australia-southeast1"
+        }
+      },
+      {
+        "source": "v1/**",
         "run": {
           "serviceId": "wriveted-api",
           "region": "australia-southeast1"
