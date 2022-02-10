@@ -10,7 +10,7 @@ from app import crud
 from app.api.dependencies.security import create_user_access_token, get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.session import get_session
-from app.models import User, ServiceAccount
+from app.models import User, ServiceAccount, EventLevel
 from app.schemas.auth import AuthenticatedAccountBrief, AccountType
 from app.schemas.user import UserCreateIn
 from app.services.events import create_event
@@ -77,7 +77,17 @@ def secure_user_endpoint(
             session=session,
             title="User account created",
             description='',
-            account=user
+            account=user,
+            commit=False
+        )
+    else:
+        create_event(
+            session=session,
+            title="User logged in",
+            description='',
+            account=user,
+            level=EventLevel.DEBUG,
+            commit=False
         )
     logger.info("Request to login from user", user=user)
 
@@ -110,7 +120,7 @@ async def get_current_user(
     """
     Test that the presented credentials are valid, returning details on the logged in user or service account.
     """
-    logger.info("Testing user token", account=current_user_or_service_account)
+    logger.debug("Testing user token", account=current_user_or_service_account)
     if isinstance(current_user_or_service_account, User):
         return AuthenticatedAccountBrief(account_type=AccountType.user, user=current_user_or_service_account)
     elif isinstance(current_user_or_service_account, ServiceAccount):

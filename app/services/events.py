@@ -1,8 +1,12 @@
 from typing import Union
 
 from sqlalchemy.orm import Session
+from structlog import get_logger
 
 from app.models import Event, ServiceAccount, User, EventLevel
+
+
+logger = get_logger()
 
 
 def create_event(
@@ -29,4 +33,8 @@ def create_event(
     if commit:
         session.commit()
         session.refresh(event)
+
+    # If an event was worth recording in the database we probably also want to log it
+    logger.info(f"{title}\n{description}",
+                 level=level, school=school, user=user, service_account=service_account,)
     return event
