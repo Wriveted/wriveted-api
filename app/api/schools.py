@@ -1,5 +1,5 @@
-from tokenize import String
-from typing import List, Optional
+
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
@@ -10,13 +10,12 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_current_user, get_optional_user
+from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_current_user
 from app.db.session import get_session
-from app.models import School
-from app.models.school import SchoolBookbotType, SchoolState
+from app.models import School, ServiceAccount, EventLevel
 from app.models.user import User
 from app.permissions import Permission
-from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolIdentity, SchoolPatchOptions, SchoolSelectorOption, SchoolUpdateIn
+from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolPatchOptions, SchoolSelectorOption, SchoolUpdateIn
 from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id, get_school_from_raw_id
 from app.services.events import create_event
 
@@ -194,6 +193,7 @@ async def update_school_extras(
 )
 async def bulk_add_schools(
         schools: List[SchoolCreateIn],
+        account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
     """Bulk API to add schools"""
@@ -205,10 +205,17 @@ async def bulk_add_schools(
             commit=False
         )
         for school_data in schools]
-    logger.debug(f"created {len(new_schools)} school orm objects")
+
+    create_event(
+        session=session,
+        title="Bulk created schools",
+        description=f"Added {len(new_schools)} schools to database.",
+        account=account,
+        commit=False
+    )
     try:
         session.commit()
-        logger.debug("committed now school orm objects")
+
         return {"msg": f"Added {len(new_schools)} new schools"}
     except:
         logger.warning("there was an issue importing bulk school data")
@@ -224,13 +231,22 @@ async def bulk_add_schools(
 )
 async def add_school(
         school: SchoolCreateIn,
+        account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
     try:
-        return crud.school.create(
+        school_orm = crud.school.create(
             db=session,
             obj_in=school
         )
+        create_event(
+            session=session,
+            title='New school created',
+            description=f"{account.name} created school '{school.name}'",
+            school=school,
+            account=account
+        )
+        return school_orm
     except IntegrityError as e:
         logger.warning("Database integrity error while adding school", exc_info=e)
         raise HTTPException(
@@ -249,7 +265,12 @@ async def update_school(
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session)
 ):
-    logger.info("School update", school=school, account=account)
+    create_event(
+        session=session,
+        title="School update",
+        description=f"School {school.name} in {school.country.name} updated.",
+        account=account,
+    )
     return crud.school.update(db=session, obj_in=school_update_data, db_obj=school)
 
 
