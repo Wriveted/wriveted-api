@@ -8,6 +8,11 @@ from app.schemas.event import EventBrief
 from app.schemas.school import SchoolBrief
 
 
+# due to using SSO, not much can be patched at the moment
+class UserPatchOptions(BaseModel):
+    newsletter: bool
+
+
 class UserInfo(BaseModel):
     sign_in_provider: Optional[str]
 
@@ -49,5 +54,7 @@ class UserDetail(UserBrief):
     updated_at: datetime
 
     events: List[EventBrief]
+
+    newsletter: bool
 
     school_id_as_admin: Optional[str]
