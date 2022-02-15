@@ -44,6 +44,7 @@ substitutions:
   _PLATFORM: managed
   _SERVICE_NAME: wriveted-api-development
   _DEPLOY_REGION: australia-southeast1
+  _PR_NUMBER: $_PR_NUMBER
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
