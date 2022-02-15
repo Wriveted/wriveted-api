@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # # TODO these should be optional, we could support deployment on AWS (e.g. RDS + Fargate)
     # # GCP specific configuration
     # TODO make these env vars
-    GCP_PROJECT_ID: str = "wriveted-development"
+    GCP_PROJECT_ID: str = "wriveted-api"
     GCP_CLOUD_SQL_INSTANCE_ID: str = "wriveted-development"
     GCP_LOCATION: str = "australia-southeast1"
 
