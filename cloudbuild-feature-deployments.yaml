@@ -1,4 +1,7 @@
 steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:pr-$_PR_NUMBER || exit 0']
   - name: gcr.io/cloud-builders/docker
     args:
       - build
