@@ -80,6 +80,7 @@ class Settings(BaseSettings):
 
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
+        "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app"
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
