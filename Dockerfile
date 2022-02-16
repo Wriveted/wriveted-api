@@ -41,6 +41,7 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
     rm -rf ~/.cache/pypoetry/{cache,artifacts} ;\
     fi"
 
+COPY scripts/ /app/scripts
 COPY alembic/ /app/alembic
 COPY app/ /app/app
 

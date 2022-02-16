@@ -1,7 +1,5 @@
-import logging
-from alembic.runtime.migration import MigrationContext
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
-
+import logging
 from app.config import Settings, get_settings
 from app.db.session import get_session
 
@@ -18,34 +16,20 @@ wait_seconds = 1
     before=before_log(logger, logging.DEBUG),
     after=after_log(logger, logging.INFO),
 )
-def check_database_ready(config: Settings) -> None:
+def check_can_connect_to_database(config: Settings) -> None:
     session_generator = get_session(config)
     session = next(session_generator)
-
     try:
+        logger.debug("Checking DB is awake and accepting connections")
         session.execute("SELECT 1")
-        print("select worked")
-
-        # Now check it has the schema version that we require
-        expected_database_version = MigrationContext.configure(
-            session.connection()
-        ).get_current_revision()
-
-        res = session.execute("SELECT version_num from alembic_version")
-        current_version = res.fetchall()[0][0]
-        logger.info(f"Current Alembic database schema version: {current_version}")
-        logger.info(
-            f"Expected database schema version: {expected_database_version}"
-        )
-        assert current_version == expected_database_version, "Unexpected database revision"
+        logger.info("Database is responding to queries")
     except Exception as e:
         logger.error(e)
         raise e
 
-
 def check_database_ready_with_retry(config):
     logger.info("Waiting for database to accept connections")
-    check_database_ready(config)
+    check_can_connect_to_database(config)
     logger.info("Database ready")
 
 
