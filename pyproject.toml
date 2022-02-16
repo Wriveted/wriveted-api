@@ -8,10 +8,10 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 fastapi = "^0.73"
 uvicorn = {extras = ["standard"], version = "^0.17"}
-alembic = "^1.7.5"
+alembic = "^1.7"
 structlog = "^21.5.0"
 psycopg2-binary = "^2.9.3"
 SQLAlchemy = "^1.4.29"
@@ -25,7 +25,7 @@ tenacity = "^8.0.1"
 
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0"
+pytest = ""
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
