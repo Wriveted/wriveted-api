@@ -44,6 +44,15 @@ steps:
       - '--quiet'
     id: Deploy
     entrypoint: gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'bash'
+    args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER']
+    secretEnv: ['SLACK_WEBHOOK']
+    id: SlackNotification
+availableSecrets:
+  secretManager:
+    - versionName: projects/wriveted-api/secrets/cloud-build-slack-app-webhook/versions/latest
+      env: 'SLACK_WEBHOOK'
 images:
   - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
 options:
