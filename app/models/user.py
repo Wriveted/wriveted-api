@@ -66,6 +66,7 @@ class User(Base):
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+    last_login_at = Column(DateTime, nullable=True)
 
     booklists = relationship(
         "BookList", back_populates="user", cascade="all, delete-orphan"
