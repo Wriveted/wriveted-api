@@ -63,7 +63,7 @@ class CRUDServiceAccount(
         db: Session,
         *,
         db_obj: ServiceAccount,
-        obj_in: Union[ServiceAccountUpdateIn, Dict[str, Any]]
+        obj_in: Union[ServiceAccountUpdateIn, Dict[str, Any]],
     ) -> ServiceAccount:
         svc_account = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
         if obj_in.schools is not None:
