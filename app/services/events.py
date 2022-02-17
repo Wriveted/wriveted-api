@@ -35,6 +35,11 @@ def create_event(
         session.refresh(event)
 
     # If an event was worth recording in the database we probably also want to log it
-    logger.info(f"{title}\n{description}",
-                 level=level, school=school, user=user, service_account=service_account,)
+    logger.info(
+        f"{title}\n{description}",
+        level=level,
+        school=school,
+        user=user,
+        service_account=service_account,
+    )
     return event

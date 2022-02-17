@@ -10,7 +10,6 @@ from app.config import get_settings
 ALGORITHM = "HS256"
 
 
-
 def get_raw_payload_from_access_token(token) -> Dict[str, Any]:
     settings = get_settings()
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -22,10 +21,10 @@ class TokenPayload(BaseModel):
     iat: datetime
     exp: datetime
 
-    @validator('sub')
+    @validator("sub")
     def sub_must_start_with_wriveted(cls, v):
-        if not v.startswith("wriveted") and ':' not in v:
-            raise ValueError('Invalid JWT subject')
+        if not v.startswith("wriveted") and ":" not in v:
+            raise ValueError("Invalid JWT subject")
         return v.title()
 
 

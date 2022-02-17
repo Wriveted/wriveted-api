@@ -23,13 +23,15 @@ fileConfig(config.config_file_name)
 # target_metadata = None
 
 # Add project root directory to python path
-sys.path.insert(0, os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir)))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
+)
 
 from app.models import Base  # noqa
-#from app.db.base import Base  # noqa
+
+# from app.db.base import Base  # noqa
 
 target_metadata = Base.metadata
-
 
 
 # other values from the config, defined by the needs of env.py,
@@ -39,7 +41,7 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    return os.getenv('SQLALCHEMY_DATABASE_URI', "sqlite:///db.sqlite")
+    return os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
 
 
 def run_migrations_offline():
@@ -74,9 +76,11 @@ def run_migrations_online():
     configuration["sqlalchemy.url"] = get_url()
 
     connectable = engine_from_config(
-        configuration, prefix="sqlalchemy.", poolclass=pool.NullPool,
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
     )
-    #connectable = create_engine(get_url())
+    # connectable = create_engine(get_url())
 
     with connectable.connect() as connection:
         context.configure(

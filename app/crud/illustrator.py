@@ -10,18 +10,20 @@ from app.schemas.illustrator import IllustratorCreateIn
 
 
 class CRUDIllustrator(CRUDBase[Illustrator, Any, Any]):
-
-    def get_or_create(self, db: Session, data: IllustratorCreateIn, commit=True) -> Illustrator:
+    def get_or_create(
+        self, db: Session, data: IllustratorCreateIn, commit=True
+    ) -> Illustrator:
         q = select(Illustrator).where(
-                and_(
-                    Illustrator.first_name == data.first_name,
-                    Illustrator.last_name  == data.last_name
-                )
+            and_(
+                Illustrator.first_name == data.first_name,
+                Illustrator.last_name == data.last_name,
             )
+        )
         try:
             orm_obj = db.execute(q).scalar_one()
         except NoResultFound:
             orm_obj = self.create(db, obj_in=data, commit=commit)
         return orm_obj
+
 
 illustrator = CRUDIllustrator(Illustrator)

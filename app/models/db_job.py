@@ -1,15 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Integer,
-    Enum,
-    DateTime,
-    JSON,
-    func
-)
+from sqlalchemy import Column, ForeignKey, Integer, Enum, DateTime, JSON, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db import Base
@@ -28,12 +20,8 @@ class JobStatus(str, enum.Enum):
 
 
 class DbJob(Base):
-    __tablename__ = 'db_jobs'
-    id = Column(
-        UUID(as_uuid=True),
-        default=uuid.uuid4,
-        primary_key=True
-    )
+    __tablename__ = "db_jobs"
+    id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
 
     type = Column(Enum(JobType), nullable=False)
 
@@ -47,7 +35,9 @@ class DbJob(Base):
 
     errors = Column(Integer)
 
-    events = relationship("Event", back_populates='db_job', cascade="all, delete-orphan")
+    events = relationship(
+        "Event", back_populates="db_job", cascade="all, delete-orphan"
+    )
 
     created_timestamp = Column(DateTime, server_default=func.now())
 
@@ -59,9 +49,9 @@ class DbJob(Base):
         Integer,
         ForeignKey("schools.id", name="fk_db_jobs_schools"),
         index=True,
-        nullable=False
+        nullable=False,
     )
-    school = relationship('School', back_populates='db_jobs', lazy='selectin')
+    school = relationship("School", back_populates="db_jobs", lazy="selectin")
 
     def __repr__(self):
         return f"<Event {self.type} - {self.status}>"

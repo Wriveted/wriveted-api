@@ -7,6 +7,7 @@ from app.models.db_job import JobStatus
 from app.models.db_job import JobType
 from typing import Optional, Any
 
+
 class DbJob(BaseModel):
     id: UUID
     status: JobStatus

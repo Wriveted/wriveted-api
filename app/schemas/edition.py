@@ -5,6 +5,7 @@ from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 
+
 class WorkInfo(BaseModel):
     short_summary: Optional[str]
     long_summary: Optional[str]
@@ -68,7 +69,7 @@ class EditionCreateIn(BaseModel):
 
     info: Optional[EditionInfo]
 
-    # we need the workinfo to create 
+    # we need the workinfo to create
     work_info: Optional[WorkInfo]
 
     authors: List[AuthorCreateIn]

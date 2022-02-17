@@ -14,24 +14,15 @@ from sqlalchemy import orm
 # revision identifiers, used by Alembic.
 from app.models import User
 
-revision = 'e4f0666727f3'
-down_revision = '998f29940cbf'
+revision = "e4f0666727f3"
+down_revision = "998f29940cbf"
 branch_labels = None
 depends_on = None
 
 initial_users = [
-    {
-        "name": "Brian",
-        "email": "hardbyte@gmail.com"
-    },
-    {
-        "name": "Meena",
-        "email": "meena@wriveted.com"
-    },
-    {
-        "name": "Caroline",
-        "email": "carolinegkl@gmail.com"
-    },
+    {"name": "Brian", "email": "hardbyte@gmail.com"},
+    {"name": "Meena", "email": "meena@wriveted.com"},
+    {"name": "Caroline", "email": "carolinegkl@gmail.com"},
 ]
 
 

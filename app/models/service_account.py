@@ -4,16 +4,20 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column,
-
     String,
     JSON,
-    DateTime, Boolean, ForeignKey, Enum,
+    DateTime,
+    Boolean,
+    ForeignKey,
+    Enum,
 )
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db import Base
-from app.models.service_account_school_association import service_account_school_association_table
+from app.models.service_account_school_association import (
+    service_account_school_association_table,
+)
 
 
 class ServiceAccountType(str, enum.Enum):
@@ -42,9 +46,9 @@ class ServiceAccount(Base):
     type = Column(Enum(ServiceAccountType), nullable=False, index=True)
 
     schools = relationship(
-        'School',
+        "School",
         secondary=service_account_school_association_table,
-        back_populates='service_accounts'
+        back_populates="service_accounts",
     )
 
     booklists = relationship("BookList", back_populates="service_account")
@@ -52,11 +56,13 @@ class ServiceAccount(Base):
     info = Column(MutableDict.as_mutable(JSON), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     events = relationship("Event", back_populates="service_account")
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
-        summary = f'{self.type} {active}'
+        summary = f"{self.type} {active}"
         return f"<ServiceAccount {self.name} - {summary}>"

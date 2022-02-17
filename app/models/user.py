@@ -37,13 +37,23 @@ class User(Base):
         nullable=False,
     )
     is_active = Column(Boolean(), default=True)
-    type = Column(Enum(UserAccountType, name='enum_user_account_type'),
-                  nullable=False, index=True, default=UserAccountType.PUBLIC)
+    type = Column(
+        Enum(UserAccountType, name="enum_user_account_type"),
+        nullable=False,
+        index=True,
+        default=UserAccountType.PUBLIC,
+    )
 
-    school_id_as_student = Column(Integer, ForeignKey('schools.id', name="fk_student_school"), nullable=True)
-    school_as_student = relationship("School", backref='students', foreign_keys=[school_id_as_student])
+    school_id_as_student = Column(
+        Integer, ForeignKey("schools.id", name="fk_student_school"), nullable=True
+    )
+    school_as_student = relationship(
+        "School", backref="students", foreign_keys=[school_id_as_student]
+    )
 
-    school_id_as_admin = Column(Integer, ForeignKey('schools.id', name="fk_admin_school"), nullable=True)
+    school_id_as_admin = Column(
+        Integer, ForeignKey("schools.id", name="fk_admin_school"), nullable=True
+    )
 
     email = Column(String, unique=True, index=True, nullable=False)
 
@@ -53,10 +63,14 @@ class User(Base):
     info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
-    booklists = relationship("BookList", back_populates="user", cascade="all, delete-orphan")
-    events = relationship("Event", back_populates='user', cascade="all, delete-orphan")
+    booklists = relationship(
+        "BookList", back_populates="user", cascade="all, delete-orphan"
+    )
+    events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
 
     newsletter = Column(Boolean(), nullable=False, server_default="false")
 

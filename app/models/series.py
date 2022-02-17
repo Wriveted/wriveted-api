@@ -30,7 +30,5 @@ class Series(Base):
 
     # TODO order this relationship by the secondary table
     works = relationship(
-        'Work',
-        secondary=series_works_association_table,
-        back_populates="series"
+        "Work", secondary=series_works_association_table, back_populates="series"
     )

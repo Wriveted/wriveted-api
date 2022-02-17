@@ -11,27 +11,22 @@ from app.schemas.illustrator import IllustratorBrief
 
 router = APIRouter(
     tags=["Authors"],
-    dependencies=[
-        Security(get_current_active_user_or_service_account)
-    ]
+    dependencies=[Security(get_current_active_user_or_service_account)],
 )
 
 
 @router.get("/illustrators", response_model=List[IllustratorBrief])
 async def get_illustrators(
-        pagination: PaginatedQueryParams = Depends(),
-        session: Session = Depends(get_session)
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     return crud.illustrator.get_all(
-        session,
-        skip=pagination.skip,
-        limit=pagination.limit)
+        session, skip=pagination.skip, limit=pagination.limit
+    )
 
 
 @router.get("/illustrators/{illustrator-id}", response_model=IllustratorBrief)
 async def get_illustrator_by_id(
-        illustrator_id: str,
-        session: Session = Depends(get_session)
+    illustrator_id: str, session: Session = Depends(get_session)
 ):
     return crud.illustrator.get_or_404(db=session, id=illustrator_id)
-

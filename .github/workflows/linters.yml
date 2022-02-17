@@ -8,3 +8,22 @@ jobs:
       - uses: reviewdog/action-hadolint@v1
         with:
           filter_mode: file
+
+  black:
+    name: "Format Python"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install black
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install black==22.1.0
+          echo ::add-path::$HOME/.local/bin
+      - name: Check formatting
+        run: |
+          if ! black --check --diff . ; then
+              msg="file formatting does not match $(black --version); fix using \`black .\`"
+              # convert the black output to syntax understood by GitHub Actions
+              black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
+              exit 1
+          fi

@@ -17,19 +17,17 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
     # def create_in_bulk(self, db: Session, work_data: List[WorkCreateIn]) -> List[Work]:
     #     pass
 
-    def get_or_create(self,
-                      db: Session,
-                      work_data: WorkCreateIn,
-                      authors: List[Author],
-                      commit=True) -> Work:
+    def get_or_create(
+        self, db: Session, work_data: WorkCreateIn, authors: List[Author], commit=True
+    ) -> Work:
 
         author_ids = [a.id for a in authors]
 
         q = (
             select(Work)
-                .where(Work.type == work_data.type)
-                .where(Work.title == work_data.title)
-                .where(Work.authors.any(Author.id.in_(author_ids)))
+            .where(Work.type == work_data.type)
+            .where(Work.title == work_data.title)
+            .where(Work.authors.any(Author.id.in_(author_ids)))
         )
 
         try:
@@ -42,7 +40,7 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
                 type=WorkType.BOOK,
                 title=work_data.title,
                 info=work_data.info.dict(),
-                authors=authors
+                authors=authors,
             )
             if work_data.series is not None:
                 series = self.get_or_create_series(db, work_data.series.title)
@@ -67,10 +65,7 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
     def bulk_create_series(self, db: Session, bulk_series_data: List[SeriesCreateIn]):
         insert_stmt = pg_insert(Series).on_conflict_do_nothing()
         values = [
-            {
-                "title": series.title,
-                "info": {} if series.info is None else series.info
-            }
+            {"title": series.title, "info": {} if series.info is None else series.info}
             for series in bulk_series_data
         ]
 

@@ -22,10 +22,8 @@ else:
             "name": f"Test School - {test_school_id}",
             "country_code": "ATA",
             "official_identifier": test_school_id,
-            "info": {
-                "msg": "Created for test purposes"
-            }
-        }
+            "info": {"msg": "Created for test purposes"},
+        },
     )
     print(new_test_school_response.text)
     new_test_school_response.raise_for_status()
@@ -42,14 +40,12 @@ svc_account_detail_response = httpx.post(
         "type": "school",
         "schools": [
             {
-                "country_code": school_info['country_code'],
-                "official_identifier": school_info['official_identifier']
+                "country_code": school_info["country_code"],
+                "official_identifier": school_info["official_identifier"],
             }
         ],
-        "info": {
-            "initial info": 42
-        }
-    }
+        "info": {"initial info": 42},
+    },
 )
 
 print(svc_account_detail_response.status_code)
@@ -63,7 +59,7 @@ svc_account_detail_response = httpx.put(
     headers={"Authorization": f"Bearer {settings.WRIVETED_API_TOKEN}"},
     json={
         "name": "Test school service account with updated name",
-    }
+    },
 )
 
 print(svc_account_detail_response.status_code)

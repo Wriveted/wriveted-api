@@ -4,6 +4,7 @@ from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, WorkInfo
 
+
 class WorkBrief(BaseModel):
     id: str
     type: WorkType
