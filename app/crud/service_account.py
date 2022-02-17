@@ -13,9 +13,12 @@ from app.schemas.service_account import ServiceAccountCreateIn, ServiceAccountUp
 logger = get_logger()
 
 
-class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, ServiceAccountUpdateIn]):
-
-    def create(self, db: Session, *, obj_in: ServiceAccountCreateIn, commit=True) -> ServiceAccount:
+class CRUDServiceAccount(
+    CRUDBase[ServiceAccount, ServiceAccountCreateIn, ServiceAccountUpdateIn]
+):
+    def create(
+        self, db: Session, *, obj_in: ServiceAccountCreateIn, commit=True
+    ) -> ServiceAccount:
         # Because a ServiceAccount ORM object has a `schools` attribute, our default
         # CRUD's create method would try to set it using the Optional[List[SchoolIdentity]].
         # Instead we remove the `schools` from the input object, create the service account,
@@ -36,21 +39,34 @@ class CRUDServiceAccount(CRUDBase[ServiceAccount, ServiceAccountCreateIn, Servic
 
         return svc_account
 
-    def set_access_to_schools(self, db, svc_account: ServiceAccount, schools: List[SchoolIdentity]):
+    def set_access_to_schools(
+        self, db, svc_account: ServiceAccount, schools: List[SchoolIdentity]
+    ):
         # Replace the service account's current associated schools with the provided list.
         svc_account.schools = []
         return self.add_access_to_schools(db, svc_account, schools)
 
-    def add_access_to_schools(self, db, svc_account: ServiceAccount, schools: List[SchoolIdentity]):
+    def add_access_to_schools(
+        self, db, svc_account: ServiceAccount, schools: List[SchoolIdentity]
+    ):
         for school_identity in schools:
-            school = crud.school.get_by_wriveted_id_or_404(db=db, wriveted_id=school_identity.wriveted_identifier)
+            school = crud.school.get_by_wriveted_id_or_404(
+                db=db, wriveted_id=school_identity.wriveted_identifier
+            )
             svc_account.schools.append(school)
 
-    def update(self, db: Session, *, db_obj: ServiceAccount,
-               obj_in: Union[ServiceAccountUpdateIn, Dict[str, Any]]) -> ServiceAccount:
+    def update(
+        self,
+        db: Session,
+        *,
+        db_obj: ServiceAccount,
+        obj_in: Union[ServiceAccountUpdateIn, Dict[str, Any]],
+    ) -> ServiceAccount:
         svc_account = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
         if obj_in.schools is not None:
-            self.set_access_to_schools(db=db, svc_account=svc_account, schools=obj_in.schools)
+            self.set_access_to_schools(
+                db=db, svc_account=svc_account, schools=obj_in.schools
+            )
         return svc_account
 
 
