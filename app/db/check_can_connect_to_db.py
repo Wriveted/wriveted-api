@@ -27,12 +27,13 @@ def check_can_connect_to_database(config: Settings) -> None:
         logger.error(e)
         raise e
 
+
 def check_database_ready_with_retry(config):
     logger.info("Waiting for database to accept connections")
     check_can_connect_to_database(config)
     logger.info("Database ready")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     config = get_settings()
     check_database_ready_with_retry(config)

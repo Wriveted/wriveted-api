@@ -34,10 +34,10 @@ def check_database_ready(config: Settings) -> None:
         res = session.execute("SELECT version_num from alembic_version")
         current_version = res.fetchall()[0][0]
         logger.info(f"Current Alembic database schema version: {current_version}")
-        logger.info(
-            f"Expected database schema version: {expected_database_version}"
-        )
-        assert current_version == expected_database_version, "Unexpected database revision"
+        logger.info(f"Expected database schema version: {expected_database_version}")
+        assert (
+            current_version == expected_database_version
+        ), "Unexpected database revision"
     except Exception as e:
         logger.error(e)
         raise e
@@ -49,6 +49,6 @@ def check_database_ready_with_retry(config):
     logger.info("Database ready")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     config = get_settings()
     check_database_ready_with_retry(config)
