@@ -2,7 +2,11 @@ import enum
 from typing import Optional, Union, List
 
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer, HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import (
+    OAuth2PasswordBearer,
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+)
 from fastapi_permissions import Everyone, Authenticated
 
 from jose import jwt
@@ -16,21 +20,25 @@ from app.api.dependencies.school import get_school_from_path
 from app.db.session import get_session
 from app.models import User, ServiceAccount, ServiceAccountType, School
 from app.models.user import UserAccountType
-from app.services.security import create_access_token, get_payload_from_access_token, TokenPayload
+from app.services.security import (
+    create_access_token,
+    get_payload_from_access_token,
+    TokenPayload,
+)
 
 logger = get_logger()
 
 auth_scheme = OAuth2PasswordBearer(tokenUrl="/auth/access-token")
 
 credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 def get_auth_header_data(
-        http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
+    http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> str:
 
     if http_auth is None:
@@ -45,7 +53,7 @@ def get_auth_header_data(
 
 
 def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPayload:
-    #logger.debug("Headers contain an Authorization component")
+    # logger.debug("Headers contain an Authorization component")
     try:
         return get_payload_from_access_token(token)
     except (jwt.JWTError, ValidationError):
@@ -56,8 +64,8 @@ def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPay
 
 
 def get_optional_user(
-        db: Session = Depends(get_session),
-        token_data: TokenPayload = Depends(get_valid_token_data),
+    db: Session = Depends(get_session),
+    token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
@@ -67,14 +75,14 @@ def get_optional_user(
         user = crud.user.get(db, id=identifier)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found")
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         return user
 
 
 def get_optional_service_account(
-        db: Session = Depends(get_session),
-        token_data: TokenPayload = Depends(get_valid_token_data),
+    db: Session = Depends(get_session),
+    token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
@@ -91,7 +99,7 @@ def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) 
 
 
 def get_current_active_user(
-        current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
@@ -99,8 +107,10 @@ def get_current_active_user(
 
 
 def get_current_active_user_or_service_account(
-        maybe_user: Optional[User] = Depends(get_optional_user),
-        maybe_service_account: Optional[ServiceAccount] = Depends(get_optional_service_account),
+    maybe_user: Optional[User] = Depends(get_optional_user),
+    maybe_service_account: Optional[ServiceAccount] = Depends(
+        get_optional_service_account
+    ),
 ) -> Union[User, ServiceAccount]:
     # We need either a valid user or service account given the auth token
     if maybe_user is not None and maybe_user.is_active:
@@ -112,38 +122,35 @@ def get_current_active_user_or_service_account(
 
 
 def get_current_active_superuser_or_backend_service_account(
-        user_or_service_account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
+    user_or_service_account: Union[User, ServiceAccount] = Depends(
+        get_current_active_user_or_service_account
+    ),
 ) -> Union[User, ServiceAccount]:
     if isinstance(user_or_service_account, User):
         if not user_or_service_account.type == UserAccountType.WRIVETED:
-            raise HTTPException(
-                status_code=403, detail="Insufficient privileges"
-            )
+            raise HTTPException(status_code=403, detail="Insufficient privileges")
     elif isinstance(user_or_service_account, ServiceAccount):
         if not user_or_service_account.type == ServiceAccountType.BACKEND:
-            raise HTTPException(
-                status_code=403, detail="Insufficient privileges"
-            )
+            raise HTTPException(status_code=403, detail="Insufficient privileges")
     return user_or_service_account
 
 
 def get_current_active_superuser(
-        current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
 ) -> User:
     """
     Require administrator access
     """
     if not current_user.type == UserAccountType.WRIVETED:
-        raise HTTPException(
-            status_code=403, detail="Insufficient privileges"
-        )
+        raise HTTPException(status_code=403, detail="Insufficient privileges")
     return current_user
-
 
 
 def get_active_principals(
     maybe_user: Optional[User] = Depends(get_optional_user),
-    maybe_service_account: Optional[ServiceAccount] = Depends(get_optional_service_account),
+    maybe_service_account: Optional[ServiceAccount] = Depends(
+        get_optional_service_account
+    ),
 ):
     """
     RBAC Access Control using https://github.com/holgi/fastapi-permissions
@@ -191,11 +198,11 @@ def get_active_principals(
                 pass
 
         # All users have a user specific role:
-        principals.append(f'user:{user.id}')
+        principals.append(f"user:{user.id}")
 
         # Users can optionally be associated with a school:
         if user.school_id_as_admin is not None:
-            principals.append(f'school:{user.school_id_as_admin}')
+            principals.append(f"school:{user.school_id_as_admin}")
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account
