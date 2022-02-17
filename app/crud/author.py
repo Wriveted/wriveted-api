@@ -11,8 +11,9 @@ from app.schemas.author import AuthorCreateIn
 
 
 class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
-
-    def get_or_create(self, db: Session, author_data: AuthorCreateIn, commit=True) -> Author:
+    def get_or_create(
+        self, db: Session, author_data: AuthorCreateIn, commit=True
+    ) -> Author:
 
         q = select(Author).where(Author.full_name == author_data.full_name)
         try:
@@ -34,14 +35,14 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
         Note this relies on the clearly incorrect assumption that Author's names are unique.
         """
         insert_stmt = pg_insert(Author).on_conflict_do_nothing(
-            #index_elements=['full_name']
+            # index_elements=['full_name']
         )
 
         values = [
             {
                 "full_name": author.full_name,
                 "last_name": author.last_name,
-                "info": {} if author.info is None else author.info
+                "info": {} if author.info is None else author.info,
             }
             for author in bulk_author_data_in
         ]

@@ -13,7 +13,12 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
-from app.schemas.collection import CollectionItemBrief, CollectionUpdate, CollectionUpdateType, CollectionItemIn
+from app.schemas.collection import (
+    CollectionItemBrief,
+    CollectionUpdate,
+    CollectionUpdateType,
+    CollectionItemIn,
+)
 from app.schemas.edition import EditionCreateIn
 from app.services.collections import add_editions_to_collection
 
@@ -24,16 +29,17 @@ router = APIRouter(
     dependencies=[
         # Shouldn't be necessary
         Security(get_current_active_user_or_service_account)
-    ]
+    ],
 )
 
 
-@router.get("/school/{wriveted_identifier}/collection",
-            response_model=List[CollectionItemBrief])
+@router.get(
+    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemBrief]
+)
 async def get_school_collection(
-        school: School = Permission("read", get_school_from_wriveted_id),
-        pagination: PaginatedQueryParams = Depends(),
-        session: Session = Depends(get_session)
+    school: School = Permission("read", get_school_from_wriveted_id),
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     logger.debug("Getting collection", pagination=pagination)
     collection_items = session.scalars(
@@ -47,31 +53,33 @@ async def get_school_collection(
     "/school/{wriveted_identifier}/collection",
 )
 async def set_school_collection(
-        collection_data: List[CollectionItemIn],
-        school: School = Permission("update", get_school_from_wriveted_id),
-        account=Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    collection_data: List[CollectionItemIn],
+    school: School = Permission("update", get_school_from_wriveted_id),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
 ):
     """
     Replace a school library collection entirely
     """
-    logger.info("Resetting the entire collection for school", school=school, account=account)
+    logger.info(
+        "Resetting the entire collection for school", school=school, account=account
+    )
     session.execute(delete(CollectionItem).where(CollectionItem.school == school))
     session.commit()
     if len(collection_data) > 0:
         await add_editions_to_collection(session, collection_data, school, account)
 
-    return {
-        'msg': "updated"
-    }
+    return {"msg": "updated"}
 
 
-@router.put("/school/{wriveted_identifier}/collection", )
+@router.put(
+    "/school/{wriveted_identifier}/collection",
+)
 async def update_school_collection(
-        collection_update_data: List[CollectionUpdate],
-        school: School = Permission("update", get_school_from_wriveted_id),
-        account=Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    collection_update_data: List[CollectionUpdate],
+    school: School = Permission("update", get_school_from_wriveted_id),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
 ):
     """
     Update a school library collection with a list of changes.
@@ -123,7 +131,9 @@ async def update_school_collection(
                 # Perhaps better is to query all the ISBNs before looping, or
                 # allow the API to throw errors or just require the full EditionCreateIn data for every add
                 try:
-                    update_info.edition_info = EditionCreateIn.parse_obj(crud.edition.get(session, id=update_info.ISBN))
+                    update_info.edition_info = EditionCreateIn.parse_obj(
+                        crud.edition.get(session, id=update_info.ISBN)
+                    )
                     logger.debug("Edition to add", new_edition=update_info.edition_info)
                 except ValidationError:
                     # The caller didn't give us information, and we don't
@@ -137,27 +147,24 @@ async def update_school_collection(
             # TODO consider a bulk update version of this
             stmt = (
                 update(CollectionItem)
-                    .where(CollectionItem.school_id == school.id)
-                    .where(
-                        # Note execution_options(synchronize_session="fetch") must be set
-                        # for this subquery where clause to work.
-                        # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
-                        CollectionItem.edition.has(Edition.ISBN == update_info.ISBN)
-
-                        # this is a more manual way that emits an IN instead of an EXISTS
-                        # CollectionItem.edition_id.in_(
-                        #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
-                        # )
-
-                        # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
-                        # fields directly, then at the end commit them.
-
-                    )
-                    .values(
-                        copies_total=update_info.copies_total,
-                        copies_available=update_info.copies_available
-                    )
-                    .execution_options(synchronize_session="fetch")
+                .where(CollectionItem.school_id == school.id)
+                .where(
+                    # Note execution_options(synchronize_session="fetch") must be set
+                    # for this subquery where clause to work.
+                    # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
+                    CollectionItem.edition.has(Edition.ISBN == update_info.ISBN)
+                    # this is a more manual way that emits an IN instead of an EXISTS
+                    # CollectionItem.edition_id.in_(
+                    #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
+                    # )
+                    # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
+                    # fields directly, then at the end commit them.
+                )
+                .values(
+                    copies_total=update_info.copies_total,
+                    copies_available=update_info.copies_available,
+                )
+                .execution_options(synchronize_session="fetch")
             )
 
             session.execute(stmt)
@@ -166,13 +173,13 @@ async def update_school_collection(
         logger.info(f"Removing {len(isbns_to_remove)} items from collection")
         stmt = (
             delete(CollectionItem)
-                .where(CollectionItem.school_id == school.id)
-                .where(
-                    CollectionItem.edition_id.in_(
-                        select(Edition.id).where(Edition.ISBN.in_(isbns_to_remove))
-                    )
+            .where(CollectionItem.school_id == school.id)
+            .where(
+                CollectionItem.edition_id.in_(
+                    select(Edition.id).where(Edition.ISBN.in_(isbns_to_remove))
                 )
-                .execution_options(synchronize_session="fetch")
+            )
+            .execution_options(synchronize_session="fetch")
         )
         logger.info("Delete stmt", stmts=str(stmt))
         session.execute(stmt)
@@ -184,7 +191,4 @@ async def update_school_collection(
     logger.info(f"Committing transaction")
     session.commit()
 
-    return {
-        'msg': "updated",
-        "skipped": skipped_editions
-    }
+    return {"msg": "updated", "skipped": skipped_editions}

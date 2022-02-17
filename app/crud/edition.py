@@ -36,14 +36,17 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
         return self.get_all_query(db, order_by=order_by).where(
-            Edition.ISBN.in_(clean_isbns(ids)))
+            Edition.ISBN.in_(clean_isbns(ids))
+        )
 
-    def create(self,
-               db: Session,
-               edition_data: EditionCreateIn,
-               work: Work,
-               illustrators: List[Illustrator],
-               commit=True) -> Edition:
+    def create(
+        self,
+        db: Session,
+        edition_data: EditionCreateIn,
+        work: Work,
+        illustrators: List[Illustrator],
+        commit=True,
+    ) -> Edition:
         """
         Insert an edition row in the table assuming the related objects exist.
 
@@ -56,7 +59,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             cover_url=edition_data.cover_url,
             info=edition_data.info.dict(),
             work=work,
-            illustrators=illustrators
+            illustrators=illustrators,
         )
         db.add(edition)
         if commit:
@@ -97,11 +100,16 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         for edition_data in bulk_edition_data:
             for author_data in edition_data.authors:
                 bulk_author_data.setdefault(author_data.full_name, author_data)
-            if edition_data.series_title is not None and len(edition_data.series_title) > 0:
+            if (
+                edition_data.series_title is not None
+                and len(edition_data.series_title) > 0
+            ):
                 bulk_series_titles.add(edition_data.series_title)
 
         if len(bulk_author_data) > 0:
-            crud.author.create_in_bulk(db=session, bulk_author_data_in=bulk_author_data.values())
+            crud.author.create_in_bulk(
+                db=session, bulk_author_data_in=bulk_author_data.values()
+            )
             logger.info("Authors created")
 
         # Series
@@ -109,10 +117,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             crud.work.bulk_create_series(
                 session,
                 bulk_series_data=[
-                    SeriesCreateIn(title=series_title) for series_title in bulk_series_titles]
+                    SeriesCreateIn(title=series_title)
+                    for series_title in bulk_series_titles
+                ],
             )
         logger.info("Series created")
-
 
         # TODO keep bulkifying this...
         # Work next
@@ -135,25 +144,20 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         # Get or create the work
         work_create_data = WorkCreateIn(
             type=WorkType.BOOK,
-            title=edition_data.work_title if edition_data.work_title is not None else edition_data.title,
+            title=edition_data.work_title
+            if edition_data.work_title is not None
+            else edition_data.title,
             authors=edition_data.authors,
             info=edition_data.work_info,
             series_title=edition_data.work_info.series_title,
         )
 
         work = crud_work.get_or_create(
-            session,
-            work_data=work_create_data,
-            authors=authors,
-            commit=False
+            session, work_data=work_create_data, authors=authors, commit=False
         )
         # Get or create the illustrators
         illustrators = [
-            crud_illustrator.get_or_create(
-                session,
-                illustrator_data,
-                commit=False
-            )
+            crud_illustrator.get_or_create(session, illustrator_data, commit=False)
             for illustrator_data in edition_data.illustrators
         ]
         # Then, at last create the edition - raising an error if it already existed
@@ -162,7 +166,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             edition_data=edition_data,
             work=work,
             illustrators=illustrators,
-            commit=commit
+            commit=commit,
         )
         return edition
 

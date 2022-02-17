@@ -1,4 +1,3 @@
-
 from app.config import get_settings
 
 import textwrap
@@ -12,7 +11,8 @@ from app.api import api_router
 
 
 logger = get_logger()
-api_docs = textwrap.dedent("""
+api_docs = textwrap.dedent(
+    """
 # 🤖 
 
 Welcome human to a brief outline of the Wriveted API. 
@@ -46,7 +46,8 @@ The API implements role based access control, only particular roles are allowed
 to add new schools or edit collections.
 
 
-""")
+"""
+)
 
 settings = get_settings()
 
@@ -56,7 +57,7 @@ app = FastAPI(
     description=api_docs,
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
 )
 
 
@@ -80,6 +81,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
             "Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
 # Note without this handler being added before the CORS middleware, internal errors
 # don't include CORS headers - which masks the underlying internal error as a CORS error
 # to clients.
@@ -87,7 +89,8 @@ app.middleware("http")(catch_exceptions_middleware)
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
     logger.info(
-        "Enabling cross origin restrictions", cors_origins=[str(c) for c in settings.BACKEND_CORS_ORIGINS]
+        "Enabling cross origin restrictions",
+        cors_origins=[str(c) for c in settings.BACKEND_CORS_ORIGINS],
     )
     app.add_middleware(
         CORSMiddleware,
@@ -99,18 +102,18 @@ if settings.BACKEND_CORS_ORIGINS:
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+
 @app.get("/")
 async def root():
     """
     Redirects to the OpenAPI documentation for the current version
     """
-    return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    return RedirectResponse("/v1/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
 
 @app.get("/docs")
 async def redirect_old_docs_route():
     """
     Redirects to the OpenAPI documentation for the current version
     """
-    return RedirectResponse('/v1/docs', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
-
-
+    return RedirectResponse("/v1/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)

@@ -6,8 +6,11 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.security import get_current_active_superuser_or_backend_service_account, \
-    get_current_active_user_or_service_account, get_current_user
+from app.api.dependencies.security import (
+    get_current_active_superuser_or_backend_service_account,
+    get_current_active_user_or_service_account,
+    get_current_user,
+)
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
 from app.schemas.user import UserBrief, UserDetail, UserPatchOptions, UserUpdateIn
@@ -17,22 +20,23 @@ logger = get_logger()
 
 router = APIRouter(
     tags=["Users"],
-    dependencies=[
-        Depends(get_current_active_superuser_or_backend_service_account)
-    ]
+    dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
 )
 
-public_router = APIRouter(
-    tags=["Public", "Users"]
-)
+public_router = APIRouter(tags=["Public", "Users"])
+
 
 @router.get("/users", response_model=List[UserBrief])
 async def get_users(
-        q: Optional[str] = Query(None, description='Filter users by name'),
-        is_active: Optional[bool] = Query(None, description="Return active or inactive users. Default is all."),
-        type: Optional[UserAccountType] = Query(None, description="Filter users by account type. Default is all."),
-        pagination: PaginatedQueryParams = Depends(),
-        session: Session = Depends(get_session)
+    q: Optional[str] = Query(None, description="Filter users by name"),
+    is_active: Optional[bool] = Query(
+        None, description="Return active or inactive users. Default is all."
+    ),
+    type: Optional[UserAccountType] = Query(
+        None, description="Filter users by account type. Default is all."
+    ),
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     """
     List all users
@@ -44,24 +48,19 @@ async def get_users(
         is_active=is_active,
         type=type,
         skip=pagination.skip,
-        limit=pagination.limit
+        limit=pagination.limit,
     )
 
 
 @router.get("/user/{uuid}", response_model=UserDetail)
-async def get_user(
-        uuid: str,
-        session: Session = Depends(get_session)
-):
+async def get_user(uuid: str, session: Session = Depends(get_session)):
     logger.info("Retrieving details on one user")
     return crud.user.get(db=session, id=uuid)
 
 
 @router.put("/user/{uuid}", response_model=UserDetail)
 async def update_user(
-        uuid: str,
-        user_update: UserUpdateIn,
-        session: Session = Depends(get_session)
+    uuid: str, user_update: UserUpdateIn, session: Session = Depends(get_session)
 ):
     logger.info("Updating a user")
     user = crud.user.get(db=session, id=uuid)
@@ -74,7 +73,8 @@ async def update_user(
 async def patch_update_user(
     patch: UserPatchOptions,
     user: User = Depends(get_current_user),
-    session: Session = Depends(get_session)):
+    session: Session = Depends(get_session),
+):
     """
     Optional patch updates to less-essential parts of a User object.
     Self-serve api that extracts the user's info from the bearer token
@@ -82,7 +82,7 @@ async def patch_update_user(
     """
     output = {}
 
-    if patch.newsletter is not None: 
+    if patch.newsletter is not None:
         output["old_newsletter_preference"] = user.newsletter
         user.newsletter = patch.newsletter
         output["new_newsletter_preference"] = user.newsletter
@@ -94,10 +94,10 @@ async def patch_update_user(
 
 @router.delete("/user/{uuid}")
 async def deactivate_user(
-        uuid: str,
-        purge: bool = False,
-        account = Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    uuid: str,
+    purge: bool = False,
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
 ):
     """
     Mark user INACTIVE.
@@ -112,7 +112,7 @@ async def deactivate_user(
         title="User account deleted",
         description=f"User {user.name} marked inactive by {account}",
         account=account,
-        session=session
+        session=session,
     )
     user.is_active = False
     session.flush()

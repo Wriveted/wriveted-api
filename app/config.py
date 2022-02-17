@@ -2,7 +2,15 @@ import secrets
 from functools import lru_cache
 from typing import List, Optional, Union, Dict, Any
 
-from pydantic import AnyHttpUrl, BaseSettings, SecretStr, validator, FilePath, DirectoryPath, AnyUrl
+from pydantic import (
+    AnyHttpUrl,
+    BaseSettings,
+    SecretStr,
+    validator,
+    FilePath,
+    DirectoryPath,
+    AnyUrl,
+)
 
 
 class Settings(BaseSettings):
@@ -16,7 +24,7 @@ class Settings(BaseSettings):
     GCP_CLOUD_SQL_INSTANCE_ID: str = "wriveted"
     GCP_LOCATION: str = "australia-southeast1"
 
-    POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]    # e.g. /cloudsql
+    POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]  # e.g. /cloudsql
 
     POSTGRESQL_SERVER: str = "/"
     POSTGRESQL_DATABASE: str = "postgres"
@@ -26,7 +34,9 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: str = None
 
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
-    def assemble_sqlalchemy_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_sqlalchemy_connection(
+        cls, v: Optional[str], values: Dict[str, Any]
+    ) -> Any:
         if isinstance(v, str):
             # If a string is provided (e.g. via environment variable) we just use that
             return v
@@ -40,13 +50,15 @@ class Settings(BaseSettings):
         query = None
         # Connect to Cloud SQL using unix socket instead of TCP socket
         # https://cloud.google.com/sql/docs/postgres/connect-run?authuser=1#connecting_to
-        socket_path = values.get('POSTGRESQL_DATABASE_SOCKET_PATH')
+        socket_path = values.get("POSTGRESQL_DATABASE_SOCKET_PATH")
 
         if socket_path is not None:
-            project = values.get('GCP_PROJECT_ID')
-            location = values.get('GCP_LOCATION')
-            cloud_sql_instance_id = values.get('GCP_CLOUD_SQL_INSTANCE_ID')
-            cloud_sql_instance_connection = f"{project}:{location}:{cloud_sql_instance_id}"
+            project = values.get("GCP_PROJECT_ID")
+            location = values.get("GCP_LOCATION")
+            cloud_sql_instance_id = values.get("GCP_CLOUD_SQL_INSTANCE_ID")
+            cloud_sql_instance_connection = (
+                f"{project}:{location}:{cloud_sql_instance_id}"
+            )
             query = f"host={socket_path}/{cloud_sql_instance_connection}"
 
         return AnyUrl.build(
@@ -66,21 +78,17 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-
         # Production URLs
         "https://api.wriveted.com",
         "https://bookbot.hellohuey.com",
-
         "https://app.hueythebookbot.com",
         "https://api.hueythebookbot.com",
-
         # Firebase URLs
         "https://wriveted-library.web.app",
         "https://wriveted-api.web.app",
-
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
-        "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app"
+        "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
@@ -110,5 +118,3 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
-
-

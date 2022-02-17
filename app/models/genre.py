@@ -1,8 +1,4 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String
-)
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.labelset_genre_association import labelset_genre_association_table
@@ -15,9 +11,7 @@ class Genre(Base):
     bisac_code = Column(String(12), nullable=True, unique=True)
 
     labelsets = relationship(
-        'LabelSet',
-        secondary=labelset_genre_association_table,
-        back_populates="genres"
+        "LabelSet", secondary=labelset_genre_association_table, back_populates="genres"
     )
 
     # TODO: add a join/proxy/relationship to be able to navigate the Works associated with a Genre

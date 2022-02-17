@@ -1,4 +1,3 @@
-
 from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
@@ -11,27 +10,39 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 
-from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account, get_current_user
+from app.api.dependencies.security import (
+    get_active_principals,
+    get_current_active_user_or_service_account,
+    get_current_user,
+)
 from app.db.session import get_session
 from app.models import School, ServiceAccount, EventLevel
 from app.models.user import User
 from app.permissions import Permission
-from app.schemas.school import SchoolBookbotInfo, SchoolBrief, SchoolDetail, SchoolCreateIn, SchoolPatchOptions, SchoolSelectorOption, SchoolUpdateIn
-from app.api.dependencies.school import get_school_from_path, get_school_from_wriveted_id, get_school_from_raw_id
+from app.schemas.school import (
+    SchoolBookbotInfo,
+    SchoolBrief,
+    SchoolDetail,
+    SchoolCreateIn,
+    SchoolPatchOptions,
+    SchoolSelectorOption,
+    SchoolUpdateIn,
+)
+from app.api.dependencies.school import (
+    get_school_from_path,
+    get_school_from_wriveted_id,
+    get_school_from_raw_id,
+)
 from app.services.events import create_event
 
 logger = get_logger()
 
 router = APIRouter(
     tags=["Schools"],
-    dependencies=[
-        Security(get_current_active_user_or_service_account)
-    ]
+    dependencies=[Security(get_current_active_user_or_service_account)],
 )
 
-public_router = APIRouter(
-    tags=["Public", "Schools"]
-)
+public_router = APIRouter(tags=["Public", "Schools"])
 
 bulk_school_access_control_list = [
     (Allow, Authenticated, "read"),
@@ -46,7 +57,6 @@ bulk_school_access_control_list = [
     (Allow, "role:admin", "create"),
     (Allow, "role:admin", "batch"),
     (Allow, "role:admin", "details"),
-
     (Allow, "role:lms", "read"),
     # The following explicitly blocks LMS accounts from creating new schools
     (Deny, "role:lms", "create"),
@@ -64,17 +74,19 @@ bulk_school_access_control_list = [
         # to ensure only schools that the account is allowed to see are
         # returned. Ref: https://github.com/holgi/fastapi-permissions/issues/3
         Permission("read", bulk_school_access_control_list)
-    ]
+    ],
 )
 async def get_schools(
-        country_code: Optional[str] = Query(None, description="Filter schools by country"),
-        state: Optional[str] = Query(None, description="Filter schools by state"),
-        postcode: Optional[str] = Query(None, description="Filter schools by postcode"),
-        q: Optional[str] = Query(None, description='Filter schools by name'),
-        is_active: Optional[bool] = Query(None, description="Return active or inactive schools. Default is all."),
-        pagination: PaginatedQueryParams = Depends(),
-        principals: List = Depends(get_active_principals),
-        session: Session = Depends(get_session)
+    country_code: Optional[str] = Query(None, description="Filter schools by country"),
+    state: Optional[str] = Query(None, description="Filter schools by state"),
+    postcode: Optional[str] = Query(None, description="Filter schools by postcode"),
+    q: Optional[str] = Query(None, description="Filter schools by name"),
+    is_active: Optional[bool] = Query(
+        None, description="Return active or inactive schools. Default is all."
+    ),
+    pagination: PaginatedQueryParams = Depends(),
+    principals: List = Depends(get_active_principals),
+    session: Session = Depends(get_session),
 ):
     """
     List of schools showing only publicly available information.
@@ -92,16 +104,16 @@ async def get_schools(
         postcode=postcode,
         query_string=q,
         is_active=is_active if admin else None,
-        skip=pagination.skip, 
-        limit=pagination.limit
+        skip=pagination.skip,
+        limit=pagination.limit,
     )
-    
+
     logger.debug(f"Returning {len(schools)} schools")
 
     if not admin:
         for school in schools:
             school.state = None
-            
+
     return schools
 
 
@@ -143,13 +155,16 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
 async def bind_school(
     school: School = Permission("bind", get_school_from_wriveted_id),
     user: User = Depends(get_current_user),
-    session: Session = Depends(get_session)):
+    session: Session = Depends(get_session),
+):
     """
     Binds the current user to a school as its administrator.
     Will fail if target school already has an admin.
     """
     if school.admin is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "School already bound to an admin user.")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "School already bound to an admin user."
+        )
 
     school.admin_id = user.id
     user.school_id_as_admin = school.id
@@ -162,8 +177,11 @@ async def bind_school(
 async def update_school_extras(
     patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),
-    account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account), 
-    session: Session = Depends(get_session)):
+    account: Union[User, ServiceAccount] = Depends(
+        get_current_active_user_or_service_account
+    ),
+    session: Session = Depends(get_session),
+):
     """
     Optional patch updates to less-essential parts of a school object.
     Only available to users with the "update" permission for the
@@ -171,24 +189,24 @@ async def update_school_extras(
     """
     output = {}
 
-    if patch.status: 
+    if patch.status:
         if patch.status != school.state:
             create_event(
                 session=session,
-                title=f'School account made {patch.status.upper()}',
+                title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
                 school=school,
-                account=account
+                account=account,
             )
         output["original_status"] = school.state
         school.state = patch.status
         output["new_status"] = school.state
-    if patch.bookbot_type: 
+    if patch.bookbot_type:
         output["original_bookbot_type"] = school.bookbot_type
         school.bookbot_type = patch.bookbot_type
         output["new_bookbot_type"] = school.bookbot_type
 
-    if patch.lms_type: 
+    if patch.lms_type:
         output["original_lms_type"] = school.lms_type
         school.lms_type = patch.lms_type
         output["new_bookbot_type"] = school.lms_type
@@ -198,34 +216,32 @@ async def update_school_extras(
     return output
 
 
-
 @router.post(
     "/schools",
     dependencies=[
-        Permission('batch', bulk_school_access_control_list),
-    ]
+        Permission("batch", bulk_school_access_control_list),
+    ],
 )
 async def bulk_add_schools(
-        schools: List[SchoolCreateIn],
-        account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    schools: List[SchoolCreateIn],
+    account: Union[User, ServiceAccount] = Depends(
+        get_current_active_user_or_service_account
+    ),
+    session: Session = Depends(get_session),
 ):
     """Bulk API to add schools"""
 
     new_schools = [
-        crud.school.create(
-            db=session,
-            obj_in=school_data,
-            commit=False
-        )
-        for school_data in schools]
+        crud.school.create(db=session, obj_in=school_data, commit=False)
+        for school_data in schools
+    ]
 
     create_event(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
         account=account,
-        commit=False
+        commit=False,
     )
     try:
         session.commit()
@@ -239,45 +255,41 @@ async def bulk_add_schools(
 @router.post(
     "/school",
     dependencies=[
-        Permission('create', bulk_school_access_control_list),
+        Permission("create", bulk_school_access_control_list),
     ],
-    response_model=SchoolDetail
+    response_model=SchoolDetail,
 )
 async def add_school(
-        school: SchoolCreateIn,
-        account: Union[User, ServiceAccount] = Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    school: SchoolCreateIn,
+    account: Union[User, ServiceAccount] = Depends(
+        get_current_active_user_or_service_account
+    ),
+    session: Session = Depends(get_session),
 ):
     try:
-        school_orm = crud.school.create(
-            db=session,
-            obj_in=school
-        )
+        school_orm = crud.school.create(db=session, obj_in=school)
         create_event(
             session=session,
-            title='New school created',
+            title="New school created",
             description=f"{account.name} created school '{school.name}'",
             school=school_orm,
-            account=account
+            account=account,
         )
         return school_orm
     except IntegrityError as e:
         logger.warning("Database integrity error while adding school", exc_info=e)
         raise HTTPException(
             status_code=422,
-            detail="Couldn't add school to database. It might already exist? Check the country code."
+            detail="Couldn't add school to database. It might already exist? Check the country code.",
         )
 
 
-@router.put(
-    "/school/{wriveted_identifier}",
-    response_model=SchoolDetail
-)
+@router.put("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def update_school(
-        school_update_data: SchoolUpdateIn,
-        school: School = Permission("update", get_school_from_wriveted_id),
-        account=Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    school_update_data: SchoolUpdateIn,
+    school: School = Permission("update", get_school_from_wriveted_id),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
 ):
     create_event(
         session=session,
@@ -288,14 +300,11 @@ async def update_school(
     return crud.school.update(db=session, obj_in=school_update_data, db_obj=school)
 
 
-@router.delete(
-    "/school/{wriveted_identifier}",
-    response_model=SchoolBrief
-)
+@router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)
 async def delete_school(
-        school: School = Permission("delete", get_school_from_wriveted_id),
-        account=Depends(get_current_active_user_or_service_account),
-        session: Session = Depends(get_session)
+    school: School = Permission("delete", get_school_from_wriveted_id),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
 ):
     logger.info("Deleting a school", account=account, school=school)
     create_event(

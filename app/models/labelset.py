@@ -9,7 +9,7 @@ from sqlalchemy import (
     String,
     Boolean,
     DateTime,
-    func
+    func,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,11 +22,11 @@ from app.models.labelset_genre_association import labelset_genre_association_tab
 
 
 class ReadingAbility(str, enum.Enum):
-    SPOT              = "Where's Spot"
-    CAT_HAT           = "Cat in the Hat"
-    TREEHOUSE         = "The 13-Storey Treehouse"
+    SPOT = "Where's Spot"
+    CAT_HAT = "Cat in the Hat"
+    TREEHOUSE = "The 13-Storey Treehouse"
     CHARLIE_CHOCOLATE = "Charlie and the Chocolate Factory"
-    HARRY_POTTER      = "Harry Potter and the Philosopher's Stone"
+    HARRY_POTTER = "Harry Potter and the Philosopher's Stone"
 
 
 class DoeCode(str, enum.Enum):
@@ -55,24 +55,26 @@ class LabelSet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    work_id = Column(ForeignKey('works.id', name="fk_labelset_work"), nullable=True, index=True)
-    work = relationship('Work', back_populates='labelset')
+    work_id = Column(
+        ForeignKey("works.id", name="fk_labelset_work"), nullable=True, index=True
+    )
+    work = relationship("Work", back_populates="labelset")
 
-    # Handle Multiple Hues via a secondary association table, 
+    # Handle Multiple Hues via a secondary association table,
     # discerned via an 'ordinal' (primary/secondary/tertiary)
     hues = relationship(
-        'Hue',
+        "Hue",
         secondary=labelset_hue_association_table,
-        back_populates='labelsets',
+        back_populates="labelsets",
         lazy="selectin",
-        order_by="desc(labelset_hue_association.c.ordinal)"
+        order_by="desc(labelset_hue_association.c.ordinal)",
     )
 
     genres = relationship(
-        'Genre',
+        "Genre",
         secondary=labelset_genre_association_table,
-        back_populates='labelsets',
-        lazy="selectin"
+        back_populates="labelsets",
+        lazy="selectin",
     )
 
     reading_ability = Column(Enum(ReadingAbility), nullable=True)
@@ -87,16 +89,21 @@ class LabelSet(Base):
     lexile = Column(String(length=5), nullable=True)
 
     # service accounts and users could potentially label works
-    labelled_by_user_id = Column(ForeignKey('users.id', name="fk_labeller-user_labelset"), nullable=True)
-    labelled_by_sa_id = Column(ForeignKey('service_accounts.id', name="fk_labeller-sa_labelset"), nullable=True)
+    labelled_by_user_id = Column(
+        ForeignKey("users.id", name="fk_labeller-user_labelset"), nullable=True
+    )
+    labelled_by_sa_id = Column(
+        ForeignKey("service_accounts.id", name="fk_labeller-sa_labelset"), nullable=True
+    )
 
     info = Column(MutableDict.as_mutable(JSON))
 
-    created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    created_at = Column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
     updated_at = Column(DateTime, nullable=False, onupdate=func.current_timestamp())
 
     checked = Column(Boolean(), default=False)
 
     def __repr__(self):
         return f"<LabelSet id={self.id} - '{self.work.title (self.work.isbn)}'>"
-

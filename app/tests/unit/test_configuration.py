@@ -8,10 +8,12 @@ def test_pass():
 
 
 pytest.mark.xfail("This should fail")
+
+
 def test_fail():
     assert True
 
 
 def test_can_create_settings():
-    config = Settings(POSTGRESQL_PASSWORD='test', SECRET_KEY='test')
+    config = Settings(POSTGRESQL_PASSWORD="test", SECRET_KEY="test")
     assert hasattr(config, "SECRET_KEY")

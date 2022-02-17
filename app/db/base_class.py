@@ -14,4 +14,4 @@ class Base:
     @declared_attr
     def __tablename__(cls) -> str:
         cls_name = cls.__name__.lower()
-        return cls_name if cls_name.endswith('s') else cls_name + 's'
+        return cls_name if cls_name.endswith("s") else cls_name + "s"

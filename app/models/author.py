@@ -3,7 +3,10 @@ from sqlalchemy import (
     Computed,
     Integer,
     String,
-    JSON, select, func, and_,
+    JSON,
+    select,
+    func,
+    and_,
 )
 from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -23,22 +26,24 @@ class Author(Base):
     info = Column(MutableDict.as_mutable(JSON))
 
     books = relationship(
-        'Work',
+        "Work",
         secondary=author_work_association_table,
         back_populates="authors"
-        #cascade="all, delete-orphan"
+        # cascade="all, delete-orphan"
     )
 
     # series = relationship('Series', cascade="all")
 
     # Ref https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#using-column-property
     book_count = column_property(
-        select(func.count(Work.id)).where(
+        select(func.count(Work.id))
+        .where(
             and_(
                 author_work_association_table.c.author_id == id,
                 author_work_association_table.c.work_id == Work.id,
             )
-        ).scalar_subquery()
+        )
+        .scalar_subquery()
     )
 
     def __repr__(self):

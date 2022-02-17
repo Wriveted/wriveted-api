@@ -6,9 +6,9 @@ from app.models import SchoolState
 from app.models.user import UserAccountType
 from app.schemas.user import UserCreateIn
 
-os.environ['POSTGRESQL_SERVER'] = 'localhost/'
-#os.environ['POSTGRESQL_PASSWORD'] = ''
-os.environ['SECRET_KEY'] = 'CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78'
+os.environ["POSTGRESQL_SERVER"] = "localhost/"
+# os.environ['POSTGRESQL_PASSWORD'] = ''
+os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"
 
 # Note we have to set at least the above environment variables before importing our application code
 
@@ -33,7 +33,9 @@ session = next(get_session(settings=settings))
 print("Script to add known contacts to Wriveted via the API")
 
 
-csv_file = csv.reader(open("hubspot-crm-exports-all-contacts-2022-01-13.csv", newline=''))
+csv_file = csv.reader(
+    open("hubspot-crm-exports-all-contacts-2022-01-13.csv", newline="")
+)
 header = next(csv_file)
 
 
@@ -74,7 +76,6 @@ for line in csv_file:
         library_management_system=line[11].strip(),
         email=line[12].strip(),
         associated_company=line[13].strip() if len(line[13]) > 1 else None,
-
     )
 
     contacts.append(contact)
@@ -95,11 +96,11 @@ for contact in contacts:
             info={
                 "other": {
                     "job_title": contact.job_title,
-                    "associated_company": contact.associated_company
+                    "associated_company": contact.associated_company,
                 }
             },
         ),
-        commit=False
+        commit=False,
     )
     users.append(user)
 
@@ -111,16 +112,16 @@ for contact in contacts:
             school = crud.school.get_by_official_id_or_404(
                 db=session,
                 country_code=country_code,
-                official_id=contact.school_official_id
+                official_id=contact.school_official_id,
             )
         except:
-            print(f"Was told that {contact.school_official_id} was an official ID but couldn't find it?")
+            print(
+                f"Was told that {contact.school_official_id} was an official ID but couldn't find it?"
+            )
             raise
     else:
         schools = crud.school.get_all_with_optional_filters(
-            db=session,
-            country_code=country_code,
-            query_string=contact.school_name
+            db=session, country_code=country_code, query_string=contact.school_name
         )
         if len(schools) == 1:
             # We lucked out and found just one school with that name in this country.

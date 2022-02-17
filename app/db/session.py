@@ -11,7 +11,9 @@ from app.config import get_settings, Settings
 
 
 @lru_cache()
-def database_connection(database_uri: str) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
+def database_connection(
+    database_uri: str,
+) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
     # Ref: https://docs.sqlalchemy.org/en/13/core/pooling.html
     engine = create_engine(database_uri)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -30,4 +32,3 @@ def get_session(settings: Optional[Settings] = Depends(get_settings)):
         yield session
     finally:
         session.close()
-

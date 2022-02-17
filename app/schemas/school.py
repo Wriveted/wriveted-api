@@ -60,10 +60,10 @@ class SchoolBookbotInfo(BaseModel):
     wriveted_identifier: UUID
     name: str
     state: SchoolState
-    bookbot_type: SchoolBookbotType  
+    bookbot_type: SchoolBookbotType
 
     class Config:
-        orm_mode = True  
+        orm_mode = True
 
 
 class SchoolDetail(SchoolBrief):

@@ -1,10 +1,4 @@
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Integer,
-    String,
-    JSON, select
-)
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, select
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property
@@ -12,7 +6,9 @@ from sqlalchemy.sql.functions import coalesce
 
 from app.db import Base
 from app.models.work import Work
-from app.models.illustrator_edition_association import illustrator_edition_association_table
+from app.models.illustrator_edition_association import (
+    illustrator_edition_association_table,
+)
 
 
 class Edition(Base):
@@ -22,20 +18,15 @@ class Edition(Base):
         Integer,
         ForeignKey("works.id", name="fk_editions_works"),
         index=True,
-        nullable=False
+        nullable=False,
     )
-    work = relationship('Work', back_populates='editions', lazy='selectin')
+    work = relationship("Work", back_populates="editions", lazy="selectin")
 
     # this might be a localized title
     edition_title = Column(String(512), nullable=True)
 
     title = column_property(
-        select(
-            coalesce(
-                edition_title,
-                Work.title
-            )
-        )
+        select(coalesce(edition_title, Work.title))
         .where(Work.id == work_id)
         .correlate_except(Work)
         .scalar_subquery()
@@ -51,13 +42,13 @@ class Edition(Base):
     info = Column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
-    authors = association_proxy('work', 'authors')
+    authors = association_proxy("work", "authors")
 
     illustrators = relationship(
-        'Illustrator',
+        "Illustrator",
         secondary=illustrator_edition_association_table,
-        back_populates='editions',
-        lazy="subquery"
+        back_populates="editions",
+        lazy="subquery",
     )
 
     def __repr__(self):
