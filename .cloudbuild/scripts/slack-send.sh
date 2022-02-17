@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 pr_number="$1"
 url_suffix="wriveted-api-development-lg5ntws4da-ts.a.run.app"
 deployment_url="https://pr-${pr_number}---${url_suffix}"

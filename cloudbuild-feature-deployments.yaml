@@ -46,7 +46,7 @@ steps:
     entrypoint: gcloud
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
-    args: ['./.cloudbuild/scripts/slack-send.sh $_PR_NUMBER"']
+    args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER"']
     secretEnv: ['SLACK_WEBHOOK']
     id: SlackNotification
 availableSecrets:
