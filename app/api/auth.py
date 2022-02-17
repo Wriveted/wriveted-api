@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -103,6 +104,7 @@ def secure_user_endpoint(
     user.info["picture"] = picture
     user.info["sign_in_provider"] = raw_data["firebase"].get("sign_in_provider")
 
+    user.last_login_at = datetime.utcnow()
     session.add(user)
     session.commit()
 
