@@ -18,10 +18,12 @@ from app.models.work import Work
 class Author(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    first_name = Column(String(200), nullable=False, index=True)
     last_name = Column(String(200), nullable=False, index=True)
 
-    # Admittedly bold move making author's full names unique...
-    full_name = Column(String(400), nullable=False, unique=True)
+    # Building on the assumption of unique full names, an author's full name (sans whitespace and punctuation)
+    # can serve as a unique key that can be caught even if data differs slightly (C.S. Lewis vs C S Lewis)
+    name_key = Column(String(400), Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\W|_', '', 'g'))"), unique=True, index=True)
 
     info = Column(MutableDict.as_mutable(JSON))
 
