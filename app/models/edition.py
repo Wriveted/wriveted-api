@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, JSON, select
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON, select
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property
@@ -14,11 +14,13 @@ from app.models.illustrator_edition_association import (
 class Edition(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    ISBN = Column(String(200), nullable=False, index=True, unique=True)
+
     work_id = Column(
         Integer,
         ForeignKey("works.id", name="fk_editions_works"),
         index=True,
-        nullable=False,
+        nullable=True
     )
     work = relationship("Work", back_populates="editions", lazy="selectin")
 
@@ -32,8 +34,6 @@ class Edition(Base):
         .scalar_subquery()
     )
 
-    ISBN = Column(String(200), nullable=False, index=True, unique=True)
-
     cover_url = Column(String(200), nullable=True)
 
     # Info contains stuff like edition number, language
@@ -43,6 +43,8 @@ class Edition(Base):
 
     # Proxy the authors from the related work
     authors = association_proxy("work", "authors")
+
+    hydrated = Column(Boolean(), default=False)
 
     illustrators = relationship(
         "Illustrator",
