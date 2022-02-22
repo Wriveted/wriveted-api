@@ -31,7 +31,7 @@ class EditionInfo(BaseModel):
 class EditionBrief(BaseModel):
     title: str
     work_id: str
-    ISBN: str
+    isbn: str
 
     class Config:
         orm_mode = True
@@ -42,7 +42,7 @@ class EditionDetail(BaseModel):
     # This should be the edition title with a fallback to the Works title
     title: str
     work_id: str
-    ISBN: str
+    isbn: str
 
     cover_url: Optional[AnyHttpUrl]
     info: Optional[EditionInfo]
@@ -64,7 +64,7 @@ class EditionCreateIn(BaseModel):
     series_number: Optional[str]
 
     title: str
-    ISBN: str
+    isbn: str
     cover_url: Optional[AnyHttpUrl]
 
     info: Optional[EditionInfo]

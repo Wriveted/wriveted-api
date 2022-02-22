@@ -40,13 +40,13 @@ with open("Wriveted-books.csv", newline="") as csv_file:
         if len(book_row[17]) > 1 and book_row[17].startswith("http"):
             cover_url = book_row[17]
 
-        for ISBN in book_row[28].split(","):
-            ISBN = ISBN.strip()
-            if len(ISBN) > 0:
+        for isbn in book_row[28].split(","):
+            isbn = isbn.strip()
+            if len(isbn) > 0:
                 new_edition_data = {
                     # "work_title": "string",
                     "title": book_row[0].strip(),
-                    "ISBN": ISBN,
+                    "isbn": isbn,
                     "cover_url": cover_url,
                     "info": {
                         "Genre": book_row[20],
@@ -98,7 +98,7 @@ for school in schools:
         collection_changes = [
             {
                 "action": "add",
-                "ISBN": d["ISBN"],
+                "isbn": d["isbn"],
                 "edition_info": d,
                 "copies_total": 2,
                 "copies_available": 1,

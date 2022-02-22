@@ -90,14 +90,14 @@ def test_collection_management(
             if len(book_row[17]) > 1 and book_row[17].startswith("http"):
                 cover_url = book_row[17]
 
-            for ISBN in book_row[28].split(","):
-                ISBN = get_definitive_isbn(ISBN.strip().upper())
-                if ISBN not in seen_isbns and len(ISBN) > 0:
+            for isbn in book_row[28].split(","):
+                isbn = get_definitive_isbn(isbn.strip().upper())
+                if isbn not in seen_isbns and len(isbn) > 0:
 
                     new_edition_data = {
                         # "work_title": "string",
                         "title": book_row[0].strip(),
-                        "ISBN": ISBN.strip(),
+                        "isbn": isbn.strip(),
                         "cover_url": cover_url,
                         "info": {
                             "genre": book_row[20],
@@ -130,7 +130,7 @@ def test_collection_management(
 
                     book_data.append(new_edition_data)
 
-                seen_isbns.add(ISBN)
+                seen_isbns.add(isbn)
 
     print(
         f"{len(book_data)} Books loaded. Setting the collection to the first {INITIAL_NUMBER_OF_BOOKS} books"
@@ -179,7 +179,7 @@ def test_collection_management(
     collection_changes = [
         {
             "action": "update",
-            "ISBN": b["ISBN"],
+            "isbn": b["isbn"],
             "copies_total": 99,
             "copies_available": 99,
         }
@@ -221,7 +221,7 @@ def test_collection_management(
     collection_changes = [
         {
             "action": "remove",
-            "ISBN": b["ISBN"],
+            "isbn": b["isbn"],
         }
         for b in books_to_remove
     ]
@@ -234,7 +234,7 @@ def test_collection_management(
             randomize_loan_status(
                 {
                     "action": "add",
-                    "ISBN": b["ISBN"],
+                    "isbn": b["isbn"],
                     "edition_info": b,
                 }
             )

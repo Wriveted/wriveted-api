@@ -32,11 +32,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         except:
             cleaned_isbn = ""
 
-        return select(Edition).where(Edition.ISBN == cleaned_isbn)
+        return select(Edition).where(Edition.isbn == cleaned_isbn)
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
         return self.get_all_query(db, order_by=order_by).where(
-            Edition.ISBN.in_(clean_isbns(ids))
+            Edition.isbn.in_(clean_isbns(ids))
         )
 
     def create(
@@ -55,7 +55,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         edition = Edition(
             edition_title=edition_data.title,
-            ISBN=get_definitive_isbn(edition_data.ISBN),
+            isbn=get_definitive_isbn(edition_data.isbn),
             cover_url=edition_data.cover_url,
             info=edition_data.info.dict(),
             work=work,
@@ -85,7 +85,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         new_edition_data = []
         for edition_data in bulk_edition_data:
             try:
-                definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+                definitive_isbn = get_definitive_isbn(edition_data.isbn)
             except:
                 logger.info("Invalid ISBN. Skipping...")
                 continue

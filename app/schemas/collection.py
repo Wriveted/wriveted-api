@@ -36,7 +36,7 @@ class CollectionUpdateType(str, enum.Enum):
 
 
 class CollectionUpdate(BaseModel):
-    ISBN: str
+    isbn: str
 
     action: CollectionUpdateType
     edition_info: Optional[EditionCreateIn]

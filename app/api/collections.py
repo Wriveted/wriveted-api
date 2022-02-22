@@ -93,7 +93,7 @@ async def update_school_collection(
     collection can be achieved with entries of this form:
 
     ```json
-    { "ISBN": "XYZ", "action": "add" }
+    { "isbn": "XYZ", "action": "add" }
     ```
 
     Note any unknown editions will not get included in the update, a list of ISBNs
@@ -124,7 +124,7 @@ async def update_school_collection(
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
-            isbns_to_remove.append(update_info.ISBN)
+            isbns_to_remove.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.ADD:
             if update_info.edition_info is None:
                 # this is a bit hacky and slow.
@@ -132,13 +132,13 @@ async def update_school_collection(
                 # allow the API to throw errors or just require the full EditionCreateIn data for every add
                 try:
                     update_info.edition_info = EditionCreateIn.parse_obj(
-                        crud.edition.get(session, id=update_info.ISBN)
+                        crud.edition.get(session, id=update_info.isbn)
                     )
                     logger.debug("Edition to add", new_edition=update_info.edition_info)
                 except ValidationError:
                     # The caller didn't give us information, and we don't
                     # have this edition in the database. We will skip and report this to the caller.
-                    skipped_editions.append(update_info.ISBN)
+                    skipped_editions.append(update_info.isbn)
             else:
 
                 editions_to_add.append(update_info.edition_info)
@@ -152,10 +152,10 @@ async def update_school_collection(
                     # Note execution_options(synchronize_session="fetch") must be set
                     # for this subquery where clause to work.
                     # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
-                    CollectionItem.edition.has(Edition.ISBN == update_info.ISBN)
+                    CollectionItem.edition.has(Edition.isbn == update_info.isbn)
                     # this is a more manual way that emits an IN instead of an EXISTS
                     # CollectionItem.edition_id.in_(
-                    #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
+                    #     select(Edition.id).where(Edition.isbn == update_info.isbn).scalar_subquery()
                     # )
                     # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
                     # fields directly, then at the end commit them.
@@ -176,7 +176,7 @@ async def update_school_collection(
             .where(CollectionItem.school_id == school.id)
             .where(
                 CollectionItem.edition_id.in_(
-                    select(Edition.id).where(Edition.ISBN.in_(isbns_to_remove))
+                    select(Edition.id).where(Edition.isbn.in_(isbns_to_remove))
                 )
             )
             .execution_options(synchronize_session="fetch")

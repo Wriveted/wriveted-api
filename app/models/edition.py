@@ -14,7 +14,7 @@ from app.models.illustrator_edition_association import (
 class Edition(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    ISBN = Column(String(200), nullable=False, index=True, unique=True)
+    isbn = Column(String(200), nullable=False, index=True, unique=True)
 
     work_id = Column(
         Integer,

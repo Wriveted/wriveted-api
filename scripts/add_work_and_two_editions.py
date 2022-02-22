@@ -147,7 +147,7 @@ for isbn in isbns:
         "series_title": book.get("SN"),
         "series_number": book.get("NWS"),
         "title": book.get("TL"),
-        "ISBN": book.get("ISBN13"),
+        "isbn": book.get("ISBN13"),
         # "cover_url": None,
         "info": {
             "pages": int(pages),

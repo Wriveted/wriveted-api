@@ -34,7 +34,7 @@ async def add_editions_to_collection(
         logger.info(f"{len(created_edition_isbns)} editions haven't been seen before")
 
     edition_orms_by_isbn = {
-        e.ISBN: e
+        e.isbn: e
         for e in crud.edition.get_multi(
             session, ids=all_referenced_edition_isbns, limit=None
         )
@@ -42,7 +42,7 @@ async def add_editions_to_collection(
     # If the list of new editions include the same ISBN multiple times just process the first one
     processed_isbns = set()
     for collection_item_info in new_edition_data:
-        isbn = get_definitive_isbn(collection_item_info.ISBN)
+        isbn = get_definitive_isbn(collection_item_info.isbn)
         if isbn not in processed_isbns:
             school.collection.append(
                 CollectionItem(
