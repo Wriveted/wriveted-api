@@ -25,11 +25,11 @@ class CollectionItem(Base):
         nullable=False,
     )
 
-    edition_id = Column(
-        ForeignKey("editions.id", name="fk_collection_items_edition_id"), nullable=False
+    edition_isbn = Column(
+        ForeignKey("editions.isbn", name="fk_collection_items_edition_isbn"), nullable=False
     )
 
-    Index("index_editions_per_collection", school_id, edition_id, unique=True)
+    Index("index_editions_per_collection", school_id, edition_isbn, unique=True)
     # UniqueConstraint(school_id, edition_id, name="unique_editions_per_collection")
 
     # Information from this particular school's LMS
