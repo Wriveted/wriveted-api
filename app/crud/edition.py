@@ -39,6 +39,17 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             Edition.isbn.in_(clean_isbns(ids))
         )
 
+    async def get_multi_async(self, db: Session, ids: List[str]):
+        result: list[Edition] = (
+            db.execute(crud.edition.get_multi_query(db=db, ids=ids))
+            .scalars()
+            .all()
+        )
+        
+        return {
+            e.isbn: e for e in result
+        }
+
     def create(
         self,
         db: Session,

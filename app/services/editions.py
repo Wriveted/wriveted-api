@@ -45,17 +45,8 @@ async def create_missing_editions(session, new_edition_data):
 
 
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
-    isbns = {get_definitive_isbn(isbn) for isbn in isbn_list if len(isbn) > 0}
-    existing_isbns = (
-        session.execute(select(Edition.isbn).where((Edition.isbn).in_(isbns)))
-        .scalars()
-        .all()
-    )
-    isbns_to_create = isbns.difference(existing_isbns)
-    logger.info(f"Will have to create {len(isbns_to_create)} new, unhydrated editions")
-    crud.edition_unhydrated.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
-    logger.info("Created , unhydrated editions")
-    return isbns, isbns_to_create, existing_isbns
+    final_primary_keys = await crud.edition_unhydrated.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    return final_primary_keys
 
 
 # http://www.niso.org/niso-io/2020/01/new-year-new-isbn-prefix
@@ -78,11 +69,11 @@ def get_definitive_isbn(isbn: str):
         return cleaned_isbn
 
 
-def clean_isbns(isbns: List[str]) -> List[str]:
-    cleaned_isbns = []
+def clean_isbns(isbns: list[str]) -> set[str]:
+    cleaned_isbns = set()
     for isbn in isbns:
         try:
-            cleaned_isbns.append(get_definitive_isbn(isbn))
+            cleaned_isbns.add(get_definitive_isbn(isbn))
         except:
             continue
     return cleaned_isbns
