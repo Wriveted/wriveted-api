@@ -41,7 +41,6 @@ class UserBrief(BaseModel):
     email: str
     is_active: bool
     type: UserAccountType
-    school: Optional[SchoolBrief]
     last_login_at: Optional[datetime]
 
     class Config:

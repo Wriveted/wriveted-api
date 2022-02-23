@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import Optional, Any
+from typing import List, Optional, Any
 from datetime import datetime
 
 from pydantic import BaseModel, AnyHttpUrl, constr
@@ -7,6 +7,8 @@ from pydantic import BaseModel, AnyHttpUrl, constr
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
+from app.schemas.event import EventBrief
+from app.schemas.user import UserBrief
 
 
 class SchoolLocation(BaseModel):
@@ -45,11 +47,7 @@ class SchoolSelectorOption(SchoolIdentity):
 
 
 class SchoolBrief(SchoolIdentity):
-    official_identifier: Optional[str]
     state: SchoolState
-
-    name: str
-
     collection_count: int
 
     class Config:
@@ -69,6 +67,10 @@ class SchoolBookbotInfo(BaseModel):
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
+
+    admin: Optional[UserBrief]
+    events: List[EventBrief]
+    lms_type: str
 
     created_at: datetime
     updated_at: datetime
