@@ -47,6 +47,7 @@ class SchoolSelectorOption(SchoolIdentity):
 
 
 class SchoolBrief(SchoolIdentity):
+    name: str
     state: SchoolState
     collection_count: int
 
