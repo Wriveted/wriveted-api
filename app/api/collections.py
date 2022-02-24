@@ -59,39 +59,23 @@ async def set_school_collection(
     session: Session = Depends(get_session),
 ):
     """
-    Replace a school library collection entirely
+    From a list of barebones Edition identifiers, get or create editions for each, then add
+    to target school's collection. Primarily for the very first
+    collection upload, but can be re-used if schools wish to add more
+    editions later, using the same method.
     """
     logger.info(
         "Resetting the entire collection for school", school=school, account=account
     )
     session.execute(delete(CollectionItem).where(CollectionItem.school == school))
     session.commit()
-    if len(collection_data) > 0:
-        await add_editions_to_collection(session, collection_data, school, account)
 
-    return {"msg": "updated"}
-
-
-@router.post(
-    "/school/{wriveted_identifier}/collection/isbn_only"
-)
-async def add_to_collection_isbn_only(
-    isbn_list: List[str],
-    school: School = Permission("update", get_school_from_wriveted_id),
-    account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
-):
-    """
-    From a list of ISBNs, get or create editions for each, then add
-    to target school's collection. Primarily for the very first
-    collection upload, but can be re-used if schools wish to add more
-    editions later, using the same method.
-    """
     logger.info(
-        f"Adding/syncing {len(isbn_list)} ISBNs with school collection", school=school, account=account
+        f"Adding/syncing {len(collection_data)} ISBNs with school collection", school=school, account=account
     )
-    if len(isbn_list) > 0:
-        await add_editions_to_collection_by_isbn(session, isbn_list, school, account)
+    if len(collection_data) > 0:
+        isbns = [item.isbn for item in collection_data]
+        await add_editions_to_collection_by_isbn(session, isbns, school, account)
 
     return {"msg": "updated"}
 

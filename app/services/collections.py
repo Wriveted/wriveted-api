@@ -85,7 +85,7 @@ async def add_editions_to_collection(
 
 
 # Mostly the same as add_editions_to_collection, but only processes a list of isbns.
-# Due to the lack of EditionCreateIns, any created editions will be unhhydrated
+# Due to the lack of EditionCreateIns, any created editions will be unhydrated
 async def add_editions_to_collection_by_isbn(
     session, isbn_list: List[str], school: School, account
 ):

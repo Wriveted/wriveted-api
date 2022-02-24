@@ -1,6 +1,7 @@
 from typing import Any, List
 
-from sqlalchemy import func, insert, select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, Query
 from structlog import get_logger
 

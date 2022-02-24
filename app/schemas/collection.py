@@ -1,13 +1,19 @@
 import enum
-from typing import List, Optional, Any
-
+from typing import Optional, Any
 from pydantic import BaseModel, conint
-
 from app.schemas.edition import EditionBrief, EditionCreateIn
 from app.schemas.work import WorkBrief
 
+class CollectionItemIn(BaseModel):
+    isbn: str
+    copies_total: Optional[conint(ge=0)] = None
+    copies_available: Optional[conint(ge=0)] = None
 
-class CollectionItemBrief(BaseModel):
+    class Config:
+        orm_mode = True
+
+    
+class CollectionItemBrief(CollectionItemIn):
 
     work: WorkBrief
     edition: EditionBrief
@@ -16,17 +22,6 @@ class CollectionItemBrief(BaseModel):
     edition_id: str
 
     info: Optional[Any]
-
-    copies_total: Optional[conint(ge=0)]
-    copies_available: Optional[conint(ge=0)]
-
-    class Config:
-        orm_mode = True
-
-
-class CollectionItemIn(EditionCreateIn):
-    copies_total: Optional[conint(ge=0)] = None
-    copies_available: Optional[conint(ge=0)] = None
 
 
 class CollectionUpdateType(str, enum.Enum):
