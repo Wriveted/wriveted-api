@@ -294,10 +294,11 @@ async def update_school(
     create_event(
         session=session,
         title="School update",
-        description=f"School {school.name} in {school.country.name} updated.",
+        description=f"School '{school.name}' in {school.country.name} updated.",
         account=account,
     )
-    return crud.school.update(db=session, obj_in=school_update_data, db_obj=school)
+    updated_orm_object = crud.school.update(db=session, obj_in=school_update_data, db_obj=school)
+    return updated_orm_object
 
 
 @router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)
