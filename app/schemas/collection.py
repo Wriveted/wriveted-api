@@ -1,7 +1,7 @@
 import enum
 from typing import Optional, Any
 from pydantic import BaseModel, conint
-from app.schemas.edition import EditionBrief, EditionCreateIn
+from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 
 class CollectionItemIn(BaseModel):
@@ -34,7 +34,6 @@ class CollectionUpdate(BaseModel):
     isbn: str
 
     action: CollectionUpdateType
-    edition_info: Optional[EditionCreateIn]
 
     copies_total: Optional[conint(ge=0)]
     copies_available: Optional[conint(ge=0)]

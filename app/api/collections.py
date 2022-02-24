@@ -80,7 +80,7 @@ async def set_school_collection(
     return {"msg": "updated"}
 
 
-@router.put(
+@router.patch(
     "/school/{wriveted_identifier}/collection",
 )
 async def update_school_collection(
@@ -104,8 +104,8 @@ async def update_school_collection(
     { "isbn": "XYZ", "action": "add" }
     ```
 
-    Note any unknown editions will not get included in the update, a list of ISBNs
-    that were skipped can be found in the response.
+    Note: any unknown editions will be created as unhydrated, empty objects in the db.
+    To provide metadata for new books, please use the `POST /editions` endpoint.
 
     ### Action Types
 
@@ -113,43 +113,17 @@ async def update_school_collection(
     - `remove`
     - `update` - change the `copies_total` and `copies_available`
 
-    ### Adding an unknown work to a collection
-
-    In the case where an edition is not yet in the Wriveted database some more
-    information can be provided in the update to automatically add the edition.
-    Alternatively, missing Works and Editions can be created using their direct
-    endpoints.
-
-    The optional key `edition_info` can be provided for each addition, with the
-    same format as the `POST /edition` endpoint.
-
     """
     logger.info("Updating collection for school", school=school, account=account)
 
-    isbns_to_remove = []
-    editions_to_add: List[EditionCreateIn] = []
-    skipped_editions: List[str] = []
+    isbns_to_remove: List[str] = []
+    isbns_to_add: List[str] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
             isbns_to_remove.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.ADD:
-            if update_info.edition_info is None:
-                # this is a bit hacky and slow.
-                # Perhaps better is to query all the ISBNs before looping, or
-                # allow the API to throw errors or just require the full EditionCreateIn data for every add
-                try:
-                    update_info.edition_info = EditionCreateIn.parse_obj(
-                        crud.edition.get(session, id=update_info.isbn)
-                    )
-                    logger.debug("Edition to add", new_edition=update_info.edition_info)
-                except ValidationError:
-                    # The caller didn't give us information, and we don't
-                    # have this edition in the database. We will skip and report this to the caller.
-                    skipped_editions.append(update_info.isbn)
-            else:
-
-                editions_to_add.append(update_info.edition_info)
+            isbns_to_add.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.UPDATE:
             # Update the "copies_total and "copies_available"
             # TODO consider a bulk update version of this
@@ -192,11 +166,11 @@ async def update_school_collection(
         logger.info("Delete stmt", stmts=str(stmt))
         session.execute(stmt)
 
-    if len(editions_to_add) > 0:
-        logger.info(f"Adding {len(editions_to_add)} editions to collection")
-        await add_editions_to_collection(session, editions_to_add, school, account)
+    if len(isbns_to_add) > 0:
+        logger.info(f"Adding {len(isbns_to_add)} editions to collection")
+        await add_editions_to_collection_by_isbn(session, isbns_to_add, school, account)
 
     logger.info(f"Committing transaction")
     session.commit()
 
-    return {"msg": "updated", "skipped": skipped_editions}
+    return {"msg": "updated"}
