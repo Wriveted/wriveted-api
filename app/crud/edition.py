@@ -1,7 +1,6 @@
-import json
 from typing import Any, List
 
-from sqlalchemy import select
+from sqlalchemy import func, insert, select
 from sqlalchemy.orm import Session, Query
 from structlog import get_logger
 
@@ -11,7 +10,7 @@ from app.crud.author import author as crud_author
 from app.crud.work import work as crud_work
 from app.crud.illustrator import illustrator as crud_illustrator
 
-from app.models import Edition, Work, Illustrator, Author
+from app.models import Edition, Work, Illustrator
 from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn, SeriesCreateIn
@@ -38,17 +37,6 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         return self.get_all_query(db, order_by=order_by).where(
             Edition.isbn.in_(clean_isbns(ids))
         )
-
-    async def get_multi_async(self, db: Session, ids: List[str]):
-        result: list[Edition] = (
-            db.execute(crud.edition.get_multi_query(db=db, ids=ids))
-            .scalars()
-            .all()
-        )
-        
-        return {
-            e.isbn: e for e in result
-        }
 
     def create(
         self,
@@ -180,6 +168,28 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             commit=commit,
         )
         return edition
+
+
+    # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
+    # but since we know already have the isbns, i.e the pk's that are being inserted, we can refer to them later anyway.
+    # After ensuring the list is added to the db, this returns the list of cleaned pk's.
+    async def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
+        clean_isbn_list = clean_isbns(isbn_list)
+        editions = [{"isbn" : isbn} for isbn in clean_isbn_list]
+
+        previous_count = session.execute(select(func.count(Edition.id))).scalar_one()
+
+        stmt = insert(Edition).on_conflict_do_nothing()
+        session.execute(stmt, editions)
+        session.commit()
+
+        new_count = session.execute(select(func.count(Edition.id))).scalar_one()
+        # can't seem to track how many conflicts the commit generates, so our best way
+        # of tracking the amount that were actually created is to just generate a count diff
+        num_created = new_count - previous_count
+
+        logger.info(f"{num_created} unhydrated editions created")
+        return clean_isbn_list, num_created
 
 
 edition = CRUDEdition(Edition)

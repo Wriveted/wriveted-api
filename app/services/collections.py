@@ -92,7 +92,7 @@ async def add_editions_to_collection_by_isbn(
     logger.info("Adding editions to collection by ISBN", account=account, school=school)
 
     # Insert the entire list of isbns, ignoring conflicts, returning a list of the pk's for the CollectionItem binding
-    final_primary_keys, editions_created = await crud.edition_unhydrated.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    final_primary_keys, num_editions_created = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
 
     # At this point all editions referenced should exist. 
     # Using len(final_primary_keys) as length may be different now that it's a set
@@ -110,12 +110,12 @@ async def add_editions_to_collection_by_isbn(
             }
         )
     
-    collection_items_created = await crud.collection_item.create_in_bulk(session, school.id, collection_items)
+    num_collection_items_created = await crud.collection_item.create_in_bulk(session, school.id, collection_items)
 
     create_event(
         session=session,
         title="Updating collection",
-        description=f"Adding {collection_items_created - editions_created} existing editions, adding {editions_created} new, unhydrated editions",
+        description=f"Adding {num_collection_items_created - num_editions_created} existing editions, adding {num_editions_created} new, unhydrated editions",
         school=school,
         account=account,
         commit=False,
