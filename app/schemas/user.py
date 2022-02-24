@@ -30,7 +30,7 @@ class UserUpdateIn(BaseModel):
     name: Optional[str]
     is_active: Optional[bool]
     type: Optional[UserAccountType]
-    #school: Optional[SchoolBrief]
+    # school: Optional[SchoolBrief]
     info: Optional[UserInfo]
 
 
