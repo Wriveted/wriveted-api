@@ -37,6 +37,13 @@ def test_list_service_accounts(client, backend_service_account_headers):
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_school_exists(client, backend_service_account_headers):
+    response = client.get(
+        "v1/school/not-a-uuid/exists", headers=backend_service_account_headers
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_get_own_service_account_detail(
     client, backend_service_account, backend_service_account_headers
 ):
