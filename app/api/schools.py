@@ -29,7 +29,6 @@ from app.schemas.school import (
     SchoolUpdateIn,
 )
 from app.api.dependencies.school import (
-    get_school_from_path,
     get_school_from_wriveted_id,
     get_school_from_raw_id,
 )
@@ -128,7 +127,7 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
 @public_router.get("/school/{wriveted_identifier}/exists")
 async def get_school(school: School = Depends(get_school_from_wriveted_id)):
     """
-    Whether or not a school exists. Used for the publicly-accessible Bookbot chat links.
+    Whether a school exists. Used for the publicly-accessible Bookbot chat links.
     """
     # dependency will automatically 404 if school doesn't exist
     return True
