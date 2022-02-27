@@ -7,7 +7,7 @@ SCRIPT_DIR=$(dirname "$0")
 
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans
-docker compose build --build-arg INSTALL_DEV=true
+docker-compose build --build-arg INSTALL_DEV=true
 
 docker-compose -f docker-compose.yml up -d
 
