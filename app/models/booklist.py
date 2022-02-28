@@ -73,4 +73,4 @@ class BookList(Base):
     )
 
     def __repr__(self):
-        return f"<Author id={self.id} - '{self.full_name}'>"
+        return f"<BookList id={self.id} - '{self.name}'>"

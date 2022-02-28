@@ -10,22 +10,21 @@ from app.models import Author
 from app.schemas.author import AuthorCreateIn
 
 
+def first_last_to_name_key(first_name: str, last_name: str):
+    return "".join(char for char in (first_name + last_name).lower() if char.isalnum())
+
+
 class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
     def get_or_create(
         self, db: Session, author_data: AuthorCreateIn, commit=True
     ) -> Author:
 
-        q = select(Author).where(Author.full_name == author_data.full_name)
+        q = select(Author).where(Author.name_key == first_last_to_name_key(author_data.first_name, author_data.last_name))
         try:
             author = db.execute(q).scalar_one()
         except NoResultFound:
             author = self.create(db, obj_in=author_data, commit=commit)
-        except MultipleResultsFound:
-            # We don't currently impose that an author's full name must be
-            # unique at the database layer, so we need to deal with the
-            # occasional duplicate
-            print("Duplicate author found. Taking first", author_data.full_name)
-            author = db.execute(q).scalars().first()
+            
         return author
 
     def create_in_bulk(self, db: Session, *, bulk_author_data_in: List[AuthorCreateIn]):
@@ -40,7 +39,7 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
 
         values = [
             {
-                "full_name": author.full_name,
+                "first_name": author.first_name,
                 "last_name": author.last_name,
                 "info": {} if author.info is None else author.info,
             }

@@ -5,7 +5,8 @@ from pydantic import BaseModel
 
 class AuthorBrief(BaseModel):
     id: str
-    full_name: str
+    first_name: str
+    last_name: str
 
     class Config:
         orm_mode = True
@@ -17,11 +18,7 @@ class AuthorDetail(AuthorBrief):
 
 
 class AuthorCreateIn(BaseModel):
-
-    # Used for sorting
+    first_name: str
     last_name: str
-
-    # How the author appears. E.g. "J.K. Rowling"
-    full_name: str
 
     info: Optional[Any]
