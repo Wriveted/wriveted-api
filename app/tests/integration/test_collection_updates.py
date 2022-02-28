@@ -187,6 +187,7 @@ def test_collection_management(
         timeout=30,
         headers=test_school_service_account_headers,
     )
+    set_collection_response.raise_for_status()
     print(set_collection_response.json())
 
     print("Checking the collection")
@@ -219,14 +220,15 @@ def test_collection_management(
     ]
 
     print(f"Sending through {len(collection_changes)} updates")
-    r = client.patch(
+    updates_response = client.patch(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
         headers=test_school_service_account_headers,
     )
-    print(r.status_code)
-    print(r.json())
+    updates_response.raise_for_status()
+    print(updates_response.status_code)
+    print(updates_response.json())
     print("Updated loan status")
 
     get_collection_response = client.get(
@@ -274,12 +276,15 @@ def test_collection_management(
         ]
     )
 
-    client.patch(
+    updates_response = client.patch(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
         headers=test_school_service_account_headers,
-    ).json()
+    )
+    updates_response.raise_for_status()
+    print(updates_response.json())
+    
     print("Added and removed books from collection")
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
