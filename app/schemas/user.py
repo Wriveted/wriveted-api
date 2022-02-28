@@ -5,7 +5,6 @@ from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
 
 from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
-from app.schemas.school import SchoolBrief
 
 
 # due to using SSO, not much can be patched at the moment
@@ -31,7 +30,7 @@ class UserUpdateIn(BaseModel):
     name: Optional[str]
     is_active: Optional[bool]
     type: Optional[UserAccountType]
-    school: Optional[SchoolBrief]
+    # school: Optional[SchoolBrief]
     info: Optional[UserInfo]
 
 
@@ -41,7 +40,6 @@ class UserBrief(BaseModel):
     email: str
     is_active: bool
     type: UserAccountType
-    school: Optional[SchoolBrief]
     last_login_at: Optional[datetime]
 
     class Config:

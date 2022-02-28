@@ -85,7 +85,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             )
 
     def get_by_wriveted_id_or_404(self, db: Session, wriveted_id: str):
-        query = select(School).where((School.wriveted_identifier) == (wriveted_id))
+        query = select(School).where(School.wriveted_identifier == wriveted_id)
         try:
             return db.execute(query).scalar_one()
         except NoResultFound:
@@ -99,12 +99,19 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         stmt = delete(CollectionItem).where(CollectionItem.school_id == obj_in.id)
         db.execute(stmt)
 
-        # Deactivate and unlink any users that were linked to this school
+        # Deactivate and unlink any student users that were linked to this school
         # This seems safer than deleting them...
         stmt = (
             update(User)
-            .where(User.school_id == obj_in.id)
-            .values(school_id=None, is_active=False)
+            .where(User.school_id_as_student == obj_in.id)
+            .values(school_id_as_student=None, is_active=False)
+        )
+        db.execute(stmt)
+        # Do the same for admin users
+        stmt = (
+            update(User)
+            .where(User.school_id_as_admin == obj_in.id)
+            .values(school_id_as_admin=None, is_active=False)
         )
         db.execute(stmt)
 

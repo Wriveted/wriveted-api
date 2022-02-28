@@ -59,3 +59,61 @@ def test_get_own_service_account_detail(
         }
     )
     assert data["type"] == "backend"
+
+
+def test_update_school_name(
+    client,
+    settings,
+    test_school,
+    service_account_for_test_school,
+    test_school_service_account_headers,
+):
+    school_id = test_school.wriveted_identifier
+    get_initial_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+    )
+    get_initial_school_details_response.raise_for_status()
+    initial_details = get_initial_school_details_response.json()
+    assert initial_details["name"] == test_school.name
+
+    update_response = client.put(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+        json={"name": "cool school"},
+    )
+    update_response.raise_for_status()
+    assert update_response.json()["name"] == "cool school"
+
+    get_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+    )
+    get_school_details_response.raise_for_status()
+    assert get_school_details_response.json()["name"] == "cool school"
+
+
+def test_disallowed_update_to_school(
+    client,
+    settings,
+    test_school,
+    service_account_for_test_school,
+    test_school_service_account_headers,
+):
+
+    school_id = test_school.wriveted_identifier
+    get_initial_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+    )
+    get_initial_school_details_response.raise_for_status()
+    initial_details = get_initial_school_details_response.json()
+    assert initial_details["name"] == test_school.name
+
+    update_response = client.put(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+        json={"country_code": "NZL"},
+    )
+    update_response.raise_for_status()
+    assert update_response.json()["country_code"] == test_school.country_code
