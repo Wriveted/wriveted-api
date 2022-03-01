@@ -13,15 +13,17 @@ class CollectionItemIn(BaseModel):
         orm_mode = True
 
     
-class CollectionItemBrief(CollectionItemIn):
-
-    work: WorkBrief
+class CollectionItemDetail(BaseModel):
+    work: Optional[WorkBrief]
     edition: EditionBrief
 
-    work_id: str
-    edition_id: str
+    copies_total: Optional[conint(ge=0)] = None
+    copies_available: Optional[conint(ge=0)] = None
 
     info: Optional[Any]
+
+    class Config:
+        orm_mode = True
 
 
 class CollectionUpdateType(str, enum.Enum):

@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Security
 from pydantic import ValidationError
-from sqlalchemy import delete, update, select
+from sqlalchemy import delete, func, update, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -14,7 +14,7 @@ from app.db.session import get_session
 from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
 from app.schemas.collection import (
-    CollectionItemBrief,
+    CollectionItemDetail,
     CollectionUpdate,
     CollectionUpdateType,
     CollectionItemIn,
@@ -34,7 +34,7 @@ router = APIRouter(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemBrief]
+    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemDetail]
 )
 async def get_school_collection(
     school: School = Permission("read", get_school_from_wriveted_id),
@@ -59,10 +59,11 @@ async def set_school_collection(
     session: Session = Depends(get_session),
 ):
     """
-    From a list of barebones Edition identifiers, get or create editions for each, then add
-    to target school's collection. Primarily for the very first
-    collection upload, but can be re-used if schools wish to add more
-    editions later, using the same method.
+    Set the contents of a school library collection.
+    
+    Requires only an ISBN to identify each Edition, other attributes are optional. Note all editions will be stored as 
+    part of the collection, but as additional data is fetched from partner APIs it can take up to a few days before 
+    the editions are fully "hydrated".
     """
     logger.info(
         "Resetting the entire collection for school", school=school, account=account
@@ -77,7 +78,12 @@ async def set_school_collection(
         isbns = [item.isbn for item in collection_data]
         await add_editions_to_collection_by_isbn(session, isbns, school, account)
 
-    return {"msg": "updated"}
+    count = session.execute(select(func.count(CollectionItem.id)).where(CollectionItem.school == school)).scalar_one()
+
+    return {
+        "msg": f"Collection set. Total editions: {count}",
+        "new_collection_size": {count}
+    }
 
 
 @router.patch(
@@ -135,12 +141,6 @@ async def update_school_collection(
                     # for this subquery where clause to work.
                     # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
                     CollectionItem.edition.has(Edition.isbn == update_info.isbn)
-                    # this is a more manual way that emits an IN instead of an EXISTS
-                    # CollectionItem.edition_id.in_(
-                    #     select(Edition.id).where(Edition.isbn == update_info.isbn).scalar_subquery()
-                    # )
-                    # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
-                    # fields directly, then at the end commit them.
                 )
                 .values(
                     copies_total=update_info.copies_total,
@@ -157,8 +157,8 @@ async def update_school_collection(
             delete(CollectionItem)
             .where(CollectionItem.school_id == school.id)
             .where(
-                CollectionItem.edition_id.in_(
-                    select(Edition.id).where(Edition.isbn.in_(isbns_to_remove))
+                CollectionItem.edition_isbn.in_(
+                    select(Edition.isbn).where(Edition.isbn.in_(isbns_to_remove))
                 )
             )
             .execution_options(synchronize_session="fetch")

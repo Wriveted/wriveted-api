@@ -28,7 +28,7 @@ def test_collection_management(
 
     is_admin = (
         account_details["account_type"] == "user"
-        and account_details["user"]["is_superuser"]
+        and account_details["user"]["type"] == "wriveted"
     ) or (
         account_details["account_type"] == "service_account"
         and account_details["service_account"]["type"]
@@ -37,9 +37,10 @@ def test_collection_management(
         }
     )
 
-    INITIAL_NUMBER_OF_BOOKS = 100
-    UPDATED_NUMBER_OF_BOOKS = 50
-    ADDED_NUMBER_OF_BOOKS = 50
+    INITIAL_NUMBER_OF_HYDRATED_BOOKS = 10
+    INITIAL_NUMBER_OF_UNHYDRATED_BOOKS = 10
+    UPDATED_NUMBER_OF_BOOKS = 10
+    ADDED_NUMBER_OF_BOOKS = 10
     REMOVED_NUMBER_OF_BOOKS = 10
 
     test_school_id = test_school.wriveted_identifier
@@ -64,7 +65,10 @@ def test_collection_management(
     print("Loading books from CSV file")
 
     book_data = []
-    with open("../data/test-books.csv", newline="", encoding="cp437") as csv_file:
+
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "data" / "test-books.csv"
+    with path.open(newline="", encoding="cp437") as csv_file:
         reader = csv.reader(csv_file)
 
         # Eat the header line
@@ -81,8 +85,8 @@ def test_collection_management(
             if len(book_row[1]) > 1:
                 authors.append(
                     {
+                        "first_name": book_row[1].split()[0],
                         "last_name": book_row[1].split()[-1],
-                        "full_name": book_row[1],
                     }
                 )
 
@@ -100,7 +104,7 @@ def test_collection_management(
                         "isbn": isbn.strip(),
                         "cover_url": cover_url,
                         "info": {
-                            "genre": book_row[20],
+                            # "genre": book_row[20],
                             "pages": 50,
                             "other": {"airtable_dump": "|".join(book_row)},
                         },
@@ -132,22 +136,50 @@ def test_collection_management(
 
                 seen_isbns.add(isbn)
 
-    print(
-        f"{len(book_data)} Books loaded. Setting the collection to the first {INITIAL_NUMBER_OF_BOOKS} books"
-    )
-    assert len(book_data) > (INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS)
-    original_books = book_data[:INITIAL_NUMBER_OF_BOOKS]
-    assert len(original_books) == INITIAL_NUMBER_OF_BOOKS
+    assert len(book_data) > (INITIAL_NUMBER_OF_HYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS)
 
+    original_hydrated = book_data[:INITIAL_NUMBER_OF_HYDRATED_BOOKS]  
+    assert len(original_hydrated) == INITIAL_NUMBER_OF_HYDRATED_BOOKS  
+
+    # create INITIAL_NUMBER_OF_UNHYDRATED_BOOKS nonexistent ISBN13s (largest isbn13 prefix is 979)
+    original_unhydrated = [{"isbn" : r} for r in random.sample(range(9800000000000, 9810000000000), INITIAL_NUMBER_OF_UNHYDRATED_BOOKS)]
+    assert len(original_unhydrated) == INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+
+    original_books = original_hydrated + original_unhydrated
+    assert len(original_books) == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+
+    print(
+        f"{len(book_data)} Books loaded. Setting the collection to the first {len(original_hydrated)} unhydrated books + {len(original_unhydrated)} hydrated books"
+    )
+
+    print(
+        f"Adding the initial {len(original_hydrated)} hydrated books to db as Editions, Works, Authors etc."
+    )
+    add_books_response = client.post(
+        f"/v1/editions",
+        json=original_hydrated,
+        timeout=30,
+        headers=test_school_service_account_headers,
+    )
+    add_books_response.raise_for_status()
+    print(add_books_response.json())
+    
     def randomize_loan_status(book_data):
         data = book_data.copy()
         data["copies_total"] = random.randint(2, 4)
         data["copies_available"] = random.randint(0, 2)
         return data
 
-    original_collection = [randomize_loan_status(b) for b in original_books]
+    original_collection = [
+        randomize_loan_status(
+            {
+                "isbn": b["isbn"],
+            }
+        )
+        for b in original_books
+    ]
     print(
-        f"Updating school by setting new collection of {len(original_collection)} books"
+        f"Updating school by setting new collection of {len(original_collection)} hydrated + unhydrated books"
     )
     set_collection_response = client.post(
         f"/v1/school/{test_school_id}/collection",
@@ -155,6 +187,7 @@ def test_collection_management(
         timeout=30,
         headers=test_school_service_account_headers,
     )
+    set_collection_response.raise_for_status()
     print(set_collection_response.json())
 
     print("Checking the collection")
@@ -169,12 +202,12 @@ def test_collection_management(
     collection = get_collection_response.json()
     print("Collection after adding (first 3):\n", collection[:3])
     assert (
-        len(collection) == INITIAL_NUMBER_OF_BOOKS
-    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_BOOKS} items, but it had {len(collection)}"
+        len(collection) == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection)}"
 
     # Update the collection by changing the loan status of a subset of the books.
     books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
-    print("Bulk updating loan status via `PUT .../collection` API")
+    print("Bulk updating loan status via `PATCH .../collection` API")
     time.sleep(0.5)
     collection_changes = [
         {
@@ -187,14 +220,15 @@ def test_collection_management(
     ]
 
     print(f"Sending through {len(collection_changes)} updates")
-    r = client.put(
+    updates_response = client.patch(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
         headers=test_school_service_account_headers,
     )
-    print(r.status_code)
-    print(r.json())
+    updates_response.raise_for_status()
+    print(updates_response.status_code)
+    print(updates_response.json())
     print("Updated loan status")
 
     get_collection_response = client.get(
@@ -227,7 +261,7 @@ def test_collection_management(
     ]
 
     books_to_add = book_data[
-        INITIAL_NUMBER_OF_BOOKS : INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS
+        INITIAL_NUMBER_OF_HYDRATED_BOOKS : INITIAL_NUMBER_OF_HYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS
     ]
     collection_changes.extend(
         [
@@ -242,12 +276,15 @@ def test_collection_management(
         ]
     )
 
-    client.put(
+    updates_response = client.patch(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
         headers=test_school_service_account_headers,
-    ).json()
+    )
+    updates_response.raise_for_status()
+    print(updates_response.json())
+    
     print("Added and removed books from collection")
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
@@ -261,11 +298,11 @@ def test_collection_management(
         "Current collection size:",
         len(collection),
         "expected: ",
-        INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS,
+        INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS,
     )
     assert (
         len(collection)
-        == INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS
     )
 
     print(f"Processing took: {time.time() - start_time:.2f} seconds")

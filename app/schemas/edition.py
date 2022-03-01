@@ -29,8 +29,8 @@ class EditionInfo(BaseModel):
 
 
 class EditionBrief(BaseModel):
-    title: str
-    work_id: str
+    title: Optional[str]
+    work_id: Optional[str]
     isbn: str
 
     class Config:
@@ -38,10 +38,9 @@ class EditionBrief(BaseModel):
 
 
 class EditionDetail(BaseModel):
-
     # This should be the edition title with a fallback to the Works title
-    title: str
-    work_id: str
+    title: Optional[str]
+    work_id: Optional[str]
     isbn: str
 
     cover_url: Optional[AnyHttpUrl]
@@ -55,16 +54,15 @@ class EditionDetail(BaseModel):
 
 
 class EditionCreateIn(BaseModel):
-
+    title: Optional[str]
     work_id: Optional[str]
+    isbn: str
 
     # Only required if different from title
     work_title: Optional[str]
     series_title: Optional[str]
     series_number: Optional[str]
 
-    title: str
-    isbn: str
     cover_url: Optional[AnyHttpUrl]
 
     info: Optional[EditionInfo]

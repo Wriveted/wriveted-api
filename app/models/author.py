@@ -23,7 +23,7 @@ class Author(Base):
 
     # Building on the assumption of unique full names, an author's full name (sans whitespace and punctuation)
     # can serve as a unique key that can be caught even if data differs slightly (C.S. Lewis vs C S Lewis)
-    name_key = Column(String(400), Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\W|_', '', 'g'))"), unique=True, index=True)
+    name_key = Column(String(400), Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\\W|_', '', 'g'))"), unique=True, index=True)
 
     info = Column(MutableDict.as_mutable(JSON))
 
@@ -49,4 +49,4 @@ class Author(Base):
     )
 
     def __repr__(self):
-        return f"<Author id={self.id} - '{self.full_name}'>"
+        return f"<Author id={self.id} - '{self.first_name} {self.last_name} '>"
