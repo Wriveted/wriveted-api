@@ -1,7 +1,5 @@
-import pytest
 import csv
 import random
-import secrets
 import time
 
 from app.services.editions import get_definitive_isbn
@@ -13,6 +11,7 @@ def test_collection_management(
     test_school,
     service_account_for_test_school,
     test_school_service_account_headers,
+    test_data_path
 ):
     """
     Test out the collection mechanisms of the Wriveted API.
@@ -64,7 +63,9 @@ def test_collection_management(
     print("Loading books from CSV file")
 
     book_data = []
-    with open("../data/test-books.csv", newline="", encoding="cp437") as csv_file:
+
+    test_file_path = test_data_path / 'test-books.csv'
+    with open(test_file_path, newline="", encoding="utf-8") as csv_file:
         reader = csv.reader(csv_file)
 
         # Eat the header line
