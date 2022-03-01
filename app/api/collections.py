@@ -80,7 +80,10 @@ async def set_school_collection(
 
     count = session.execute(select(func.count(CollectionItem.id)).where(CollectionItem.school == school)).scalar_one()
 
-    return {"msg": f"Collection set. Total editions: {count}"}
+    return {
+        "msg": f"Collection set. Total editions: {count}",
+        "new_collection_size": {count}
+    }
 
 
 @router.patch(
@@ -138,12 +141,6 @@ async def update_school_collection(
                     # for this subquery where clause to work.
                     # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
                     CollectionItem.edition.has(Edition.isbn == update_info.isbn)
-                    # this is a more manual way that emits an IN instead of an EXISTS
-                    # CollectionItem.edition_isbn.in_(
-                    #     select(Edition.isbn).where(Edition.isbn == update_info.isbn).scalar_subquery()
-                    # )
-                    # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
-                    # fields directly, then at the end commit them.
                 )
                 .values(
                     copies_total=update_info.copies_total,

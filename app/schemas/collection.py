@@ -17,9 +17,6 @@ class CollectionItemDetail(BaseModel):
     work: Optional[WorkBrief]
     edition: EditionBrief
 
-    work_id: Optional[str]
-    edition_isbn: str
-
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 

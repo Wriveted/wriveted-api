@@ -67,7 +67,7 @@ def test_collection_management(
     book_data = []
 
     from pathlib import Path
-    path = Path(__file__).parent / "../data/test-books.csv"
+    path = Path(__file__).parent.parent / "data" / "test-books.csv"
     with path.open(newline="", encoding="cp437") as csv_file:
         reader = csv.reader(csv_file)
 
