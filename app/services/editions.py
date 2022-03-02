@@ -58,11 +58,18 @@ async def create_missing_editions_unhydrated(session: Session, isbn_list: list[s
 # all Editions should be stored by ISBN13, and any queries should standardise the request into
 # a "definitive" isbn to store or lookup.
 def get_definitive_isbn(isbn: str):
-    valid_chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"]
     # strip all characters that aren't "valid" (i.e. hyphens, spaces)
+    valid_chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"]
     cleaned_isbn = "".join([i for i in isbn if i in valid_chars])
+
+    assert len(cleaned_isbn) > 0
+
+    # append leading zeroes to make at least 10 chars 
+    # (sometimes leading zeroes can be stripped from valid isbn's by excel or the like)
     cleaned_isbn = cleaned_isbn.zfill(10)
-    assert len(cleaned_isbn) in [10, 13]
+
+    assert isbn_is_valid(cleaned_isbn)
+
     if len(cleaned_isbn) == 10:
         return convert_10_to_13(cleaned_isbn)
     elif len(cleaned_isbn) == 13:
@@ -80,6 +87,17 @@ def clean_isbns(isbns: list[str]) -> set[str]:
 
 
 # --- courtesy of https://code.activestate.com/recipes/498104-isbn-13-converter/ ---
+
+def isbn_is_valid(isbn):
+    if(len(isbn) not in [10,13]): 
+        return False
+
+    body = isbn[:-1]
+    check = isbn[-1]
+
+    return (check_digit_10(body) == check) \
+        if len(isbn) == 10 \
+        else (check_digit_13(body) == check)
 
 
 def check_digit_10(isbn):
