@@ -1,16 +1,5 @@
-import base64
-import json
-import os
-import pathlib
+import uuid
 
-import httpx
-import pydantic
-import pytest
-import time
-
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from starlette import status
 
 
@@ -33,6 +22,29 @@ def test_auth_me_api_with_auth(client, backend_service_account_headers):
 def test_list_service_accounts(client, backend_service_account_headers):
     response = client.get(
         "v1/service-accounts", headers=backend_service_account_headers
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_school_exists_bad_uuid(client, backend_service_account_headers):
+    response = client.get(
+        "v1/school/not-a-uuid/exists", headers=backend_service_account_headers
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_school_exists_missing_uuid(client, backend_service_account_headers):
+    valid_uuid = uuid.uuid4()
+    response = client.get(
+        f"v1/school/{valid_uuid}/exists", headers=backend_service_account_headers
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_school_exists(client, backend_service_account_headers, test_school):
+    valid_uuid = test_school.wriveted_identifier
+    response = client.get(
+        f"v1/school/{valid_uuid}/exists", headers=backend_service_account_headers
     )
     assert response.status_code == status.HTTP_200_OK
 

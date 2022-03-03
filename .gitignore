@@ -1,4 +1,18 @@
+# python byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenv
 .venv
-.vscode
-__pycache__
-*.lock
+venv/
+ENV/
+
+# swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+
+# Vim session
+Session.vim

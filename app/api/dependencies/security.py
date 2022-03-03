@@ -16,7 +16,6 @@ from starlette import status
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.school import get_school_from_path
 from app.db.session import get_session
 from app.models import User, ServiceAccount, ServiceAccountType, School
 from app.models.user import UserAccountType
