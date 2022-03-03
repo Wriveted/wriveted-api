@@ -10,8 +10,9 @@ logger = get_logger()
 
 
 async def compare_known_editions(session, isbn_list: List[str]):
+    valid_isbns = clean_isbns(isbn_list)
     known_matches: list[Edition] = (
-        session.execute(crud.edition.get_multi_query(db=session, ids=isbn_list))
+        session.execute(crud.edition.get_multi_query(db=session, ids=valid_isbns))
         .scalars()
         .all()
     )
@@ -24,7 +25,7 @@ async def compare_known_editions(session, isbn_list: List[str]):
             # print(e)
             continue
 
-    return len(known_matches), fully_tagged_matches
+    return len(valid_isbns), len(known_matches), fully_tagged_matches
 
 
 async def create_missing_editions(session, new_edition_data: list[EditionCreateIn]):

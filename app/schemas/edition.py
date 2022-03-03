@@ -76,5 +76,6 @@ class EditionCreateIn(BaseModel):
 
 class KnownAndTaggedEditionCounts(BaseModel):
     num_provided: int
+    num_valid: int
     num_known: int
     num_fully_tagged: int

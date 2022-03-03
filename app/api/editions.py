@@ -52,8 +52,8 @@ async def compare_bulk_editions(
     isbn_list: List[str], session: Session = Depends(get_session)
 ):
     """
-    Compares a list of ISBNs against the db to determine how many are known,
-    and how many have been fully tagged and checked.
+    Compares a list of ISBNs against the db to determine how many are valid, 
+    how many of those Huey knows about, and how many of those have been fully tagged and checked.
     The provided list should be a raw JSON list, i.e:
 
     ```json
@@ -65,10 +65,11 @@ async def compare_bulk_editions(
     ```
 
     """
-    known, fully_tagged = await compare_known_editions(session, isbn_list)
+    valid, known, fully_tagged = await compare_known_editions(session, isbn_list)
 
     return {
         "num_provided": len(isbn_list),
+        "num_valid": valid,
         "num_known": known,
         "num_fully_tagged": fully_tagged,
     }

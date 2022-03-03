@@ -183,9 +183,10 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         previous_count = session.execute(select(func.count(Edition.id))).scalar_one()
 
-        stmt = insert(Edition).on_conflict_do_nothing()
-        session.execute(stmt, editions)
-        session.commit()
+        if(editions):
+            stmt = insert(Edition).on_conflict_do_nothing()
+            session.execute(stmt, editions)
+            session.commit()
 
         new_count = session.execute(select(func.count(Edition.id))).scalar_one()
         # can't seem to track how many conflicts the commit generates, so our best way
