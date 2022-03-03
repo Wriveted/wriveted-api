@@ -22,7 +22,13 @@ else:
             "name": f"Test School - {test_school_id}",
             "country_code": "ATA",
             "official_identifier": test_school_id,
-            "info": {"msg": "Created for test purposes"},
+            "info": {
+                "msg": "Created for test purposes",
+                "location": {
+                    "state": "NSW",
+                    "postcode": 2000
+                }
+            },
         },
     )
     print(new_test_school_response.text)
@@ -40,17 +46,17 @@ svc_account_detail_response = httpx.post(
         "type": "school",
         "schools": [
             {
-                "country_code": school_info["country_code"],
-                "official_identifier": school_info["official_identifier"],
+                "wriveted_identifier": school_info["wriveted_identifier"],
             }
         ],
-        "info": {"initial info": 42},
+        "info": {"initial info": test_school_id},
     },
 )
 
 print(svc_account_detail_response.status_code)
 svc_account_details = svc_account_detail_response.json()
 print(svc_account_details)
+svc_account_detail_response.raise_for_status()
 
 # Note we can edit a service account with an HTTP PUT
 # E.g. linking to another school, or editing the name

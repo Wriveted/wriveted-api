@@ -28,10 +28,13 @@ class SchoolInfo(BaseModel):
     age_id: Optional[str]
 
 
-class SchoolIdentity(BaseModel):
+class SchoolWrivetedIdentity(BaseModel):
+    wriveted_identifier: UUID
+
+
+class SchoolIdentity(SchoolWrivetedIdentity):
     official_identifier: Optional[str]
     country_code: str
-    wriveted_identifier: UUID
 
     class Config:
         orm_mode = True

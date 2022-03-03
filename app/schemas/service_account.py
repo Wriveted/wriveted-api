@@ -5,7 +5,7 @@ from pydantic import BaseModel, UUID4
 
 from app.models import ServiceAccountType
 from app.schemas.event import EventBrief
-from app.schemas.school import SchoolIdentity
+from app.schemas.school import SchoolIdentity, SchoolWrivetedIdentity
 
 
 class ServiceAccountBrief(BaseModel):
@@ -31,17 +31,13 @@ class ServiceAccountCreatedResponse(ServiceAccountBrief):
 
 
 class ServiceAccountCreateIn(BaseModel):
-
     name: str
     type: ServiceAccountType
-
     info: Optional[dict]
-
-    schools: Optional[List[SchoolIdentity]]
+    schools: Optional[List[SchoolWrivetedIdentity]]
 
 
 class ServiceAccountUpdateIn(BaseModel):
-
     name: Optional[str]
     info: Optional[dict]
-    schools: Optional[List[SchoolIdentity]]
+    schools: Optional[List[SchoolWrivetedIdentity]]
