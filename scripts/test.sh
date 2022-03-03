@@ -11,7 +11,7 @@ docker-compose logs
 sleep 5
 
 # Now exec into the application to run migrations
-docker-compose exec -e SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres -T api bash /app/scripts/run-migrations.h
+docker-compose exec -e SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres -T api bash /app/scripts/run-migrations.sh
 
 # Now start the integration tests
 docker-compose exec -T api bash /app/scripts/start-tests.sh "$@"
