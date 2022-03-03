@@ -29,7 +29,14 @@ async def compare_known_editions(session, isbn_list: List[str]):
 
 
 async def create_missing_editions(session, new_edition_data: list[EditionCreateIn]):
-    isbns = {get_definitive_isbn(e.isbn) for e in new_edition_data if len(e.isbn) > 0}
+    isbns = set()
+    for edition in new_edition_data:
+        if len(edition.isbn) > 0:
+            try:
+                isbns.add(get_definitive_isbn(edition.isbn))
+            except:
+                continue
+
     existing_isbns = (
         session.execute(select(Edition.isbn).where((Edition.isbn).in_(isbns)))
         .scalars()
@@ -48,11 +55,11 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
             else:
                 new_editions_unhydrated.append(data)
     
-    if len(new_editions_hydrated > 0):
+    if len(new_editions_hydrated) > 0:
         crud.edition.create_in_bulk(session, bulk_edition_data=new_editions_hydrated)
         logger.info("Created new hydrated editions")
 
-    if len(new_editions_unhydrated > 0):
+    if len(new_editions_unhydrated) > 0:
         crud.edition.create_in_bulk_unhydrated(session, bulk_edition_data=new_editions_unhydrated)
         logger.info("Created new unhydrated editions")
 
