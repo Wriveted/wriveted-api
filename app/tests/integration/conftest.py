@@ -1,5 +1,6 @@
 import secrets
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
@@ -17,6 +18,11 @@ from app.services.security import create_access_token
 def client():
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture(scope="module")
+def test_data_path():
+    return Path(__file__).parent.parent / 'data'
 
 
 @pytest.fixture()
