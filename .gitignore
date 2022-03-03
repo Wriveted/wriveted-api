@@ -16,3 +16,9 @@ ENV/
 
 # Vim session
 Session.vim
+
+# ide
+.vscode
+
+# deployment
+/deployment
