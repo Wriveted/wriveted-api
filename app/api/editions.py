@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -17,7 +17,7 @@ from app.schemas.edition import (
     KnownAndTaggedEditionCounts,
 )
 from app.services.collections import create_missing_editions
-from app.services.editions import compare_known_editions
+from app.services.editions import compare_known_editions, get_definitive_isbn
 
 
 logger = get_logger()
@@ -76,8 +76,12 @@ async def compare_bulk_editions(
 
 @router.get("/edition/{isbn}", response_model=EditionDetail)
 async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
-    return crud.edition.get_or_404(db=session, id=isbn)
-
+    try:
+        isbn = get_definitive_isbn(isbn)
+        return crud.edition.get_or_404(db=session, id=isbn)
+    except:
+        raise HTTPException(422, "Invalid isbn")
+    
 
 @router.post("/edition", response_model=EditionDetail)
 async def add_edition(

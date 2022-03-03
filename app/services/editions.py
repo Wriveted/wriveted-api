@@ -4,6 +4,7 @@ from structlog import get_logger
 from app import crud
 from app.models import Edition
 from sqlalchemy.orm import Session
+from app.schemas.edition import EditionCreateIn
 
 logger = get_logger()
 
@@ -26,7 +27,7 @@ async def compare_known_editions(session, isbn_list: List[str]):
     return len(known_matches), fully_tagged_matches
 
 
-async def create_missing_editions(session, new_edition_data):
+async def create_missing_editions(session, new_edition_data: list[EditionCreateIn]):
     isbns = {get_definitive_isbn(e.isbn) for e in new_edition_data if len(e.isbn) > 0}
     existing_isbns = (
         session.execute(select(Edition.isbn).where((Edition.isbn).in_(isbns)))
@@ -35,13 +36,26 @@ async def create_missing_editions(session, new_edition_data):
     )
     isbns_to_create = isbns.difference(existing_isbns)
     logger.info(f"Will have to create {len(isbns_to_create)} new editions")
-    new_edition_data = [
-        data for data in new_edition_data if data.isbn in isbns_to_create
-    ]
-    crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
-    logger.info("Created new editions")
-    return isbns, isbns_to_create, existing_isbns
 
+    new_editions_hydrated = []
+    new_editions_unhydrated = []
+
+    for data in new_edition_data: 
+        if data.isbn in isbns_to_create:
+            if data.work_info is not None:
+                new_editions_hydrated.append(data)
+            else:
+                new_editions_unhydrated.append(data)
+    
+    if len(new_editions_hydrated > 0):
+        crud.edition.create_in_bulk(session, bulk_edition_data=new_editions_hydrated)
+        logger.info("Created new hydrated editions")
+
+    if len(new_editions_unhydrated > 0):
+        crud.edition.create_in_bulk_unhydrated(session, bulk_edition_data=new_editions_unhydrated)
+        logger.info("Created new unhydrated editions")
+
+    return isbns, isbns_to_create, existing_isbns
 
 
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
