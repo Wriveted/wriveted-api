@@ -2,7 +2,6 @@
 
 # Set bash to exit immediately on any command failure
 set -e
-export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans
