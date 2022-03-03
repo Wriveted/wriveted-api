@@ -10,6 +10,14 @@ jobs:
         with:
           filter_mode: file
 
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: reviewdog/action-shellcheck@v1
+        with:
+          filter_mode: file
+
   black:
     name: "Format Python"
     runs-on: ubuntu-latest
@@ -27,6 +35,14 @@ jobs:
               black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
               exit 1
           fi
+
+
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        run: ./scripts/test.sh
 
   test:
     name: Test
