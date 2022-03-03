@@ -37,14 +37,12 @@ jobs:
 
 
   integration-tests:
-    name: "Integration Tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: ./scripts/test.sh
+      - run: ./scripts/integration-tests.sh
 
-  test:
-    name: Test
+  unit-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
