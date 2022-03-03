@@ -24,10 +24,7 @@ else:
             "official_identifier": test_school_id,
             "info": {
                 "msg": "Created for test purposes",
-                "location": {
-                    "state": "NSW",
-                    "postcode": 2000
-                }
+                "location": {"state": "NSW", "postcode": 2000},
             },
         },
     )
