@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Security
 from pydantic import ValidationError
-from sqlalchemy import delete, update, select
+from sqlalchemy import delete, func, update, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -14,13 +14,13 @@ from app.db.session import get_session
 from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
 from app.schemas.collection import (
-    CollectionItemBrief,
+    CollectionItemDetail,
     CollectionUpdate,
     CollectionUpdateType,
     CollectionItemIn,
 )
 from app.schemas.edition import EditionCreateIn
-from app.services.collections import add_editions_to_collection
+from app.services.collections import add_editions_to_collection, add_editions_to_collection_by_isbn
 
 logger = get_logger()
 
@@ -34,7 +34,7 @@ router = APIRouter(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemBrief]
+    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemDetail]
 )
 async def get_school_collection(
     school: School = Permission("read", get_school_from_wriveted_id),
@@ -59,20 +59,34 @@ async def set_school_collection(
     session: Session = Depends(get_session),
 ):
     """
-    Replace a school library collection entirely
+    Set the contents of a school library collection.
+    
+    Requires only an ISBN to identify each Edition, other attributes are optional. Note all editions will be stored as 
+    part of the collection, but as additional data is fetched from partner APIs it can take up to a few days before 
+    the editions are fully "hydrated".
     """
     logger.info(
         "Resetting the entire collection for school", school=school, account=account
     )
     session.execute(delete(CollectionItem).where(CollectionItem.school == school))
     session.commit()
+
+    logger.info(
+        f"Adding/syncing {len(collection_data)} ISBNs with school collection", school=school, account=account
+    )
     if len(collection_data) > 0:
-        await add_editions_to_collection(session, collection_data, school, account)
+        isbns = [item.isbn for item in collection_data]
+        await add_editions_to_collection_by_isbn(session, isbns, school, account)
 
-    return {"msg": "updated"}
+    count = session.execute(select(func.count(CollectionItem.id)).where(CollectionItem.school == school)).scalar_one()
+
+    return {
+        "msg": f"Collection set. Total editions: {count}",
+        "new_collection_size": {count}
+    }
 
 
-@router.put(
+@router.patch(
     "/school/{wriveted_identifier}/collection",
 )
 async def update_school_collection(
@@ -93,11 +107,11 @@ async def update_school_collection(
     collection can be achieved with entries of this form:
 
     ```json
-    { "ISBN": "XYZ", "action": "add" }
+    { "isbn": "XYZ", "action": "add" }
     ```
 
-    Note any unknown editions will not get included in the update, a list of ISBNs
-    that were skipped can be found in the response.
+    Note: any unknown editions will be created as unhydrated, empty objects in the db.
+    To provide metadata for new books, please use the `POST /editions` endpoint.
 
     ### Action Types
 
@@ -105,43 +119,17 @@ async def update_school_collection(
     - `remove`
     - `update` - change the `copies_total` and `copies_available`
 
-    ### Adding an unknown work to a collection
-
-    In the case where an edition is not yet in the Wriveted database some more
-    information can be provided in the update to automatically add the edition.
-    Alternatively, missing Works and Editions can be created using their direct
-    endpoints.
-
-    The optional key `edition_info` can be provided for each addition, with the
-    same format as the `POST /edition` endpoint.
-
     """
     logger.info("Updating collection for school", school=school, account=account)
 
-    isbns_to_remove = []
-    editions_to_add: List[EditionCreateIn] = []
-    skipped_editions: List[str] = []
+    isbns_to_remove: List[str] = []
+    isbns_to_add: List[str] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
-            isbns_to_remove.append(update_info.ISBN)
+            isbns_to_remove.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.ADD:
-            if update_info.edition_info is None:
-                # this is a bit hacky and slow.
-                # Perhaps better is to query all the ISBNs before looping, or
-                # allow the API to throw errors or just require the full EditionCreateIn data for every add
-                try:
-                    update_info.edition_info = EditionCreateIn.parse_obj(
-                        crud.edition.get(session, id=update_info.ISBN)
-                    )
-                    logger.debug("Edition to add", new_edition=update_info.edition_info)
-                except ValidationError:
-                    # The caller didn't give us information, and we don't
-                    # have this edition in the database. We will skip and report this to the caller.
-                    skipped_editions.append(update_info.ISBN)
-            else:
-
-                editions_to_add.append(update_info.edition_info)
+            isbns_to_add.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.UPDATE:
             # Update the "copies_total and "copies_available"
             # TODO consider a bulk update version of this
@@ -152,13 +140,7 @@ async def update_school_collection(
                     # Note execution_options(synchronize_session="fetch") must be set
                     # for this subquery where clause to work.
                     # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
-                    CollectionItem.edition.has(Edition.ISBN == update_info.ISBN)
-                    # this is a more manual way that emits an IN instead of an EXISTS
-                    # CollectionItem.edition_id.in_(
-                    #     select(Edition.id).where(Edition.ISBN == update_info.ISBN).scalar_subquery()
-                    # )
-                    # TODO consider/try just using unit of work approach. Get the CollectionItem and update the
-                    # fields directly, then at the end commit them.
+                    CollectionItem.edition.has(Edition.isbn == update_info.isbn)
                 )
                 .values(
                     copies_total=update_info.copies_total,
@@ -175,8 +157,8 @@ async def update_school_collection(
             delete(CollectionItem)
             .where(CollectionItem.school_id == school.id)
             .where(
-                CollectionItem.edition_id.in_(
-                    select(Edition.id).where(Edition.ISBN.in_(isbns_to_remove))
+                CollectionItem.edition_isbn.in_(
+                    select(Edition.isbn).where(Edition.isbn.in_(isbns_to_remove))
                 )
             )
             .execution_options(synchronize_session="fetch")
@@ -184,11 +166,11 @@ async def update_school_collection(
         logger.info("Delete stmt", stmts=str(stmt))
         session.execute(stmt)
 
-    if len(editions_to_add) > 0:
-        logger.info(f"Adding {len(editions_to_add)} editions to collection")
-        await add_editions_to_collection(session, editions_to_add, school, account)
+    if len(isbns_to_add) > 0:
+        logger.info(f"Adding {len(isbns_to_add)} editions to collection")
+        await add_editions_to_collection_by_isbn(session, isbns_to_add, school, account)
 
     logger.info(f"Committing transaction")
     session.commit()
 
-    return {"msg": "updated", "skipped": skipped_editions}
+    return {"msg": "updated"}

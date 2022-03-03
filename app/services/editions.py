@@ -3,6 +3,7 @@ from sqlalchemy import select
 from structlog import get_logger
 from app import crud
 from app.models import Edition
+from sqlalchemy.orm import Session
 
 logger = get_logger()
 
@@ -26,20 +27,26 @@ async def compare_known_editions(session, isbn_list: List[str]):
 
 
 async def create_missing_editions(session, new_edition_data):
-    isbns = {get_definitive_isbn(e.ISBN) for e in new_edition_data if len(e.ISBN) > 0}
+    isbns = {get_definitive_isbn(e.isbn) for e in new_edition_data if len(e.isbn) > 0}
     existing_isbns = (
-        session.execute(select(Edition.ISBN).where((Edition.ISBN).in_(isbns)))
+        session.execute(select(Edition.isbn).where((Edition.isbn).in_(isbns)))
         .scalars()
         .all()
     )
     isbns_to_create = isbns.difference(existing_isbns)
     logger.info(f"Will have to create {len(isbns_to_create)} new editions")
     new_edition_data = [
-        data for data in new_edition_data if data.ISBN in isbns_to_create
+        data for data in new_edition_data if data.isbn in isbns_to_create
     ]
     crud.edition.create_in_bulk(session, bulk_edition_data=new_edition_data)
     logger.info("Created new editions")
     return isbns, isbns_to_create, existing_isbns
+
+
+
+async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
+    final_primary_keys = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    return final_primary_keys
 
 
 # http://www.niso.org/niso-io/2020/01/new-year-new-isbn-prefix
@@ -62,11 +69,11 @@ def get_definitive_isbn(isbn: str):
         return cleaned_isbn
 
 
-def clean_isbns(isbns: List[str]) -> List[str]:
-    cleaned_isbns = []
+def clean_isbns(isbns: list[str]) -> set[str]:
+    cleaned_isbns = set()
     for isbn in isbns:
         try:
-            cleaned_isbns.append(get_definitive_isbn(isbn))
+            cleaned_isbns.add(get_definitive_isbn(isbn))
         except:
             continue
     return cleaned_isbns

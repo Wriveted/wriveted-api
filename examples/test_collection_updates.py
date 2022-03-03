@@ -150,14 +150,14 @@ with open("Wriveted-books.csv", newline="", encoding="cp437") as csv_file:
         if len(book_row[17]) > 1 and book_row[17].startswith("http"):
             cover_url = book_row[17]
 
-        for ISBN in book_row[28].split(","):
-            ISBN = ISBN.strip().upper()
-            if ISBN not in seen_isbns and len(ISBN) > 0:
+        for isbn in book_row[28].split(","):
+            isbn = isbn.strip().upper()
+            if isbn not in seen_isbns and len(isbn) > 0:
 
                 new_edition_data = {
                     # "work_title": "string",
                     "title": book_row[0].strip(),
-                    "ISBN": ISBN.strip(),
+                    "isbn": isbn.strip(),
                     "cover_url": cover_url,
                     "info": {
                         "genre": book_row[20],
@@ -181,7 +181,7 @@ with open("Wriveted-books.csv", newline="", encoding="cp437") as csv_file:
 
                 book_data.append(new_edition_data)
 
-            seen_isbns.add(ISBN)
+            seen_isbns.add(isbn)
 
 
 print(
@@ -231,7 +231,7 @@ time.sleep(0.5)
 collection_changes = [
     {
         "action": "update",
-        "ISBN": b["ISBN"],
+        "isbn": b["isbn"],
         "copies_total": 99,
         "copies_available": 99,
     }
@@ -274,7 +274,7 @@ print("Adding and removing books from collection via `PUT .../collection` API")
 collection_changes = [
     {
         "action": "remove",
-        "ISBN": b["ISBN"],
+        "isbn": b["isbn"],
     }
     for b in books_to_remove
 ]
@@ -287,7 +287,7 @@ collection_changes.extend(
         randomize_loan_status(
             {
                 "action": "add",
-                "ISBN": b["ISBN"],
+                "isbn": b["isbn"],
                 "edition_info": b,
             }
         )

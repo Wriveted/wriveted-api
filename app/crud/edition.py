@@ -1,22 +1,23 @@
-import json
 from typing import Any, List
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, Query
 from structlog import get_logger
 
 from app import crud
 from app.crud import CRUDBase
-from app.crud.author import author as crud_author
+from app.crud.author import author as crud_author, first_last_to_name_key
 from app.crud.work import work as crud_work
 from app.crud.illustrator import illustrator as crud_illustrator
 
-from app.models import Edition, Work, Illustrator, Author
+from app.models import Edition, Work, Illustrator
 from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn, SeriesCreateIn
 
-from app.services.editions import clean_isbns, get_definitive_isbn
+import app.services.editions as editions_service
+
 
 logger = get_logger()
 
@@ -28,15 +29,15 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
     def get_query(self, db: Session, id: Any) -> Query:
         try:
-            cleaned_isbn = get_definitive_isbn(id)
+            cleaned_isbn = editions_service.get_definitive_isbn(id)
         except:
             cleaned_isbn = ""
 
-        return select(Edition).where(Edition.ISBN == cleaned_isbn)
+        return select(Edition).where(Edition.isbn == cleaned_isbn)
 
     def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
         return self.get_all_query(db, order_by=order_by).where(
-            Edition.ISBN.in_(clean_isbns(ids))
+            Edition.isbn.in_(editions_service.clean_isbns(ids))
         )
 
     def create(
@@ -55,7 +56,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         edition = Edition(
             edition_title=edition_data.title,
-            ISBN=get_definitive_isbn(edition_data.ISBN),
+            isbn=editions_service.get_definitive_isbn(edition_data.isbn),
             cover_url=edition_data.cover_url,
             info=edition_data.info.dict(),
             work=work,
@@ -85,7 +86,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         new_edition_data = []
         for edition_data in bulk_edition_data:
             try:
-                definitive_isbn = get_definitive_isbn(edition_data.ISBN)
+                definitive_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
             except:
                 logger.info("Invalid ISBN. Skipping...")
                 continue
@@ -94,12 +95,14 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 seen_isbns.add(definitive_isbn)
                 new_edition_data.append(edition_data)
 
-        # Dedupe Author data by "full_name"
+        # Dedupe Author data by a name key: lowercase, alphanumerics only, first_name + last_name
         bulk_author_data = {}
         bulk_series_titles = set()
         for edition_data in bulk_edition_data:
             for author_data in edition_data.authors:
-                bulk_author_data.setdefault(author_data.full_name, author_data)
+                bulk_author_data.setdefault(
+                    first_last_to_name_key(author_data.first_name, author_data.last_name),
+                    author_data)
             if (
                 edition_data.series_title is not None
                 and len(edition_data.series_title) > 0
@@ -169,6 +172,28 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             commit=commit,
         )
         return edition
+
+
+    # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
+    # but since we know already have the isbns, i.e the pk's that are being inserted, we can refer to them later anyway.
+    # After ensuring the list is added to the db, this returns the list of cleaned pk's.
+    async def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
+        clean_isbn_list = editions_service.clean_isbns(isbn_list)
+        editions = [{"isbn" : isbn} for isbn in clean_isbn_list]
+
+        previous_count = session.execute(select(func.count(Edition.id))).scalar_one()
+
+        stmt = insert(Edition).on_conflict_do_nothing()
+        session.execute(stmt, editions)
+        session.commit()
+
+        new_count = session.execute(select(func.count(Edition.id))).scalar_one()
+        # can't seem to track how many conflicts the commit generates, so our best way
+        # of tracking the amount that were actually created is to just generate a count diff
+        num_created = new_count - previous_count
+
+        logger.info(f"{num_created} unhydrated editions created")
+        return clean_isbn_list, num_created
 
 
 edition = CRUDEdition(Edition)
