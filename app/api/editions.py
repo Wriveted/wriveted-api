@@ -1,7 +1,8 @@
+import collections
+from importlib.util import LazyLoader
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -14,6 +15,7 @@ from app.schemas.edition import (
     EditionDetail,
     EditionBrief,
     EditionCreateIn,
+    EditionToHydrate,
     KnownAndTaggedEditionCounts,
 )
 from app.services.collections import create_missing_editions
@@ -102,3 +104,15 @@ async def bulk_add_editions(
     return {
         "msg": f"Bulk load of {len(isbns)} editions complete. Created {len(created)} new editions."
     }
+
+
+@router.get("/editions/to_hydrate", response_model=List[EditionToHydrate])
+async def get_editions(
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+):
+    q = session.query(Edition, Edition.num_schools) \
+        .order_by(Edition.num_schools.desc()) \
+        .limit(pagination.limit if pagination.limit else 5000)
+
+    return session.execute(q).scalars().all()

@@ -79,3 +79,7 @@ class KnownAndTaggedEditionCounts(BaseModel):
     num_valid: int
     num_known: int
     num_fully_tagged: int
+
+
+class EditionToHydrate(EditionBrief):
+    school_count: int

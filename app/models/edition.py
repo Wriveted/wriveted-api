@@ -1,10 +1,13 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON, select
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON, func, select
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import backref
 from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.sql.functions import coalesce
 
 from app.db import Base
+from app.models.collection_item import CollectionItem
 from app.models.work import Work
 from app.models.illustrator_edition_association import (
     illustrator_edition_association_table,
@@ -52,6 +55,34 @@ class Edition(Base):
         back_populates="editions",
         lazy="subquery",
     )
+
+    schools = relationship(
+        'School', 
+        secondary=CollectionItem.__table__,
+        backref = backref('editions', lazy='dynamic')
+    )
+
+    school_count = column_property(
+        select(func.count(CollectionItem.id))
+        .where(CollectionItem.edition_isbn == isbn)
+        .correlate_except(CollectionItem)
+        .scalar_subquery()
+    )
+
+    # this method and its equivalent expression need the same method name to work
+    @hybrid_property
+    def num_schools(self):
+        return self.schools.count()
+
+    # these are used for the hybrid attribute used in querying by number of schools
+    # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior
+    @num_schools.expression
+    def num_schools(self):
+        return (select([func.count(CollectionItem.__table__.c.edition_isbn).label("num_schools")])
+                .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
+                .label("total_schools")
+                )
+
 
     def __repr__(self):
         return f"<Edition '{self.title}'>"
