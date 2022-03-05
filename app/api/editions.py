@@ -81,9 +81,10 @@ async def compare_bulk_editions(
 async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     try:
         isbn = get_definitive_isbn(isbn)
-        return crud.edition.get_or_404(db=session, id=isbn)
     except:
         raise HTTPException(422, "Invalid isbn")
+
+    return crud.edition.get_or_404(db=session, id=isbn)        
     
 
 @router.post("/edition", response_model=EditionDetail)
