@@ -1,35 +1,35 @@
+from typing import Optional
 from pydantic import BaseModel, AnyHttpUrl
-from sqlalchemy import JSON
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
 
 class EditionInfo(BaseModel):
-    pages:            int | None
-    summary_short:    str | None
-    summary_long:     str | None
+    pages:            Optional[int]
+    summary_short:    Optional[str]
+    summary_long:     Optional[str]
 
     genres:           list[Genre]
     bic_qualifiers:   list[str]
     thema_qualifiers: list[str]
-    keywords:         str | None # comes as a delimited string, not a list
-    prodct:           str | None
-    cbmctext:         str | None
-    interest_age:     str | None
-    reading_age:      str | None
+    keywords:         Optional[str] # comes as a delimited string, not a list
+    prodct:           Optional[str]
+    cbmctext:         Optional[str]
+    interest_age:     Optional[str]
+    reading_age:      Optional[str]
 
-    country:          str | None
+    country:          Optional[str]
 
     medium_tags:      list[str]
     image_flag:       bool
     
-    other:            dict | None
+    other:            Optional[dict]
 
 
 class EditionBrief(BaseModel):
-    title:   str | None
-    work_id: str | None
+    title:   Optional[str]
+    work_id: Optional[str]
     isbn:    str
 
     class Config:
@@ -37,37 +37,38 @@ class EditionBrief(BaseModel):
 
 
 class EditionDetail(BaseModel):
-    work_id:        int | None
-    title:          str | None # should be the edition title with a fallback to the Works title
-    series_name:    str | None
-    series_number:  int | None
+    work_id:        Optional[int]
+    title:          Optional[str] # should be the edition title with a fallback to the Works title
+    series_name:    Optional[str]
+    series_number:  Optional[int]
 
     authors:        list[AuthorBrief]
     illustrators:   list[IllustratorBrief]
 
-    cover_url:      AnyHttpUrl | None
-    date_published: str | None
-    info:           EditionInfo | None
+    cover_url:      Optional[AnyHttpUrl]
+    date_published: Optional[str]
+    info:           Optional[EditionInfo]
 
     class Config:
         orm_mode = True
 
 
 class EditionCreateIn(BaseModel):
-    isbn:          str
-    other_isbns:   list[str]
+    isbn:            str
+    other_isbns:     list[str]
 
-    title:         str | None
-    series_name:   str | None
-    series_number: int | None
+    title:           Optional[str]
+    leading_article: Optional[str]
+    series_name:     Optional[str]
+    series_number:   Optional[int]
 
-    authors:       list[AuthorCreateIn]
-    illustrators:  list[IllustratorCreateIn]
-
-    cover_url:     AnyHttpUrl | None
-
-    labelset:      LabelSetCreateIn | None
-    info:          EditionInfo | None
+    authors:         list[AuthorCreateIn]
+    illustrators:    list[IllustratorCreateIn]
+  
+    cover_url:       Optional[AnyHttpUrl]
+  
+    labelset:        Optional[LabelSetCreateIn]
+    info:            Optional[EditionInfo]
 
 
 class KnownAndTaggedEditionCounts(BaseModel):

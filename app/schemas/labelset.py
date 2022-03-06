@@ -18,34 +18,34 @@ class LabelSetBrief(BaseModel):
 class LabelSetDetail(LabelSetBrief):
     hues:                list[Hue]
 
-    min_age:             int | None
-    max_age:             int | None
-    reading_ability:     ReadingAbility | None
+    min_age:             Optional[int]
+    max_age:             Optional[int]
+    reading_ability:     Optional[ReadingAbility]
 
-    labelled_by_user_id: UUID | None
-    labelled_by_sa_id:   UUID | None
-    info:                dict | None
+    labelled_by_user_id: Optional[UUID]
+    labelled_by_sa_id:   Optional[UUID]
+    info:                Optional[dict]
 
-    recommend_status:    RecommendStatus | None
-    checked:             bool | None
+    recommend_status:    Optional[RecommendStatus]
+    checked:             Optional[bool]
 
     created_at:          datetime
-    updated_at:          datetime | None
+    updated_at:          Optional[datetime]
 
 
 # everything is optional here. also used for patch requests
 class LabelSetCreateIn(BaseModel):
-    hue_primary_id:      int | None
-    hue_secondary_id:    int | None
-    hue_tertiary_id:     int | None
+    hue_primary_id:      Optional[int]
+    hue_secondary_id:    Optional[int]
+    hue_tertiary_id:     Optional[int]
 
-    min_age:             int | None
-    max_age:             int | None
-    reading_ability:     ReadingAbility | None
+    min_age:             Optional[int]
+    max_age:             Optional[int]
+    reading_ability:     Optional[ReadingAbility]
 
-    labelled_by_user_id: UUID | None
-    labelled_by_sa_id:   UUID | None
-    info:                dict | None
+    labelled_by_user_id: Optional[UUID]
+    labelled_by_sa_id:   Optional[UUID]
+    info:                Optional[dict]
 
-    recommend_status:    RecommendStatus | None
-    checked:             bool | None
+    recommend_status:    Optional[RecommendStatus]
+    checked:             Optional[bool]
