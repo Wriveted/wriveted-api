@@ -29,6 +29,9 @@ class Edition(Base):
 
     # this might be a localized title
     edition_title = Column(String(512), nullable=True)
+    leading_article = Column(String(20), nullable=True)
+
+    # TODO computed columns for display_title / sort_title
 
     title = column_property(
         select(coalesce(edition_title, Work.title))
@@ -36,6 +39,8 @@ class Edition(Base):
         .correlate_except(Work)
         .scalar_subquery()
     )
+
+    date_published = Column(Integer, nullable=True)
 
     cover_url = Column(String(200), nullable=True)
 
@@ -79,9 +84,9 @@ class Edition(Base):
     @num_schools.expression
     def num_schools(self):
         return (select([func.count(CollectionItem.__table__.c.edition_isbn).label("num_schools")])
-                .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
-                .label("total_schools")
-                )
+            .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
+            .label("total_schools")
+        )
 
 
     def __repr__(self):

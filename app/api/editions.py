@@ -15,7 +15,6 @@ from app.schemas.edition import (
     EditionDetail,
     EditionBrief,
     EditionCreateIn,
-    EditionToHydrate,
     KnownAndTaggedEditionCounts,
 )
 from app.services.collections import create_missing_editions
@@ -107,7 +106,7 @@ async def bulk_add_editions(
     }
 
 
-@router.get("/editions/to_hydrate", response_model=List[EditionToHydrate])
+@router.get("/editions/to_hydrate", response_model=List[EditionBrief])
 async def get_editions(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),

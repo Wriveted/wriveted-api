@@ -1,16 +1,14 @@
-from typing import Optional, Any
-
+from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
-
-from app.models.labelset import DoeCode, ReadingAbility
+from app.models.labelset import ReadingAbility, RecommendStatus
 from app.schemas.genre import Genre
 from app.schemas.hue import Hue
-
+from uuid import UUID
 
 class LabelSetBrief(BaseModel):
-    id: str
-    work_id: str
+    id:        str
+    work_id:   str
     work_name: str
 
     class Config:
@@ -18,33 +16,36 @@ class LabelSetBrief(BaseModel):
 
 
 class LabelSetDetail(LabelSetBrief):
-    hues: list[Hue]
-    reading_ability: ReadingAbility
-    doe_code: DoeCode
-    min_age: int
-    max_age: int
-    lexile: str
-    labelled_by_user_id: Optional[int]
-    labelled_by_sa_id: Optional[int]
-    info: Optional[dict]
-    genres: list[Genre]
-    checked: bool
-    created_at: datetime
-    updated_at: Optional[datetime]
+    hues:                list[Hue]
+
+    min_age:             int | None
+    max_age:             int | None
+    reading_ability:     ReadingAbility | None
+
+    labelled_by_user_id: UUID | None
+    labelled_by_sa_id:   UUID | None
+    info:                dict | None
+
+    recommend_status:    RecommendStatus | None
+    checked:             bool | None
+
+    created_at:          datetime
+    updated_at:          datetime | None
 
 
-# this is only for the case where the partial/patch method doesn't work:
-# https://fastapi.tiangolo.com/tutorial/body-updates/#partial-updates-with-patch
+# everything is optional here. also used for patch requests
 class LabelSetCreateIn(BaseModel):
-    hue_primary_id: Optional[int]
-    hue_secondary_id: Optional[int]
-    hue_tertiary_id: Optional[int]
-    reading_ability: Optional[ReadingAbility]
-    doe_code: Optional[DoeCode]
-    min_age: Optional[int]
-    max_age: Optional[int]
-    lexile: Optional[str]
-    labelled_by_user_id: Optional[int]
-    labelled_by_sa_id: Optional[int]
-    info: Optional[dict]
-    genres: list[Genre]
+    hue_primary_id:      int | None
+    hue_secondary_id:    int | None
+    hue_tertiary_id:     int | None
+
+    min_age:             int | None
+    max_age:             int | None
+    reading_ability:     ReadingAbility | None
+
+    labelled_by_user_id: UUID | None
+    labelled_by_sa_id:   UUID | None
+    info:                dict | None
+
+    recommend_status:    RecommendStatus | None
+    checked:             bool | None

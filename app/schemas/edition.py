@@ -1,85 +1,77 @@
-from typing import Optional, Any, List, Text
 from pydantic import BaseModel, AnyHttpUrl
 from sqlalchemy import JSON
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
-
-
-class WorkInfo(BaseModel):
-    short_summary: Optional[str]
-    long_summary: Optional[str]
-    keywords: Optional[str]
-    interest_age: Optional[str]
-    reading_age: Optional[str]
-    genres: Optional[List[Genre]]
-    series_title: Optional[str]
-
-    characters: Optional[List[str]]
-    prc_reading_level: Optional[str]
-
-    version: Optional[str]
-    other: Optional[dict]
-
+from app.schemas.labelset import LabelSetCreateIn
 
 class EditionInfo(BaseModel):
-    pages: Optional[int]
-    version: Optional[str]
-    other: Optional[dict]
+    pages:            int | None
+    summary_short:    str | None
+    summary_long:     str | None
+
+    genres:           list[Genre]
+    bic_qualifiers:   list[str]
+    thema_qualifiers: list[str]
+    keywords:         str | None # comes as a delimited string, not a list
+    prodct:           str | None
+    cbmctext:         str | None
+    interest_age:     str | None
+    reading_age:      str | None
+
+    country:          str | None
+
+    medium_tags:      list[str]
+    image_flag:       bool
+    
+    other:            dict | None
 
 
 class EditionBrief(BaseModel):
-    title: Optional[str]
-    work_id: Optional[str]
-    isbn: str
+    title:   str | None
+    work_id: str | None
+    isbn:    str
 
     class Config:
         orm_mode = True
 
 
 class EditionDetail(BaseModel):
-    # This should be the edition title with a fallback to the Works title
-    title: Optional[str]
-    work_id: Optional[str]
-    isbn: str
+    work_id:        int | None
+    title:          str | None # should be the edition title with a fallback to the Works title
+    series_name:    str | None
+    series_number:  int | None
 
-    cover_url: Optional[AnyHttpUrl]
-    info: Optional[EditionInfo]
+    authors:        list[AuthorBrief]
+    illustrators:   list[IllustratorBrief]
 
-    authors: List[AuthorBrief]
-    illustrators: List[IllustratorBrief]
+    cover_url:      AnyHttpUrl | None
+    date_published: str | None
+    info:           EditionInfo | None
 
     class Config:
         orm_mode = True
 
 
 class EditionCreateIn(BaseModel):
-    title: Optional[str]
-    work_id: Optional[str]
-    isbn: str
+    isbn:          str
+    other_isbns:   list[str]
 
-    # Only required if different from title
-    work_title: Optional[str]
-    series_title: Optional[str]
-    series_number: Optional[str]
+    title:         str | None
+    series_name:   str | None
+    series_number: int | None
 
-    cover_url: Optional[AnyHttpUrl]
+    authors:       list[AuthorCreateIn]
+    illustrators:  list[IllustratorCreateIn]
 
-    info: Optional[EditionInfo]
+    cover_url:     AnyHttpUrl | None
 
-    # we need the workinfo to create
-    work_info: Optional[WorkInfo]
-
-    authors: List[AuthorCreateIn]
-    illustrators: List[IllustratorCreateIn]
+    labelset:      LabelSetCreateIn | None
+    info:          EditionInfo | None
 
 
 class KnownAndTaggedEditionCounts(BaseModel):
-    num_provided: int
-    num_valid: int
-    num_known: int
+    num_provided:     int
+    num_valid:        int
+    num_known:        int
     num_fully_tagged: int
-
-
-class EditionToHydrate(EditionBrief):
-    school_count: int

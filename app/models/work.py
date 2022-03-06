@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, JSON, Enum, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, JSON, Enum, Boolean, DateTime, Text, Computed
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
@@ -26,6 +26,9 @@ class Work(Base):
 
     # TODO may want to look at a TSVector GIN index for decent full text search
     title = Column(String(512), nullable=False, index=True)
+    leading_article = Column(String(20), nullable=True)
+
+    # TODO computed columns for display_title / sort_title
 
     info = Column(MutableDict.as_mutable(JSON))
 
