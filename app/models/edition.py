@@ -20,7 +20,7 @@ class Edition(Base):
         Integer,
         ForeignKey("works.id", name="fk_editions_works"),
         index=True,
-        nullable=True
+        nullable=True,
     )
     work = relationship("Work", back_populates="editions", lazy="selectin")
 

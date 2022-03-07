@@ -13,7 +13,11 @@ from app.models import CollectionItem
 from app.models.school import School
 from app.schemas.collection import CollectionItemIn
 from app.services.events import create_event
-from app.services.editions import create_missing_editions, create_missing_editions_unhydrated, get_definitive_isbn
+from app.services.editions import (
+    create_missing_editions,
+    create_missing_editions_unhydrated,
+    get_definitive_isbn,
+)
 
 logger = get_logger()
 
@@ -92,9 +96,12 @@ async def add_editions_to_collection_by_isbn(
     logger.info("Adding editions to collection by ISBN", account=account, school=school)
 
     # Insert the entire list of isbns, ignoring conflicts, returning a list of the pk's for the CollectionItem binding
-    final_primary_keys, num_editions_created = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    (
+        final_primary_keys,
+        num_editions_created,
+    ) = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
 
-    # At this point all editions referenced should exist. 
+    # At this point all editions referenced should exist.
     # Using len(final_primary_keys) as length may be different now that it's a set
     logger.info(f"Syncing {len(final_primary_keys)} editions with collection")
 
@@ -109,8 +116,10 @@ async def add_editions_to_collection_by_isbn(
                 "copies_available": 1,
             }
         )
-    
-    num_collection_items_created = await crud.collection_item.create_in_bulk(session, school.id, collection_items)
+
+    num_collection_items_created = await crud.collection_item.create_in_bulk(
+        session, school.id, collection_items
+    )
 
     create_event(
         session=session,

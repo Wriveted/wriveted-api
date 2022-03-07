@@ -86,7 +86,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         new_edition_data = []
         for edition_data in bulk_edition_data:
             try:
-                definitive_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
+                definitive_isbn = editions_service.get_definitive_isbn(
+                    edition_data.isbn
+                )
             except:
                 logger.info("Invalid ISBN. Skipping...")
                 continue
@@ -101,8 +103,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         for edition_data in bulk_edition_data:
             for author_data in edition_data.authors:
                 bulk_author_data.setdefault(
-                    first_last_to_name_key(author_data.first_name, author_data.last_name),
-                    author_data)
+                    first_last_to_name_key(
+                        author_data.first_name, author_data.last_name
+                    ),
+                    author_data,
+                )
             if (
                 edition_data.series_title is not None
                 and len(edition_data.series_title) > 0
@@ -173,13 +178,12 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         )
         return edition
 
-
     # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
     # but since we know already have the isbns, i.e the pk's that are being inserted, we can refer to them later anyway.
     # After ensuring the list is added to the db, this returns the list of cleaned pk's.
     async def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
         clean_isbn_list = editions_service.clean_isbns(isbn_list)
-        editions = [{"isbn" : isbn} for isbn in clean_isbn_list]
+        editions = [{"isbn": isbn} for isbn in clean_isbn_list]
 
         previous_count = session.execute(select(func.count(Edition.id))).scalar_one()
 

@@ -1,5 +1,8 @@
 name: CI
-on: push
+on:
+  push:
+  pull_request:
+    types: [opened]
 jobs:
 
   hadolint:
@@ -10,8 +13,15 @@ jobs:
         with:
           filter_mode: file
 
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: reviewdog/action-shellcheck@v1
+        with:
+          filter_mode: file
+
   black:
-    name: "Format Python"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -28,8 +38,14 @@ jobs:
               exit 1
           fi
 
-  test:
-    name: Test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: ./scripts/integration-tests.sh
+
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

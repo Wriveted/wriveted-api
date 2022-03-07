@@ -43,9 +43,10 @@ async def create_missing_editions(session, new_edition_data):
     return isbns, isbns_to_create, existing_isbns
 
 
-
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
-    final_primary_keys = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    final_primary_keys = await crud.edition.create_in_bulk_unhydrated(
+        session, isbn_list=isbn_list
+    )
     return final_primary_keys
 
 

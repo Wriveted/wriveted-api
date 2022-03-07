@@ -20,7 +20,10 @@ from app.schemas.collection import (
     CollectionItemIn,
 )
 from app.schemas.edition import EditionCreateIn
-from app.services.collections import add_editions_to_collection, add_editions_to_collection_by_isbn
+from app.services.collections import (
+    add_editions_to_collection,
+    add_editions_to_collection_by_isbn,
+)
 
 logger = get_logger()
 
@@ -34,7 +37,8 @@ router = APIRouter(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection", response_model=List[CollectionItemDetail]
+    "/school/{wriveted_identifier}/collection",
+    response_model=List[CollectionItemDetail],
 )
 async def get_school_collection(
     school: School = Permission("read", get_school_from_wriveted_id),
@@ -60,9 +64,9 @@ async def set_school_collection(
 ):
     """
     Set the contents of a school library collection.
-    
-    Requires only an ISBN to identify each Edition, other attributes are optional. Note all editions will be stored as 
-    part of the collection, but as additional data is fetched from partner APIs it can take up to a few days before 
+
+    Requires only an ISBN to identify each Edition, other attributes are optional. Note all editions will be stored as
+    part of the collection, but as additional data is fetched from partner APIs it can take up to a few days before
     the editions are fully "hydrated".
     """
     logger.info(
@@ -72,17 +76,21 @@ async def set_school_collection(
     session.commit()
 
     logger.info(
-        f"Adding/syncing {len(collection_data)} ISBNs with school collection", school=school, account=account
+        f"Adding/syncing {len(collection_data)} ISBNs with school collection",
+        school=school,
+        account=account,
     )
     if len(collection_data) > 0:
         isbns = [item.isbn for item in collection_data]
         await add_editions_to_collection_by_isbn(session, isbns, school, account)
 
-    count = session.execute(select(func.count(CollectionItem.id)).where(CollectionItem.school == school)).scalar_one()
+    count = session.execute(
+        select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
+    ).scalar_one()
 
     return {
         "msg": f"Collection set. Total editions: {count}",
-        "new_collection_size": {count}
+        "new_collection_size": {count},
     }
 
 

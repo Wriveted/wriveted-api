@@ -18,8 +18,13 @@ class Illustrator(Base):
 
     first_name = Column(String(200), nullable=False, index=True)
     last_name = Column(String(200), nullable=False, index=True)
-    
-    name_key = Column(String(400), Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\W|_', '', 'g'))"), unique=True, index=True)
+
+    name_key = Column(
+        String(400),
+        Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\W|_', '', 'g'))"),
+        unique=True,
+        index=True,
+    )
 
     info = Column(MutableDict.as_mutable(JSON))
 
