@@ -29,6 +29,7 @@ class Edition(Base):
 
     # this might be a localized title
     edition_title = Column(String(512), nullable=True)
+    edition_subtitle = Column(String(512), nullable=True)
     leading_article = Column(String(20), nullable=True)
 
     # TODO computed columns for display_title / sort_title
@@ -61,11 +62,13 @@ class Edition(Base):
         lazy="subquery",
     )
 
-    schools = relationship(
-        'School', 
-        secondary=CollectionItem.__table__,
-        backref = backref('editions', lazy='dynamic')
-    )
+    # schools = relationship(
+    #     'School', 
+    #     secondary=CollectionItem.__table__,
+    #     back_populates="editions"
+    # )
+
+    schools = association_proxy("collection_items", "school")
 
     school_count = column_property(
         select(func.count(CollectionItem.id))
@@ -87,7 +90,6 @@ class Edition(Base):
             .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
             .label("total_schools")
         )
-
 
     def __repr__(self):
         return f"<Edition '{self.title}'>"
