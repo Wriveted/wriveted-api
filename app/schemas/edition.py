@@ -10,9 +10,9 @@ class EditionInfo(BaseModel):
     summary_short:    Optional[str]
     summary_long:     Optional[str]
 
-    genres:           list[Genre]
-    bic_qualifiers:   list[str]
-    thema_qualifiers: list[str]
+    genres:           Optional[list[Genre]]
+    bic_qualifiers:   Optional[list[str]]
+    thema_qualifiers: Optional[list[str]]
     keywords:         Optional[str] # comes as a delimited string, not a list
     prodct:           Optional[str]
     cbmctext:         Optional[str]
@@ -21,8 +21,8 @@ class EditionInfo(BaseModel):
 
     country:          Optional[str]
 
-    medium_tags:      list[str]
-    image_flag:       bool
+    medium_tags:      Optional[list[str]]
+    image_flag:       Optional[bool]
     
     other:            Optional[dict]
 
@@ -31,6 +31,7 @@ class EditionBrief(BaseModel):
     title:   Optional[str]
     work_id: Optional[str]
     isbn:    str
+    # school_count: int
 
     class Config:
         orm_mode = True
@@ -46,7 +47,7 @@ class EditionDetail(BaseModel):
     illustrators:   list[IllustratorBrief]
 
     cover_url:      Optional[AnyHttpUrl]
-    date_published: Optional[str]
+    date_published: Optional[int]
     info:           Optional[EditionInfo]
 
     class Config:
@@ -55,20 +56,25 @@ class EditionDetail(BaseModel):
 
 class EditionCreateIn(BaseModel):
     isbn:            str
-    other_isbns:     list[str]
+    other_isbns:     Optional[list[str]]
 
-    title:           Optional[str]
     leading_article: Optional[str]
+    title:           Optional[str]
+    subtitle:        Optional[str]
+
     series_name:     Optional[str]
     series_number:   Optional[int]
 
-    authors:         list[AuthorCreateIn]
-    illustrators:    list[IllustratorCreateIn]
+    authors:         Optional[list[AuthorCreateIn]]
+    illustrators:    Optional[list[IllustratorCreateIn]]
   
     cover_url:       Optional[AnyHttpUrl]
+    date_published:  Optional[int]
   
     labelset:        Optional[LabelSetCreateIn]
     info:            Optional[EditionInfo]
+
+    hydrated:        bool = False
 
 
 class KnownAndTaggedEditionCounts(BaseModel):

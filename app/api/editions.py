@@ -113,6 +113,7 @@ async def get_editions(
 ):
     q = session.query(Edition, Edition.num_schools) \
         .order_by(Edition.num_schools.desc()) \
+        .where(Edition.hydrated == False) \
         .limit(pagination.limit if pagination.limit else 5000)
 
     return session.execute(q).scalars().all()

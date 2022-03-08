@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from structlog import get_logger
 from app import crud
 from app.models import Edition
@@ -38,7 +38,11 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
                 continue
 
     existing_isbns = (
-        session.execute(select(Edition.isbn).where((Edition.isbn).in_(isbns)))
+        session.execute(select(Edition.isbn).where(
+            and_(
+                (Edition.isbn).in_(isbns),
+                (Edition.hydrated == True)
+            )))
         .scalars()
         .all()
     )
@@ -50,7 +54,7 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
 
     for data in new_edition_data: 
         if data.isbn in isbns_to_create:
-            if data.work_info is not None:
+            if data.hydrated:
                 new_editions_hydrated.append(data)
             else:
                 new_editions_unhydrated.append(data)

@@ -32,7 +32,7 @@ class Edition(Base):
     edition_subtitle = Column(String(512), nullable=True)
     leading_article = Column(String(20), nullable=True)
 
-    # TODO computed columns for display_title / sort_title
+    # TODO computed columns for display_title / sort_title based on the above
 
     title = column_property(
         select(coalesce(edition_title, Work.title))
@@ -46,8 +46,7 @@ class Edition(Base):
     cover_url = Column(String(200), nullable=True)
 
     # Info contains stuff like edition number, language
-    # Published date, published by, media (paperback/hardback/audiobook),
-    # number of pages.
+    # media (paperback/hardback/audiobook), number of pages.
     info = Column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
@@ -77,19 +76,22 @@ class Edition(Base):
         .scalar_subquery()
     )
 
+    # ---------these are used for the hybrid attribute used in querying by number of schools in GET:editions/to_hydrate---------
+    # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior
+
     # this method and its equivalent expression need the same method name to work
     @hybrid_property
     def num_schools(self):
         return self.schools.count()
 
-    # these are used for the hybrid attribute used in querying by number of schools
-    # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior
     @num_schools.expression
     def num_schools(self):
         return (select([func.count(CollectionItem.__table__.c.edition_isbn).label("num_schools")])
             .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
             .label("total_schools")
         )
+
+    # -------------------------------------------------------------------------------------------------------------------------
 
     def __repr__(self):
         return f"<Edition '{self.title}'>"
