@@ -1,6 +1,6 @@
 import csv
 import json
-from tkinter import Label
+
 from typing import Optional, Union
 
 import httpx
