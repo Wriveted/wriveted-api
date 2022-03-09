@@ -1,4 +1,3 @@
-from tkinter import Label
 from typing import Any, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -113,7 +112,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
 
                     labelset.hue_origin = data.hue_origin
                     updated = True
-                    
+
         
         # same idea with min/max age, re: authority
         if data.age_origin and (data.min_age or data.max_age):
