@@ -19,24 +19,24 @@ from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_genre_association import labelset_genre_association_table
 
 class RecommendStatus(str, enum.Enum):
-    GOOD = "Good to Recommend"
-    BAD_BORING = "Too boring"
-    BAD_REFERENCE = "Reference/Education book"
-    BAD_CONTROVERSIAL = "Contoversial content"
-    BAD_LOW_QUALITY = "Not a great example"
+    GOOD = "GOOD" # Good to Recommend
+    BAD_BORING = "BAD_BORING" # Too boring
+    BAD_REFERENCE = "BAD_REFERENCE" # Reference/Education book
+    BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL" # Contoversial content
+    BAD_LOW_QUALITY = "BAD_LOW_QUALITY" # Not a great example
 
 class ReadingAbility(str, enum.Enum):
-    SPOT = "Where's Spot"
-    CAT_HAT = "Cat in the Hat"
-    TREEHOUSE = "The 13-Storey Treehouse"
-    CHARLIE_CHOCOLATE = "Charlie and the Chocolate Factory"
-    HARRY_POTTER = "Harry Potter and the Philosopher's Stone"
+    SPOT = "SPOT" # Where's Spot
+    CAT_HAT = "CAT_HAT" # Cat in the Hat
+    TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
+    CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
+    HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
 
 class LabelOrigin(str, enum.Enum):
-    HUMAN = "Human-provided"
-    PREDICTED_NIELSEN = "Predicted based on metadata from Nielsen"
-    CLUSTER_RELEVANCE = "Relevance AI cluster"
-    CLUSTER_ZAINAB = "Original K-Means clustering by Zainab"
+    HUMAN = "HUMAN" # Human-provided
+    PREDICTED_NIELSEN = "PREDICTED_NIELSEN" # Predicted based on metadata from Nielsen
+    CLUSTER_RELEVANCE = "CLUSTER_RELEVANCE" # Relevance AI cluster
+    CLUSTER_ZAINAB = "CLUSTER_ZAINAB" # Original K-Means clustering by Zainab
 
 # an abstraction of the "label" related properties of a Work, which are likely to be human-provided.
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed

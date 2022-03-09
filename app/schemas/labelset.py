@@ -57,9 +57,9 @@ class LabelSetCreateIn(BaseModel):
     reading_ability_origin:  Optional[LabelOrigin]
 
     huey_summary:            Optional[str]
-    summary_origin:     Optional[LabelOrigin]
+    summary_origin:          Optional[LabelOrigin]
 
-    genres:                  list[Genre]
+    genres:                  Optional[list[Genre]]
 
     labelled_by_user_id:     Optional[UUID]
     labelled_by_sa_id:       Optional[UUID]
@@ -68,3 +68,9 @@ class LabelSetCreateIn(BaseModel):
     recommend_status:        Optional[RecommendStatus]
     recommend_status_origin: Optional[LabelOrigin]
     checked:                 Optional[bool]
+
+
+class LabelSetPatch(BaseModel):
+    isbn:         str
+    patch_data:   LabelSetCreateIn
+    huey_pick:    bool
