@@ -15,8 +15,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.labelset_reading_ability_association import labelset_reading_ability_association_table
-from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_genre_association import labelset_genre_association_table
+from datetime import datetime
 
 class RecommendStatus(str, enum.Enum):
     GOOD = "GOOD" # Good to Recommend
@@ -91,11 +91,20 @@ class LabelSet(Base):
     info = Column(MutableDict.as_mutable(JSON))
 
     created_at = Column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime,
+        server_default=func.current_timestamp(),
+        default=datetime.utcnow,
+        nullable=False,
     )
-    updated_at = Column(DateTime, nullable=False, onupdate=func.current_timestamp())
+    updated_at = Column(
+        DateTime,
+        server_default=func.current_timestamp(),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
 
-    checked = Column(Boolean(), default=False)
+    checked = Column(Boolean(), nullable=False, default=False)
 
     def __repr__(self):
         return f"<LabelSet id={self.id} - '{self.work.title}'>"
