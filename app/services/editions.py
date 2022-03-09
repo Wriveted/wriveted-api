@@ -31,11 +31,13 @@ async def compare_known_editions(session, isbn_list: List[str]):
 async def create_missing_editions(session, new_edition_data: list[EditionCreateIn]):
     isbns = set()
     for edition in new_edition_data:
-        if len(edition.isbn) > 0:
-            try:
-                isbns.add(get_definitive_isbn(edition.isbn))
-            except:
-                continue
+        try:
+            clean = get_definitive_isbn(edition.isbn)
+            edition.isbn = clean
+            isbns.add(clean)
+        except:
+            logger.warning("Invalid isbn provided: " + edition.isbn)
+            continue
 
     existing_isbns = (
         session.execute(select(Edition.isbn).where(
@@ -47,27 +49,28 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
         .all()
     )
     isbns_to_create = isbns.difference(existing_isbns)
-    logger.info(f"Will have to create {len(isbns_to_create)} new editions")
 
     new_editions_hydrated = []
     new_editions_unhydrated = []
 
-    for data in new_edition_data: 
-        if data.isbn in isbns_to_create:
-            if data.hydrated:
-                new_editions_hydrated.append(data)
+    for edition in new_edition_data:
+        if edition.isbn in isbns_to_create:
+            if edition.hydrated:
+                new_editions_hydrated.append(edition)
             else:
-                new_editions_unhydrated.append(data)
+                new_editions_unhydrated.append(edition.isbn)
     
     if len(new_editions_hydrated) > 0:
+        logger.info(f"Will have to create {len(new_editions_hydrated)} new hydrated editions")
         crud.edition.create_in_bulk(session, bulk_edition_data=new_editions_hydrated)
         logger.info("Created new hydrated editions")
 
     if len(new_editions_unhydrated) > 0:
-        crud.edition.create_in_bulk_unhydrated(session, bulk_edition_data=new_editions_unhydrated)
+        logger.info(f"Will have to create {len(new_editions_unhydrated)} new unhydrated editions")
+        crud.edition.create_in_bulk_unhydrated(session, isbn_list=new_editions_unhydrated)
         logger.info("Created new unhydrated editions")
 
-    return isbns, isbns_to_create, existing_isbns
+    return isbns, len(new_editions_hydrated) + len(new_editions_unhydrated), existing_isbns
 
 
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):

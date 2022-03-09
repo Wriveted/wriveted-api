@@ -69,6 +69,12 @@ class LabelSetCreateIn(BaseModel):
     recommend_status_origin: Optional[LabelOrigin]
     checked:                 Optional[bool]
 
+    def empty(self):
+        for att in self.__dict__:
+            if getattr(self, att):
+                return False
+        return True
+
 
 class LabelSetPatch(BaseModel):
     isbn:         str
