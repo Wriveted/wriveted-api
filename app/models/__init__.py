@@ -3,6 +3,7 @@ from app.db.base_class import Base
 
 from .author import Author
 from .collection_item import CollectionItem
+from .labelset_hue_association import LabelSetHue
 from .country import Country
 from .edition import Edition
 from .series import Series

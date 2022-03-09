@@ -3,7 +3,7 @@ from app.models.genre import GenreSource
 
 class Genre(BaseModel):
     name: str
-    source: str
+    source: GenreSource
 
     class Config:
         orm_mode = True

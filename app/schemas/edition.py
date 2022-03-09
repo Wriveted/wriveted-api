@@ -28,7 +28,10 @@ class EditionInfo(BaseModel):
 
 
 class EditionBrief(BaseModel):
-    title:   Optional[str]
+    leading_article: Optional[str]
+    title:           Optional[str]
+    subtitle:        Optional[str]
+
     work_id: Optional[str]
     isbn:    str
     # school_count: int
@@ -37,21 +40,16 @@ class EditionBrief(BaseModel):
         orm_mode = True
 
 
-class EditionDetail(BaseModel):
-    work_id:        Optional[int]
-    title:          Optional[str] # should be the edition title with a fallback to the Works title
-    series_name:    Optional[str]
-    series_number:  Optional[int]
+class EditionDetail(EditionBrief):
+    series_name:     Optional[str]
+    series_number:   Optional[int]
 
-    authors:        list[AuthorBrief]
-    illustrators:   list[IllustratorBrief]
+    authors:         list[AuthorBrief]
+    illustrators:    list[IllustratorBrief]
 
-    cover_url:      Optional[AnyHttpUrl]
-    date_published: Optional[int]
-    info:           Optional[EditionInfo]
-
-    class Config:
-        orm_mode = True
+    cover_url:       Optional[AnyHttpUrl]
+    date_published:  Optional[int]
+    info:            Optional[EditionInfo]
 
 
 class EditionCreateIn(BaseModel):

@@ -9,12 +9,13 @@ from sqlalchemy import (
     String,
     Boolean,
     DateTime,
+    Text,
     func,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
-from app.models.labelset_hue_association import labelset_hue_association_table
+from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_genre_association import labelset_genre_association_table
 
 class RecommendStatus(str, enum.Enum):
@@ -30,6 +31,12 @@ class ReadingAbility(str, enum.Enum):
     TREEHOUSE = "The 13-Storey Treehouse"
     CHARLIE_CHOCOLATE = "Charlie and the Chocolate Factory"
     HARRY_POTTER = "Harry Potter and the Philosopher's Stone"
+
+class LabelOrigin(str, enum.Enum):
+    HUMAN = "Human-provided"
+    PREDICTED_NIELSEN = "Predicted based on metadata from Nielsen"
+    CLUSTER_RELEVANCE = "Relevance AI cluster"
+    CLUSTER_ZAINAB = "Original K-Means clustering by Zainab"
 
 # an abstraction of the "label" related properties of a Work, which are likely to be human-provided.
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed
@@ -47,11 +54,14 @@ class LabelSet(Base):
     # discerned via an 'ordinal' (primary/secondary/tertiary)
     hues = relationship(
         "Hue",
-        secondary=labelset_hue_association_table,
-        back_populates="labelsets",
+        secondary=LabelSetHue.__table__,
+        back_populates="labelsets", 
         lazy="selectin",
         order_by="desc(labelset_hue_association.c.ordinal)",
     )
+    hue_relationships = relationship("LabelSetHue")
+    
+    hue_origin = Column(Enum(LabelOrigin), nullable=True)
 
     genres = relationship(
         "Genre",
@@ -60,12 +70,18 @@ class LabelSet(Base):
         lazy="selectin",
     )
 
+    huey_summary = Column(Text, nullable=True)
+    summary_origin = Column(Enum(LabelOrigin), nullable=True)
+
     reading_ability = Column(Enum(ReadingAbility), nullable=True)
+    reading_ability_origin = Column(Enum(LabelOrigin), nullable=True)
 
     min_age = Column(Integer, nullable=True)
     max_age = Column(Integer, nullable=True)
+    age_origin = Column(Enum(LabelOrigin), nullable=True)
 
     recommend_status = Column(Enum(RecommendStatus), nullable=False, server_default="GOOD")
+    recommend_status_origin = Column(Enum(LabelOrigin), nullable=True)
 
     # both service accounts and users could potentially label works
     labelled_by_user_id = Column(

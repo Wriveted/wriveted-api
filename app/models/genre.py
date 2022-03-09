@@ -25,5 +25,13 @@ class Genre(Base):
 
     # TODO: add a join/proxy/relationship to be able to navigate the Works associated with a Genre
 
+    def __eq__(self, other):
+        return self.name==other.name\
+            and self.source==other.source
+
+    def __hash__(self):
+        return hash(('name', self.name,
+                    'source', self.source))
+
     def __repr__(self):
         return f"<Genre id={self.id} - '{self.name}'>"

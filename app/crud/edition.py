@@ -99,11 +99,12 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             edition.cover_url=edition_data.cover_url
         if edition_data.info:
             edition.info=edition_data.info.dict()
-        edition.hydrated = edition_data.hydrated
         if work:
             edition.work = work
         if illustrators:
             edition.illustrators = illustrators
+
+        edition.hydrated = edition_data.hydrated
 
         if commit:
             db.commit()
@@ -183,7 +184,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     def create_new_edition(self, session: Session, edition_data: EditionCreateIn, commit=True):
 
         clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
-        other_isbns = editions_service.clean_isbns(edition_data.other_isbns if edition_data.other_isbns else [])
+        other_isbns = editions_service.clean_isbns(edition_data.other_isbns if hasattr(edition_data, 'other_isbns') else [])
         other_isbns.discard(clean_isbn)
 
         # if edition already exists and is hydrated, skip. 
@@ -233,6 +234,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             )
         # from now on, the master work exists.
 
+        # create labelset if needed
+        if hasattr(edition_data, 'labelset'):
+            labelset = crud.labelset.get_or_create(work)
+            labelset = crud.labelset.patch(labelset, edition_data.labelset, commit=False)
+
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
         for isbn in other_isbns:
@@ -269,9 +275,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             edition = Edition(
                 isbn=editions_service.get_definitive_isbn(isbn)
             )
-        db.add(edition)
-        if commit :
-            db.commit()
+            db.add(edition)
+            if commit :
+                db.commit()
             
         return edition
 
