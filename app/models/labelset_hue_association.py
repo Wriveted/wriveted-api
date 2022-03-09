@@ -24,6 +24,5 @@ class LabelSetHue(Base):
         ForeignKey("hues.id", name="fk_labelset_hue_association_hue_id"),
         primary_key=True,
     )
-    labelset = relationship("Hue", lazy="joined")
 
     ordinal = Column("ordinal", Enum(Ordinal), primary_key=True)

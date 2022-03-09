@@ -2,7 +2,7 @@ from tkinter import Label
 from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
-from app.models.labelset import LabelOrigin, ReadingAbility, RecommendStatus
+from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas.genre import Genre
 from app.schemas.hue import Hue
 from uuid import UUID
@@ -23,7 +23,7 @@ class LabelSetDetail(LabelSetBrief):
     min_age:                 Optional[int]
     max_age:                 Optional[int]
     age_origin:              Optional[LabelOrigin]
-    reading_ability:         Optional[ReadingAbility]
+    reading_ability_keys:    Optional[list[str]]
     reading_ability_origin:  Optional[LabelOrigin]
 
     genres:                  list[Genre]
@@ -53,7 +53,7 @@ class LabelSetCreateIn(BaseModel):
     min_age:                 Optional[int]
     max_age:                 Optional[int]
     age_origin:              Optional[LabelOrigin]
-    reading_ability:         Optional[ReadingAbility]
+    reading_ability_keys:    Optional[list[str]]
     reading_ability_origin:  Optional[LabelOrigin]
 
     huey_summary:            Optional[str]

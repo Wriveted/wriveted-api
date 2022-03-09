@@ -10,10 +10,6 @@ class Hue(Base):
     key = Column(String(50), nullable=False, index=True, unique=True)
     name = Column(String(50), nullable=False, unique=True)
 
-    labelsets = relationship(
-        "LabelSet", secondary=LabelSetHue.__table__, back_populates="hues"
-    )
-
     # TODO: add a join/proxy/relationship to be able to navigate the Works associated with a Hue
 
     def __repr__(self):

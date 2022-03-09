@@ -14,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
-from app.models import labelset_reading_ability_association
+from app.models.labelset_reading_ability_association import labelset_reading_ability_association_table
 from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_genre_association import labelset_genre_association_table
 
@@ -52,14 +52,7 @@ class LabelSet(Base):
 
     # Handle Multiple Hues via a secondary association table,
     # discerned via an 'ordinal' (primary/secondary/tertiary)
-    hues = relationship(
-        "Hue",
-        secondary=LabelSetHue.__table__,
-        back_populates="labelsets", 
-        lazy="selectin",
-        order_by="desc(labelset_hue_association.c.ordinal)",
-    )
-    hue_relationships = relationship("LabelSetHue")    
+    hue_relationships = relationship("LabelSetHue", back_populates="labelset")    
     hue_origin = Column(Enum(LabelOrigin), nullable=True)
 
     genres = relationship(
@@ -74,7 +67,7 @@ class LabelSet(Base):
 
     reading_abilities = relationship(
         "ReadingAbility",
-        secondary=labelset_reading_ability_association,
+        secondary=labelset_reading_ability_association_table,
         back_populates="labelsets",
         lazy="selectin",
     )
