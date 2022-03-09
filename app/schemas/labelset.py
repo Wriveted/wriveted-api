@@ -1,4 +1,3 @@
-from tkinter import Label
 from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
