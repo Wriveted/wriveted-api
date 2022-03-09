@@ -102,7 +102,7 @@ async def bulk_add_editions(
     )
 
     return {
-        "msg": f"Bulk load of {len(isbns)} editions complete. Created {len(created)} new editions."
+        "msg": f"Bulk load of {len(isbns)} editions complete. Created {created} new editions."
     }
 
 

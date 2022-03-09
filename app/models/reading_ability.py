@@ -9,7 +9,7 @@ class ReadingAbility(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     key = Column(String(50), nullable=False, index=True, unique=True)
-    name = Column(String(50), nullable=False, unique=True)
+    name = Column(String(128), nullable=False, unique=True)
 
     labelsets = relationship(
         "LabelSet", secondary=labelset_reading_ability_association_table, back_populates="reading_abilities"

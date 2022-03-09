@@ -37,6 +37,7 @@ class LabelOrigin(str, enum.Enum):
     PREDICTED_NIELSEN = "PREDICTED_NIELSEN" # Predicted based on metadata from Nielsen
     CLUSTER_RELEVANCE = "CLUSTER_RELEVANCE" # Relevance AI cluster
     CLUSTER_ZAINAB = "CLUSTER_ZAINAB" # Original K-Means clustering by Zainab
+    OTHER = "OTHER"
 
 # an abstraction of the "label" related properties of a Work, which are likely to be human-provided.
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed

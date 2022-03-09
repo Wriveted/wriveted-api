@@ -133,7 +133,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             try:
                 definitive_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
             except:
-                logger.info("Invalid ISBN. Skipping...")
+                logger.warning(f"Invalid ISBN: {edition_data.isbn} - Skipping...")
                 continue
 
             if definitive_isbn not in seen_isbns:
@@ -206,15 +206,17 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 work = master_work
                 break
 
-        # Get or create the authors and illustrators
+        # Get or create the authors and illustrators (some data lists the same contributor multiple times, catch them too)
         authors = [
             crud_author.get_or_create(session, author_data, commit=False)
             for author_data in edition_data.authors
         ]
+        authors = list({author.id: author for author in authors}.values())
         illustrators = [
             crud_illustrator.get_or_create(session, illustrator_data, commit=False)
             for illustrator_data in edition_data.illustrators
         ]
+        illustrators = list({illustrator.id: illustrator for illustrator in illustrators}.values())
 
         # if this is the first time we've encountered this master work, create it
         # (or get it, in the case the other_isbns list wasn't comprehensive enough to detect it earlier)
@@ -235,9 +237,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         # from now on, the master work exists.
 
         # create labelset if needed
-        if hasattr(edition_data, 'labelset'):
-            labelset = crud.labelset.get_or_create(work)
-            labelset = crud.labelset.patch(labelset, edition_data.labelset, commit=False)
+        if edition_data.labelset and not edition_data.labelset.empty():
+            labelset = crud.labelset.get_or_create(session, work)
+            labelset = crud.labelset.patch(session, labelset, edition_data.labelset, commit=False)
 
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
@@ -285,7 +287,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
     # but since we know already have the isbns, i.e the pk's that are being inserted, we can refer to them later anyway.
     # After ensuring the list is added to the db, this returns the list of cleaned pk's.
-    async def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
+    def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
         clean_isbn_list = editions_service.clean_isbns(isbn_list)
         editions = [{"isbn" : isbn} for isbn in clean_isbn_list]
 

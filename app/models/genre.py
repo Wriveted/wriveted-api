@@ -16,7 +16,7 @@ class GenreSource(str, pyEnum):
 class Genre(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    name = Column(String(50), nullable=False, index=True, unique=True)
+    name = Column(String(128), nullable=False, index=True, unique=True)
     source = Column(Enum(GenreSource), nullable=False, default=GenreSource.OTHER)
 
     labelsets = relationship(
