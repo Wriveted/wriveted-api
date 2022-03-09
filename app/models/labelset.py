@@ -6,7 +6,6 @@ from sqlalchemy import (
     ForeignKey,
     Column,
     Integer,
-    String,
     Boolean,
     DateTime,
     Text,
@@ -15,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
+from app.models import labelset_reading_ability_association
 from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_genre_association import labelset_genre_association_table
 
@@ -25,12 +25,12 @@ class RecommendStatus(str, enum.Enum):
     BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL" # Contoversial content
     BAD_LOW_QUALITY = "BAD_LOW_QUALITY" # Not a great example
 
-class ReadingAbility(str, enum.Enum):
-    SPOT = "SPOT" # Where's Spot
-    CAT_HAT = "CAT_HAT" # Cat in the Hat
-    TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
-    CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
-    HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
+# class ReadingAbility(str, enum.Enum):
+    # SPOT = "SPOT" # Where's Spot
+    # CAT_HAT = "CAT_HAT" # Cat in the Hat
+    # TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
+    # CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
+    # HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
 
 class LabelOrigin(str, enum.Enum):
     HUMAN = "HUMAN" # Human-provided
@@ -59,8 +59,7 @@ class LabelSet(Base):
         lazy="selectin",
         order_by="desc(labelset_hue_association.c.ordinal)",
     )
-    hue_relationships = relationship("LabelSetHue")
-    
+    hue_relationships = relationship("LabelSetHue")    
     hue_origin = Column(Enum(LabelOrigin), nullable=True)
 
     genres = relationship(
@@ -73,7 +72,12 @@ class LabelSet(Base):
     huey_summary = Column(Text, nullable=True)
     summary_origin = Column(Enum(LabelOrigin), nullable=True)
 
-    reading_ability = Column(Enum(ReadingAbility), nullable=True)
+    reading_abilities = relationship(
+        "ReadingAbility",
+        secondary=labelset_reading_ability_association,
+        back_populates="labelsets",
+        lazy="selectin",
+    )
     reading_ability_origin = Column(Enum(LabelOrigin), nullable=True)
 
     min_age = Column(Integer, nullable=True)

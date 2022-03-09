@@ -18,3 +18,4 @@ from .labelset import LabelSet
 from .db_job import DbJob
 from .genre import Genre
 from .booklist import BookList
+from .reading_ability import ReadingAbility
