@@ -4,6 +4,7 @@ from pydantic import BaseModel, conint
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 
+
 class CollectionItemIn(BaseModel):
     isbn: str
     copies_total: Optional[conint(ge=0)] = None
@@ -12,7 +13,7 @@ class CollectionItemIn(BaseModel):
     class Config:
         orm_mode = True
 
-    
+
 class CollectionItemDetail(BaseModel):
     work: Optional[WorkBrief]
     edition: EditionBrief

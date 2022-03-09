@@ -1,16 +1,12 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
 # Set bash to exit immediately on any command failure
 set -e
-SCRIPT_DIR=$(dirname "$0")
-
 
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans
 docker-compose build --build-arg INSTALL_DEV=true
-
 docker-compose -f docker-compose.yml up -d
-
 docker-compose logs
 sleep 5
 

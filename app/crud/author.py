@@ -19,12 +19,15 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
         self, db: Session, author_data: AuthorCreateIn, commit=True
     ) -> Author:
 
-        q = select(Author).where(Author.name_key == first_last_to_name_key(author_data.first_name, author_data.last_name))
+        q = select(Author).where(
+            Author.name_key
+            == first_last_to_name_key(author_data.first_name, author_data.last_name)
+        )
         try:
             author = db.execute(q).scalar_one()
         except NoResultFound:
             author = self.create(db, obj_in=author_data, commit=commit)
-            
+
         return author
 
     def create_in_bulk(self, db: Session, *, bulk_author_data_in: List[AuthorCreateIn]):

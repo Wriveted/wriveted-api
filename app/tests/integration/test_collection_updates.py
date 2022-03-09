@@ -9,7 +9,7 @@ def test_collection_management(
     test_school,
     service_account_for_test_school,
     test_school_service_account_headers,
-    test_data_path
+    test_data_path,
 ):
     """
     Test out the collection mechanisms of the Wriveted API.
@@ -64,7 +64,7 @@ def test_collection_management(
 
     book_data = []
 
-    test_file_path = test_data_path / 'test-books.csv'
+    test_file_path = test_data_path / "test-books.csv"
     with open(test_file_path, newline="", encoding="utf-8") as csv_file:
         reader = csv.reader(csv_file)
 
@@ -135,8 +135,8 @@ def test_collection_management(
 
     assert len(book_data) > (INITIAL_NUMBER_OF_HYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS)
 
-    original_hydrated = book_data[:INITIAL_NUMBER_OF_HYDRATED_BOOKS]  
-    assert len(original_hydrated) == INITIAL_NUMBER_OF_HYDRATED_BOOKS  
+    original_hydrated = book_data[:INITIAL_NUMBER_OF_HYDRATED_BOOKS]
+    assert len(original_hydrated) == INITIAL_NUMBER_OF_HYDRATED_BOOKS
 
     # create INITIAL_NUMBER_OF_UNHYDRATED_BOOKS valid ISBN13s
     valid_isbns = [
@@ -175,7 +175,7 @@ def test_collection_management(
     )
     add_books_response.raise_for_status()
     print(add_books_response.json())
-    
+
     def randomize_loan_status(book_data):
         data = book_data.copy()
         data["copies_total"] = random.randint(2, 4)
@@ -215,7 +215,8 @@ def test_collection_management(
     print("Collection after adding (first 3):\n", collection[:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
-        len(collection) == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        len(collection)
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
     ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection)}"
 
     # Update the collection by changing the loan status of a subset of the books.
@@ -274,7 +275,8 @@ def test_collection_management(
     ]
 
     books_to_add = book_data[
-        INITIAL_NUMBER_OF_HYDRATED_BOOKS : INITIAL_NUMBER_OF_HYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS
+        INITIAL_NUMBER_OF_HYDRATED_BOOKS : INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + ADDED_NUMBER_OF_BOOKS
     ]
     collection_changes.extend(
         [
@@ -297,7 +299,7 @@ def test_collection_management(
     )
     updates_response.raise_for_status()
     print(updates_response.json())
-    
+
     print("Added and removed books from collection")
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
@@ -311,11 +313,17 @@ def test_collection_management(
         "Current collection size:",
         len(collection),
         "expected: ",
-        INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS,
+        INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + ADDED_NUMBER_OF_BOOKS
+        - REMOVED_NUMBER_OF_BOOKS,
     )
     assert (
         len(collection)
-        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS + ADDED_NUMBER_OF_BOOKS - REMOVED_NUMBER_OF_BOOKS
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + ADDED_NUMBER_OF_BOOKS
+        - REMOVED_NUMBER_OF_BOOKS
     )
 
     print(f"Processing took: {time.time() - start_time:.2f} seconds")

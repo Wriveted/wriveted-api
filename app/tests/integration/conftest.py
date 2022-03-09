@@ -22,7 +22,7 @@ def client():
 
 @pytest.fixture(scope="module")
 def test_data_path():
-    return Path(__file__).parent.parent / 'data'
+    return Path(__file__).parent.parent / "data"
 
 
 @pytest.fixture()
