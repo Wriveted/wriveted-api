@@ -5,8 +5,16 @@ from typing import Optional, Union
 
 import httpx
 from app.models.genre import Genre, GenreSource
-from app.models.labelset import LabelOrigin, ReadingAbility, RecommendStatus
+from app.models.labelset import LabelOrigin, RecommendStatus
 import jsonpickle
+
+READING_ABILITY_MAP = {
+    "Spot": "SPOT",
+    "Cat The Hat": "CAT_HAT",
+    "Treehouse": "TREEHOUSE",
+    "Charlie and The Chocolate Factory": "CHARLIE_CHOCOLATE",
+    "Harry Potter": "HARRY_POTTER"
+}
 
 class LabelSetCreateIn():
     hue_primary_key:         Optional[str]
@@ -16,7 +24,7 @@ class LabelSetCreateIn():
     min_age:                 Optional[int]
     max_age:                 Optional[int]
     age_origin:              Optional[LabelOrigin]
-    reading_ability:         Optional[ReadingAbility]
+    reading_ability_keys:    Optional[list[str]]
     reading_ability_origin:  Optional[LabelOrigin]
     huey_summary:            Optional[str]
     summary_origin:          Optional[LabelOrigin]
@@ -29,7 +37,7 @@ class LabelSetCreateIn():
 class LabelSetPatch():
     isbn:       str
     patch_data: LabelSetCreateIn
-    huey_pick: bool
+    huey_pick:  bool
 
     def __init__(self, isbn, patch_data, huey_pick):
         self.isbn = isbn
@@ -50,6 +58,7 @@ for book in book_data:
     cleaned = LabelSetCreateIn()
     huey_pick = False
 
+
     # age
     age_tags = [int(a) for a in book['Age_TAG'].split(',') if a and a.isnumeric]
     min_str = book['Min Age']
@@ -66,21 +75,26 @@ for book in book_data:
     else:
         cleaned.age_origin = LabelOrigin.PREDICTED_NIELSEN.name
 
-    # reading ability
-    reading_ability_string = book['reading_ability']
-    match reading_ability_string:
-        case 'Spot': cleaned.reading_ability = ReadingAbility.SPOT.name
-        case 'Cat The Hat': cleaned.reading_ability = ReadingAbility.CAT_HAT.name
-        case 'Treehouse': cleaned.reading_ability = ReadingAbility.TREEHOUSE.name
-        case 'Charlie and The Chocolate Factory': cleaned.reading_ability = ReadingAbility.CHARLIE_CHOCOLATE.name
-        case 'Harry Potter': cleaned.reading_ability = ReadingAbility.HARRY_POTTER.name
-    if reading_ability_string:
-        cleaned.age_origin = LabelOrigin.HUMAN.name if 'Human' in book['Reading ability origin'] else LabelOrigin.PREDICTED_NIELSEN.name
+
+    # reading abilities
+    reading_abilities = book['reading_ability'].split(',')
+    cleaned.reading_ability_keys = []
+    for ra in reading_abilities:
+        try:
+            cleaned.reading_ability_keys.append(READING_ABILITY_MAP[ra])
+        except KeyError:
+            continue
+
+    if cleaned.reading_ability_keys:
+        cleaned.reading_ability_origin = LabelOrigin.HUMAN.name if 'Human' in book['Reading ability origin'] else LabelOrigin.PREDICTED_NIELSEN.name
+        
 
     # huey summary
     cleaned.huey_summary = book['Scout Summary'] if book['Scout Summary'] else None
+    cleaned.summary_origin = "HUMAN" if cleaned.huey_summary else None
 
-    # hues - sometimes there are multiple primary/secondary/tertiary, so we construct an ordered pool from which to grab a single hue for each,
+    # hues
+    # sometimes there are multiples in `primary/secondary/tertiary, so we construct an ordered pool from which to grab a single hue for each,
     # keeping priority order. i.e. if a book has two primary hues and one secondary hue, the two primaries will now fill primary and secondary,
     # and the old secondary gets bumped to tertiary
     primary_hues = [h.replace('DO NOT USE hue04_charming joyful', 'hue08_charming_inspiring') for h in book['Hue Primary'].split(',')]
@@ -126,7 +140,7 @@ json_body = json.loads(body)
 response = httpx.patch(
     "http://localhost:8000/v1/labelsets",
     json=json_body,
-    headers={"Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDcwNzI1OTEsImlhdCI6MTY0NjM4MTM5MSwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjEyZDA5Mjg4LWU5MjAtNGFkMS04NmQzLTEyNTdjNGFhZGExMCJ9.PJB6UgS9fliBtyh4Mxaq8rHF6LDDIS9M988iaswyMhQ"},
+    headers={"Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc1MzIwMDQsImlhdCI6MTY0Njg0MDgwNCwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjkxODRjNzY5LTU5NDctNGMyMy1iNWU0LTVlODYxMjQ4NTdmZSJ9.gKiCthLLEswpj2F-FO2FgSU0NCY5aI1ztKz65nczrzw"},
     timeout=120,
 )
 try:

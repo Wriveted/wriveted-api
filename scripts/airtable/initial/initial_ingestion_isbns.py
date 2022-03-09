@@ -1,5 +1,6 @@
 # One-off script to ingest the initial ~5k books from airtable, creating unhydrated editions
 
+import os
 import httpx
 from examples.config import settings
 
@@ -27,9 +28,12 @@ is_admin = (
 assert is_admin  
 
 isbns: list[str] = []  
-with open('initial_isbns') as isbn_file:  
+
+here = os.path.dirname(os.path.abspath(__file__))
+filename = os.path.join(here, 'initial_isbns.txt')
+with open(filename) as isbn_file:  
     for line in isbn_file:
-        isbns.append(line.strip())
+        isbns.append({"isbn": line.strip()})
 
 print(
     f"Adding the {len(isbns)} unhydrated airtable books to db"
