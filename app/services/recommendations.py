@@ -102,6 +102,7 @@ def get_school_specific_edition_and_labelset_query(school_id, labelset_query):
             .where(CollectionItem.edition_isbn == Edition.isbn)
             .where(CollectionItem.work_id.in_(work_id_query))
             .where(LabelSet.work_id == Edition.work_id)
+            .where(Edition.cover_url.is_not(None))
     )
 
 
@@ -117,6 +118,7 @@ def get_any_edition_and_labelset_query(labelset_query):
         select(Edition, LabelSet)
             .where(LabelSet.work_id == Edition.work_id)
             .where(Edition.work_id.in_(work_id_query))
+            .where(Edition.cover_url.is_not(None))
             .distinct(LabelSet.id)
 
     )
