@@ -38,25 +38,23 @@ def get_recommended_labelset_query(
             select(Work)
                 .join(CollectionItem, CollectionItem.work_id == Work.id)
                 .where(CollectionItem.school == school)
-                .distinct(Work.id)
         )
     else:
         base_works_query = (crud.work.get_all_query(db=session))
 
 
-    logger.debug("Base works query", query=base_works_query)
+    logger.debug("Base works query", query=str(base_works_query))
 
     # Labelset Ids from hues
-    labelset_id_query = (select(LabelSetHue.labelset_id))
-
-    if hues is not None:
-        hue_ids_query = (
-            select(Hue.id)
-                .where(Hue.key.in_(hues))
-        )
-        labelset_id_query = labelset_id_query.where(LabelSetHue.hue_id.in_(hue_ids_query))
-
-    labelset_id_query = labelset_id_query.order_by(LabelSetHue.ordinal.asc())
+    hue_ids_query = (
+        select(Hue.id)
+            .where(Hue.key.in_(hues))
+    )
+    labelset_id_query = (
+        select(LabelSetHue.labelset_id)
+            .where(LabelSetHue.hue_id.in_(hue_ids_query))
+            .order_by(LabelSetHue.ordinal.asc())
+    )
 
     work_subquery = aliased(Work, base_works_query.subquery())
     work_ids_query = select(Work.id).select_from(work_subquery)

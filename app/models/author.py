@@ -50,7 +50,8 @@ class Author(Base):
                 author_work_association_table.c.work_id == Work.id,
             )
         )
-        .scalar_subquery()
+        .scalar_subquery(),
+        deferred=True
     )
 
     def __repr__(self):

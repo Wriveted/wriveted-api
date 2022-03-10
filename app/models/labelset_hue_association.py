@@ -9,6 +9,7 @@ class Ordinal(str, enum.Enum):
     SECONDARY = "secondary"
     TERTIARY = "tertiary"
 
+
 class LabelSetHue(Base):
     __tablename__ = "labelset_hue_association"
 
@@ -17,7 +18,7 @@ class LabelSetHue(Base):
         ForeignKey("labelsets.id", name="fk_labelset_hue_association_labelset_id"),
         primary_key=True,
     )
-    labelset = relationship("LabelSet", lazy="joined")
+    labelset = relationship("LabelSet", viewonly=True)
 
     hue_id = Column(
         "hue_id",

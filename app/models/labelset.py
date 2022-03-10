@@ -58,7 +58,7 @@ class LabelSet(Base):
         secondary=LabelSetHue.__table__,
         lazy="selectin",
     )
-    hue_relationships = relationship("LabelSetHue", back_populates="labelset")    
+
     hue_origin = Column(Enum(LabelOrigin), nullable=True)
 
     huey_summary = Column(Text, nullable=True)
