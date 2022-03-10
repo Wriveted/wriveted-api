@@ -45,23 +45,23 @@ async def get_works(
     # any reading ability match
     # any hue match
 
-    stmt = session.query(CollectionItem, Edition, Work, LabelSet, Hue, ReadingAbility) \
-        .select_from(CollectionItem).join(Edition).join(Work).join(LabelSet).join(LabelSet.hues).join(LabelSet.reading_abilities) \
-        .filter(
-            and_(
-                CollectionItem.school_id == school_id,
-                # LabelSet.checked,
-                LabelSet.min_age <= age,
-                LabelSet.max_age >= age,
-                # LabelSet.hues.any(Hue.key in hues),
-                # LabelSet.reading_abilities.any(ReadingAbility.key == reading_ability),
-                # LabelSet.huey_summary IS NOT NULL
-            )
-        ) \
-        .limit(5)
+    # stmt = session.query(CollectionItem, Edition, Work, LabelSet, Hue, ReadingAbility) \
+    #     .select_from(CollectionItem).join(Edition).join(Work).join(LabelSet).join(LabelSet.hues).join(LabelSet.reading_abilities) \
+    #     .filter(
+    #         and_(
+    #             CollectionItem.school_id == school_id,
+    #             # LabelSet.checked,
+    #             LabelSet.min_age <= age,
+    #             LabelSet.max_age >= age,
+    #             # LabelSet.hues.any(Hue.key in hues),
+    #             # LabelSet.reading_abilities.any(ReadingAbility.key == reading_ability),
+    #             # LabelSet.huey_summary IS NOT NULL
+    #         )
+    #     ) \
+    #     .limit(5)
 
-    result = session.execute(stmt.where(LabelSet.hues.any(Hue.key in hues)))
-    print(result)
+    # result = session.execute(stmt.where(LabelSet.hues.any(Hue.key in hues)))
+    # print(result)
 
 
     # fallback logic can come later when booklists are implented
@@ -80,6 +80,44 @@ async def get_works(
     # editions: list[Edition] = session.execute(main_q).scalars().all()
     
     # return [{"cover_url": e.cover_url, "display_title": e.title, "authors_string": e.get_authors_string(), "summary": e.work.labelset.huey_summary} for e in editions]
+
+    return [
+        HueyOutput(
+            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+            display_title="Beware of The Storybook Wolves", 
+            authors_title="Lauren Child", 
+            summary="For a real thrill, try reading Beware of the Storybook Wolves. It will scare your socks off!" +
+            " A fun-filled picture book with a fairytale twist, from Children's Laureate, and Charlie & Lola creator, Lauren Child."
+        ),
+            HueyOutput(
+            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+            display_title="Bewa2re of The2 Story2book Wolves222", 
+            authors_title="Laur2en Ch2i2ld", 
+            summary="For a real 2thrill, try r2eading Beware of the Storybook Wol2ves. It will 2scare your socks off!" +
+            " A fun-filled picture book with a fairytale twi2st, from Child2ren's Laureate, and Charl2ie & Lola creator, Lauren Child."
+        ),
+            HueyOutput(
+            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+            display_title="Beware 3of The Storybook Wolves333", 
+            authors_title="Laur3en Child", 
+            summary="For a re3al thrill, try reading Bewa3re of the Storybook Wolves. It w3ill scare y3our socks off!" +
+            " A fun-filled 3picture book with a fa3irytale twist, from Children's L3aureate, and 3Charlie & Lola creator, Lauren Child."
+        ),
+            HueyOutput(
+            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+            display_title="Bew44are 4of The St4orybook W4ol4ves", 
+            authors_title="Laure4n Child",
+            summary="For a real 4thrill, try reading Beware4 of the 4Storybook Wolves. It will scare your socks off!" +
+            " A fun-fille4d picture book w4ith a fairytale twist, from Ch4ildren's Laure4ate, and 4Charlie & Lola creator, Lauren Child."
+        ),
+            HueyOutput(
+            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+            display_title="Bewar5e of The 5Storybook Wolves", 
+            authors_title="5Laur5en 5Child", 
+            summary="For a real t5hrill, try reading B5eware of the Storybook Wo5lves555. It will scare your socks55 off!" +
+            " A fun-filled p55icture book5 with a5 fairytale twist,5 from Chi5ldren's Laureate, and Charlie5 & 5Lola creator, Lauren Child."
+        ),
+    ]
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail)
