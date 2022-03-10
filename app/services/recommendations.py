@@ -105,3 +105,19 @@ def get_school_specific_edition_and_labelset_query(school_id, labelset_query):
     )
 
 
+def get_any_edition_and_labelset_query(labelset_query):
+    # This time include any edition for the recommended works
+    labelset_subq = aliased(LabelSet, labelset_query.subquery())
+    work_id_query = (
+        select(Work.id)
+            .join_from(Work, labelset_subq)
+    )
+
+    return (
+        select(Edition, LabelSet)
+            .where(LabelSet.work_id == Edition.work_id)
+            .where(Edition.work_id.in_(work_id_query))
+            .distinct(LabelSet.id)
+
+    )
+

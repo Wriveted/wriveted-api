@@ -5,12 +5,16 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-
+from app.api.dependencies.school import get_optional_school_from_wriveted_id_query, get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
+from app.models import School
+from app.permissions import Permission
 from app.schemas.recommendations import HueyBook, HueyOutput
+from app.services.events import create_event
 
-from app.services.recommendations import get_recommended_labelset_query, get_school_specific_edition_and_labelset_query
+from app.services.recommendations import get_any_edition_and_labelset_query, get_recommended_labelset_query, \
+    get_school_specific_edition_and_labelset_query
 
 router = APIRouter(
     tags=["Recommendations"],
@@ -45,30 +49,48 @@ class HueKeys(str, enum.Enum):
 @router.get("/recommendations", response_model=HueyOutput)
 async def get_recommendations(
         hues: list[HueKeys] = Query(None),
-        school_id: Optional[int] = Query(None),
+        #school: Optional[School] = Depends(get_optional_school_from_wriveted_id_query),
+        school: Optional[School] = Permission("read", get_optional_school_from_wriveted_id_query),
         age: Optional[int] = Query(None),
         reading_ability: Optional[ReadingAbilityKey] = Query(None),
 
         # pagination: PaginatedQueryParams = Depends(),
+        account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session),
 ):
     """
     Fetch labeled works as recommended by Huey.
-    """
-    labelset_query = get_recommended_labelset_query(
-        session,
-        hues=hues,
-        school_id=school_id,
-        age=age,
-        reading_ability=reading_ability
-    )
 
-    edition_labelset_query = get_school_specific_edition_and_labelset_query(school_id, labelset_query)
-    row_results = session.execute(edition_labelset_query.limit(5)).all()
+    Note this endpoint is limited to returning 5 recommendations at a time.
+    """
+    school_id = school.id if school is not None else None
+    row_results = get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age)
+
+    if len(row_results) == 0:
+        create_event(
+            session,
+            title="No books",
+            description="No books met the criteria for recommendation",
+            school=school,
+            account=account
+        )
+
+        # proper fallback logic can come later when booklists are implemented
+        # For now lets just strip the optional reading ability and try again
+        row_results = get_recommended_editions_and_labelsets(session, school_id=school_id, hues=hues, reading_ability=None, age=age)
+
+        if len(row_results) == 0:
+            # Still nothing... alright let's recommend outside the school collection
+            row_results = get_recommended_editions_and_labelsets(session, school_id=None, hues=hues, reading_ability=None, age=age)
+
     logger.info(f"Recommending {len(row_results)} books")
 
-    # fallback logic can come later when booklists are implemented
-
+    create_event(
+            session,
+            title="Made a recommendation",
+            description=f"Recommended {len(row_results)} books",
+            school=school, account=account
+        )
     return {
         "count": len(row_results),
         "books":[
@@ -80,3 +102,20 @@ async def get_recommendations(
             ) for (edition, labelset) in row_results
         ]
     }
+
+
+def get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age):
+    labelset_query = get_recommended_labelset_query(
+        session,
+        hues=hues,
+        school_id=school_id,
+        age=age,
+        reading_ability=reading_ability
+    )
+    if school_id is not None:
+        edition_labelset_query = get_school_specific_edition_and_labelset_query(school_id, labelset_query)
+    else:
+        edition_labelset_query = get_any_edition_and_labelset_query(labelset_query)
+
+    row_results = session.execute(edition_labelset_query.limit(5)).all()
+    return row_results
