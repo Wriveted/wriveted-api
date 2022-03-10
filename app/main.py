@@ -27,19 +27,20 @@ The API is designed for use by multiple users:
 - **Library Management Systems**. In particular see the section on 
   updating and setting Schools collections.
 - **Wriveted Staff** either directly via scripts or via an admin UI.
-- **Huey** chatbot (eventually)
+- **Huey** chatbot
 
-Note all requests require credentials, with the exceptions of getting the application
-version and security policy.
+Note all requests require credentials, with the exceptions of getting public information on 
+schools, the application version, and the security policy.
 
 ## 🔐 Authentication
 
-The good news is that as an API user should just need to send an access token
+The good news is that as an API user you just need to send an access token
 in the `Authorization` header and all endpoints should *just work*. The
 notable exception being the `/auth/firebase` endpoint which exchanges a firebase
 SSO token for a Wriveted API Access Token.
 
-As a developer your access token will be provided to you by the Wriveted team.
+As a LMS integrator or developer your access token will be provided to you by the 
+Wriveted team.
 
 You can check it by calling the `GET /auth/me` endpoint.
 
@@ -47,7 +48,6 @@ You can check it by calling the `GET /auth/me` endpoint.
 
 The API implements role based access control, only particular roles are allowed
 to add new schools or edit collections.
-
 
 """
 )
@@ -66,7 +66,7 @@ app = FastAPI(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    logger.warning(f"The client sent invalid data!: {exc}")
+    logger.warning(f"The client sent invalid data!: {exc}", request=request.url,)
     return await request_validation_exception_handler(request, exc)
 
 
