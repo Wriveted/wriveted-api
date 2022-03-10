@@ -56,3 +56,9 @@ class Author(Base):
 
     def __repr__(self):
         return f"<Author id={self.id} - '{self.first_name} {self.last_name} '>"
+
+    def __str__(self):
+        if self.first_name is not None:
+            return f"{self.first_name} {self.last_name}"
+        else:
+            return self.last_name

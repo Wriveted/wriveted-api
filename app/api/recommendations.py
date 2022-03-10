@@ -10,7 +10,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.schemas.recommendations import HueyBook, HueyOutput
 
-from app.services.recommendations import get_recommended_labelset_query
+from app.services.recommendations import get_recommended_labelset_query, get_school_specific_edition_and_labelset_query
 
 router = APIRouter(
     tags=["Recommendations"],
@@ -63,48 +63,20 @@ async def get_recommendations(
         reading_ability=reading_ability
     )
 
-    labelsets = session.execute(labelset_query.limit(5)).scalars().all()
-    logger.info(f"Recommending {len(labelsets)}", recommendations=labelsets)
+    edition_labelset_query = get_school_specific_edition_and_labelset_query(school_id, labelset_query)
+    row_results = session.execute(edition_labelset_query.limit(5)).all()
+    logger.info(f"Recommending {len(row_results)} books")
 
     # fallback logic can come later when booklists are implemented
 
     return {
-        "count": 5,
+        "count": len(row_results),
         "books":[
             HueyBook(
-                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-                display_title="Beware of The Storybook Wolves",
-                authors_string="Lauren Child",
-                summary="For a real thrill, try reading Beware of the Storybook Wolves. It will scare your socks off!" +
-                        " A fun-filled picture book with a fairytale twist, from Children's Laureate, and Charlie & Lola creator, Lauren Child."
-            ),
-            HueyBook(
-                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-                display_title="Bewa2re of The2 Story2book Wolves222",
-                authors_string="Laur2en Ch2i2ld",
-                summary="For a real 2thrill, try r2eading Beware of the Storybook Wol2ves. It will 2scare your socks off!" +
-                        " A fun-filled picture book with a fairytale twi2st, from Child2ren's Laureate, and Charl2ie & Lola creator, Lauren Child."
-            ),
-            HueyBook(
-                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-                display_title="Beware 3of The Storybook Wolves333",
-                authors_string="Laur3en Child",
-                summary="For a re3al thrill, try reading Bewa3re of the Storybook Wolves. It w3ill scare y3our socks off!" +
-                        " A fun-filled 3picture book with a fa3irytale twist, from Children's L3aureate, and 3Charlie & Lola creator, Lauren Child."
-            ),
-            HueyBook(
-                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-                display_title="Bew44are 4of The St4orybook W4ol4ves",
-                authors_string="Laure4n Child",
-                summary="For a real 4thrill, try reading Beware4 of the 4Storybook Wolves. It will scare your socks off!" +
-                        " A fun-fille4d picture book w4ith a fairytale twist, from Ch4ildren's Laure4ate, and 4Charlie & Lola creator, Lauren Child."
-            ),
-            HueyBook(
-                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-                display_title="Bewar5e of The 5Storybook Wolves",
-                authors_string="5Laur5en 5Child",
-                summary="For a real t5hrill, try reading B5eware of the Storybook Wo5lves555. It will scare your socks55 off!" +
-                        " A fun-filled p55icture book5 with a5 fairytale twist,5 from Chi5ldren's Laureate, and Charlie5 & 5Lola creator, Lauren Child."
-            ),
+                cover_url=edition.cover_url,
+                display_title=edition.title,
+                authors_string=', '.join(str(a) for a in labelset.work.authors),
+                summary=labelset.huey_summary
+            ) for (edition, labelset) in row_results
         ]
     }

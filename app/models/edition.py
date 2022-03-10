@@ -104,4 +104,4 @@ class Edition(Base):
     # -------------------------------------------------------------------------------------------------------------------------
 
     def __repr__(self):
-        return f"<Edition '{self.isbn}'>"
+        return f"<Edition '{self.isbn}', {self.title}>"

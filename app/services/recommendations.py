@@ -42,9 +42,6 @@ def get_recommended_labelset_query(
     else:
         base_works_query = (crud.work.get_all_query(db=session))
 
-
-    logger.debug("Base works query", query=str(base_works_query))
-
     # Labelset Ids from hues
     hue_ids_query = (
         select(Hue.id)
@@ -64,6 +61,7 @@ def get_recommended_labelset_query(
             .join(Work, Work.id == LabelSet.work_id)
             .where(LabelSet.id.in_(labelset_id_query))
             .where(LabelSet.work_id.in_(work_ids_query))
+
     )
 
     if reading_ability is not None:
@@ -87,4 +85,23 @@ def get_recommended_labelset_query(
         )
 
     return labelset_query
+
+
+def get_school_specific_edition_and_labelset_query(school_id, labelset_query):
+    # Now "just" include the correct edition...
+    labelset_subq = aliased(LabelSet, labelset_query.subquery())
+    work_id_query = (
+        select(Work.id)
+            .join_from(Work, labelset_subq)
+    )
+
+    return (
+        select(Edition, LabelSet)
+            .select_from(CollectionItem)
+            .where(CollectionItem.school_id == school_id)
+            .where(CollectionItem.edition_isbn == Edition.isbn)
+            .where(CollectionItem.work_id.in_(work_id_query))
+            .where(LabelSet.work_id == Edition.work_id)
+    )
+
 
