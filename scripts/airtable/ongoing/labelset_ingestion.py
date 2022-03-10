@@ -1,7 +1,6 @@
 import csv
 import json
-from typing import Optional, Union
-
+from typing import Optional
 import httpx
 from app.models.labelset import LabelOrigin, RecommendStatus
 import jsonpickle
