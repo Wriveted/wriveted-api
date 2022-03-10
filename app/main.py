@@ -1,3 +1,6 @@
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+
 from app.config import get_settings
 
 import textwrap
@@ -59,6 +62,12 @@ app = FastAPI(
     redoc_url="/v1/redoc",
     debug=settings.DEBUG,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    logger.warning(f"The client sent invalid data!: {exc}")
+    return await request_validation_exception_handler(request, exc)
 
 
 async def catch_exceptions_middleware(request: Request, call_next):
