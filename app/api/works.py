@@ -21,13 +21,17 @@ router = APIRouter(
     # tags=["Books"], dependencies=[Depends(get_current_active_user_or_service_account)]
 )
 
-class HueyOutput(BaseModel):
+class HueyBook(BaseModel):
     cover_url: str
     display_title: str # {leading article} {title} (leading article is optional, thus bridging whitespace optional)
     authors_string: str # {a1.first_name} {a1.last_name}, {a2.first_name} {a2.last_name} ... (first name is optional, thus bridging whitespace optional)
     summary: str
 
-@router.get("/works", response_model=list[HueyOutput])
+class HueyOutput(BaseModel):
+    count: int
+    books: list[HueyBook]
+
+@router.get("/works", response_model=HueyOutput)
 async def get_works(
     school_id: int = Query(None),
     age: int = Query(None),
@@ -81,43 +85,46 @@ async def get_works(
     
     # return [{"cover_url": e.cover_url, "display_title": e.title, "authors_string": e.get_authors_string(), "summary": e.work.labelset.huey_summary} for e in editions]
 
-    return [
-        HueyOutput(
-            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-            display_title="Beware of The Storybook Wolves", 
-            authors_string="Lauren Child", 
-            summary="For a real thrill, try reading Beware of the Storybook Wolves. It will scare your socks off!" +
-            " A fun-filled picture book with a fairytale twist, from Children's Laureate, and Charlie & Lola creator, Lauren Child."
-        ),
-            HueyOutput(
-            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-            display_title="Bewa2re of The2 Story2book Wolves222", 
-            authors_string="Laur2en Ch2i2ld", 
-            summary="For a real 2thrill, try r2eading Beware of the Storybook Wol2ves. It will 2scare your socks off!" +
-            " A fun-filled picture book with a fairytale twi2st, from Child2ren's Laureate, and Charl2ie & Lola creator, Lauren Child."
-        ),
-            HueyOutput(
-            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-            display_title="Beware 3of The Storybook Wolves333", 
-            authors_string="Laur3en Child", 
-            summary="For a re3al thrill, try reading Bewa3re of the Storybook Wolves. It w3ill scare y3our socks off!" +
-            " A fun-filled 3picture book with a fa3irytale twist, from Children's L3aureate, and 3Charlie & Lola creator, Lauren Child."
-        ),
-            HueyOutput(
-            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-            display_title="Bew44are 4of The St4orybook W4ol4ves", 
-            authors_string="Laure4n Child",
-            summary="For a real 4thrill, try reading Beware4 of the 4Storybook Wolves. It will scare your socks off!" +
-            " A fun-fille4d picture book w4ith a fairytale twist, from Ch4ildren's Laure4ate, and 4Charlie & Lola creator, Lauren Child."
-        ),
-            HueyOutput(
-            cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
-            display_title="Bewar5e of The 5Storybook Wolves", 
-            authors_string="5Laur5en 5Child", 
-            summary="For a real t5hrill, try reading B5eware of the Storybook Wo5lves555. It will scare your socks55 off!" +
-            " A fun-filled p55icture book5 with a5 fairytale twist,5 from Chi5ldren's Laureate, and Charlie5 & 5Lola creator, Lauren Child."
-        ),
-    ]
+    return {
+        "count":5, 
+        "books":[
+            HueyBook(
+                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+                display_title="Beware of The Storybook Wolves", 
+                authors_string="Lauren Child", 
+                summary="For a real thrill, try reading Beware of the Storybook Wolves. It will scare your socks off!" +
+                " A fun-filled picture book with a fairytale twist, from Children's Laureate, and Charlie & Lola creator, Lauren Child."
+            ),
+            HueyBook(
+                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+                display_title="Bewa2re of The2 Story2book Wolves222", 
+                authors_string="Laur2en Ch2i2ld", 
+                summary="For a real 2thrill, try r2eading Beware of the Storybook Wol2ves. It will 2scare your socks off!" +
+                " A fun-filled picture book with a fairytale twi2st, from Child2ren's Laureate, and Charl2ie & Lola creator, Lauren Child."
+            ),
+            HueyBook(
+                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+                display_title="Beware 3of The Storybook Wolves333", 
+                authors_string="Laur3en Child", 
+                summary="For a re3al thrill, try reading Bewa3re of the Storybook Wolves. It w3ill scare y3our socks off!" +
+                " A fun-filled 3picture book with a fa3irytale twist, from Children's L3aureate, and 3Charlie & Lola creator, Lauren Child."
+            ),
+            HueyBook(
+                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+                display_title="Bew44are 4of The St4orybook W4ol4ves", 
+                authors_string="Laure4n Child",
+                summary="For a real 4thrill, try reading Beware4 of the 4Storybook Wolves. It will scare your socks off!" +
+                " A fun-fille4d picture book w4ith a fairytale twist, from Ch4ildren's Laure4ate, and 4Charlie & Lola creator, Lauren Child."
+            ),
+            HueyBook(
+                cover_url="https://storage.googleapis.com/wriveted-cover-images/nielsen/9781408314807.jpg",
+                display_title="Bewar5e of The 5Storybook Wolves", 
+                authors_string="5Laur5en 5Child", 
+                summary="For a real t5hrill, try reading B5eware of the Storybook Wo5lves555. It will scare your socks55 off!" +
+                " A fun-filled p55icture book5 with a5 fairytale twist,5 from Chi5ldren's Laureate, and Charlie5 & 5Lola creator, Lauren Child."
+            ),
+        ]
+    }
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail)
