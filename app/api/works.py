@@ -23,8 +23,8 @@ router = APIRouter(
 
 class HueyOutput(BaseModel):
     cover_url: str
-    display_title: str
-    authors_string: str
+    display_title: str # {leading article} {title} (leading article is optional, thus bridging whitespace optional)
+    authors_string: str # {a1.first_name} {a1.last_name}, {a2.first_name} {a2.last_name} ... (first name is optional, thus bridging whitespace optional)
     summary: str
 
 @router.get("/works", response_model=List[HueyOutput])
@@ -36,17 +36,21 @@ async def get_works(
     # pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
+    """A multiple-parameter query intended for fetching book data for Huey chats."""
+
+    # select from 
 
     stmt = session.query(CollectionItem, Edition, Work, LabelSet, Hue, ReadingAbility) \
         .select_from(CollectionItem).join(Edition).join(Work).join(LabelSet).join(LabelSet.hues).join(LabelSet.reading_abilities) \
         .filter(
             and_(
                 CollectionItem.school_id == school_id,
-                LabelSet.checked,
+                # LabelSet.checked,
                 LabelSet.min_age <= age,
                 LabelSet.max_age >= age,
                 # LabelSet.hues.any(Hue.key in hues),
-                # LabelSet.reading_abilities.any(ReadingAbility.key == reading_ability)
+                # LabelSet.reading_abilities.any(ReadingAbility.key == reading_ability),
+                # LabelSet.huey_summary IS NOT NULL
             )
         )
 
@@ -55,7 +59,7 @@ async def get_works(
 
 
     # fallback logic can come later when booklists are implented
-    
+
     # fallback_q = select(Edition).where(
     #     and_(
     #         Edition.work.booklists.any(BookList.key == "wriveted_huey_picks"),
