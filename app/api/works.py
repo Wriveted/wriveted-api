@@ -27,7 +27,7 @@ class HueyOutput(BaseModel):
     authors_string: str # {a1.first_name} {a1.last_name}, {a2.first_name} {a2.last_name} ... (first name is optional, thus bridging whitespace optional)
     summary: str
 
-@router.get("/works", response_model=List[HueyOutput])
+@router.get("/works", response_model=list[HueyOutput])
 async def get_works(
     school_id: int = Query(None),
     age: int = Query(None),
@@ -36,9 +36,14 @@ async def get_works(
     # pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    """A multiple-parameter query intended for fetching book data for Huey chats."""
+    """A multiple-parameter query intended for fetching book data for Huey chats.
+    Should probably have its own endpoint since it doesn't really belong to a single tabular concept"""
 
-    # select from 
+    # select collection_item as ci where ci.school_id = school_id 
+    # and ci.edition.work.labelset.min_age >= age
+    # and ci.edition.work.labelset.max_age <= age
+    # any reading ability match
+    # any hue match
 
     stmt = session.query(CollectionItem, Edition, Work, LabelSet, Hue, ReadingAbility) \
         .select_from(CollectionItem).join(Edition).join(Work).join(LabelSet).join(LabelSet.hues).join(LabelSet.reading_abilities) \
@@ -52,7 +57,8 @@ async def get_works(
                 # LabelSet.reading_abilities.any(ReadingAbility.key == reading_ability),
                 # LabelSet.huey_summary IS NOT NULL
             )
-        )
+        ) \
+        .limit(5)
 
     result = session.execute(stmt.where(LabelSet.hues.any(Hue.key in hues)))
     print(result)
