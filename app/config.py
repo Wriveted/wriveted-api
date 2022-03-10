@@ -89,6 +89,9 @@ class Settings(BaseSettings):
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
         "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
+        # Landbot
+        "http://34.77.31.159",
+        "http://23.251.142.192"
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
