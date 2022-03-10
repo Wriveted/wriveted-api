@@ -46,4 +46,4 @@ class CRUDCollectionItem(CRUDBase[CollectionItem, Any, Any]):
         return num_created
 
 
-collection_item = CRUDCollectionItem(Illustrator)
+collection_item = CRUDCollectionItem(CollectionItem)
