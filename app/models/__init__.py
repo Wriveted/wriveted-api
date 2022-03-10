@@ -16,6 +16,5 @@ from .service_account import ServiceAccountType, ServiceAccount
 from .hue import Hue
 from .labelset import LabelSet
 from .db_job import DbJob
-from .genre import Genre
 from .booklist import BookList
 from .reading_ability import ReadingAbility

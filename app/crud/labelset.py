@@ -5,14 +5,12 @@ from sqlalchemy.exc import NoResultFound
 from structlog import get_logger
 from app import crud
 from app.crud import CRUDBase
-from app.models.genre import Genre
 from app.models.hue import Hue
 from app.models.labelset import LabelSet
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
 from app.models import LabelSetHue
-from app.schemas.genre import Genre as IGenre
 
 ORIGIN_WEIGHTS = {
     "HUMAN":             4,
@@ -34,21 +32,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
 
     def get_labelset_hues_by_labelset_id(self, db: Session, id: str) -> list[LabelSet]:
         return db.execute(select(LabelSetHue).where(LabelSetHue.labelset_id == id)).scalars().all()
-
-    def get_or_create_genre(self, db: Session, name: str, source: str, commit=True) -> Optional[Genre]:
-        q = select(Genre).where(Genre.name == name)
-        try:
-            genre = db.execute(q).scalar_one()
-            return genre
-        except NoResultFound:
-            logger.info("Creating new Genre", name=name, source=source)
-            genre = Genre(name=name, source=source)
-            db.add(genre)
-            if commit:
-                db.commit()
-                db.refresh(genre)
-            return genre
-
 
     def get_or_create(
         self, db: Session, work: Work, commit=True
@@ -146,13 +129,14 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     updated = True
 
 
-        # with genres just add any new ones to the list
-        existing = set([IGenre(name=g.name, source=g.source) for g in labelset.genres])
-        incoming = set([IGenre(name=g.name, source=g.source) for g in data.genres])
-        new = [self.get_or_create_genre(db, g.name, g.source) for g in incoming.difference(existing)]
-        if new:
-            labelset.genres.extend(new)
-            updated = True
+        # with genres just add the dict to the info blob
+        if data.info and data.info['genres']:
+            try:
+                if not data.info:
+                    data.info = {}
+                labelset.info['genres'] = data.info['genres']
+            except:
+                pass
 
         # now summary
         if data.summary_origin and data.huey_summary:

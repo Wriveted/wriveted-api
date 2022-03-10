@@ -14,8 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
+from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_reading_ability_association import labelset_reading_ability_association_table
-from app.models.labelset_genre_association import labelset_genre_association_table
 from datetime import datetime
 
 class RecommendStatus(str, enum.Enum):
@@ -53,15 +53,13 @@ class LabelSet(Base):
 
     # Handle Multiple Hues via a secondary association table,
     # discerned via an 'ordinal' (primary/secondary/tertiary)
-    hue_relationships = relationship("LabelSetHue", back_populates="labelset")    
-    hue_origin = Column(Enum(LabelOrigin), nullable=True)
-
-    genres = relationship(
-        "Genre",
-        secondary=labelset_genre_association_table,
-        back_populates="labelsets",
+    hues = relationship(
+        "Hue",
+        secondary=LabelSetHue.__table__,
         lazy="selectin",
     )
+    hue_relationships = relationship("LabelSetHue", back_populates="labelset")    
+    hue_origin = Column(Enum(LabelOrigin), nullable=True)
 
     huey_summary = Column(Text, nullable=True)
     summary_origin = Column(Enum(LabelOrigin), nullable=True)

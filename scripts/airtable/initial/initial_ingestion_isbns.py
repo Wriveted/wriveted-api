@@ -41,7 +41,7 @@ print(
 add_books_response = httpx.post(
     settings.WRIVETED_API + "/editions",
     json=isbns,
-    timeout=30,
+    timeout=300,
     headers=admin_headers,
 )
 add_books_response.raise_for_status()

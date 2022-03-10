@@ -1,9 +1,21 @@
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, AnyHttpUrl
 from app.schemas.author import AuthorBrief, AuthorCreateIn
-from app.schemas.genre import Genre
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
+
+class Genre(BaseModel):
+    class GenreSource(str, Enum):
+        BISAC = "BISAC"
+        BIC   = "BIC"
+        THEMA = "THEMA"
+        LOCSH = "LOCSH"
+        HUMAN = "HUMAN"
+        OTHER = "OTHER"
+
+    name: str
+    source: GenreSource
 
 class EditionInfo(BaseModel):
     pages:            Optional[int]

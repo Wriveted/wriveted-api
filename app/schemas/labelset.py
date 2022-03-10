@@ -2,7 +2,6 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 from app.models.labelset import LabelOrigin, RecommendStatus
-from app.schemas.genre import Genre
 from app.schemas.hue import Hue
 from uuid import UUID
 
@@ -24,8 +23,6 @@ class LabelSetDetail(LabelSetBrief):
     age_origin:              Optional[LabelOrigin]
     reading_ability_keys:    Optional[list[str]]
     reading_ability_origin:  Optional[LabelOrigin]
-
-    genres:                  list[Genre]
 
     huey_summary:            Optional[str]
     summary_origin:          Optional[LabelOrigin]
@@ -57,8 +54,6 @@ class LabelSetCreateIn(BaseModel):
 
     huey_summary:            Optional[str]
     summary_origin:          Optional[LabelOrigin]
-
-    genres:                  Optional[list[Genre]]
 
     labelled_by_user_id:     Optional[UUID]
     labelled_by_sa_id:       Optional[UUID]

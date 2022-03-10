@@ -1,10 +1,8 @@
 import csv
 import json
-from tkinter import Label
 from typing import Optional, Union
 
 import httpx
-from app.models.genre import Genre, GenreSource
 from app.models.labelset import LabelOrigin, RecommendStatus
 import jsonpickle
 
@@ -28,7 +26,6 @@ class LabelSetCreateIn():
     reading_ability_origin:  Optional[LabelOrigin]
     huey_summary:            Optional[str]
     summary_origin:          Optional[LabelOrigin]
-    genres:                  Optional[list[Genre]]
     info:                    Optional[dict]
     recommend_status:        Optional[RecommendStatus]
     recommend_status_origin: Optional[LabelOrigin]
@@ -117,7 +114,8 @@ for book in book_data:
 
     # genres
     try:
-        cleaned.genres = [{"name": name, "source": "HUMAN"} for name in book['Genre'].split(',')]
+        cleaned.info = {}
+        cleaned.info['genres'] = [{"name": name, "source": "HUMAN"} for name in book['Genre'].split(',')]
     except:
         pass
 
@@ -140,7 +138,7 @@ json_body = json.loads(body)
 response = httpx.patch(
     "http://localhost:8000/v1/labelsets",
     json=json_body,
-    headers={"Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc1MzIwMDQsImlhdCI6MTY0Njg0MDgwNCwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjkxODRjNzY5LTU5NDctNGMyMy1iNWU0LTVlODYxMjQ4NTdmZSJ9.gKiCthLLEswpj2F-FO2FgSU0NCY5aI1ztKz65nczrzw"},
+    headers={"Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc1NjIxNjAsImlhdCI6MTY0Njg3MDk2MCwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjkxODRjNzY5LTU5NDctNGMyMy1iNWU0LTVlODYxMjQ4NTdmZSJ9.AS51cpuCJIqR4H-Y7JmXGEqX7ZYfiZ4GNHmNqOgCYZ4"},
     timeout=120,
 )
 try:
