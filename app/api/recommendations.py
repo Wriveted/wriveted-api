@@ -49,8 +49,8 @@ class HueKeys(str, enum.Enum):
 @router.get("/recommendations", response_model=HueyOutput)
 async def get_recommendations(
         hues: list[HueKeys] = Query(None),
-        #school: Optional[School] = Depends(get_optional_school_from_wriveted_id_query),
-        school: Optional[School] = Permission("read", get_optional_school_from_wriveted_id_query),
+        school: Optional[School] = Depends(get_optional_school_from_wriveted_id_query),
+        #school: Optional[School] = Permission("read", get_optional_school_from_wriveted_id_query),
         age: Optional[int] = Query(None),
         reading_ability: Optional[ReadingAbilityKey] = Query(None),
 
