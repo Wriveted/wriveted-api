@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.sql.functions import coalesce
 
 from app.db import Base
+from app.models.author import Author
 from app.models.collection_item import CollectionItem
 from app.models.work import Work
 from app.models.illustrator_edition_association import (
@@ -25,7 +26,7 @@ class Edition(Base):
         index=True,
         nullable=True,
     )
-    work = relationship("Work", back_populates="editions", lazy="selectin")
+    work = relationship("Work", back_populates="editions", lazy="joined")
 
     # this might be a localized title
     edition_title = Column(String(512), nullable=True)
@@ -52,6 +53,16 @@ class Edition(Base):
     # Proxy the authors from the related work
     authors = association_proxy("work", "authors")
 
+    def get_authors_string(self):
+        a_list = list(self.authors)
+        if a_list:
+            output = ((str(a_list[0].first_name) + " ") or "") + str(a_list[0].last_name)
+        if len(a_list > 1):
+            for a in a_list[1:]:
+                output = output + (", " + ((str(a.first_name) + " ") or "") + str(a.last_name))
+                
+        return output
+
     hydrated = Column(Boolean(), default=False)
 
     illustrators = relationship(
@@ -64,10 +75,9 @@ class Edition(Base):
     # schools = relationship(
     #     'School', 
     #     secondary=CollectionItem.__table__,
-    #     back_populates="editions"
+    #     back_populates="editions",
+    #     overlaps="edition"
     # )
-
-    schools = association_proxy("collection_items", "school")
 
     school_count = column_property(
         select(func.count(CollectionItem.id))

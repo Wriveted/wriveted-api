@@ -113,7 +113,14 @@ class School(Base):
     # association proxy of "collectionitems" collection
     # to "editions" attribute
     works = association_proxy("collection_items", "work")
-    editions = association_proxy("collection_items", "edition")
+    editions = association_proxy("collection", "edition")
+
+    # editions = relationship(
+    #     "Edition", 
+    #     secondary=CollectionItem.__table__, 
+    #     back_populates="schools",
+    #     overlaps="school"
+    # )
 
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"

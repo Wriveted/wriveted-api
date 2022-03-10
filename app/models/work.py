@@ -54,7 +54,7 @@ class Work(Base):
         lazy="selectin",
     )
 
-    labelset = relationship("LabelSet", uselist=False, back_populates="work")
+    labelset = relationship("LabelSet", uselist=False, back_populates="work", lazy="joined")
 
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"
