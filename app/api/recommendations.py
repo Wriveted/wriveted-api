@@ -2,8 +2,9 @@ import enum
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -89,9 +90,11 @@ class HueyRecommendationFilter(BaseModel):
 @router.post("/recommend", response_model=HueyOutput)
 async def get_recommendations(
         data: HueyRecommendationFilter,
+        background_tasks: BackgroundTasks,
         # pagination: PaginatedQueryParams = Depends(),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session),
+
 ):
     """
     Fetch labeled works as recommended by Huey.
@@ -110,31 +113,25 @@ async def get_recommendations(
     else:
         school = None
 
-    row_results = await get_recommendations_with_fallback(session, account, hues, reading_ability, school, age)
+    row_results = await get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks=background_tasks)
     return {
         "count": len(row_results),
         "books":[
             HueyBook(
                 cover_url=edition.cover_url,
                 display_title=edition.title,
-                authors_string=', '.join(str(a) for a in labelset.work.authors),
+                authors_string=', '.join(str(a) for a in edition.work.authors),
                 summary=labelset.huey_summary
             ) for (edition, labelset) in row_results
         ]
     }
 
 
-async def get_recommendations_with_fallback(session, account, hues, reading_ability, school, age):
+async def get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks: BackgroundTasks):
     school_id = school.id if school is not None else None
     row_results = get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age)
+
     if len(row_results) == 0:
-        create_event(
-            session,
-            title="No books",
-            description="No books met the criteria for recommendation",
-            school=school,
-            account=account
-        )
 
         # proper fallback logic can come later when booklists are implemented
         # For now lets just strip the optional reading ability and try again
@@ -145,14 +142,26 @@ async def get_recommendations_with_fallback(session, account, hues, reading_abil
             # Still nothing... alright let's recommend outside the school collection
             row_results = get_recommended_editions_and_labelsets(session, school_id=None, hues=hues,
                                                                  reading_ability=None, age=age)
-    logger.info(f"Recommending {len(row_results)} books")
 
-    create_event(
-        session,
-        title="Made a recommendation",
-        description=f"Recommended {len(row_results)} books",
-        school=school, account=account
-    )
+    if len(row_results) > 1:
+        background_tasks.add_task(
+            create_event,
+            session,
+            title=f"Made a recommendation of {len(row_results)} books",
+            description=f"Recommended {', '.join(str(b[0].title) for b in row_results)}",
+            school=school,
+            account=account
+        )
+    else:
+        if len(row_results) == 0:
+            background_tasks.add_task(
+                create_event,
+                session,
+                title="No books",
+                description="No books met the criteria for recommendation",
+                school=school,
+                account=account
+            )
     return row_results
 
 
@@ -169,5 +178,7 @@ def get_recommended_editions_and_labelsets(session, school_id, hues, reading_abi
     else:
         edition_labelset_query = get_any_edition_and_labelset_query(labelset_query)
 
-    row_results = session.execute(edition_labelset_query.limit(5)).all()
+    query = edition_labelset_query.limit(5).order_by(func.random())
+
+    row_results = session.execute(query).all()
     return row_results
