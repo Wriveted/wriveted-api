@@ -11,7 +11,9 @@ from structlog import get_logger
 from app import crud
 
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.db.explain import explain
 from app.db.session import get_session
+from app.main import settings
 
 from app.schemas.recommendations import HueyBook, HueyOutput
 from app.services.events import create_event
@@ -196,6 +198,12 @@ def get_recommended_editions_and_labelsets(session, school_id, hues, reading_abi
         age=age,
         reading_ability=reading_ability
     )
+
+    if settings.DEBUG:
+        explain_results = session.execute(explain(query)).scalars().all()
+        logger.info("Query plan")
+        for entry in explain_results:
+            logger.info(entry)
 
     row_results = session.execute(query.limit(5)).all()
     return row_results

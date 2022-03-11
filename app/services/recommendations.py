@@ -30,13 +30,14 @@ def get_recommended_labelset_query(
         select(LabelSet)
             .distinct(LabelSet.work_id)
         .order_by(LabelSet.work_id, LabelSet.id.desc())
-        .cte()
+        .cte(name='latestlabelset')
     )
     aliased_labelset = aliased(LabelSet, latest_labelset_subquery)
     query = (
         select(Work, Edition, aliased_labelset)
             .select_from(aliased_labelset)
             .distinct(Work.id)
+            .order_by(Work.id)
             .join(Work, aliased_labelset.work_id == Work.id)
             .join(Edition, Edition.work_id == Work.id)
             .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
@@ -50,11 +51,11 @@ def get_recommended_labelset_query(
             query
                 .join(CollectionItem, CollectionItem.edition_isbn == Edition.isbn)
                 .where(CollectionItem.school == school)
-                .order_by(Work.id, CollectionItem.copies_available.desc())
+
+                # Could order by other things, but consider indexes
+                #.order_by(Work.id, CollectionItem.copies_available.desc())
 
         )
-    else:
-        query = query.order_by(Work.id)
 
     if hues is not None:
         # Labelset Ids from hues
@@ -93,7 +94,7 @@ def get_recommended_labelset_query(
     )
 
     # Now make a massive CTE so we can shuffle the results
-    massive_cte = query.cte()
+    massive_cte = query.cte(name="labeled")
 
     aliased_work = aliased(Work, massive_cte)
     aliased_edition = aliased(Edition, massive_cte)
