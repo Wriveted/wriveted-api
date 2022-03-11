@@ -247,6 +247,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
+        logger.info(f"Discovered {len(other_isbns)} other editions under the same work")
+        if other_isbns:
+            logger.info(f"Associating each discovered edition with the master work")
         for isbn in other_isbns:
             other_edition = self.get_or_create_unhydrated(session, isbn)
             work.editions.append(other_edition)
@@ -290,7 +293,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
     # but since we know already have the isbns, i.e the pk's that are being inserted, we can refer to them later anyway.
     # After ensuring the list is added to the db, this returns the list of cleaned pk's.
-    def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
+    async def create_in_bulk_unhydrated(self, session: Session, isbn_list: List[str]):
         clean_isbn_list = editions_service.clean_isbns(isbn_list)
         editions = [{"isbn": isbn} for isbn in clean_isbn_list]
 

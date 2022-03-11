@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class AuthorBrief(BaseModel):
     id: str
-    first_name: str
+    first_name: Optional[str]
     last_name: str
 
     class Config:
