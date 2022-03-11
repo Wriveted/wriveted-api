@@ -130,19 +130,41 @@ async def get_recommendations(
 
 async def get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks: BackgroundTasks):
     school_id = school.id if school is not None else None
-    row_results = get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age)
+    query_parameters = {
+        'school_id': school_id,
+        'hues': hues,
+        'reading_ability': reading_ability,
+        'age': age
+    }
+    logger.info("About to make a recommendation", query_parameters=query_parameters)
+    row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
     if len(row_results) == 0:
-
         # proper fallback logic can come later when booklists are implemented
-        # For now lets just strip the optional reading ability and try again
-        row_results = get_recommended_editions_and_labelsets(session, school_id=school_id, hues=hues,
-                                                             reading_ability=None, age=age)
+        # For now lets just include all the hues and try again.
+        query_parameters['hues'] = [
+            'hue01_dark_suspense',
+            'hue02_beautiful_whimsical',
+            'hue03_dark_beautiful',
+            'hue05_funny_comic',
+            'hue06_dark_gritty',
+            'hue07_silly_charming',
+            'hue08_charming_inspiring',
+            'hue09_charming_playful',
+            'hue10_inspiring',
+            'hue11_realistic_hope',
+            'hue12_funny_quirky',
+            'hue13_straightforward',
+        ]
+        logger.info("Desired query returned no books. Trying fallback 1 dropping hue", query_parameters=query_parameters)
+
+        row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
         if len(row_results) == 0:
             # Still nothing... alright let's recommend outside the school collection
-            row_results = get_recommended_editions_and_labelsets(session, school_id=None, hues=hues,
-                                                                 reading_ability=None, age=age)
+            query_parameters['school_id'] = None
+            logger.info("Desired query returned no books. Trying fallback 2", query_parameters=query_parameters)
+            row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
     if len(row_results) > 1:
         background_tasks.add_task(
