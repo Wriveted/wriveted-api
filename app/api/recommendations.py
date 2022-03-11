@@ -11,9 +11,10 @@ from structlog import get_logger
 from app import crud
 
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
-from app.main import settings
+
 
 from app.schemas.recommendations import HueyBook, HueyOutput
 from app.services.events import create_event
@@ -25,6 +26,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_active_user_or_service_account)]
 )
 logger = get_logger()
+config = get_settings()
 
 
 class ReadingAbilityKey(str, enum.Enum):
@@ -50,35 +52,6 @@ class HueKeys(str, enum.Enum):
     hue13_straightforward = 'hue13_straightforward'
 
 
-# @router.get("/recommendations", response_model=HueyOutput)
-# async def get_recommendations(
-#         hues: list[HueKeys] = Query(None),
-#         school: Optional[School] = Depends(get_optional_school_from_wriveted_id_query),
-#         #school: Optional[School] = Permission("read", get_optional_school_from_wriveted_id_query),
-#         age: Optional[int] = Query(None),
-#         reading_ability: Optional[ReadingAbilityKey] = Query(None),
-#
-#         # pagination: PaginatedQueryParams = Depends(),
-#         account=Depends(get_current_active_user_or_service_account),
-#         session: Session = Depends(get_session),
-# ):
-#     """
-#     Fetch labeled works as recommended by Huey.
-#
-#     Note this endpoint is limited to returning 5 recommendations at a time.
-#     """
-#     row_results = await get_recommendations_with_fallback(session, account, hues, reading_ability, school, age)
-#     return {
-#         "count": len(row_results),
-#         "books":[
-#             HueyBook(
-#                 cover_url=edition.cover_url,
-#                 display_title=edition.title,
-#                 authors_string=', '.join(str(a) for a in labelset.work.authors),
-#                 summary=labelset.huey_summary
-#             ) for (edition, labelset) in row_results
-#         ]
-#     }
 
 
 class HueyRecommendationFilter(BaseModel):
@@ -199,7 +172,7 @@ def get_recommended_editions_and_labelsets(session, school_id, hues, reading_abi
         reading_ability=reading_ability
     )
 
-    if settings.DEBUG:
+    if config.DEBUG:
         explain_results = session.execute(explain(query)).scalars().all()
         logger.info("Query plan")
         for entry in explain_results:
