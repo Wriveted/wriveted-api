@@ -16,8 +16,7 @@ from app.db.session import get_session
 from app.schemas.recommendations import HueyBook, HueyOutput
 from app.services.events import create_event
 
-from app.services.recommendations import get_any_edition_and_labelset_query, get_recommended_labelset_query, \
-    get_school_specific_edition_and_labelset_query
+from app.services.recommendations import get_recommended_labelset_query
 
 router = APIRouter(
     tags=["Recommendations"],
@@ -81,7 +80,7 @@ class HueKeys(str, enum.Enum):
 
 
 class HueyRecommendationFilter(BaseModel):
-    hues: list[HueKeys] = None
+    hues: Optional[list[HueKeys]] = None
     age: Optional[int] = None
     reading_ability: Optional[ReadingAbilityKey] = None
     wriveted_identifier: Optional[uuid.UUID] = None
@@ -123,7 +122,7 @@ async def get_recommendations(
                 display_title=edition.title,
                 authors_string=', '.join(str(a) for a in edition.work.authors),
                 summary=labelset.huey_summary
-            ) for (edition, labelset) in row_results
+            ) for (work, edition, labelset) in row_results
         ]
     }
 
@@ -167,11 +166,12 @@ async def get_recommendations_with_fallback(session, account, hues, reading_abil
             row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
     if len(row_results) > 1:
+        logged_labelset_description = '\n'.join(str(b[2]) for b in row_results)
         background_tasks.add_task(
             create_event,
             session,
             title=f"Made a recommendation of {len(row_results)} books",
-            description=f"Recommended {', '.join(str(b[0].title) for b in row_results)}",
+            description=f"Recommended:\n{logged_labelset_description}",
             school=school,
             account=account
         )
@@ -189,19 +189,13 @@ async def get_recommendations_with_fallback(session, account, hues, reading_abil
 
 
 def get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age):
-    labelset_query = get_recommended_labelset_query(
+    query = get_recommended_labelset_query(
         session,
         hues=hues,
         school_id=school_id,
         age=age,
         reading_ability=reading_ability
     )
-    if school_id is not None:
-        edition_labelset_query = get_school_specific_edition_and_labelset_query(school_id, labelset_query)
-    else:
-        edition_labelset_query = get_any_edition_and_labelset_query(labelset_query)
 
-    query = edition_labelset_query.limit(5).order_by(func.random())
-
-    row_results = session.execute(query).all()
+    row_results = session.execute(query.limit(5)).all()
     return row_results

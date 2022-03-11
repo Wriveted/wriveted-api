@@ -106,4 +106,9 @@ class LabelSet(Base):
     checked = Column(Boolean(), nullable=False, default=False)
 
     def __repr__(self):
-        return f"<LabelSet id={self.id} - '{self.work.title}'>"
+        return f"<LabelSet id={self.id} - '{self.work.title}' ages: {self.min_age}-{self.max_age} >"
+
+    def __str__(self):
+        hues = [h.name for h in self.hues]
+        reading_abilities = [ra.key for ra in self.reading_abilities]
+        return f"'{self.work.title}' reading ability: {reading_abilities} ages: {self.min_age}-{self.max_age} Hues: {hues}"
