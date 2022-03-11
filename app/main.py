@@ -105,7 +105,7 @@ if settings.BACKEND_CORS_ORIGINS:
         CORSMiddleware,
         allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
         # allow preview channels from library dashboard app frontend
-        allow_origin_regex="https:\/\/wriveted*web\.app",
+        allow_origin_regex="https:\/\/wriveted.*web\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
