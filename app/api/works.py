@@ -29,9 +29,25 @@ async def get_works(
     if query is not None:
         works_query = works_query.where(Work.title.match(query))
 
-    return crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)
+    works = session.execute(crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)).scalars().all()
+
+    output = []
+    for work in works:        
+        brief = {}
+        brief["id"] = work.id
+        brief["type"] = work.type
+        brief["title"] = work.title
+        brief["authors"] = [{"id": author.id, "first_name": author.first_name, "last_name": author.last_name} for author in work.authors]
+        output.append(brief)
+
+    return output
+    # return crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail)
 async def get_work_by_id(work_id: str, session: Session = Depends(get_session)):
+
+    # work = session.execute(crud.work.get_or_404(db=session, id=work_id)).scalar_one_or_none()
+
+    # return work
     return crud.work.get_or_404(db=session, id=work_id)
