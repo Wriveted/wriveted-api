@@ -118,6 +118,7 @@ async def get_recommendations(
         "count": len(row_results),
         "books":[
             HueyBook(
+                isbn=edition.isbn,
                 cover_url=edition.cover_url,
                 display_title=edition.title,
                 authors_string=', '.join(str(a) for a in edition.work.authors),
