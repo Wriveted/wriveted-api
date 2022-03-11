@@ -4,6 +4,7 @@ from sqlalchemy import JSON
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
+from app.schemas.labelset import LabelSetDetail
 
 
 class WorkInfo(BaseModel):
@@ -24,6 +25,7 @@ class WorkBrief(BaseModel):
 
 class WorkDetail(WorkBrief):
     editions: List[EditionBrief]
+    labelset: Optional[LabelSetDetail]
     info: Optional[WorkInfo]
 
     class Config:

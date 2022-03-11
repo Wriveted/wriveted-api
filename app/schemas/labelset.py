@@ -5,10 +5,19 @@ from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas.hue import Hue
 from uuid import UUID
 
+class ReadingAbility(BaseModel):
+    id: str
+    key: str
+    name: str
+
+    class Config:
+        orm_mode = True
+        
+
 class LabelSetBrief(BaseModel):
     id:        str
     work_id:   str
-    work_name: str
+    # work_name: str
 
     class Config:
         orm_mode = True
@@ -22,6 +31,7 @@ class LabelSetDetail(LabelSetBrief):
     max_age:                 Optional[int]
     age_origin:              Optional[LabelOrigin]
     reading_ability_keys:    Optional[list[str]]
+    reading_abilities:       list[ReadingAbility]
     reading_ability_origin:  Optional[LabelOrigin]
 
     huey_summary:            Optional[str]

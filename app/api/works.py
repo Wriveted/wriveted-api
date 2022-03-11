@@ -9,6 +9,7 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Work
+from app.models.edition import Edition
 from app.models.work import WorkType
 from app.schemas.work import WorkBrief, WorkDetail
 
@@ -20,6 +21,7 @@ router = APIRouter(
 @router.get("/works", response_model=List[WorkBrief])
 async def get_works(
         query: Optional[str] = Query(None, description="Query string"),
+        isbn: Optional[str] = Query(None, description="Isbn"),
         type: Optional[WorkType] = Query(WorkType.BOOK),
         pagination: PaginatedQueryParams = Depends(),
         session: Session = Depends(get_session),
@@ -28,6 +30,9 @@ async def get_works(
 
     if query is not None:
         works_query = works_query.where(Work.title.match(query))
+
+    if isbn is not None:
+        works_query = works_query.where(Work.editions.any(Edition.isbn == isbn))
 
     works = session.execute(crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)).scalars().all()
 
