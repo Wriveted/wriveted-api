@@ -93,13 +93,13 @@ async def get_recommendations(
         # pagination: PaginatedQueryParams = Depends(),
         account=Depends(get_current_active_user_or_service_account),
         session: Session = Depends(get_session),
-
 ):
     """
     Fetch labeled works as recommended by Huey.
 
     Note this endpoint is limited to returning 5 recommendations at a time.
     """
+    logger.info("Recommendation endpoint called", parameters=data)
     hues = data.hues
     age = data.age
     reading_ability = data.reading_ability
