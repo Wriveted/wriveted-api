@@ -13,7 +13,7 @@ class WorkInfo(BaseModel):
 
 class WorkBrief(BaseModel):
     id: str
-    type: WorkType
+    type: Optional[WorkType]
 
     title: str
     authors: List[AuthorBrief]
