@@ -67,7 +67,7 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
 
     if len(new_editions_unhydrated) > 0:
         logger.info(f"Will have to create {len(new_editions_unhydrated)} new unhydrated editions")
-        crud.edition.create_in_bulk_unhydrated(session, isbn_list=new_editions_unhydrated)
+        await crud.edition.create_in_bulk_unhydrated(session, isbn_list=new_editions_unhydrated)
         logger.info("Created new unhydrated editions")
 
     return isbns, len(new_editions_hydrated) + len(new_editions_unhydrated), existing_isbns

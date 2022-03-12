@@ -89,6 +89,8 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         edition: Edition = self.get(db, editions_service.get_definitive_isbn(edition_data.isbn))
 
+        if edition_data.date_published:
+            edition.date_published=edition_data.date_published
         if edition_data.leading_article:
             edition.leading_article=edition_data.leading_article
         if edition_data.title:
