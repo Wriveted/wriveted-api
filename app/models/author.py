@@ -18,7 +18,7 @@ from app.models.work import Work
 class Author(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    first_name = Column(String(200), nullable=False, index=True)
+    first_name = Column(String(200), nullable=True, index=True)
     last_name = Column(String(200), nullable=False, index=True)
 
     # Building on the assumption of unique full names, an author's full name (sans whitespace and punctuation)
@@ -50,8 +50,15 @@ class Author(Base):
                 author_work_association_table.c.work_id == Work.id,
             )
         )
-        .scalar_subquery()
+        .scalar_subquery(),
+        deferred=True,
     )
 
     def __repr__(self):
         return f"<Author id={self.id} - '{self.first_name} {self.last_name} '>"
+
+    def __str__(self):
+        if self.first_name is not None:
+            return f"{self.first_name} {self.last_name}"
+        else:
+            return self.last_name

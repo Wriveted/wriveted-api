@@ -27,6 +27,7 @@ class CollectionItem(Base):
 
     edition_isbn = Column(
         ForeignKey("editions.isbn", name="fk_collection_items_edition_isbn"),
+        index=True,
         nullable=False,
     )
 

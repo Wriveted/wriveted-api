@@ -1,7 +1,8 @@
+import collections
+from importlib.util import LazyLoader
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -17,7 +18,7 @@ from app.schemas.edition import (
     KnownAndTaggedEditionCounts,
 )
 from app.services.collections import create_missing_editions
-from app.services.editions import compare_known_editions
+from app.services.editions import compare_known_editions, get_definitive_isbn
 
 
 logger = get_logger()
@@ -52,8 +53,8 @@ async def compare_bulk_editions(
     isbn_list: List[str], session: Session = Depends(get_session)
 ):
     """
-    Compares a list of ISBNs against the db to determine how many are known,
-    and how many have been fully tagged and checked.
+    Compares a list of ISBNs against the db to determine how many are valid,
+    how many of those Huey knows about, and how many of those have been fully tagged and checked.
     The provided list should be a raw JSON list, i.e:
 
     ```json
@@ -65,10 +66,11 @@ async def compare_bulk_editions(
     ```
 
     """
-    known, fully_tagged = await compare_known_editions(session, isbn_list)
+    valid, known, fully_tagged = await compare_known_editions(session, isbn_list)
 
     return {
         "num_provided": len(isbn_list),
+        "num_valid": valid,
         "num_known": known,
         "num_fully_tagged": fully_tagged,
     }
@@ -76,6 +78,11 @@ async def compare_bulk_editions(
 
 @router.get("/edition/{isbn}", response_model=EditionDetail)
 async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
+    try:
+        isbn = get_definitive_isbn(isbn)
+    except:
+        raise HTTPException(422, "Invalid isbn")
+
     return crud.edition.get_or_404(db=session, id=isbn)
 
 
@@ -95,5 +102,20 @@ async def bulk_add_editions(
     )
 
     return {
-        "msg": f"Bulk load of {len(isbns)} editions complete. Created {len(created)} new editions."
+        "msg": f"Bulk load of {len(isbns)} editions complete. Created {created} new editions."
     }
+
+
+@router.get("/editions/to_hydrate", response_model=List[EditionBrief])
+async def get_editions(
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+):
+    q = (
+        session.query(Edition, Edition.num_schools)
+        .order_by(Edition.num_schools.desc())
+        .where(Edition.hydrated == False)
+        .limit(pagination.limit if pagination.limit else 5000)
+    )
+
+    return session.execute(q).scalars().all()

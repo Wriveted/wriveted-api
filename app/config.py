@@ -76,6 +76,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
         # Local development URLs
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         # Production URLs
@@ -89,6 +90,9 @@ class Settings(BaseSettings):
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
         "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
+        # Landbot
+        "http://34.77.31.159",
+        "http://23.251.142.192",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)

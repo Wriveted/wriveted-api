@@ -101,6 +101,12 @@ async def add_editions_to_collection_by_isbn(
         num_editions_created,
     ) = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
 
+    if not final_primary_keys:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid ISBNs were found in input",
+        )
+
     # At this point all editions referenced should exist.
     # Using len(final_primary_keys) as length may be different now that it's a set
     logger.info(f"Syncing {len(final_primary_keys)} editions with collection")

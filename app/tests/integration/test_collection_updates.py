@@ -1,8 +1,7 @@
 import csv
 import random
 import time
-
-from app.services.editions import get_definitive_isbn
+from app.services.editions import check_digit_13
 
 
 def test_collection_management(
@@ -38,6 +37,7 @@ def test_collection_management(
 
     INITIAL_NUMBER_OF_HYDRATED_BOOKS = 10
     INITIAL_NUMBER_OF_UNHYDRATED_BOOKS = 10
+    NUMBER_INVALID_ISBNS = 10
     UPDATED_NUMBER_OF_BOOKS = 10
     ADDED_NUMBER_OF_BOOKS = 10
     REMOVED_NUMBER_OF_BOOKS = 10
@@ -93,7 +93,7 @@ def test_collection_management(
                 cover_url = book_row[17]
 
             for isbn in book_row[28].split(","):
-                isbn = get_definitive_isbn(isbn.strip().upper())
+                isbn = isbn.strip().upper()
                 if isbn not in seen_isbns and len(isbn) > 0:
 
                     new_edition_data = {
@@ -139,19 +139,32 @@ def test_collection_management(
     original_hydrated = book_data[:INITIAL_NUMBER_OF_HYDRATED_BOOKS]
     assert len(original_hydrated) == INITIAL_NUMBER_OF_HYDRATED_BOOKS
 
-    # create INITIAL_NUMBER_OF_UNHYDRATED_BOOKS nonexistent ISBN13s (largest isbn13 prefix is 979)
-    original_unhydrated = [
-        {"isbn": r}
-        for r in random.sample(
-            range(9800000000000, 9810000000000), INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+    # create INITIAL_NUMBER_OF_UNHYDRATED_BOOKS valid ISBN13s
+    valid_isbns = [
+        str(valid_isbn_body) + check_digit_13(str(valid_isbn_body))
+        for valid_isbn_body in random.sample(
+            range(978000000000, 979000000000), INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         )
     ]
+    original_unhydrated = [{"isbn": i} for i in valid_isbns]
     assert len(original_unhydrated) == INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
 
-    original_books = original_hydrated + original_unhydrated
+    # create NUMBER_INVALID_ISBNS invalid isbns to include (apply an off-by-one on the valid check digit)
+    invalid_isbns = [
+        str(invalid_isbn_body)
+        + str((int(check_digit_13(str(invalid_isbn_body))) + 1) % 10)
+        for invalid_isbn_body in random.sample(
+            range(978000000000, 979000000000), NUMBER_INVALID_ISBNS
+        )
+    ]
+    invalid_books = [{"isbn": i} for i in invalid_isbns]
+
+    original_books = original_hydrated + original_unhydrated + invalid_books
     assert (
         len(original_books)
-        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + NUMBER_INVALID_ISBNS
     )
 
     print(
@@ -207,6 +220,7 @@ def test_collection_management(
     get_collection_response.raise_for_status()
     collection = get_collection_response.json()
     print("Collection after adding (first 3):\n", collection[:3])
+    # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
         len(collection)
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
