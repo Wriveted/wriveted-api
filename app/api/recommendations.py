@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from typing import Optional
+
+from fastapi import APIRouter, Depends, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -8,7 +10,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
-
+from app.models import School
 
 from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
 from app.services.events import create_event
@@ -27,14 +29,14 @@ config = get_settings()
 async def get_recommendations(
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
-    # pagination: PaginatedQueryParams = Depends(),
+    limit: Optional[int] = Query(5, description="Maximum number of items to return"),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
 ):
     """
     Fetch labeled works as recommended by Huey.
 
-    Note this endpoint is limited to returning 5 recommendations at a time.
+    Note this endpoint returns recommendations in a random order.
     """
     logger.info("Recommendation endpoint called", parameters=data)
     hues = data.hues
@@ -57,16 +59,18 @@ async def get_recommendations(
         school,
         age,
         background_tasks=background_tasks,
+        limit=limit
     )
     return HueyOutput(
         count=len(row_results),
         query=query_parameters,
         books=[
             HueyBook(
+                work_id=work.id,
                 isbn=edition.isbn,
                 cover_url=edition.cover_url,
                 display_title=edition.title,
-                authors_string=", ".join(str(a) for a in edition.work.authors),
+                authors_string=work.get_authors_string(),
                 summary=labelset.huey_summary,
             )
             for (work, edition, labelset) in row_results
@@ -79,9 +83,10 @@ async def get_recommendations_with_fallback(
     account,
     hues,
     reading_ability,
-    school,
-    age,
+    school: School,
+    age: int,
     background_tasks: BackgroundTasks,
+    limit=5,
 ):
     school_id = school.id if school is not None else None
     query_parameters = {
@@ -89,6 +94,7 @@ async def get_recommendations_with_fallback(
         "hues": hues,
         "reading_ability": reading_ability,
         "age": age,
+        "limit": limit,
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
@@ -119,11 +125,12 @@ async def get_recommendations_with_fallback(
 
     if len(row_results) > 1:
         logged_labelset_description = "\n".join(str(b[2]) for b in row_results)
+
         background_tasks.add_task(
             create_event,
             session,
             title=f"Made a recommendation of {len(row_results)} books",
-            description=f"Recommended:\n{logged_labelset_description}",
+            description=f"Recommended:\n{logged_labelset_description}" if len(row_results) <= 10 else "",
             school=school,
             account=account,
         )

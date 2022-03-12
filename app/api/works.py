@@ -66,8 +66,5 @@ async def get_works(
 
 @router.get("/work/{work_id}", response_model=WorkDetail)
 async def get_work_by_id(work_id: str, session: Session = Depends(get_session)):
-
-    # work = session.execute(crud.work.get_or_404(db=session, id=work_id)).scalar_one_or_none()
-
     # return work
     return crud.work.get_or_404(db=session, id=work_id)

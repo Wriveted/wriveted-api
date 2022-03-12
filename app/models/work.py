@@ -72,5 +72,8 @@ class Work(Base):
         # lazy="joined"
     )
 
+    def get_authors_string(self):
+        return ", ".join(map(str, self.authors))
+
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"

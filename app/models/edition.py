@@ -53,20 +53,6 @@ class Edition(Base):
     # Proxy the authors from the related work
     authors = association_proxy("work", "authors")
 
-    def get_authors_string(self):
-        a_list = list(self.authors)
-        if a_list:
-            output = ((str(a_list[0].first_name) + " ") or "") + str(
-                a_list[0].last_name
-            )
-        if len(a_list > 1):
-            for a in a_list[1:]:
-                output = output + (
-                    ", " + ((str(a.first_name) + " ") or "") + str(a.last_name)
-                )
-
-        return output
-
     hydrated = Column(Boolean(), default=False)
 
     illustrators = relationship(

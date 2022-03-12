@@ -43,6 +43,7 @@ class HueyRecommendationFilterUsed(HueyRecommendationFilterBase):
 
 
 class HueyBook(BaseModel):
+    work_id: int
     isbn: str
     cover_url: HttpUrl | None
     display_title: str  # {leading article} {title} (leading article is optional, thus bridging whitespace optional)
