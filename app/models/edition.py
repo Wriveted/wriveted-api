@@ -56,11 +56,15 @@ class Edition(Base):
     def get_authors_string(self):
         a_list = list(self.authors)
         if a_list:
-            output = ((str(a_list[0].first_name) + " ") or "") + str(a_list[0].last_name)
+            output = ((str(a_list[0].first_name) + " ") or "") + str(
+                a_list[0].last_name
+            )
         if len(a_list > 1):
             for a in a_list[1:]:
-                output = output + (", " + ((str(a.first_name) + " ") or "") + str(a.last_name))
-                
+                output = output + (
+                    ", " + ((str(a.first_name) + " ") or "") + str(a.last_name)
+                )
+
         return output
 
     hydrated = Column(Boolean(), default=False)
@@ -73,7 +77,7 @@ class Edition(Base):
     )
 
     # schools = relationship(
-    #     'School', 
+    #     'School',
     #     secondary=CollectionItem.__table__,
     #     back_populates="editions",
     #     overlaps="edition"
@@ -96,7 +100,14 @@ class Edition(Base):
 
     @num_schools.expression
     def num_schools(self):
-        return (select([func.count(CollectionItem.__table__.c.edition_isbn).label("num_schools")])
+        return (
+            select(
+                [
+                    func.count(CollectionItem.__table__.c.edition_isbn).label(
+                        "num_schools"
+                    )
+                ]
+            )
             .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
             .label("total_schools")
         )

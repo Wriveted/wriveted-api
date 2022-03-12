@@ -116,8 +116,8 @@ class School(Base):
     editions = association_proxy("collection", "edition")
 
     # editions = relationship(
-    #     "Edition", 
-    #     secondary=CollectionItem.__table__, 
+    #     "Edition",
+    #     secondary=CollectionItem.__table__,
     #     back_populates="schools",
     #     overlaps="school"
     # )

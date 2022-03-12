@@ -1,7 +1,10 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.db import Base
-from app.models.labelset_reading_ability_association import labelset_reading_ability_association_table
+from app.models.labelset_reading_ability_association import (
+    labelset_reading_ability_association_table,
+)
+
 
 class ReadingAbility(Base):
     __tablename__ = "reading_abilities"
@@ -12,7 +15,9 @@ class ReadingAbility(Base):
     name = Column(String(128), nullable=False, unique=True)
 
     labelsets = relationship(
-        "LabelSet", secondary=labelset_reading_ability_association_table, back_populates="reading_abilities"
+        "LabelSet",
+        secondary=labelset_reading_ability_association_table,
+        back_populates="reading_abilities",
     )
 
     # TODO: add a join/proxy/relationship to be able to navigate the Works associated with a Reading Ability

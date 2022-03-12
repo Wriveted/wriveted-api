@@ -1,6 +1,17 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, JSON, Enum, Boolean, DateTime, Text, Computed, null
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    JSON,
+    Enum,
+    Boolean,
+    DateTime,
+    Text,
+    Computed,
+    null,
+)
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
@@ -54,9 +65,12 @@ class Work(Base):
         lazy="selectin",
     )
 
-    labelset = relationship("LabelSet", uselist=False, back_populates="work",
-                            #lazy="joined"
-                            )
+    labelset = relationship(
+        "LabelSet",
+        uselist=False,
+        back_populates="work",
+        # lazy="joined"
+    )
 
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"

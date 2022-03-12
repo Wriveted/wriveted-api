@@ -53,7 +53,7 @@ async def compare_bulk_editions(
     isbn_list: List[str], session: Session = Depends(get_session)
 ):
     """
-    Compares a list of ISBNs against the db to determine how many are valid, 
+    Compares a list of ISBNs against the db to determine how many are valid,
     how many of those Huey knows about, and how many of those have been fully tagged and checked.
     The provided list should be a raw JSON list, i.e:
 
@@ -83,8 +83,8 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     except:
         raise HTTPException(422, "Invalid isbn")
 
-    return crud.edition.get_or_404(db=session, id=isbn)        
-    
+    return crud.edition.get_or_404(db=session, id=isbn)
+
 
 @router.post("/edition", response_model=EditionDetail)
 async def add_edition(
@@ -111,9 +111,11 @@ async def get_editions(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    q = session.query(Edition, Edition.num_schools) \
-        .order_by(Edition.num_schools.desc()) \
-        .where(Edition.hydrated == False) \
+    q = (
+        session.query(Edition, Edition.num_schools)
+        .order_by(Edition.num_schools.desc())
+        .where(Edition.hydrated == False)
         .limit(pagination.limit if pagination.limit else 5000)
+    )
 
     return session.execute(q).scalars().all()

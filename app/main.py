@@ -66,7 +66,10 @@ app = FastAPI(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    logger.warning(f"The client sent invalid data!: {exc}", request=request.url,)
+    logger.warning(
+        f"The client sent invalid data!: {exc}",
+        request=request.url,
+    )
     return await request_validation_exception_handler(request, exc)
 
 

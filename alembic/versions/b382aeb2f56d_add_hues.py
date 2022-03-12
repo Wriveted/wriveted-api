@@ -12,8 +12,8 @@ from app.models import Hue
 
 
 # revision identifiers, used by Alembic.
-revision = 'b382aeb2f56d'
-down_revision = '5fff4615d51a'
+revision = "b382aeb2f56d"
+down_revision = "5fff4615d51a"
 branch_labels = None
 depends_on = None
 
@@ -29,18 +29,19 @@ intiial_hues = [
     {"key": "hue10_inspiring", "name": "Inspiring"},
     {"key": "hue11_realistic_hope", "name": "Realistic/Hope"},
     {"key": "hue12_funny_quirky", "name": "Funny/Quirky"},
-    {"key": "hue13_straightforward", "name": "Straightforward"}
+    {"key": "hue13_straightforward", "name": "Straightforward"},
 ]
+
 
 def upgrade():
     bind = op.get_bind()
     session = orm.Session(bind=bind)
-    
+
     for data in intiial_hues:
         session.add(
             Hue(
-                key=data['key'],
-                name=data['name'],
+                key=data["key"],
+                name=data["name"],
             )
         )
     session.commit()

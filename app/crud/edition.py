@@ -25,9 +25,10 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     """
     We use ISBN in the CRUD layer instead of the database ID
     """
-    # These are overrides of CRDUBase. Do not rename. 
+
+    # These are overrides of CRDUBase. Do not rename.
     # Can be executed by using self.get() and self.get_multi() respectively
-    
+
     def get_query(self, db: Session, id: Any) -> Query:
         try:
             cleaned_isbn = editions_service.get_definitive_isbn(id)
@@ -67,14 +68,13 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             info=edition_data.info.dict(),
             work=work,
             illustrators=illustrators,
-            hydrated=edition_data.hydrated
+            hydrated=edition_data.hydrated,
         )
         db.add(edition)
         if commit:
             db.commit()
             db.refresh(edition)
         return edition
-
 
     def update(
         self,
@@ -87,20 +87,22 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         """
         Update an edition row in the table assuming the related objects exist.
         """
-        edition: Edition = self.get(db, editions_service.get_definitive_isbn(edition_data.isbn))
+        edition: Edition = self.get(
+            db, editions_service.get_definitive_isbn(edition_data.isbn)
+        )
 
         if edition_data.date_published:
-            edition.date_published=edition_data.date_published
+            edition.date_published = edition_data.date_published
         if edition_data.leading_article:
-            edition.leading_article=edition_data.leading_article
+            edition.leading_article = edition_data.leading_article
         if edition_data.title:
-            edition.edition_title=edition_data.title        
+            edition.edition_title = edition_data.title
         if edition_data.subtitle:
-            edition.edition_subtitle=edition_data.subtitle        
+            edition.edition_subtitle = edition_data.subtitle
         if edition_data.cover_url:
-            edition.cover_url=edition_data.cover_url
+            edition.cover_url = edition_data.cover_url
         if edition_data.info:
-            edition.info=edition_data.info.dict()
+            edition.info = edition_data.info.dict()
         if work:
             edition.work = work
         if illustrators:
@@ -113,7 +115,6 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             db.refresh(edition)
 
         return edition
-
 
     def create_in_bulk(self, session, bulk_edition_data: List[EditionCreateIn]):
         # Need to account for new authors, works, and series created
@@ -186,14 +187,17 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         logger.info("Work, Illustrators and Editions created")
         return editions
 
-
-    def create_new_edition(self, session: Session, edition_data: EditionCreateIn, commit=True):
+    def create_new_edition(
+        self, session: Session, edition_data: EditionCreateIn, commit=True
+    ):
 
         clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
-        other_isbns = editions_service.clean_isbns(edition_data.other_isbns if hasattr(edition_data, 'other_isbns') else [])
+        other_isbns = editions_service.clean_isbns(
+            edition_data.other_isbns if hasattr(edition_data, "other_isbns") else []
+        )
         other_isbns.discard(clean_isbn)
 
-        # if edition already exists and is hydrated, skip. 
+        # if edition already exists and is hydrated, skip.
         # if unhydrated, gather data and hydrate at the end
         edition: Edition = self.get(session, clean_isbn)
         hydrate = False
@@ -206,7 +210,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         # collate all isbns to check if their master work exists in db
         work: Work = None
-        for isbn in (list(other_isbns) + [clean_isbn]):
+        for isbn in list(other_isbns) + [clean_isbn]:
             master_work = crud.work.find_by_isbn(session, isbn)
             if master_work:
                 work = master_work
@@ -222,7 +226,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             crud_illustrator.get_or_create(session, illustrator_data, commit=False)
             for illustrator_data in edition_data.illustrators
         ]
-        illustrators = list({illustrator.id: illustrator for illustrator in illustrators}.values())
+        illustrators = list(
+            {illustrator.id: illustrator for illustrator in illustrators}.values()
+        )
 
         # if this is the first time we've encountered this master work, create it
         # (or get it, in the case the other_isbns list wasn't comprehensive enough to detect it earlier)
@@ -234,7 +240,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 authors=edition_data.authors,
                 # info=edition_data.info,
                 series_name=edition_data.series_name,
-                series_number=edition_data.series_number
+                series_number=edition_data.series_number,
             )
 
             work = crud_work.get_or_create(
@@ -245,7 +251,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         # create labelset if needed
         if edition_data.labelset and not edition_data.labelset.empty():
             labelset = crud.labelset.get_or_create(session, work)
-            labelset = crud.labelset.patch(session, labelset, edition_data.labelset, commit=False)
+            labelset = crud.labelset.patch(
+                session, labelset, edition_data.labelset, commit=False
+            )
 
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
@@ -276,20 +284,15 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         return edition
 
-
-    def get_or_create_unhydrated(
-        self, db: Session, isbn: str, commit=True
-    ) -> Edition:
+    def get_or_create_unhydrated(self, db: Session, isbn: str, commit=True) -> Edition:
 
         edition = self.get(db, isbn)
         if not edition:
-            edition = Edition(
-                isbn=editions_service.get_definitive_isbn(isbn)
-            )
+            edition = Edition(isbn=editions_service.get_definitive_isbn(isbn))
             db.add(edition)
-            if commit :
+            if commit:
                 db.commit()
-            
+
         return edition
 
     # To speed up the inserts, we've opted out orm features to track each object and retrieve each pk after insertion.
@@ -301,7 +304,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         previous_count = session.execute(select(func.count(Edition.id))).scalar_one()
 
-        if(editions):
+        if editions:
             stmt = insert(Edition).on_conflict_do_nothing()
             session.execute(stmt, editions)
             session.commit()

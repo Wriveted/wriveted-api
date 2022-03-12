@@ -11,7 +11,9 @@ from app.schemas.author import AuthorCreateIn
 
 
 def first_last_to_name_key(first_name: str, last_name: str):
-    return "".join(char for char in f"{first_name or ''}{last_name}".lower() if char.isalnum())
+    return "".join(
+        char for char in f"{first_name or ''}{last_name}".lower() if char.isalnum()
+    )
 
 
 class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):

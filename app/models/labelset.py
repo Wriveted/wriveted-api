@@ -15,29 +15,35 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.labelset_hue_association import LabelSetHue
-from app.models.labelset_reading_ability_association import labelset_reading_ability_association_table
+from app.models.labelset_reading_ability_association import (
+    labelset_reading_ability_association_table,
+)
 from datetime import datetime
 
+
 class RecommendStatus(str, enum.Enum):
-    GOOD = "GOOD" # Good to Recommend
-    BAD_BORING = "BAD_BORING" # Too boring
-    BAD_REFERENCE = "BAD_REFERENCE" # Reference/Education book
-    BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL" # Contoversial content
-    BAD_LOW_QUALITY = "BAD_LOW_QUALITY" # Not a great example
+    GOOD = "GOOD"  # Good to Recommend
+    BAD_BORING = "BAD_BORING"  # Too boring
+    BAD_REFERENCE = "BAD_REFERENCE"  # Reference/Education book
+    BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL"  # Contoversial content
+    BAD_LOW_QUALITY = "BAD_LOW_QUALITY"  # Not a great example
+
 
 # class ReadingAbility(str, enum.Enum):
-    # SPOT = "SPOT" # Where's Spot
-    # CAT_HAT = "CAT_HAT" # Cat in the Hat
-    # TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
-    # CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
-    # HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
+# SPOT = "SPOT" # Where's Spot
+# CAT_HAT = "CAT_HAT" # Cat in the Hat
+# TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
+# CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
+# HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
+
 
 class LabelOrigin(str, enum.Enum):
-    HUMAN = "HUMAN" # Human-provided
-    PREDICTED_NIELSEN = "PREDICTED_NIELSEN" # Predicted based on metadata from Nielsen
-    CLUSTER_RELEVANCE = "CLUSTER_RELEVANCE" # Relevance AI cluster
-    CLUSTER_ZAINAB = "CLUSTER_ZAINAB" # Original K-Means clustering by Zainab
+    HUMAN = "HUMAN"  # Human-provided
+    PREDICTED_NIELSEN = "PREDICTED_NIELSEN"  # Predicted based on metadata from Nielsen
+    CLUSTER_RELEVANCE = "CLUSTER_RELEVANCE"  # Relevance AI cluster
+    CLUSTER_ZAINAB = "CLUSTER_ZAINAB"  # Original K-Means clustering by Zainab
     OTHER = "OTHER"
+
 
 # an abstraction of the "label" related properties of a Work, which are likely to be human-provided.
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed
@@ -76,7 +82,9 @@ class LabelSet(Base):
     max_age = Column(Integer, nullable=True)
     age_origin = Column(Enum(LabelOrigin), nullable=True)
 
-    recommend_status = Column(Enum(RecommendStatus), nullable=False, server_default="GOOD")
+    recommend_status = Column(
+        Enum(RecommendStatus), nullable=False, server_default="GOOD"
+    )
     recommend_status_origin = Column(Enum(LabelOrigin), nullable=True)
 
     # both service accounts and users could potentially label works

@@ -20,11 +20,11 @@ router = APIRouter(
 
 @router.get("/works", response_model=List[WorkBrief])
 async def get_works(
-        query: Optional[str] = Query(None, description="Query string"),
-        isbn: Optional[str] = Query(None, description="Isbn"),
-        type: Optional[WorkType] = Query(WorkType.BOOK),
-        pagination: PaginatedQueryParams = Depends(),
-        session: Session = Depends(get_session),
+    query: Optional[str] = Query(None, description="Query string"),
+    isbn: Optional[str] = Query(None, description="Isbn"),
+    type: Optional[WorkType] = Query(WorkType.BOOK),
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     works_query = crud.work.get_all_query(session).where(Work.type == type)
 
@@ -34,15 +34,30 @@ async def get_works(
     if isbn is not None:
         works_query = works_query.where(Work.editions.any(Edition.isbn == isbn))
 
-    works = session.execute(crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)).scalars().all()
+    works = (
+        session.execute(
+            crud.work.apply_pagination(
+                works_query, skip=pagination.skip, limit=pagination.limit
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     output = []
-    for work in works:        
+    for work in works:
         brief = {}
         brief["id"] = work.id
         brief["type"] = work.type
         brief["title"] = work.title
-        brief["authors"] = [{"id": author.id, "first_name": author.first_name, "last_name": author.last_name} for author in work.authors]
+        brief["authors"] = [
+            {
+                "id": author.id,
+                "first_name": author.first_name,
+                "last_name": author.last_name,
+            }
+            for author in work.authors
+        ]
         output.append(brief)
 
     return output

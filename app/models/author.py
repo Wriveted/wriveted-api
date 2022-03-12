@@ -51,7 +51,7 @@ class Author(Base):
             )
         )
         .scalar_subquery(),
-        deferred=True
+        deferred=True,
     )
 
     def __repr__(self):

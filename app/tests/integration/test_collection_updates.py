@@ -3,6 +3,7 @@ import random
 import time
 from app.services.editions import check_digit_13
 
+
 def test_collection_management(
     client,
     settings,
@@ -145,20 +146,26 @@ def test_collection_management(
             range(978000000000, 979000000000), INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         )
     ]
-    original_unhydrated = [{"isbn" : i} for i in valid_isbns]
+    original_unhydrated = [{"isbn": i} for i in valid_isbns]
     assert len(original_unhydrated) == INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
 
     # create NUMBER_INVALID_ISBNS invalid isbns to include (apply an off-by-one on the valid check digit)
     invalid_isbns = [
-        str(invalid_isbn_body) + str((int(check_digit_13(str(invalid_isbn_body))) + 1) % 10)
+        str(invalid_isbn_body)
+        + str((int(check_digit_13(str(invalid_isbn_body))) + 1) % 10)
         for invalid_isbn_body in random.sample(
             range(978000000000, 979000000000), NUMBER_INVALID_ISBNS
         )
     ]
-    invalid_books = [{"isbn" : i} for i in invalid_isbns]
+    invalid_books = [{"isbn": i} for i in invalid_isbns]
 
     original_books = original_hydrated + original_unhydrated + invalid_books
-    assert len(original_books) == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS + NUMBER_INVALID_ISBNS
+    assert (
+        len(original_books)
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + NUMBER_INVALID_ISBNS
+    )
 
     print(
         f"{len(book_data)} Books loaded. Setting the collection to the first {len(original_hydrated)} unhydrated books + {len(original_unhydrated)} hydrated books"

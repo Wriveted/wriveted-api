@@ -10,7 +10,7 @@ from app.schemas.labelset import LabelSetDetail
 class WorkInfo(BaseModel):
     genres: list[Genre]
     other: dict
-    
+
 
 class WorkBrief(BaseModel):
     id: str
@@ -20,7 +20,7 @@ class WorkBrief(BaseModel):
     authors: List[AuthorBrief]
 
     class Config:
-        orm_mode = True        
+        orm_mode = True
 
 
 class WorkDetail(WorkBrief):
@@ -43,5 +43,5 @@ class WorkCreateIn(BaseModel):
 
     series_name: Optional[str]
     series_number: Optional[int]
-    
+
     info: Optional[dict]

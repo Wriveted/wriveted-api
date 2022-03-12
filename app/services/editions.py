@@ -40,11 +40,11 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
             continue
 
     existing_isbns = (
-        session.execute(select(Edition.isbn).where(
-            and_(
-                (Edition.isbn).in_(isbns),
-                (Edition.hydrated == True)
-            )))
+        session.execute(
+            select(Edition.isbn).where(
+                and_((Edition.isbn).in_(isbns), (Edition.hydrated == True))
+            )
+        )
         .scalars()
         .all()
     )
@@ -59,18 +59,29 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
                 new_editions_hydrated.append(edition)
             else:
                 new_editions_unhydrated.append(edition.isbn)
-    
+
     if len(new_editions_hydrated) > 0:
-        logger.info(f"Will have to create {len(new_editions_hydrated)} new hydrated editions")
+        logger.info(
+            f"Will have to create {len(new_editions_hydrated)} new hydrated editions"
+        )
         crud.edition.create_in_bulk(session, bulk_edition_data=new_editions_hydrated)
         logger.info("Created new hydrated editions")
 
     if len(new_editions_unhydrated) > 0:
-        logger.info(f"Will have to create {len(new_editions_unhydrated)} new unhydrated editions")
-        await crud.edition.create_in_bulk_unhydrated(session, isbn_list=new_editions_unhydrated)
+        logger.info(
+            f"Will have to create {len(new_editions_unhydrated)} new unhydrated editions"
+        )
+        await crud.edition.create_in_bulk_unhydrated(
+            session, isbn_list=new_editions_unhydrated
+        )
         logger.info("Created new unhydrated editions")
 
-    return isbns, len(new_editions_hydrated) + len(new_editions_unhydrated), existing_isbns
+    return (
+        isbns,
+        len(new_editions_hydrated) + len(new_editions_unhydrated),
+        existing_isbns,
+    )
+
 
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
     final_primary_keys = await crud.edition.create_in_bulk_unhydrated(
@@ -94,7 +105,7 @@ def get_definitive_isbn(isbn: str):
 
     assert len(cleaned_isbn) > 0
 
-    # append leading zeroes to make at least 10 chars 
+    # append leading zeroes to make at least 10 chars
     # (sometimes leading zeroes can be stripped from valid isbn's by excel or the like)
     cleaned_isbn = cleaned_isbn.zfill(10)
 
@@ -118,16 +129,19 @@ def clean_isbns(isbns: list[str]) -> set[str]:
 
 # --- courtesy of https://code.activestate.com/recipes/498104-isbn-13-converter/ ---
 
+
 def isbn_is_valid(isbn):
-    if(len(isbn) not in [10,13]): 
+    if len(isbn) not in [10, 13]:
         return False
 
     body = isbn[:-1]
     check = isbn[-1]
 
-    return (check_digit_10(body) == check) \
-        if len(isbn) == 10 \
+    return (
+        (check_digit_10(body) == check)
+        if len(isbn) == 10
         else (check_digit_13(body) == check)
+    )
 
 
 def check_digit_10(isbn):

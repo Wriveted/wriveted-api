@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from structlog import get_logger
 from app import crud
-from app.api.dependencies.security import get_current_active_superuser_or_backend_service_account, get_current_active_user_or_service_account
+from app.api.dependencies.security import (
+    get_current_active_superuser_or_backend_service_account,
+    get_current_active_user_or_service_account,
+)
 from app.db.session import get_session
 from app.schemas.edition import EditionBrief
 from app.schemas.labelset import LabelSetPatch
@@ -13,6 +16,7 @@ router = APIRouter(
     tags=["Labelsets"],
     dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
 )
+
 
 @router.patch("/labelsets")
 async def bulk_patch_labelsets(

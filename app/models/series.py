@@ -1,11 +1,4 @@
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Integer,
-    String,
-    JSON,
-    Computed
-)
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, Computed
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
@@ -23,7 +16,14 @@ class Series(Base):
     # CHRONICLES OF NARNIA      = chroniclesofnarnia
     # A Rather Cool Book Series = rathercoolbookseries
     # Not 100% perfect, but should catch the majority
-    title_key = Column(String(512), Computed("LOWER(REGEXP_REPLACE(LOWER(title), '(^(\\w*the ))|(^(\\w*a ))|[^a-z0-9]', '', 'g'))"), unique=True, index=True)
+    title_key = Column(
+        String(512),
+        Computed(
+            "LOWER(REGEXP_REPLACE(LOWER(title), '(^(\\w*the ))|(^(\\w*a ))|[^a-z0-9]', '', 'g'))"
+        ),
+        unique=True,
+        index=True,
+    )
 
     # author_id = Column(
     #     Integer,

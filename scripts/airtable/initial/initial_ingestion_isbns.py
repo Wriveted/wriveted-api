@@ -25,19 +25,17 @@ is_admin = (
     }
 )
 
-assert is_admin  
+assert is_admin
 
-isbns: list[str] = []  
+isbns: list[str] = []
 
 here = os.path.dirname(os.path.abspath(__file__))
-filename = os.path.join(here, 'initial_isbns.txt')
-with open(filename) as isbn_file:  
+filename = os.path.join(here, "initial_isbns.txt")
+with open(filename) as isbn_file:
     for line in isbn_file:
         isbns.append({"isbn": line.strip()})
 
-print(
-    f"Adding the {len(isbns)} unhydrated airtable books to db"
-)
+print(f"Adding the {len(isbns)} unhydrated airtable books to db")
 add_books_response = httpx.post(
     settings.WRIVETED_API + "/editions",
     json=isbns,

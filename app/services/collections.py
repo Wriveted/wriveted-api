@@ -107,7 +107,7 @@ async def add_editions_to_collection_by_isbn(
             detail="No valid ISBNs were found in input",
         )
 
-    # At this point all editions referenced should exist. 
+    # At this point all editions referenced should exist.
     # Using len(final_primary_keys) as length may be different now that it's a set
     logger.info(f"Syncing {len(final_primary_keys)} editions with collection")
 
