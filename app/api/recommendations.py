@@ -1,10 +1,4 @@
-import enum
-import uuid
-from typing import Optional
-
 from fastapi import APIRouter, Depends, BackgroundTasks
-from pydantic import BaseModel
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -16,7 +10,7 @@ from app.db.explain import explain
 from app.db.session import get_session
 
 
-from app.schemas.recommendations import HueyBook, HueyOutput
+from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
 from app.services.events import create_event
 
 from app.services.recommendations import get_recommended_labelset_query
@@ -27,38 +21,6 @@ router = APIRouter(
 )
 logger = get_logger()
 config = get_settings()
-
-
-class ReadingAbilityKey(str, enum.Enum):
-    SPOT = 'SPOT'
-    CAT_HAT = 'CAT_HAT'
-    TREEHOUSE = 'TREEHOUSE'
-    CHARLIE_CHOCOLATE = 'CHARLIE_CHOCOLATE'
-    HARRY_POTTER = 'HARRY_POTTER'
-
-
-class HueKeys(str, enum.Enum):
-    hue01_dark_suspense = 'hue01_dark_suspense'
-    hue02_beautiful_whimsical = 'hue02_beautiful_whimsical'
-    hue03_dark_beautiful = 'hue03_dark_beautiful'
-    hue05_funny_comic = 'hue05_funny_comic'
-    hue06_dark_gritty = 'hue06_dark_gritty'
-    hue07_silly_charming = 'hue07_silly_charming'
-    hue08_charming_inspiring = 'hue08_charming_inspiring'
-    hue09_charming_playful = 'hue09_charming_playful'
-    hue10_inspiring = 'hue10_inspiring'
-    hue11_realistic_hope = 'hue11_realistic_hope'
-    hue12_funny_quirky = 'hue12_funny_quirky'
-    hue13_straightforward = 'hue13_straightforward'
-
-
-
-
-class HueyRecommendationFilter(BaseModel):
-    hues: Optional[list[HueKeys]] = None
-    age: Optional[int] = None
-    reading_ability: Optional[ReadingAbilityKey] = None
-    wriveted_identifier: Optional[uuid.UUID] = None
 
 
 @router.post("/recommend", response_model=HueyOutput)
@@ -87,10 +49,11 @@ async def get_recommendations(
     else:
         school = None
 
-    row_results = await get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks=background_tasks)
-    return {
-        "count": len(row_results),
-        "books":[
+    row_results, query_parameters = await get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks=background_tasks)
+    return HueyOutput(
+        count=len(row_results),
+        query=query_parameters,
+        books=[
             HueyBook(
                 isbn=edition.isbn,
                 cover_url=edition.cover_url,
@@ -99,7 +62,7 @@ async def get_recommendations(
                 summary=labelset.huey_summary
             ) for (work, edition, labelset) in row_results
         ]
-    }
+    )
 
 
 async def get_recommendations_with_fallback(session, account, hues, reading_ability, school, age, background_tasks: BackgroundTasks):
@@ -113,31 +76,19 @@ async def get_recommendations_with_fallback(session, account, hues, reading_abil
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
-    if len(row_results) == 0:
+    if len(row_results) < 3:
         # proper fallback logic can come later when booklists are implemented
-        # For now lets just include all the hues and try again.
-        query_parameters['hues'] = [
-            'hue01_dark_suspense',
-            'hue02_beautiful_whimsical',
-            'hue03_dark_beautiful',
-            'hue05_funny_comic',
-            'hue06_dark_gritty',
-            'hue07_silly_charming',
-            'hue08_charming_inspiring',
-            'hue09_charming_playful',
-            'hue10_inspiring',
-            'hue11_realistic_hope',
-            'hue12_funny_quirky',
-            'hue13_straightforward',
-        ]
-        logger.info("Desired query returned no books. Trying fallback 1 dropping hue", query_parameters=query_parameters)
+        query_parameters['school_id'] = None
+        logger.info(f"Desired query returned {len(row_results)} books. Trying fallback method 1 of looking outside school collection",
+                    query_parameters=query_parameters)
 
         row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
+        if len(row_results) < 3:
+            # Still not enough, alright let's recommend outside the school collection
 
-        if len(row_results) == 0:
-            # Still nothing... alright let's recommend outside the school collection
-            query_parameters['school_id'] = None
-            logger.info("Desired query returned no books. Trying fallback 2", query_parameters=query_parameters)
+            # Lets just include all the hues and try the query again.
+            query_parameters['hues'] = None
+            logger.info(f"Desired query returned {len(row_results)} books. Trying fallback method 2 of including all hues", query_parameters=query_parameters)
             row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
     if len(row_results) > 1:
@@ -160,10 +111,10 @@ async def get_recommendations_with_fallback(session, account, hues, reading_abil
                 school=school,
                 account=account
             )
-    return row_results
+    return row_results, query_parameters
 
 
-def get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age):
+def get_recommended_editions_and_labelsets(session, school_id, hues, reading_ability, age, limit=5):
     query = get_recommended_labelset_query(
         session,
         hues=hues,
@@ -173,10 +124,10 @@ def get_recommended_editions_and_labelsets(session, school_id, hues, reading_abi
     )
 
     if config.DEBUG:
-        explain_results = session.execute(explain(query)).scalars().all()
+        explain_results = session.execute(explain(query, analyze=True)).scalars().all()
         logger.info("Query plan")
         for entry in explain_results:
             logger.info(entry)
 
-    row_results = session.execute(query.limit(5)).all()
+    row_results = session.execute(query.limit(limit)).all()
     return row_results

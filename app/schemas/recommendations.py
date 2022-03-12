@@ -1,4 +1,49 @@
+import enum
+import uuid
+from typing import Optional
+
 from pydantic import BaseModel, HttpUrl
+
+
+
+
+
+class ReadingAbilityKey(str, enum.Enum):
+    SPOT = 'SPOT'
+    CAT_HAT = 'CAT_HAT'
+    TREEHOUSE = 'TREEHOUSE'
+    CHARLIE_CHOCOLATE = 'CHARLIE_CHOCOLATE'
+    HARRY_POTTER = 'HARRY_POTTER'
+
+
+class HueKeys(str, enum.Enum):
+    hue01_dark_suspense = 'hue01_dark_suspense'
+    hue02_beautiful_whimsical = 'hue02_beautiful_whimsical'
+    hue03_dark_beautiful = 'hue03_dark_beautiful'
+    hue05_funny_comic = 'hue05_funny_comic'
+    hue06_dark_gritty = 'hue06_dark_gritty'
+    hue07_silly_charming = 'hue07_silly_charming'
+    hue08_charming_inspiring = 'hue08_charming_inspiring'
+    hue09_charming_playful = 'hue09_charming_playful'
+    hue10_inspiring = 'hue10_inspiring'
+    hue11_realistic_hope = 'hue11_realistic_hope'
+    hue12_funny_quirky = 'hue12_funny_quirky'
+    hue13_straightforward = 'hue13_straightforward'
+
+
+class HueyRecommendationFilterBase(BaseModel):
+    hues: Optional[list[HueKeys]] = None
+    age: Optional[int] = None
+    reading_ability: Optional[ReadingAbilityKey] = None
+
+
+class HueyRecommendationFilter(HueyRecommendationFilterBase):
+    wriveted_identifier: Optional[uuid.UUID] = None
+
+
+class HueyRecommendationFilterUsed(HueyRecommendationFilterBase):
+    school_id: Optional[int] = None
+
 
 
 class HueyBook(BaseModel):
@@ -12,3 +57,5 @@ class HueyBook(BaseModel):
 class HueyOutput(BaseModel):
     count: int
     books: list[HueyBook]
+    #query: dict[str, str | list[str] | None]
+    query: HueyRecommendationFilterUsed
