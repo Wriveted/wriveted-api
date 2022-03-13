@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
 from app.models import School
+from app.schemas.labelset import LabelSetDetail
 
 from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
 from app.services.events import create_event
@@ -72,6 +73,7 @@ async def get_recommendations(
                 display_title=edition.title,
                 authors_string=work.get_authors_string(),
                 summary=labelset.huey_summary,
+                labels=LabelSetDetail.from_orm(labelset)
             )
             for (work, edition, labelset) in row_results
         ],
