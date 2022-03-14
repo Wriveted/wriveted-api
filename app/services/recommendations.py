@@ -11,9 +11,11 @@ from app.models import (
     LabelSetHue,
     ReadingAbility,
     Work,
+    LabelSetReadingAbility
 )
 
 from app import crud
+from app.models.labelset import RecommendStatus
 
 logger = get_logger()
 
@@ -23,7 +25,9 @@ def get_recommended_labelset_query(
     hues: Optional[list[str]] = None,
     school_id: Optional[int] = None,
     age: Optional[int] = None,
-    reading_ability: Optional[str] = None,
+    reading_abilities: Optional[list[str]] = None,
+    recommendable_only: Optional[bool] = True,
+    exclude_isbns: Optional[list[str]] = None
 ):
     """
     Return a (complicated) select query for labelsets filtering by hue,
@@ -49,6 +53,7 @@ def get_recommended_labelset_query(
         .join(Work, aliased_labelset.work_id == Work.id)
         .join(Edition, Edition.work_id == Work.id)
         .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
+        .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
     )
 
     # Now add the optional filters
@@ -68,17 +73,10 @@ def get_recommended_labelset_query(
         hue_ids_query = select(Hue.id).where(Hue.key.in_(hues))
         query = query.where(LabelSetHue.hue_id.in_(hue_ids_query))
 
-    if reading_ability is not None:
-        reading_ability_query = (
-            select(ReadingAbility).where(ReadingAbility.key == reading_ability).limit(1)
-        )
-        reading_ability_id = session.execute(reading_ability_query).scalar_one().id
-
-        query = query.where(
-            aliased_labelset.reading_abilities.any(
-                ReadingAbility.id == reading_ability_id
-            )
-        )
+    if reading_abilities is not None:
+        # Labelset Ids from reading abilities
+        reading_ability_ids_query = select(ReadingAbility.id).where(ReadingAbility.key.in_(reading_abilities))
+        query = query.where(LabelSetReadingAbility.reading_ability_id.in_(reading_ability_ids_query))
 
     if age is not None:
         query = query.where(aliased_labelset.min_age <= age).where(
@@ -86,7 +84,15 @@ def get_recommended_labelset_query(
         )
 
     # Add other filtering criteria
+    if recommendable_only:
+        query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
     query = query.where(Edition.cover_url.is_not(None)).limit(100)
+    # To exclude images from the OpenLibrary bucket folder
+    # query = query.filter(~Edition.cover_url.contains("/open/"))
+
+    # exclude certain editions using isbn
+    if exclude_isbns is not None:
+        query = query.where(~Edition.isbn.in_(exclude_isbns))
 
     # Now make a massive CTE so we can shuffle the results
     massive_cte = query.cte(name="labeled")
