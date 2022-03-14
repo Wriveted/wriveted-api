@@ -33,7 +33,11 @@ class HueKeys(str, enum.Enum):
 class HueyRecommendationFilterBase(BaseModel):
     hues: Optional[list[HueKeys]] = None
     age: Optional[int] = None
-    reading_ability: Optional[ReadingAbilityKey] = None
+    reading_abilities: Optional[list[ReadingAbilityKey]] = None
+    recommendable_only: Optional[bool] = None
+    exclude_isbns: Optional[list[str]] = None
+    fallback: Optional[bool] = None
+    # hueys_picks: Optional[bool]
 
 
 class HueyRecommendationFilter(HueyRecommendationFilterBase):
