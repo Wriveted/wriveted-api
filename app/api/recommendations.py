@@ -40,12 +40,6 @@ async def get_recommendations(
     Note this endpoint returns recommendations in a random order.
     """
     logger.info("Recommendation endpoint called", parameters=data)
-    hues = data.hues
-    age = data.age
-    reading_abilities = data.reading_abilities
-    recommendable_only = data.recommendable_only
-    exclude_isbns = data.exclude_isbns
-    fallback=data.fallback
 
     if data.wriveted_identifier is not None:
         school = crud.school.get_by_wriveted_id_or_404(
@@ -58,15 +52,10 @@ async def get_recommendations(
     row_results, query_parameters = await get_recommendations_with_fallback(
         session,
         account,
-        hues,
-        reading_abilities,
         school,
-        age,
-        recommendable_only,
-        exclude_isbns,
+        data=data,
         background_tasks=background_tasks,
-        limit=limit,
-        fallback=fallback
+        limit=limit
     )
     return HueyOutput(
         count=len(row_results),
@@ -89,30 +78,25 @@ async def get_recommendations(
 async def get_recommendations_with_fallback(
     session,
     account,
-    hues,
-    reading_abilities,
     school: School,
-    age: int,
-    recommendable_only: bool,
-    exclude_isbns: list[str],
+    data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit=5,
-    fallback: bool = False
 ):
     school_id = school.id if school is not None else None
     query_parameters = {
         "school_id": school_id,
-        "hues": hues,
-        "reading_abilities": reading_abilities,
-        "age": age,
-        "recommendable_only": recommendable_only,
-        "exclude_isbns": exclude_isbns,
+        "hues": data.hues,
+        "reading_abilities": data.reading_abilities,
+        "age": data.age,
+        "recommendable_only": data.recommendable_only,
+        "exclude_isbns": data.exclude_isbns,
         "limit": limit,
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
 
-    if fallback and len(row_results) < 3:
+    if data.fallback and len(row_results) < 3:
         # proper fallback logic can come later when booklists are implemented
         query_parameters["school_id"] = None
         logger.info(
