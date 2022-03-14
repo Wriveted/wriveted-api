@@ -70,7 +70,7 @@ async def get_recommendations(
                 work_id=work.id,
                 isbn=edition.isbn,
                 cover_url=edition.cover_url,
-                display_title=edition.title,
+                display_title=edition.get_display_title(),
                 authors_string=work.get_authors_string(),
                 summary=labelset.huey_summary,
                 labels=LabelSetDetail.from_orm(labelset)
