@@ -15,9 +15,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
 from app.db import Base
 from app.models.labelset_hue_association import LabelSetHue
-from app.models.labelset_reading_ability_association import (
-    labelset_reading_ability_association_table,
-)
+from app.models.labelset_reading_ability_association import LabelSetReadingAbility
 from datetime import datetime
 
 
@@ -72,7 +70,7 @@ class LabelSet(Base):
 
     reading_abilities = relationship(
         "ReadingAbility",
-        secondary=labelset_reading_ability_association_table,
+        secondary=LabelSetReadingAbility.__table__,
         back_populates="labelsets",
         lazy="selectin",
     )
