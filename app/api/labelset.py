@@ -46,3 +46,6 @@ async def bulk_patch_labelsets(
         except Exception as ex:
             print(ex)
             errors += 1
+            continue
+
+    return { "patched": patched, "unknown": unknown, "errors": errors }
