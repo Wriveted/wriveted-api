@@ -125,12 +125,22 @@ async def get_school(school: School = Permission("read", get_school_from_wrivete
 
 
 @public_router.get("/school/{wriveted_identifier}/exists")
-async def get_school(school: School = Depends(get_school_from_wriveted_id)):
+async def school_exists(school: School = Depends(get_school_from_wriveted_id)):
     """
     Whether a school exists. Used for the publicly-accessible Bookbot chat links.
     """
     # dependency will automatically 404 if school doesn't exist
     return True
+
+
+@public_router.get("/school/{wriveted_identifier}/bot")
+async def get_school_bookbot_type(school: School = Depends(get_school_from_wriveted_id)):
+    """
+    Returns the bookbot type for a school, i.e. whether they've opted for Huey's Collection,
+    or their own. Used for the publicly-accessible Bookbot chat links.
+    """
+    # dependency will automatically 404 if school doesn't exist
+    return school.bookbot_type
 
 
 # Intended to be deprecated if wriveted_identifier is promoted to primary key
