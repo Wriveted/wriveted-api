@@ -1,5 +1,5 @@
 from typing import Any, Optional
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
 from structlog import get_logger
@@ -7,6 +7,7 @@ from app import crud
 from app.crud import CRUDBase
 from app.models.hue import Hue
 from app.models.labelset import LabelSet
+from app.models.labelset_hue_association import Ordinal
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
@@ -53,6 +54,24 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         db.flush()
         return labelset
 
+    def create_or_update_labelset_hue(self, db: Session, labelset_id: str, hue_id: str, ordinal: Ordinal) -> LabelSetHue:
+        lsh = select(LabelSetHue).where(
+            and_(
+                LabelSetHue.labelset_id == labelset_id,
+                LabelSetHue.hue_id == hue_id,
+                LabelSetHue.ordinal == ordinal
+            )
+        )
+        existing = db.execute(lsh).scalar_one_or_none()
+        if not existing:
+            db.add(
+                LabelSetHue(
+                    labelset_id=labelset_id,
+                    hue_id=hue_id,
+                    ordinal=ordinal,
+                )
+            )
+
     def patch(
         self, db: Session, labelset: LabelSet, data: LabelSetCreateIn, commit=True
     ) -> LabelSet:
@@ -86,13 +105,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if primary:
                             primary.hue_id = hue.id
                         else:
-                            db.add(
-                                LabelSetHue(
-                                    labelset_id=labelset.id,
-                                    hue_id=hue.id,
-                                    ordinal="PRIMARY",
-                                )
-                            )
+                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.PRIMARY)
 
                 if data.hue_secondary_key:
                     hue: Hue = self.get_hue_by_key(db, data.hue_secondary_key)
@@ -108,13 +121,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if secondary:
                             secondary.hue_id = hue.id
                         else:
-                            db.add(
-                                LabelSetHue(
-                                    labelset_id=labelset.id,
-                                    hue_id=hue.id,
-                                    ordinal="SECONDARY",
-                                )
-                            )
+                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.SECONDARY)
 
                 if data.hue_tertiary_key:
                     hue: Hue = self.get_hue_by_key(db, data.hue_tertiary_key)
@@ -126,13 +133,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if tertiary:
                             tertiary.hue_id = hue.id
                         else:
-                            db.add(
-                                LabelSetHue(
-                                    labelset_id=labelset.id,
-                                    hue_id=hue.id,
-                                    ordinal="TERTIARY",
-                                )
-                            )
+                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.TERTIARY)
 
                 labelset.hue_origin = data.hue_origin
                 updated = True
