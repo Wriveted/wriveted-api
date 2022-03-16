@@ -2,14 +2,14 @@ import enum
 
 from sqlalchemy import (
     Enum,
-    JSON,
+    Index, JSON,
     ForeignKey,
     Column,
     Integer,
     Boolean,
     DateTime,
     Text,
-    func,
+    and_, func,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
@@ -26,13 +26,6 @@ class RecommendStatus(str, enum.Enum):
     BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL"  # Contoversial content
     BAD_LOW_QUALITY = "BAD_LOW_QUALITY"  # Not a great example
 
-
-# class ReadingAbility(str, enum.Enum):
-# SPOT = "SPOT" # Where's Spot
-# CAT_HAT = "CAT_HAT" # Cat in the Hat
-# TREEHOUSE = "TREEHOUSE" # The 13-Storey Treehouse
-# CHARLIE_CHOCOLATE = "CHARLIE_CHOCOLATE" # Charlie and the Chocolate Factory
-# HARRY_POTTER = "HARRY_POTTER" # Harry Potter and the Philosopher's Stone
 
 
 class LabelOrigin(str, enum.Enum):
@@ -78,11 +71,19 @@ class LabelSet(Base):
 
     min_age = Column(Integer, nullable=True)
     max_age = Column(Integer, nullable=True)
+    Index("index_age_range", min_age, max_age, postgresql_where=and_(
+        min_age.is_not(None),
+        max_age.is_not(None)
+    ))
+
     age_origin = Column(Enum(LabelOrigin), nullable=True)
 
     recommend_status = Column(
         Enum(RecommendStatus), nullable=False, server_default="GOOD"
     )
+    Index("index_good_recommendations", recommend_status, postgresql_where=(
+        recommend_status == RecommendStatus.GOOD))
+
     recommend_status_origin = Column(Enum(LabelOrigin), nullable=True)
 
     # both service accounts and users could potentially label works

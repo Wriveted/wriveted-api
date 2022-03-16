@@ -1,12 +1,10 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, Security
-from pydantic import ValidationError
 from sqlalchemy import delete, func, update, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
@@ -55,28 +53,33 @@ async def get_school_collection(
     return collection_items
 
 
-# @router.get(
-#     "/school/{wriveted_identifier}/collection/info",
-#     response_model=CollectionInfo,
-# )
-# async def get_school_collection_info(
-#     school: School = Permission("read", get_school_from_wriveted_id),
-#     session: Session = Depends(get_session),
-# ):
-#     logger.debug("Getting collection info")
-#     output = {}
+@router.get(
+    "/school/{wriveted_identifier}/collection/info",
+    response_model=CollectionInfo,
+)
+async def get_school_collection_info(
+    school: School = Permission("read", get_school_from_wriveted_id),
+    session: Session = Depends(get_session),
+):
+    logger.debug("Getting collection info")
+    output = {}
     
-#     editions_query = session.query(CollectionItem).filter(CollectionItem.school_id == school.id)
-#     hydrated_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True)
-#     labelled_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True)
-#     recommend_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True, recommendable_only=True)
+    editions_query = select(func.count(CollectionItem.id)).where(CollectionItem.school_id == school.id)
+    hydrated_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True)
+    labelled_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True, is_labelled=True)
+    recommend_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True, is_labelled=True, is_recommendable=True)
 
-#     output['total_editions'] = editions_query.count()
-#     output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
-#     output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
-#     output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
+    # explain_results = session.execute(explain(recommend_query, analyze=True)).scalars().all()
+    # logger.info("Query plan")
+    # for entry in explain_results:
+    #     logger.info(entry)
 
-#     return output
+    output['total_editions'] = session.execute(editions_query).scalar_one()
+    output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
+    output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
+    output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
+
+    return output
 
 
 @router.post(

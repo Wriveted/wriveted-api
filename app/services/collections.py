@@ -158,9 +158,9 @@ async def add_editions_to_collection_by_isbn(
 def get_collection_info_with_criteria(
     session,
     school_id: int,
-    hydrated_only: bool = False,
-    labelled_only: bool = False,
-    recommendable_only: bool = False    
+    is_hydrated: bool = False,
+    is_labelled: bool = False,
+    is_recommendable: bool = False
 ):
     """
     Return a (complicated) select query for labelsets, editions, and works filtering by
@@ -183,8 +183,8 @@ def get_collection_info_with_criteria(
         .order_by(Work.id)
         .join(Work, aliased_labelset.work_id == Work.id)
         .join(Edition, Edition.work_id == Work.id)
-        .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
-        .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
+        #.join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
+        #.join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
     )
 
     # Filter for works in a school collection
@@ -195,27 +195,20 @@ def get_collection_info_with_criteria(
         ).where(CollectionItem.school == school)
     )
 
-    if hydrated_only:
+    if is_hydrated:
         query = query.where(Edition.title.is_not(None))
         query = query.where(Edition.cover_url.is_not(None))
-        query = query.filter(Edition.authors.any())
 
-    if labelled_only:
-        query = query.filter(aliased_labelset.hues.any())
-        query = query.filter(aliased_labelset.reading_abilities.any())
-        query = query.where(aliased_labelset.min_age >= 0).where(
-            aliased_labelset.max_age > 0
+    if is_labelled:
+        query = (
+            query.where(aliased_labelset.hues.any())
+                .where(aliased_labelset.reading_abilities.any())
+                .where(aliased_labelset.min_age >= 0)
+                .where(aliased_labelset.max_age > 0)
+                .where(aliased_labelset.huey_summary.is_not(None))
         )
-        query = query.where(aliased_labelset.huey_summary.is_not(None))
 
-    if recommendable_only:
+    if is_recommendable:
         query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
 
-    # Now make a massive CTE so we can shuffle the results
-    massive_cte = query.cte(name="labeled")
-
-    aliased_work = aliased(Work, massive_cte)
-    aliased_edition = aliased(Edition, massive_cte)
-    aliased_labelset_end = aliased(LabelSet, massive_cte)
-
-    return select(aliased_work, aliased_edition, aliased_labelset_end)
+    return query
