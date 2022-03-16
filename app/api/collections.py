@@ -14,6 +14,7 @@ from app.db.session import get_session
 from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
 from app.schemas.collection import (
+    CollectionInfo,
     CollectionItemDetail,
     CollectionUpdate,
     CollectionUpdateType,
@@ -23,6 +24,7 @@ from app.schemas.edition import EditionCreateIn
 from app.services.collections import (
     add_editions_to_collection,
     add_editions_to_collection_by_isbn,
+    get_collection_info_with_criteria,
 )
 
 logger = get_logger()
@@ -51,6 +53,30 @@ async def get_school_collection(
     ).all()
     logger.debug("Loading collection", collection_size=len(collection_items))
     return collection_items
+
+
+@router.get(
+    "/school/{wriveted_identifier}/collection/info",
+    response_model=CollectionInfo,
+)
+async def get_school_collection_info(
+    school: School = Permission("read", get_school_from_wriveted_id),
+    session: Session = Depends(get_session),
+):
+    logger.debug("Getting collection info")
+    output = {}
+    
+    editions_query = session.query(CollectionItem).filter(CollectionItem.school_id == school.id)
+    hydrated_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True)
+    labelled_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True)
+    recommend_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True, recommendable_only=True)
+
+    output['total_editions'] = editions_query.count()
+    output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
+    output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
+    output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
+
+    return output
 
 
 @router.post(

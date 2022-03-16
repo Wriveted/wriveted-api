@@ -1,16 +1,24 @@
 import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 from starlette import status
 from structlog import get_logger
 
 from app import crud
 
 from app.models import CollectionItem
+from app.models.edition import Edition
+from app.models.hue import Hue
+from app.models.labelset import LabelSet, RecommendStatus
+from app.models.labelset_hue_association import LabelSetHue
+from app.models.labelset_reading_ability_association import LabelSetReadingAbility
+from app.models.reading_ability import ReadingAbility
 from app.models.school import School
+from app.models.work import Work
 from app.schemas.collection import CollectionItemIn
 from app.services.events import create_event
 from app.services.editions import (
@@ -145,3 +153,69 @@ async def add_editions_to_collection_by_isbn(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Couldn't process input",
         )
+
+
+def get_collection_info_with_criteria(
+    session,
+    school_id: int,
+    hydrated_only: bool = False,
+    labelled_only: bool = False,
+    recommendable_only: bool = False    
+):
+    """
+    Return a (complicated) select query for labelsets, editions, and works filtering by
+    school, hydration status, labelling status, and recommendability.
+
+    Can raise sqlalchemy.exc.NoResultFound if for example an invalid reading_ability key
+    is passed.
+    """
+    latest_labelset_subquery = (
+        select(LabelSet)
+        .distinct(LabelSet.work_id)
+        .order_by(LabelSet.work_id, LabelSet.id.desc())
+        .cte(name="latestlabelset")
+    )
+    aliased_labelset = aliased(LabelSet, latest_labelset_subquery)
+    query = (
+        select(Work, Edition, aliased_labelset)
+        .select_from(aliased_labelset)
+        .distinct(Work.id)
+        .order_by(Work.id)
+        .join(Work, aliased_labelset.work_id == Work.id)
+        .join(Edition, Edition.work_id == Work.id)
+        .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
+        .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
+    )
+
+    # Filter for works in a school collection
+    school = crud.school.get_or_404(db=session, id=school_id)
+    query = (
+        query.join(
+            CollectionItem, CollectionItem.edition_isbn == Edition.isbn
+        ).where(CollectionItem.school == school)
+    )
+
+    if hydrated_only:
+        query = query.where(Edition.title.is_not(None))
+        query = query.where(Edition.cover_url.is_not(None))
+        query = query.filter(Edition.authors.any())
+
+    if labelled_only:
+        query = query.filter(aliased_labelset.hues.any())
+        query = query.filter(aliased_labelset.reading_abilities.any())
+        query = query.where(aliased_labelset.min_age >= 0).where(
+            aliased_labelset.max_age > 0
+        )
+        query = query.where(aliased_labelset.huey_summary.is_not(None))
+
+    if recommendable_only:
+        query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
+
+    # Now make a massive CTE so we can shuffle the results
+    massive_cte = query.cte(name="labeled")
+
+    aliased_work = aliased(Work, massive_cte)
+    aliased_edition = aliased(Edition, massive_cte)
+    aliased_labelset_end = aliased(LabelSet, massive_cte)
+
+    return select(aliased_work, aliased_edition, aliased_labelset_end)

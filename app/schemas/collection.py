@@ -4,6 +4,12 @@ from pydantic import BaseModel, conint
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 
+class CollectionInfo(BaseModel):
+    total_editions: int
+    hydrated: int
+    hydrated_and_labeled: int
+    recommendable: int
+
 
 class CollectionItemIn(BaseModel):
     isbn: str
