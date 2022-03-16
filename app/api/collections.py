@@ -55,28 +55,28 @@ async def get_school_collection(
     return collection_items
 
 
-@router.get(
-    "/school/{wriveted_identifier}/collection/info",
-    response_model=CollectionInfo,
-)
-async def get_school_collection_info(
-    school: School = Permission("read", get_school_from_wriveted_id),
-    session: Session = Depends(get_session),
-):
-    logger.debug("Getting collection info")
-    output = {}
+# @router.get(
+#     "/school/{wriveted_identifier}/collection/info",
+#     response_model=CollectionInfo,
+# )
+# async def get_school_collection_info(
+#     school: School = Permission("read", get_school_from_wriveted_id),
+#     session: Session = Depends(get_session),
+# ):
+#     logger.debug("Getting collection info")
+#     output = {}
     
-    editions_query = session.query(CollectionItem).filter(CollectionItem.school_id == school.id)
-    hydrated_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True)
-    labelled_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True)
-    recommend_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True, recommendable_only=True)
+#     editions_query = session.query(CollectionItem).filter(CollectionItem.school_id == school.id)
+#     hydrated_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True)
+#     labelled_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True)
+#     recommend_query = get_collection_info_with_criteria(session, school.id, hydrated_only=True, labelled_only=True, recommendable_only=True)
 
-    output['total_editions'] = editions_query.count()
-    output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
-    output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
-    output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
+#     output['total_editions'] = editions_query.count()
+#     output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
+#     output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
+#     output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
 
-    return output
+#     return output
 
 
 @router.post(
