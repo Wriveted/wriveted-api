@@ -44,7 +44,7 @@ account_details = account_details_response.json()
 
 is_admin = (
     account_details["account_type"] == "user"
-    and account_details["user"]["is_superuser"]
+    and account_details["user"]["type"] in {"wriveted"}
 ) or (
     account_details["account_type"] == "service_account"
     and account_details["service_account"]["type"]
@@ -54,10 +54,10 @@ is_admin = (
 )
 test_school_id = "42"
 
-INITIAL_NUMBER_OF_BOOKS = 1500
-UPDATED_NUMBER_OF_BOOKS = 500
-ADDED_NUMBER_OF_BOOKS = 500
-REMOVED_NUMBER_OF_BOOKS = 50
+INITIAL_NUMBER_OF_BOOKS = 15
+UPDATED_NUMBER_OF_BOOKS = 10
+ADDED_NUMBER_OF_BOOKS = 20
+REMOVED_NUMBER_OF_BOOKS = 5
 
 
 if is_admin:
@@ -71,12 +71,17 @@ if is_admin:
             "name": f"Test School - {test_school_id}",
             "country_code": "ATA",
             "official_identifier": test_school_id,
-            "info": {"msg": "Created for test purposes"},
+            "info": {"location": {
+                "state": "",
+                "postcode": ""
+            }},
         },
         timeout=120,
     )
     new_test_school_response.raise_for_status()
     school_info = new_test_school_response.json()
+    print(school_info)
+    school_wriveted_id = school_info['wriveted_identifier']
 
     print("Creating a LMS service account to carry out the rest of the test")
     new_service_account_response = httpx.post(
@@ -85,30 +90,32 @@ if is_admin:
         json={
             "name": f"Integration Test Service Account - {test_school_id}",
             "type": "lms",
-            "schools": [{"country_code": "ATA", "official_identifier": test_school_id}],
+            "schools": [{"wriveted_identifier": school_wriveted_id}],
             "info": {"msg": "Created for test purposes"},
         },
     )
+
     new_service_account_response.raise_for_status()
     service_account_details = new_service_account_response.json()
     print("switching to use service account token")
     token = service_account_details["access_token"]
 else:
     test_school_response = httpx.get(
-        f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}",
+        f"{settings.WRIVETED_API}/v1/schools",
+        params={"country_code": "ATA"},
         headers={"Authorization": f"Bearer {token}"},
     )
-    school_info = test_school_response.json()
+    school_info = test_school_response.json()[0]
 
 print("Resetting school collection")
 reset_collection_response = httpx.post(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     headers={"Authorization": f"Bearer {token}"},
     json=[],
 )
 reset_collection_response.raise_for_status()
 get_collection_response = httpx.get(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     headers={"Authorization": f"Bearer {token}"},
 )
 
@@ -117,101 +124,88 @@ collection = get_collection_response.json()
 assert len(collection) == 0
 print("Collection after reset:", collection)
 
-print("Loading books from CSV file")
-
-book_data = []
-with open("Wriveted-books.csv", newline="", encoding="cp437") as csv_file:
-    reader = csv.reader(csv_file)
-
-    # Eat the header line
-    headers = next(reader)
-
-    # first_row = next(reader)
-    # for i, (h, ex) in enumerate(zip(headers, first_row)):
-    #     print(i, h.strip(), "====> ", ex)
-
-    print()
-
-    # The Airtable data has some duplicates
-    seen_isbns = set()
-    for i, book_row in enumerate(reader):
-        if i > 2000:
-            break
-        authors = []
-        if len(book_row[1]) > 1:
-            authors.append(
-                {
-                    "last_name": book_row[1].split()[-1],
-                    "full_name": book_row[1],
-                }
-            )
-
-        cover_url = None
-        if len(book_row[17]) > 1 and book_row[17].startswith("http"):
-            cover_url = book_row[17]
-
-        for isbn in book_row[28].split(","):
-            isbn = isbn.strip().upper()
-            if isbn not in seen_isbns and len(isbn) > 0:
-
-                new_edition_data = {
-                    # "work_title": "string",
-                    "title": book_row[0].strip(),
-                    "isbn": isbn.strip(),
-                    "cover_url": cover_url,
-                    "info": {
-                        "genre": book_row[20],
-                        "other": {"airtable_dump": "|".join(book_row)},
-                    },
-                    "authors": authors,
-                    "illustrators": [
-                        # {
-                        #     "full_name": "string",
-                        #     "info": "string"
-                        # }
-                    ],
-                }
-                if book_row[80] is not None and len(book_row[80]) > 1:
-                    # Add the series title
-                    try:
-                        (series_title, *_) = book_row[80].split(";")
-                        new_edition_data["series_title"] = series_title.strip()
-                    except ValueError:
-                        print("Not adding this series - row was ", book_row[80])
-
-                book_data.append(new_edition_data)
-
-            seen_isbns.add(isbn)
-
+isbns = [
+    '9781743816332',
+    '9781922244932',
+    '9781925227642',
+    '9781743532980',
+    '9781922077400',
+    '9781841211046',
+    '9780143306726',
+    '9781743620014',
+    '9781905294251',
+    '9780141305103',
+    '9780746096673',
+    '9780207186240',
+    '9780152014780',
+    '9780545349444',
+    '9780908643677',
+    '9780733616129',
+    '9781526604071',
+    '9780207177965',
+    '9781845075965',
+    '9780670078875',
+    '9781865044255',
+    '9780734409126',
+    '9780192794055',
+    '9780207198694',
+    '9781925381177',
+    '9780732998837',
+    '9780241346228',
+    '9780416393804',
+    '9780140305951',
+    '9781742998848',
+    '9781927271896',
+    '9780734404206',
+    '9780143794042',
+    '9780099488392',
+    '9780086461629',
+    '9781742765129',
+    '9781406302400',
+    '9780207199141',
+    '9780992478070',
+    '9781865041704',
+    '9781925360066',
+    '9781863683500',
+    '9781760507398',
+    '9781921504600',
+    '9780340999080',
+    '9781921504365',
+    '9781597371384',
+    '9781760290917',
+]
 
 print(
-    f"{len(book_data)} Books loaded. Setting the collection to the first {INITIAL_NUMBER_OF_BOOKS} books"
+    f"{len(isbns)} loaded. Setting the collection to the first {INITIAL_NUMBER_OF_BOOKS} books"
 )
-assert len(book_data) > (INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS)
-original_books = book_data[:INITIAL_NUMBER_OF_BOOKS]
+assert len(isbns) > (INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS)
+original_books = isbns[:INITIAL_NUMBER_OF_BOOKS]
 assert len(original_books) == INITIAL_NUMBER_OF_BOOKS
 
 
-def randomize_loan_status(book_data):
-    data = book_data.copy()
-    data["copies_total"] = random.randint(2, 4)
-    data["copies_available"] = random.randint(0, 2)
-    return data
+def randomize_loan_status(isbn):
+    return {
+        'isbn': isbn,
+        'copies_total': random.randint(2, 4),
+        'copies_available': random.randint(2, 4),
+    }
 
 
 original_collection = [randomize_loan_status(b) for b in original_books]
 print(f"Updating school by setting new collection of {len(original_collection)} books")
+print(original_collection)
 set_collection_response = httpx.post(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
-    json=original_books,
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
+    json=original_collection,
     timeout=120,
     headers={"Authorization": f"Bearer {token}"},
 )
 print(set_collection_response.json())
+set_collection_response.raise_for_status()
 
 print("Checking the collection")
 get_collection_response = httpx.get(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     headers={"Authorization": f"Bearer {token}"},
     params={"skip": 0, "limit": 2000},
     timeout=120,
@@ -239,18 +233,18 @@ collection_changes = [
 ]
 
 print(f"Sending through {len(collection_changes)} updates")
-r = httpx.put(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+r = httpx.patch(
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     json=collection_changes,
     timeout=120,
     headers={"Authorization": f"Bearer {token}"},
 )
-print(r.status_code)
 print(r.json())
+r.raise_for_status()
 print("Updated loan status")
 
 get_collection_response = httpx.get(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     headers={"Authorization": f"Bearer {token}"},
     params={"skip": 0, "limit": 2000},
     timeout=120,
@@ -258,11 +252,11 @@ get_collection_response = httpx.get(
 get_collection_response.raise_for_status()
 collection = get_collection_response.json()
 
+
 number_items_with_updated_loan_status = 0
 for item in collection:
     if item["copies_total"] == 99 and item["copies_available"] == 99:
         number_items_with_updated_loan_status += 1
-
 
 assert (
     number_items_with_updated_loan_status == UPDATED_NUMBER_OF_BOOKS
@@ -279,31 +273,30 @@ collection_changes = [
     for b in books_to_remove
 ]
 
-books_to_add = book_data[
+books_to_add = isbns[
     INITIAL_NUMBER_OF_BOOKS : INITIAL_NUMBER_OF_BOOKS + ADDED_NUMBER_OF_BOOKS
 ]
 collection_changes.extend(
     [
-        randomize_loan_status(
-            {
-                "action": "add",
-                "isbn": b["isbn"],
-                "edition_info": b,
-            }
-        )
+        {
+            "action": "add",
+            "isbn": b,
+        }
         for b in books_to_add
     ]
 )
 
-httpx.put(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+r = httpx.patch(
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     json=collection_changes,
     timeout=120,
     headers={"Authorization": f"Bearer {token}"},
-).json()
+)
+r.raise_for_status()
+print(r.json())
 print("Added and removed books from collection")
 get_collection_response = httpx.get(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}/collection",
+    f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}/collection",
     headers={"Authorization": f"Bearer {token}"},
     params={"skip": 0, "limit": 2000},
     timeout=120,
@@ -325,7 +318,7 @@ if is_admin:
     print("Removing the test school")
 
     remove_test_school_response = httpx.delete(
-        f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}",
+        f"{settings.WRIVETED_API}/v1/school/{school_wriveted_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
         timeout=120,
     )
