@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
 
@@ -7,7 +8,6 @@ from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
 
 
-# due to using SSO, not much can be patched at the moment
 class UserPatchOptions(BaseModel):
     newsletter: bool
 
@@ -34,6 +34,17 @@ class UserUpdateIn(BaseModel):
     info: Optional[UserInfo]
 
 
+class UsersSchool(BaseModel):
+    wriveted_identifier: UUID
+    official_identifier: Optional[str]
+    country_code: str
+    name: str
+    collection_count: int
+
+    class Config:
+        orm_mode = True
+
+
 class UserBrief(BaseModel):
     id: UUID4
     name: str
@@ -41,6 +52,8 @@ class UserBrief(BaseModel):
     is_active: bool
     type: UserAccountType
     last_login_at: Optional[datetime]
+    school_id_as_admin: Optional[str]
+    school_as_admin: Optional[UsersSchool]
 
     class Config:
         orm_mode = True
@@ -56,4 +69,4 @@ class UserDetail(UserBrief):
 
     newsletter: bool
 
-    school_id_as_admin: Optional[str]
+
