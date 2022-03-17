@@ -44,7 +44,11 @@ class Work(Base):
 
     info = Column(MutableDict.as_mutable(JSON))
 
-    editions = relationship("Edition", cascade="all, delete-orphan")
+    editions = relationship(
+        "Edition",
+        cascade="all, delete-orphan",
+        order_by="desc(Edition.cover_url.is_not(None))"
+    )
 
     series = relationship(
         "Series", secondary=series_works_association_table, back_populates="works"
