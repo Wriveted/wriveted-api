@@ -134,7 +134,9 @@ async def school_exists(school: School = Depends(get_school_from_wriveted_id)):
 
 
 @public_router.get("/school/{wriveted_identifier}/bot")
-async def get_school_bookbot_type(school: School = Depends(get_school_from_wriveted_id)):
+async def get_school_bookbot_type(
+    school: School = Depends(get_school_from_wriveted_id),
+):
     """
     Returns the bookbot type for a school, i.e. whether they've opted for Huey's Collection,
     or their own. Used for the publicly-accessible Bookbot chat links.

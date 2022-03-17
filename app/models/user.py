@@ -45,14 +45,20 @@ class User(Base):
     )
 
     school_id_as_student = Column(
-        Integer, ForeignKey("schools.id", name="fk_student_school"), nullable=True, index=True
+        Integer,
+        ForeignKey("schools.id", name="fk_student_school"),
+        nullable=True,
+        index=True,
     )
     school_as_student = relationship(
         "School", backref="students", foreign_keys=[school_id_as_student]
     )
 
     school_id_as_admin = Column(
-        Integer, ForeignKey("schools.id", name="fk_admin_school"), nullable=True, index=True
+        Integer,
+        ForeignKey("schools.id", name="fk_admin_school"),
+        nullable=True,
+        index=True,
     )
 
     email = Column(String, unique=True, index=True, nullable=False)

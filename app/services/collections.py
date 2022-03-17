@@ -160,7 +160,7 @@ def get_collection_info_with_criteria(
     school_id: int,
     is_hydrated: bool = False,
     is_labelled: bool = False,
-    is_recommendable: bool = False
+    is_recommendable: bool = False,
 ):
     """
     Return a (complicated) select query for labelsets, editions, and works filtering by
@@ -183,17 +183,15 @@ def get_collection_info_with_criteria(
         .order_by(Work.id)
         .join(Work, aliased_labelset.work_id == Work.id)
         .join(Edition, Edition.work_id == Work.id)
-        #.join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
-        #.join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
+        # .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
+        # .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
     )
 
     # Filter for works in a school collection
     school = crud.school.get_or_404(db=session, id=school_id)
-    query = (
-        query.join(
-            CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-        ).where(CollectionItem.school == school)
-    )
+    query = query.join(
+        CollectionItem, CollectionItem.edition_isbn == Edition.isbn
+    ).where(CollectionItem.school == school)
 
     if is_hydrated:
         query = query.where(Edition.title.is_not(None))
@@ -202,10 +200,10 @@ def get_collection_info_with_criteria(
     if is_labelled:
         query = (
             query.where(aliased_labelset.hues.any())
-                .where(aliased_labelset.reading_abilities.any())
-                .where(aliased_labelset.min_age >= 0)
-                .where(aliased_labelset.max_age > 0)
-                .where(aliased_labelset.huey_summary.is_not(None))
+            .where(aliased_labelset.reading_abilities.any())
+            .where(aliased_labelset.min_age >= 0)
+            .where(aliased_labelset.max_age > 0)
+            .where(aliased_labelset.huey_summary.is_not(None))
         )
 
     if is_recommendable:

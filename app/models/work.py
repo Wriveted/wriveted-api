@@ -47,7 +47,7 @@ class Work(Base):
     editions = relationship(
         "Edition",
         cascade="all, delete-orphan",
-        order_by="desc(Edition.cover_url.is_not(None))"
+        order_by="desc(Edition.cover_url.is_not(None))",
     )
 
     series = relationship(

@@ -63,21 +63,35 @@ async def get_school_collection_info(
 ):
     logger.debug("Getting collection info")
     output = {}
-    
-    editions_query = select(func.count(CollectionItem.id)).where(CollectionItem.school_id == school.id)
-    hydrated_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True)
-    labelled_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True, is_labelled=True)
-    recommend_query = get_collection_info_with_criteria(session, school.id, is_hydrated=True, is_labelled=True, is_recommendable=True)
+
+    editions_query = select(func.count(CollectionItem.id)).where(
+        CollectionItem.school_id == school.id
+    )
+    hydrated_query = get_collection_info_with_criteria(
+        session, school.id, is_hydrated=True
+    )
+    labelled_query = get_collection_info_with_criteria(
+        session, school.id, is_hydrated=True, is_labelled=True
+    )
+    recommend_query = get_collection_info_with_criteria(
+        session, school.id, is_hydrated=True, is_labelled=True, is_recommendable=True
+    )
 
     # explain_results = session.execute(explain(recommend_query, analyze=True)).scalars().all()
     # logger.info("Query plan")
     # for entry in explain_results:
     #     logger.info(entry)
 
-    output['total_editions'] = session.execute(editions_query).scalar_one()
-    output['hydrated'] = session.execute(select(func.count()).select_from(hydrated_query)).scalar_one()
-    output['hydrated_and_labeled'] = session.execute(select(func.count()).select_from(labelled_query)).scalar_one()
-    output['recommendable'] = session.execute(select(func.count()).select_from(recommend_query)).scalar_one()
+    output["total_editions"] = session.execute(editions_query).scalar_one()
+    output["hydrated"] = session.execute(
+        select(func.count()).select_from(hydrated_query)
+    ).scalar_one()
+    output["hydrated_and_labeled"] = session.execute(
+        select(func.count()).select_from(labelled_query)
+    ).scalar_one()
+    output["recommendable"] = session.execute(
+        select(func.count()).select_from(recommend_query)
+    ).scalar_one()
 
     return output
 

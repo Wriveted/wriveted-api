@@ -4,11 +4,10 @@ from structlog import get_logger
 from app import crud
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
-    get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.schemas.edition import EditionBrief
-from app.schemas.labelset import LabelSetPatch
+from app.schemas.labelset import LabelSetDetail, LabelSetPatch
+
 
 logger = get_logger()
 
@@ -48,4 +47,4 @@ async def bulk_patch_labelsets(
             errors += 1
             continue
 
-    return { "patched": patched, "unknown": unknown, "errors": errors }
+    return {"patched": patched, "unknown": unknown, "errors": errors}

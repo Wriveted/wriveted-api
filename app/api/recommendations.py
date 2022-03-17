@@ -55,7 +55,7 @@ async def get_recommendations(
         school,
         data=data,
         background_tasks=background_tasks,
-        limit=limit
+        limit=limit,
     )
     return HueyOutput(
         count=len(row_results),
@@ -68,7 +68,7 @@ async def get_recommendations(
                 display_title=edition.get_display_title(),
                 authors_string=work.get_authors_string(),
                 summary=labelset.huey_summary,
-                labels=LabelSetDetail.from_orm(labelset)
+                labels=LabelSetDetail.from_orm(labelset),
             )
             for (work, edition, labelset) in row_results
         ],
@@ -127,7 +127,9 @@ async def get_recommendations_with_fallback(
             create_event,
             session,
             title=f"Made a recommendation of {len(row_results)} books",
-            description=f"Recommended:\n{logged_labelset_description}" if len(row_results) <= 10 else "",
+            description=f"Recommended:\n{logged_labelset_description}"
+            if len(row_results) <= 10
+            else "",
             school=school,
             account=account,
         )
@@ -145,7 +147,14 @@ async def get_recommendations_with_fallback(
 
 
 def get_recommended_editions_and_labelsets(
-    session, school_id, hues, reading_abilities, age, recommendable_only, exclude_isbns, limit=5
+    session,
+    school_id,
+    hues,
+    reading_abilities,
+    age,
+    recommendable_only,
+    exclude_isbns,
+    limit=5,
 ):
     query = get_recommended_labelset_query(
         session,
@@ -154,7 +163,7 @@ def get_recommended_editions_and_labelsets(
         age=age,
         reading_abilities=reading_abilities,
         recommendable_only=recommendable_only,
-        exclude_isbns=exclude_isbns
+        exclude_isbns=exclude_isbns,
     )
 
     if config.DEBUG:

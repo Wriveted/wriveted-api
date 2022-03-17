@@ -54,12 +54,14 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         db.flush()
         return labelset
 
-    def create_or_update_labelset_hue(self, db: Session, labelset_id: str, hue_id: str, ordinal: Ordinal) -> LabelSetHue:
+    def create_or_update_labelset_hue(
+        self, db: Session, labelset_id: str, hue_id: str, ordinal: Ordinal
+    ) -> LabelSetHue:
         lsh = select(LabelSetHue).where(
             and_(
                 LabelSetHue.labelset_id == labelset_id,
                 LabelSetHue.hue_id == hue_id,
-                LabelSetHue.ordinal == ordinal
+                LabelSetHue.ordinal == ordinal,
             )
         )
         existing = db.execute(lsh).scalar_one_or_none()
@@ -105,7 +107,9 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if primary:
                             primary.hue_id = hue.id
                         else:
-                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.PRIMARY)
+                            self.create_or_update_labelset_hue(
+                                db, labelset.id, hue.id, Ordinal.PRIMARY
+                            )
 
                 if data.hue_secondary_key:
                     hue: Hue = self.get_hue_by_key(db, data.hue_secondary_key)
@@ -121,7 +125,9 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if secondary:
                             secondary.hue_id = hue.id
                         else:
-                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.SECONDARY)
+                            self.create_or_update_labelset_hue(
+                                db, labelset.id, hue.id, Ordinal.SECONDARY
+                            )
 
                 if data.hue_tertiary_key:
                     hue: Hue = self.get_hue_by_key(db, data.hue_tertiary_key)
@@ -133,7 +139,9 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                         if tertiary:
                             tertiary.hue_id = hue.id
                         else:
-                            self.create_or_update_labelset_hue(db, labelset.id, hue.id, Ordinal.TERTIARY)
+                            self.create_or_update_labelset_hue(
+                                db, labelset.id, hue.id, Ordinal.TERTIARY
+                            )
 
                 labelset.hue_origin = data.hue_origin
                 updated = True

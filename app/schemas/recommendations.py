@@ -57,6 +57,7 @@ class HueyBook(BaseModel):
     summary: str
     labels: LabelSetDetail
 
+
 class HueyOutput(BaseModel):
     count: int
     books: list[HueyBook]

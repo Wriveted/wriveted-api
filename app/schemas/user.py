@@ -68,5 +68,3 @@ class UserDetail(UserBrief):
     events: List[EventBrief]
 
     newsletter: bool
-
-

@@ -11,7 +11,7 @@ from app.models import (
     LabelSetHue,
     ReadingAbility,
     Work,
-    LabelSetReadingAbility
+    LabelSetReadingAbility,
 )
 
 from app import crud
@@ -27,7 +27,7 @@ def get_recommended_labelset_query(
     age: Optional[int] = None,
     reading_abilities: Optional[list[str]] = None,
     recommendable_only: Optional[bool] = True,
-    exclude_isbns: Optional[list[str]] = None
+    exclude_isbns: Optional[list[str]] = None,
 ):
     """
     Return a (complicated) select query for labelsets filtering by hue,
@@ -53,7 +53,10 @@ def get_recommended_labelset_query(
         .join(Work, aliased_labelset.work_id == Work.id)
         .join(Edition, Edition.work_id == Work.id)
         .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
-        .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
+        .join(
+            LabelSetReadingAbility,
+            LabelSetReadingAbility.labelset_id == aliased_labelset.id,
+        )
     )
 
     # Now add the optional filters
@@ -75,8 +78,12 @@ def get_recommended_labelset_query(
 
     if reading_abilities is not None:
         # Labelset Ids from reading abilities
-        reading_ability_ids_query = select(ReadingAbility.id).where(ReadingAbility.key.in_(reading_abilities))
-        query = query.where(LabelSetReadingAbility.reading_ability_id.in_(reading_ability_ids_query))
+        reading_ability_ids_query = select(ReadingAbility.id).where(
+            ReadingAbility.key.in_(reading_abilities)
+        )
+        query = query.where(
+            LabelSetReadingAbility.reading_ability_id.in_(reading_ability_ids_query)
+        )
 
     if age is not None:
         query = query.where(aliased_labelset.min_age <= age).where(
