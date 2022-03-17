@@ -46,9 +46,16 @@ def secure_user_endpoint(
     raw_data=Depends(get_raw_info),
     session: Session = Depends(get_session),
 ):
-    """Login to Wriveted API by exchanging a firebase token.
+    """Login to Wriveted API by exchanging a valid Firebase token.
 
-    Creates a new user if required, updates existing users with the latest SSO data
+    This API is used to create access tokens for users that have logged into a Wriveted
+    controlled Firebase application - usually with a federated Google account.
+
+    The generated access token is a JSON Web Token (JWT) which contains a user specific unique
+    identifier so Wriveted can recognize the user when that access token is provided as part of
+    an API call.
+
+    Note this API creates a new user if required, updates existing users with the latest SSO data
     (e.g. their profile picture).
     """
 
