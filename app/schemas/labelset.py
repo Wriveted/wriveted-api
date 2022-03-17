@@ -31,7 +31,7 @@ class LabelSetDetail(LabelSetBrief):
     min_age: Optional[int]
     max_age: Optional[int]
     age_origin: Optional[LabelOrigin]
-    reading_ability_keys: Optional[list[str]]
+
     reading_abilities: list[ReadingAbility]
     reading_ability_origin: Optional[LabelOrigin]
 
