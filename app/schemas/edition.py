@@ -45,7 +45,7 @@ class EditionBrief(BaseModel):
     leading_article: Optional[str]
     title: Optional[str]
     subtitle: Optional[str]
-
+    cover_url: Optional[AnyHttpUrl]
     work_id: Optional[str]
     isbn: str
     # school_count: int
@@ -61,7 +61,6 @@ class EditionDetail(EditionBrief):
     authors: list[AuthorBrief]
     illustrators: list[IllustratorBrief]
 
-    cover_url: Optional[AnyHttpUrl]
     date_published: Optional[int]
     info: Optional[EditionInfo]
 
