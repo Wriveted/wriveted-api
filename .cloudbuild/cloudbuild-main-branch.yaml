@@ -26,6 +26,24 @@ steps:
       - run
       - services
       - update
+      - $_SERVICE_NAME_DEVELOPMENT
+      - '--platform=managed'
+      - >-
+        --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun
+      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - >-
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    id: Deploy-Non-Prod
+    entrypoint: gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
       - $_SERVICE_NAME
       - '--platform=managed'
       - >-
@@ -37,7 +55,7 @@ steps:
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
       - '--region=$_DEPLOY_REGION'
       - '--quiet'
-    id: Deploy
+    id: Deploy-Prod
     entrypoint: gcloud
 images:
   - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
@@ -49,6 +67,7 @@ substitutions:
   _GCR_HOSTNAME: asia.gcr.io
   _PLATFORM: managed
   _SERVICE_NAME: wriveted-api
+  _SERVICE_NAME_DEVELOPMENT: wriveted-api-development-main-branch
   _DEPLOY_REGION: australia-southeast1
 tags:
   - gcp-cloud-build-deploy-cloud-run
