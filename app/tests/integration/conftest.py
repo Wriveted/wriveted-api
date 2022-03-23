@@ -98,7 +98,7 @@ def test_school(client, session, backend_service_account_headers) -> School:
     )
 
     # Afterwards delete it
-    new_test_school_response = client.delete(
+    client.delete(
         f"/v1/school/{school_info['wriveted_identifier']}",
         headers=backend_service_account_headers,
     )

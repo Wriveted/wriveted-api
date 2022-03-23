@@ -10,7 +10,8 @@ from structlog import get_logger
 from app import crud
 from app.api.dependencies.security import (
     create_user_access_token,
-    get_current_active_user_or_service_account, get_valid_token_data,
+    get_current_active_user_or_service_account,
+    get_valid_token_data,
 )
 from app.config import get_settings
 from app.db.session import get_session
@@ -129,7 +130,7 @@ async def get_current_user(
     token_data: TokenPayload = Depends(get_valid_token_data),
     current_user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
-    )
+    ),
 ):
     """
     Test that the presented credentials are valid, returning details on the logged in user or service account.
@@ -139,13 +140,13 @@ async def get_current_user(
         return AuthenticatedAccountBrief(
             account_type=AccountType.user,
             user=current_user_or_service_account,
-            token_expiry=token_data.exp
+            token_expiry=token_data.exp,
         )
     elif isinstance(current_user_or_service_account, ServiceAccount):
         return AuthenticatedAccountBrief(
             account_type=AccountType.service_account,
             service_account=current_user_or_service_account,
-            token_expiry=token_data.exp
+            token_expiry=token_data.exp,
         )
     else:
         raise NotImplemented("Hmm")

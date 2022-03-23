@@ -12,8 +12,8 @@ from sqlalchemy import orm, select, update
 
 from app.models import School
 
-revision = '13ca81ae5800'
-down_revision = 'ad2bcbab60ae'
+revision = "13ca81ae5800"
+down_revision = "ad2bcbab60ae"
 branch_labels = None
 depends_on = None
 
@@ -24,10 +24,7 @@ def upgrade():
     session = orm.Session(bind=bind)
 
     for school in session.execute(select(School)).scalars().all():
-        school.info['experiments'] = {
-            "no-jokes": False,
-            "no-choice-option": True
-        }
+        school.info["experiments"] = {"no-jokes": False, "no-choice-option": True}
         session.add(school)
 
     session.commit()
@@ -42,8 +39,8 @@ def downgrade():
 
     for school in session.execute(select(School)).scalars().all():
         info = dict(school.info)
-        if 'experiments' in info:
-            del info['experiments']
+        if "experiments" in info:
+            del info["experiments"]
             school.info = info
             session.add(school)
 

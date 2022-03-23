@@ -232,15 +232,13 @@ def get_active_principals(
 
 def create_user_access_token(user, expires_delta=None):
     if expires_delta is None:
-        delta = timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     else:
         delta = expires_delta
     wriveted_access_token = create_access_token(
         subject=f"Wriveted:User-Account:{user.id}",
         # extra_claims={},
-        expires_delta=delta
+        expires_delta=delta,
     )
     logger.debug("Access token generated for user", user=user)
     return wriveted_access_token

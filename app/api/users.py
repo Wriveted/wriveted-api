@@ -8,7 +8,8 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
-    create_user_access_token, get_current_active_superuser_or_backend_service_account,
+    create_user_access_token,
+    get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
     get_current_user,
 )
@@ -86,7 +87,9 @@ def magic_link_endpoint(
     """
     user = crud.user.get(db=session, id=uuid)
     logger.info("Generating magic link access-token for user", user=user)
-    wriveted_access_token = create_user_access_token(user, expires_delta=datetime.timedelta(days=90))
+    wriveted_access_token = create_user_access_token(
+        user, expires_delta=datetime.timedelta(days=90)
+    )
     return {
         "access_token": wriveted_access_token,
         "token_type": "bearer",

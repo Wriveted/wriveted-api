@@ -146,5 +146,5 @@ def test_get_school_experiments(
     )
     get_school_details_response.raise_for_status()
     details = get_school_details_response.json()
-    assert "experiments" in details['info']
-    assert "no-jokes" in details['info']["experiments"]
+    assert "experiments" in details["info"]
+    assert "no-jokes" in details["info"]["experiments"]
