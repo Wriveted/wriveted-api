@@ -35,17 +35,13 @@ def get_payload_from_access_token(token) -> TokenPayload:
 
 def create_access_token(
     subject: Union[str, Any],
-    expires_delta: Optional[timedelta] = None,
+    expires_delta: timedelta,
     extra_claims: Optional[Dict[str, str]] = None,
 ) -> str:
     settings = get_settings()
 
-    if expires_delta is not None:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+    expire = datetime.utcnow() + expires_delta
+
     to_encode = {"exp": expire, "iat": datetime.utcnow(), "sub": str(subject)}
     if extra_claims:
         to_encode.update(extra_claims)

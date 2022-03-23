@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 
 from fastapi import Depends, APIRouter, Query, Security
@@ -7,7 +8,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
-    get_current_active_superuser_or_backend_service_account,
+    create_user_access_token, get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
     get_current_user,
 )
@@ -67,6 +68,29 @@ async def update_user(
 
     updated_user = crud.user.update(session, db_obj=user, obj_in=user_update)
     return updated_user
+
+
+@router.post(
+    "/user/{uuid}/auth-token",
+    responses={
+        401: {"description": "Unauthorized"},
+        422: {"description": "Invalid data"},
+    },
+)
+def magic_link_endpoint(
+    uuid: str,
+    session: Session = Depends(get_session),
+):
+    """
+    Create a Wriveted API magic-link token for a user.
+    """
+    user = crud.user.get(db=session, id=uuid)
+    logger.info("Generating magic link access-token for user", user=user)
+    wriveted_access_token = create_user_access_token(user, expires_delta=datetime.timedelta(days=90))
+    return {
+        "access_token": wriveted_access_token,
+        "token_type": "bearer",
+    }
 
 
 @public_router.patch("/user")

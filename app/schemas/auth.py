@@ -1,3 +1,4 @@
+import datetime
 import enum
 from typing import Optional
 
@@ -14,5 +15,6 @@ class AccountType(str, enum.Enum):
 
 class AuthenticatedAccountBrief(BaseModel):
     account_type: AccountType
+    token_expiry: datetime.datetime
     user: Optional[UserDetail]
     service_account: Optional[ServiceAccountBrief]

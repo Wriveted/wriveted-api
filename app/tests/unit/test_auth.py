@@ -34,7 +34,9 @@ def test_create_token():
 def test_extra_claims_propogated():
 
     token = create_access_token(
-        subject=f"Wriveted:User-Account:0", extra_claims={"test-claim": "secret"}
+        subject=f"Wriveted:User-Account:0",
+        extra_claims={"test-claim": "secret"},
+        expires_delta=datetime.timedelta(minutes=1)
     )
 
     raw_payload = get_raw_payload_from_access_token(token)
@@ -47,6 +49,7 @@ def test_extra_claims_propogated():
 def test_token_with_invalid_subject_rejected():
     token = create_access_token(
         subject=f"test-subject",
+        expires_delta=datetime.timedelta(seconds=60)
     )
     with pytest.raises(ValidationError):
         payload = get_payload_from_access_token(token)
@@ -55,7 +58,8 @@ def test_token_with_invalid_subject_rejected():
 def test_expired_token_rejected():
 
     token = create_access_token(
-        subject="Wriveted:user-account:1", expires_delta=datetime.timedelta(seconds=1)
+        subject="Wriveted:user-account:1",
+        expires_delta=datetime.timedelta(seconds=1)
     )
     immediate_payload = get_payload_from_access_token(token)
     time.sleep(2)
