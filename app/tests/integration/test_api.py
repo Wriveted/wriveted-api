@@ -129,3 +129,22 @@ def test_disallowed_update_to_school(
     )
     update_response.raise_for_status()
     assert update_response.json()["country_code"] == test_school.country_code
+
+
+def test_get_school_experiments(
+    client,
+    settings,
+    test_school,
+    service_account_for_test_school,
+    test_school_service_account_headers,
+):
+
+    school_id = test_school.wriveted_identifier
+    get_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=test_school_service_account_headers,
+    )
+    get_school_details_response.raise_for_status()
+    details = get_school_details_response.json()
+    assert "experiments" in details['info']
+    assert "no-jokes" in details['info']["experiments"]

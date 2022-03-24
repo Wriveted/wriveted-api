@@ -26,6 +26,7 @@ class SchoolInfo(BaseModel):
     sector: Optional[str]
     status: Optional[str]
     age_id: Optional[str]
+    experiments: Optional[dict[str, bool]]
 
 
 class SchoolWrivetedIdentity(BaseModel):
