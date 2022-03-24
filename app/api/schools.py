@@ -33,6 +33,7 @@ from app.api.dependencies.school import (
     get_school_from_raw_id,
 )
 from app.services.events import create_event
+from app.services.experiments import get_experiments
 
 logger = get_logger()
 
@@ -247,6 +248,9 @@ async def bulk_add_schools(
         for school_data in schools
     ]
 
+    for school in new_schools:
+        school.info['experiments'] = get_experiments(school=school)
+
     create_event(
         session=session,
         title="Bulk created schools",
@@ -278,7 +282,9 @@ async def add_school(
     session: Session = Depends(get_session),
 ):
     try:
-        school_orm = crud.school.create(db=session, obj_in=school)
+        school_orm = crud.school.create(db=session, obj_in=school, commit=False)
+        school_orm.info['experiments'] = get_experiments(school=school_orm)
+        session.commit()
         create_event(
             session=session,
             title="New school created",
