@@ -85,7 +85,7 @@ async def get_schools(
     ),
     official_identifier: Optional[str] = Query(
         None,
-        description="Official identifier for the school - Country specific and usually government issued"
+        description="Official identifier for the school - Country specific and usually government issued",
     ),
     pagination: PaginatedQueryParams = Depends(),
     principals: List = Depends(get_active_principals),

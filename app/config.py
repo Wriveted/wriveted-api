@@ -79,24 +79,19 @@ class Settings(BaseSettings):
         "http://localhost:3001",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-
         # Production URLs
         "https://api.wriveted.com",
         "https://bookbot.hellohuey.com",
         "https://app.hueythebookbot.com",
         "https://api.hueythebookbot.com",
-
         # Firebase URLs
         "https://wriveted-library.web.app",
         "https://wriveted-api.web.app",
-
         # Production Cloud Run Deployments - Direct URLs
         "https://wriveted-api-lg5ntws4da-ts.a.run.app",
         "https://wriveted-admin-ui-lg5ntws4da-ts.a.run.app",
-
         # Non Prod Cloud Run Deployment - Direct URLs
         "https://wriveted-api--nonprod-main-3glz1j0b.web.app",
-
         # Landbot
         "http://34.77.31.159",
         "http://23.251.142.192",

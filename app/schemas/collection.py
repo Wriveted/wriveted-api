@@ -19,7 +19,6 @@ class CollectionItemBase(BaseModel):
 
 
 class CollectionItemIn(CollectionItemBase):
-
     class Config:
         orm_mode = True
 
@@ -52,3 +51,4 @@ class CollectionUpdate(CollectionItemBase):
 
 class CollectionUpdateSummaryResponse(BaseModel):
     msg: str
+    collection_size: int

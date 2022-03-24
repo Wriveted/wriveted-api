@@ -13,8 +13,10 @@ from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
 from app.schemas.collection import (
     CollectionInfo,
-    CollectionItemBase, CollectionItemDetail,
+    CollectionItemBase,
+    CollectionItemDetail,
     CollectionUpdate,
+    CollectionUpdateSummaryResponse,
     CollectionUpdateType,
     CollectionItemIn,
 )
@@ -98,6 +100,7 @@ async def get_school_collection_info(
 
 @router.post(
     "/school/{wriveted_identifier}/collection",
+    response_model=CollectionUpdateSummaryResponse,
 )
 async def set_school_collection(
     collection_data: List[CollectionItemIn],
@@ -124,7 +127,9 @@ async def set_school_collection(
         account=account,
     )
     if len(collection_data) > 0:
-        await add_editions_to_collection_by_isbn(session, collection_data, school, account)
+        await add_editions_to_collection_by_isbn(
+            session, collection_data, school, account
+        )
 
     count = session.execute(
         select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
@@ -138,6 +143,7 @@ async def set_school_collection(
 
 @router.patch(
     "/school/{wriveted_identifier}/collection",
+    response_model=CollectionUpdateSummaryResponse,
 )
 async def update_school_collection(
     collection_update_data: List[CollectionUpdate],
@@ -222,5 +228,8 @@ async def update_school_collection(
 
     logger.debug(f"Committing transaction")
     session.commit()
+    count = session.execute(
+        select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
+    ).scalar_one()
 
-    return {"msg": "updated"}
+    return {"msg": "updated", "collection_size": count}

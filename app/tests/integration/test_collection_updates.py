@@ -221,7 +221,7 @@ def test_collection_management(
     get_collection_response.raise_for_status()
     collection = get_collection_response.json()
     for item in collection:
-        assert item['copies_total'] > 1
+        assert item["copies_total"] > 1
     print("Collection after adding (first 3):\n", collection[:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
