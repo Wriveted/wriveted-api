@@ -9,15 +9,19 @@ from app.models import Illustrator
 from app.schemas.illustrator import IllustratorCreateIn
 
 
+def first_last_to_name_key(first_name: str, last_name: str):
+    return "".join(
+        char for char in f"{first_name or ''}{last_name}".lower() if char.isalnum()
+    )
+
+
 class CRUDIllustrator(CRUDBase[Illustrator, Any, Any]):
     def get_or_create(
         self, db: Session, data: IllustratorCreateIn, commit=True
     ) -> Illustrator:
         q = select(Illustrator).where(
-            and_(
-                Illustrator.first_name == data.first_name,
-                Illustrator.last_name == data.last_name,
-            )
+            Illustrator.name_key
+            == first_last_to_name_key(data.first_name, data.last_name)
         )
         try:
             orm_obj = db.execute(q).scalar_one()
