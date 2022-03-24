@@ -25,12 +25,12 @@ def test_data_path():
     return Path(__file__).parent.parent / "data"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def settings():
     yield get_settings()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def session(settings):
     session = next(get_session(settings=settings))
     return session
