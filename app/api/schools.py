@@ -83,6 +83,10 @@ async def get_schools(
     is_active: Optional[bool] = Query(
         None, description="Return active or inactive schools. Default is all."
     ),
+    official_identifier: Optional[str] = Query(
+        None,
+        description="Official identifier for the school - Country specific and usually government issued"
+    ),
     pagination: PaginatedQueryParams = Depends(),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
@@ -103,6 +107,7 @@ async def get_schools(
         postcode=postcode,
         query_string=q,
         is_active=is_active if admin else None,
+        official_identifier=official_identifier,
         skip=pagination.skip,
         limit=pagination.limit,
     )

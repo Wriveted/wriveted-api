@@ -19,6 +19,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         postcode: Optional[str] = None,
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
+        official_identifier: Optional[str] = None,
     ):
         school_query = self.get_all_query(db)
         if country_code is not None:
@@ -40,7 +41,10 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             school_query = school_query.where(
                 School.state == ("active" if is_active else "inactive")
             )
-
+        if official_identifier is not None:
+            school_query = school_query.where(
+                School.official_identifier == official_identifier
+            )
         return school_query
 
     def get_all_with_optional_filters(
@@ -51,6 +55,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         postcode: Optional[str] = None,
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
+        official_identifier: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> List[School]:
@@ -62,6 +67,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
                 postcode=postcode,
                 query_string=query_string,
                 is_active=is_active,
+                official_identifier=official_identifier,
             ),
             skip=skip,
             limit=limit,
