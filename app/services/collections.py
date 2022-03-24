@@ -19,7 +19,7 @@ from app.models.labelset_reading_ability_association import LabelSetReadingAbili
 from app.models.reading_ability import ReadingAbility
 from app.models.school import School
 from app.models.work import Work
-from app.schemas.collection import CollectionItemIn
+from app.schemas.collection import CollectionItemBase, CollectionItemIn
 from app.services.events import create_event
 from app.services.editions import (
     create_missing_editions,
@@ -99,10 +99,27 @@ async def add_editions_to_collection(
 # Mostly the same as add_editions_to_collection, but only processes a list of isbns.
 # Due to the lack of EditionCreateIns, any created editions will be unhydrated
 async def add_editions_to_collection_by_isbn(
-    session, isbn_list: List[str], school: School, account
+        session,
+        collection_data: List[CollectionItemBase],
+        school: School,
+        account
 ):
     logger.info("Adding editions to collection by ISBN", account=account, school=school)
+    collection_counts = {}
+    for item in collection_data:
+        try:
+            isbn = get_definitive_isbn(item.isbn)
+        except AssertionError:
+            # Invalid isbn, just skip
+            continue
 
+        collection_counts[isbn] = {
+            'copies_total': item.copies_total if item.copies_total is not None else 1,
+            'copies_available': item.copies_available if item.copies_available is not None else 1,
+        }
+
+
+    isbn_list = list(collection_counts.keys())
     # Insert the entire list of isbns, ignoring conflicts, returning a list of the pk's for the CollectionItem binding
     (
         final_primary_keys,
@@ -126,8 +143,8 @@ async def add_editions_to_collection_by_isbn(
                 "school_id": school.id,
                 "edition_isbn": isbn,
                 "info": {"Updated": str(datetime.datetime.utcnow())},
-                "copies_total": 1,
-                "copies_available": 1,
+                "copies_total": collection_counts[isbn]['copies_total'] if isbn in collection_counts else 1,
+                "copies_available": collection_counts[isbn]['copies_available'] if isbn in collection_counts else 1,
             }
         )
 

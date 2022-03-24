@@ -12,10 +12,13 @@ class CollectionInfo(BaseModel):
     recommendable: int
 
 
-class CollectionItemIn(BaseModel):
+class CollectionItemBase(BaseModel):
     isbn: str
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
+
+
+class CollectionItemIn(CollectionItemBase):
 
     class Config:
         orm_mode = True
@@ -40,13 +43,12 @@ class CollectionUpdateType(str, enum.Enum):
     UPDATE = "update"
 
 
-class CollectionUpdate(BaseModel):
-    isbn: str
-
+class CollectionUpdate(CollectionItemBase):
     action: CollectionUpdateType
-
-    copies_total: Optional[conint(ge=0)]
-    copies_available: Optional[conint(ge=0)]
 
     class Config:
         orm_mode = True
+
+
+class CollectionUpdateSummaryResponse(BaseModel):
+    msg: str

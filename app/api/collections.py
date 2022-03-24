@@ -13,7 +13,7 @@ from app.models import CollectionItem, School, Edition
 from app.permissions import Permission
 from app.schemas.collection import (
     CollectionInfo,
-    CollectionItemDetail,
+    CollectionItemBase, CollectionItemDetail,
     CollectionUpdate,
     CollectionUpdateType,
     CollectionItemIn,
@@ -124,8 +124,7 @@ async def set_school_collection(
         account=account,
     )
     if len(collection_data) > 0:
-        isbns = [item.isbn for item in collection_data]
-        await add_editions_to_collection_by_isbn(session, isbns, school, account)
+        await add_editions_to_collection_by_isbn(session, collection_data, school, account)
 
     count = session.execute(
         select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
@@ -133,7 +132,7 @@ async def set_school_collection(
 
     return {
         "msg": f"Collection set. Total editions: {count}",
-        "new_collection_size": {count},
+        "collection_size": count,
     }
 
 
@@ -174,13 +173,13 @@ async def update_school_collection(
     logger.info("Updating collection for school", school=school, account=account)
 
     isbns_to_remove: List[str] = []
-    isbns_to_add: List[str] = []
+    items_to_add: List[CollectionItemBase] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
             isbns_to_remove.append(update_info.isbn)
         elif update_info.action == CollectionUpdateType.ADD:
-            isbns_to_add.append(update_info.isbn)
+            items_to_add.append(update_info)
         elif update_info.action == CollectionUpdateType.UPDATE:
             # Update the "copies_total and "copies_available"
             # TODO consider a bulk update version of this
@@ -217,11 +216,11 @@ async def update_school_collection(
         logger.info("Delete stmt", stmts=str(stmt))
         session.execute(stmt)
 
-    if len(isbns_to_add) > 0:
-        logger.info(f"Adding {len(isbns_to_add)} editions to collection")
-        await add_editions_to_collection_by_isbn(session, isbns_to_add, school, account)
+    if len(items_to_add) > 0:
+        logger.info(f"Adding {len(items_to_add)} editions to collection")
+        await add_editions_to_collection_by_isbn(session, items_to_add, school, account)
 
-    logger.info(f"Committing transaction")
+    logger.debug(f"Committing transaction")
     session.commit()
 
     return {"msg": "updated"}

@@ -197,12 +197,13 @@ def test_collection_management(
         )
         for b in original_books
     ]
+
     print(
         f"Updating school by setting new collection of {len(original_collection)} hydrated + unhydrated books"
     )
     set_collection_response = client.post(
         f"/v1/school/{test_school_id}/collection",
-        json=original_books,
+        json=original_collection,
         timeout=30,
         headers=test_school_service_account_headers,
     )
@@ -219,6 +220,8 @@ def test_collection_management(
 
     get_collection_response.raise_for_status()
     collection = get_collection_response.json()
+    for item in collection:
+        assert item['copies_total'] > 1
     print("Collection after adding (first 3):\n", collection[:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
