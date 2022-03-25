@@ -145,8 +145,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 seen_isbns.add(definitive_isbn)
                 new_edition_data.append(edition_data)
 
-        # Dedupe Author data by a name key: lowercase, alphanumerics only, first_name + last_name
+        # Dedupe Author and Illustrator data by a name key: lowercase, alphanumerics only, first_name + last_name
         bulk_author_data = {}
+        bulk_illustrator_data = {}
         bulk_series_titles = set()
         for edition_data in bulk_edition_data:
             for author_data in edition_data.authors:
@@ -156,17 +157,30 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                     ),
                     author_data,
                 )
+            for illustrator_data in edition_data.illustrators:
+                bulk_illustrator_data.setdefault(
+                    first_last_to_name_key(
+                        illustrator_data.first_name, illustrator_data.last_name
+                    ),
+                    illustrator_data,
+                )
             if (
                 edition_data.series_name is not None
                 and len(edition_data.series_name) > 0
             ):
                 bulk_series_titles.add(edition_data.series_name)
-
+        
         if len(bulk_author_data) > 0:
             crud.author.create_in_bulk(
                 db=session, bulk_author_data_in=bulk_author_data.values()
             )
             logger.info("Authors created")
+
+        if len(bulk_illustrator_data) > 0:
+            crud.illustrator.create_in_bulk(
+                db=session, bulk_illustrator_data_in=bulk_illustrator_data.values()
+            )
+            logger.info("Illustrators created")
 
         # Series
         if len(bulk_series_titles) > 0:
@@ -184,7 +198,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             editions.append(
                 self.create_new_edition(session, edition_data=edition_data, commit=True)
             )
-        logger.info("Work, Illustrators and Editions created")
+        logger.info("Work and Editions created")
         return editions
 
     def create_new_edition(
@@ -257,7 +271,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
-        logger.info(f"Discovered {len(other_isbns)} other editions under the same work")
+        logger.info(f"Discovered {len(other_isbns)} other editions under the same work for isbn {clean_isbn}")
         if other_isbns:
             logger.info(f"Associating each discovered edition with the master work")
         for isbn in other_isbns:
