@@ -11,6 +11,7 @@ from app.models.edition import Edition
 from app.models.work import WorkType
 from app.models.series_works_association import series_works_association_table
 from app.schemas.work import WorkCreateIn
+import re
 
 logger = get_logger()
 
@@ -70,14 +71,23 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
 
         return work
 
+
+    def series_title_to_key(self, series_title: str):
+        return re.sub('(^(\\w*the ))|(^(\\w*a ))|[^a-z0-9]', '', series_title.lower())
+
+
     def get_or_create_series(self, db, series_title):
+        title_key = self.series_title_to_key(series_title)
         try:
             series = db.execute(
-                select(Series).where(Series.title == series_title)
+                select(Series).where(Series.title_key == title_key)
             ).scalar_one()
         except NoResultFound:
             series = Series(title=series_title)
+            db.add(series)
+            db.flush()
         return series
+
 
     def bulk_create_series(self, db: Session, bulk_series_data: list[str]):
         insert_stmt = pg_insert(Series).on_conflict_do_nothing()
@@ -86,9 +96,11 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         db.execute(insert_stmt, values)
         db.flush()
 
+
     def find_by_isbn(self, db: Session, isbn: str) -> Optional[Work]:
         q = select(Work).where(Work.editions.any(Edition.isbn == isbn))
         return db.execute(q).scalar_one_or_none()
+
 
     def find_by_title_and_author_key(self, db: Session, title: str, author_key: str):
         q = select(Work).where(
