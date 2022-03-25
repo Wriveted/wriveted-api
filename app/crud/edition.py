@@ -271,9 +271,8 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
-        logger.info(f"Discovered {len(other_isbns)} other editions under the same work for isbn {clean_isbn}")
         if other_isbns:
-            logger.info(f"Associating each discovered edition with the master work")
+            logger.info(f"Associating {len(other_isbns)} other found editions under the same work for isbn {clean_isbn}")
         for isbn in other_isbns:
             other_edition = self.get_or_create_unhydrated(session, isbn)
             work.editions.append(other_edition)
