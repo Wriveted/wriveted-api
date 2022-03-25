@@ -24,7 +24,19 @@ def upgrade():
     session = orm.Session(bind=bind)
 
     for school in session.execute(select(School)).scalars().all():
-        school.info["experiments"] = {"no-jokes": False, "no-choice-option": True}
+        if school.info is None:
+            school.info = {
+                "location": {
+                    "suburb": None,
+                    "state": "Unknown",
+                    "postcode": ""
+                }
+            }
+
+        school.info['experiments'] = {
+            "no-jokes": False,
+            "no-choice-option": True
+        }
         session.add(school)
 
     session.commit()
