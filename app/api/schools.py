@@ -254,7 +254,7 @@ async def bulk_add_schools(
     ]
 
     for school in new_schools:
-        school.info['experiments'] = get_experiments(school=school)
+        school.info["experiments"] = get_experiments(school=school)
 
     create_event(
         session=session,
@@ -288,7 +288,7 @@ async def add_school(
 ):
     try:
         school_orm = crud.school.create(db=session, obj_in=school, commit=False)
-        school_orm.info['experiments'] = get_experiments(school=school_orm)
+        school_orm.info["experiments"] = get_experiments(school=school_orm)
         session.commit()
         create_event(
             session=session,

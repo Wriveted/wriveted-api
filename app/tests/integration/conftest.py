@@ -25,12 +25,12 @@ def test_data_path():
     return Path(__file__).parent.parent / "data"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def settings():
     yield get_settings()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def session(settings):
     session = next(get_session(settings=settings))
     return session
@@ -98,7 +98,7 @@ def test_school(client, session, backend_service_account_headers) -> School:
     )
 
     # Afterwards delete it
-    new_test_school_response = client.delete(
+    client.delete(
         f"/v1/school/{school_info['wriveted_identifier']}",
         headers=backend_service_account_headers,
     )

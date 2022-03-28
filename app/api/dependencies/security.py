@@ -1,4 +1,5 @@
 import enum
+from datetime import timedelta
 from typing import Optional, Union, List
 
 from fastapi import Depends, HTTPException
@@ -16,7 +17,9 @@ from starlette import status
 from structlog import get_logger
 
 from app import crud
+from app.config import get_settings
 from app.db.session import get_session
+
 from app.models import User, ServiceAccount, ServiceAccountType, School
 from app.models.user import UserAccountType
 from app.services.security import (
@@ -25,6 +28,8 @@ from app.services.security import (
     TokenPayload,
 )
 
+
+settings = get_settings()
 logger = get_logger()
 
 auth_scheme = OAuth2PasswordBearer(tokenUrl="/auth/access-token")
@@ -225,10 +230,15 @@ def get_active_principals(
     return principals
 
 
-def create_user_access_token(user):
+def create_user_access_token(user, expires_delta=None):
+    if expires_delta is None:
+        delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    else:
+        delta = expires_delta
     wriveted_access_token = create_access_token(
         subject=f"Wriveted:User-Account:{user.id}",
-        # extra_claims={}
+        # extra_claims={},
+        expires_delta=delta,
     )
     logger.debug("Access token generated for user", user=user)
     return wriveted_access_token
