@@ -169,7 +169,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 and len(edition_data.series_name) > 0
             ):
                 bulk_series_titles.add(edition_data.series_name)
-        
+
         if len(bulk_author_data) > 0:
             crud.author.create_in_bulk(
                 db=session, bulk_author_data_in=bulk_author_data.values()
@@ -272,7 +272,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         # now is a good time to link the work with any other_isbns that came along
         # with this EditionCreateIn
         if other_isbns:
-            logger.info(f"Associating {len(other_isbns)} other found editions under the same work for isbn {clean_isbn}")
+            logger.info(
+                f"Associating {len(other_isbns)} other found editions under the same work for isbn {clean_isbn}"
+            )
         for isbn in other_isbns:
             other_edition = self.get_or_create_unhydrated(session, isbn)
             work.editions.append(other_edition)

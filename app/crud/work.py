@@ -71,10 +71,8 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
 
         return work
 
-
     def series_title_to_key(self, series_title: str):
-        return re.sub('(^(\\w*the ))|(^(\\w*a ))|[^a-z0-9]', '', series_title.lower())
-
+        return re.sub("(^(\\w*the ))|(^(\\w*a ))|[^a-z0-9]", "", series_title.lower())
 
     def get_or_create_series(self, db, series_title):
         title_key = self.series_title_to_key(series_title)
@@ -88,7 +86,6 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
             db.flush()
         return series
 
-
     def bulk_create_series(self, db: Session, bulk_series_data: list[str]):
         insert_stmt = pg_insert(Series).on_conflict_do_nothing()
         values = [{"title": title} for title in bulk_series_data]
@@ -96,11 +93,9 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
         db.execute(insert_stmt, values)
         db.flush()
 
-
     def find_by_isbn(self, db: Session, isbn: str) -> Optional[Work]:
         q = select(Work).where(Work.editions.any(Edition.isbn == isbn))
         return db.execute(q).scalar_one_or_none()
-
 
     def find_by_title_and_author_key(self, db: Session, title: str, author_key: str):
         q = select(Work).where(
