@@ -30,8 +30,9 @@ class CRUDIllustrator(CRUDBase[Illustrator, Any, Any]):
             orm_obj = self.create(db, obj_in=data, commit=commit)
         return orm_obj
 
-
-    def create_in_bulk(self, db: Session, *, bulk_illustrator_data_in: list[IllustratorCreateIn]):
+    def create_in_bulk(
+        self, db: Session, *, bulk_illustrator_data_in: list[IllustratorCreateIn]
+    ):
         """
         Upsert via https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#insert-on-conflict-upsert
 
