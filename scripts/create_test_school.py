@@ -5,14 +5,18 @@ admin_token = settings.WRIVETED_API_TOKEN
 test_school_id = 42
 
 test_school_response = httpx.get(
-    f"{settings.WRIVETED_API}/v1/school/ATA/{test_school_id}",
+    f"{settings.WRIVETED_API}/v1/schools",
+    params={
+        'country_code': "ATA",
+        'official_identifier': 42
+    },
     headers={"Authorization": f"Bearer {admin_token}"},
 )
 print(test_school_response.status_code)
 print(test_school_response.text)
-if test_school_response.status_code == 200:
-    print("School already exists!")
-    school_info = test_school_response.json()
+if test_school_response.status_code == 200 and len(test_school_response.json()) > 0:
+    print("Test school already exists!")
+    school_info = test_school_response.json()[0]
 else:
     print("Creating test school")
     new_test_school_response = httpx.post(
