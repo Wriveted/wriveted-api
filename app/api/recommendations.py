@@ -127,7 +127,9 @@ async def get_recommendations_with_fallback(
     if len(row_results) > 1:
 
         # Bit annoying to dump and load json here but we want to fully serialize the labelset which BaseModel.dict() doesn't do
-        event_recommendation_data = [json.loads(LabelSetDetail.from_orm(b[2]).json()) for b in row_results[:10]]
+        event_recommendation_data = [
+            json.loads(LabelSetDetail.from_orm(b[2]).json()) for b in row_results[:10]
+        ]
 
         background_tasks.add_task(
             create_event,
@@ -137,7 +139,7 @@ async def get_recommendations_with_fallback(
             properties={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
-                "fallback_level": fallback_level
+                "fallback_level": fallback_level,
             },
             school=school,
             account=account,
@@ -151,7 +153,7 @@ async def get_recommendations_with_fallback(
                 description="No books met the criteria for recommendation",
                 properties={
                     "query_parameters": query_parameters,
-                    "fallback_level": fallback_level
+                    "fallback_level": fallback_level,
                 },
                 school=school,
                 account=account,

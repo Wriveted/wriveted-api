@@ -137,7 +137,7 @@ async def delete_service_account(
         Event(
             title="Service account deleted",
             info={
-                'description': f"Service account {service_account.name} deleted by {current_user}"
+                "description": f"Service account {service_account.name} deleted by {current_user}"
             },
             user=current_user,
             service_account=service_account,

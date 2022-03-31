@@ -4,10 +4,12 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column,
-    JSON, String,
+    JSON,
+    String,
     DateTime,
     ForeignKey,
-    Enum, select,
+    Enum,
+    select,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -34,11 +36,9 @@ class Event(Base):
 
     @hybrid_property
     def description(self):
-        return self.info['description']
+        return self.info["description"]
 
-    level = Column(
-        Enum(EventLevel), nullable=False, default=EventLevel.NORMAL
-    )
+    level = Column(Enum(EventLevel), nullable=False, default=EventLevel.NORMAL)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # These are optional

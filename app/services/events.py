@@ -23,7 +23,7 @@ def create_event(
     service_account = account if isinstance(account, ServiceAccount) else None
     if properties is None:
         properties = {}
-    properties['description'] = description
+    properties["description"] = description
     event = Event(
         title=title,
         info=properties,
