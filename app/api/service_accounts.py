@@ -136,7 +136,9 @@ async def delete_service_account(
     session.add(
         Event(
             title="Service account deleted",
-            description=f"Service account {service_account.name} deleted by {current_user}",
+            info={
+                'description': f"Service account {service_account.name} deleted by {current_user}"
+            },
             user=current_user,
             service_account=service_account,
         )

@@ -35,10 +35,6 @@ class DbJob(Base):
 
     errors = Column(Integer)
 
-    events = relationship(
-        "Event", back_populates="db_job", cascade="all, delete-orphan"
-    )
-
     created_timestamp = Column(DateTime, server_default=func.now())
 
     started_timestamp = Column(DateTime, nullable=True)

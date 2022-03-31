@@ -154,16 +154,20 @@ async def add_editions_to_collection_by_isbn(
         session, school.id, collection_items
     )
 
+    num_existing_editions = num_collection_items_created - num_editions_created
     create_event(
         session=session,
-        title="Updating collection",
-        description=f"Adding {num_collection_items_created - num_editions_created} existing editions, adding {num_editions_created} new, unhydrated editions",
+        title="Collection Update",
+        description=f"Adding {num_existing_editions} existing editions, adding {num_editions_created} new, unhydrated editions",
+        properties={
+            "collection_items_created_count": num_collection_items_created,
+            "existing_edition_count": num_existing_editions,
+            "unhydrated_edition_count": num_editions_created,
+        },
         school=school,
         account=account,
         commit=False,
     )
-
-    # session.add(school)
 
     try:
         session.commit()

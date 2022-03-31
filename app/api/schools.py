@@ -260,12 +260,14 @@ async def bulk_add_schools(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
+        properties={
+            'identifiers': [s.wriveted_identifier for s in new_schools]
+        },
         account=account,
         commit=False,
     )
     try:
         session.commit()
-
         return {"msg": f"Added {len(new_schools)} new schools"}
     except:
         logger.warning("there was an issue importing bulk school data")
@@ -315,8 +317,9 @@ async def update_school(
 ):
     create_event(
         session=session,
-        title="School update",
+        title="School Updated",
         description=f"School '{school.name}' in {school.country.name} updated.",
+        school=school,
         account=account,
     )
     updated_orm_object = crud.school.update(
@@ -334,7 +337,7 @@ async def delete_school(
     logger.info("Deleting a school", account=account, school=school)
     create_event(
         session=session,
-        title="Deleting school",
+        title="School Deleted",
         description=f"School {school.name} in {school.country.name} deleted.",
         account=account,
     )
