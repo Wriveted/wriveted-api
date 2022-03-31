@@ -127,10 +127,11 @@ class School(Base):
     )
     events = relationship("Event", back_populates="school")
 
+    # The primary admin for the school, but note other users could also be an admin for the school
+    # via the user table's `school_as_admin` column.
     admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     admin = relationship(
         "User",
-        backref=backref("school_as_admin", uselist=False),
         foreign_keys=[admin_id],
     )
 
