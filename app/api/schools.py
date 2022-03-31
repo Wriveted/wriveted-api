@@ -55,9 +55,11 @@ bulk_school_access_control_list = [
     # we need to create a school with their provided details
     (Allow, Authenticated, "create"),
     (Allow, "role:admin", "create"),
+    (Allow, "role:admin", "read-collection"),
     (Allow, "role:admin", "batch"),
     (Allow, "role:admin", "details"),
     (Allow, "role:lms", "read"),
+    (Allow, "role:lms", "read-collection"),
     # The following explicitly blocks LMS accounts from creating new schools
     (Deny, "role:lms", "create"),
     (Deny, "role:lms", "batch"),
@@ -100,6 +102,9 @@ async def get_schools(
     Admins can also optionally filter active/inactive schools using the "is_active" query parameter.
     """
     admin = has_permission(principals, "details", bulk_school_access_control_list)
+    has_collection_permission = has_permission(
+        principals, "read-collection", bulk_school_access_control_list
+    )
 
     schools = crud.school.get_all_with_optional_filters(
         session,
@@ -115,10 +120,14 @@ async def get_schools(
 
     logger.debug(f"Returning {len(schools)} schools")
 
+    # Sanitize results based on logged in user's permissions
     if not admin:
         for school in schools:
             school.state = None
 
+    if not has_collection_permission:
+        for school in schools:
+            school.collection_count = None
     return schools
 
 

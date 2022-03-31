@@ -46,6 +46,9 @@ class SchoolSelectorOption(SchoolIdentity):
     info: SchoolInfo
     state: Optional[SchoolState]
 
+    collection_count: Optional[int]
+    admin: Optional[UserBrief]
+
     class Config:
         orm_mode = True
 
