@@ -149,7 +149,11 @@ async def get_school_bookbot_type(
     Used for the publicly-accessible Bookbot chat links.
     """
     # dependency will automatically 404 if school doesn't exist
-    return { "name": school.name, "type": school.bookbot_type, "experiments": school.info["experiments"] }
+    return {
+        "name": school.name,
+        "type": school.bookbot_type,
+        "experiments": school.info["experiments"],
+    }
 
 
 # Intended to be deprecated if wriveted_identifier is promoted to primary key
@@ -255,7 +259,7 @@ async def bulk_add_schools(
     ]
 
     for school in new_schools:
-        school.info['experiments'] = get_experiments(school=school)
+        school.info["experiments"] = get_experiments(school=school)
 
     create_event(
         session=session,
@@ -289,7 +293,7 @@ async def add_school(
 ):
     try:
         school_orm = crud.school.create(db=session, obj_in=school, commit=False)
-        school_orm.info['experiments'] = get_experiments(school=school_orm)
+        school_orm.info["experiments"] = get_experiments(school=school_orm)
         session.commit()
         create_event(
             session=session,
