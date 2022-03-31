@@ -58,6 +58,8 @@ bulk_school_access_control_list = [
     (Allow, "role:admin", "read-collection"),
     (Allow, "role:admin", "batch"),
     (Allow, "role:admin", "details"),
+    (Allow, "role:library", "details"),
+    (Allow, "role:lms", "details"),
     (Allow, "role:lms", "read"),
     (Allow, "role:lms", "read-collection"),
     # The following explicitly blocks LMS accounts from creating new schools
@@ -101,7 +103,7 @@ async def get_schools(
     Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
     Admins can also optionally filter active/inactive schools using the "is_active" query parameter.
     """
-    admin = has_permission(principals, "details", bulk_school_access_control_list)
+    has_details_permission = has_permission(principals, "details", bulk_school_access_control_list)
     has_collection_permission = has_permission(
         principals, "read-collection", bulk_school_access_control_list
     )
@@ -112,7 +114,7 @@ async def get_schools(
         state=state,
         postcode=postcode,
         query_string=q,
-        is_active=is_active if admin else None,
+        is_active=is_active if has_details_permission else None,
         official_identifier=official_identifier,
         skip=pagination.skip,
         limit=pagination.limit,
@@ -121,7 +123,7 @@ async def get_schools(
     logger.debug(f"Returning {len(schools)} schools")
 
     # Sanitize results based on logged in user's permissions
-    if not admin:
+    if not has_details_permission:
         for school in schools:
             school.state = None
 
