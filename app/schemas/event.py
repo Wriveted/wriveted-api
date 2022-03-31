@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -10,6 +11,7 @@ class EventBrief(BaseModel):
     description: str
     level: EventLevel
     timestamp: datetime
+    info: Optional[dict[str, Any]]
 
     class Config:
         orm_mode = True

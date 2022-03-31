@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Query
@@ -95,8 +96,9 @@ async def get_recommendations_with_fallback(
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
-
+    fallback_level = 0
     if data.fallback and len(row_results) < 3:
+        fallback_level += 1
         # proper fallback logic can come later when booklists are implemented
         query_parameters["school_id"] = None
         logger.info(
@@ -109,8 +111,8 @@ async def get_recommendations_with_fallback(
         )
         if len(row_results) < 3:
             # Still not enough, alright let's recommend outside the school collection
-
-            # Lets just include all the hues and try the query again.
+            fallback_level += 1
+            # Let's just include all the hues and try the query again.
             query_parameters["hues"] = None
             logger.info(
                 f"Desired query returned {len(row_results)} books. Trying fallback method 2 of including all hues",
@@ -120,16 +122,25 @@ async def get_recommendations_with_fallback(
                 session, **query_parameters
             )
 
+    # Note the row_results are an iterable of (work, edition, labelset) orm instances
+
     if len(row_results) > 1:
-        logged_labelset_description = "\n".join(str(b[2]) for b in row_results)
+
+        # Bit annoying to dump and load json here but we want to fully serialize the labelset which BaseModel.dict() doesn't do
+        event_recommendation_data = [
+            json.loads(LabelSetDetail.from_orm(b[2]).json()) for b in row_results[:10]
+        ]
 
         background_tasks.add_task(
             create_event,
             session,
-            title=f"Made a recommendation of {len(row_results)} books",
-            description=f"Recommended:\n{logged_labelset_description}"
-            if len(row_results) <= 10
-            else "",
+            title=f"Made a recommendation",
+            description=f"Made a recommendation of {len(row_results)} books",
+            properties={
+                "recommended": event_recommendation_data,
+                "query_parameters": query_parameters,
+                "fallback_level": fallback_level,
+            },
             school=school,
             account=account,
         )
@@ -140,6 +151,10 @@ async def get_recommendations_with_fallback(
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
+                properties={
+                    "query_parameters": query_parameters,
+                    "fallback_level": fallback_level,
+                },
                 school=school,
                 account=account,
             )

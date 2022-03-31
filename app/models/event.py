@@ -4,13 +4,17 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column,
+    JSON,
     String,
     DateTime,
     ForeignKey,
     Enum,
+    select,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import column_property, relationship
 from app.db import Base
 
 
@@ -23,13 +27,19 @@ class EventLevel(str, enum.Enum):
 
 class Event(Base):
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
-    title = Column(String(256), nullable=False)
-    description = Column(String(), nullable=False, default="")
 
-    level = Column(
-        Enum(EventLevel), nullable=False, default=EventLevel.NORMAL, index=True
-    )
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # This is really the event name (like in Mixpanel)
+    title = Column(String(256), nullable=False, index=True)
+
+    # Any properties for the event
+    info = Column(MutableDict.as_mutable(JSON), nullable=True)
+
+    @hybrid_property
+    def description(self):
+        return self.info["description"]
+
+    level = Column(Enum(EventLevel), nullable=False, default=EventLevel.NORMAL)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # These are optional
     school_id = Column(ForeignKey("schools.id", name="fk_event_school"), nullable=True)
@@ -45,9 +55,6 @@ class Event(Base):
     service_account = relationship(
         "ServiceAccount", foreign_keys=[service_account_id], back_populates="events"
     )
-
-    db_job_id = Column(ForeignKey("db_jobs.id", name="fk_event_db_job"), nullable=True)
-    db_job = relationship("DbJob", foreign_keys=[db_job_id], back_populates="events")
 
     def __repr__(self):
         return f"<Event {self.title} - {self.description}>"

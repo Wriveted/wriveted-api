@@ -12,7 +12,8 @@ logger = get_logger()
 def create_event(
     session: Session,
     title: str,
-    description: str,
+    description: str = "",
+    properties: dict = None,
     level: EventLevel = EventLevel.NORMAL,
     school=None,
     account: Union[ServiceAccount, User] = None,
@@ -20,10 +21,12 @@ def create_event(
 ):
     user = account if isinstance(account, User) else None
     service_account = account if isinstance(account, ServiceAccount) else None
-
+    if properties is None:
+        properties = {}
+    properties["description"] = description
     event = Event(
         title=title,
-        description=description,
+        info=properties,
         level=level,
         school=school,
         user=user,
