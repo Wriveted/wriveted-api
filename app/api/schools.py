@@ -149,7 +149,7 @@ async def get_school_bookbot_type(
     Used for the publicly-accessible Bookbot chat links.
     """
     # dependency will automatically 404 if school doesn't exist
-    return { "name": school.name, "type": school.bookbot_type, "experiments": ["jokes"] }
+    return { "name": school.name, "type": school.bookbot_type, "experiments": school.info["experiments"] }
 
 
 # Intended to be deprecated if wriveted_identifier is promoted to primary key
