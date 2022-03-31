@@ -20,9 +20,7 @@ from app.schemas.collection import (
     CollectionUpdateType,
     CollectionItemIn,
 )
-from app.schemas.edition import EditionCreateIn
 from app.services.collections import (
-    add_editions_to_collection,
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
 )
