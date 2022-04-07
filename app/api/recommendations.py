@@ -68,7 +68,7 @@ async def get_recommendations(
                 cover_url=edition.cover_url,
                 display_title=edition.get_display_title(),
                 authors_string=work.get_authors_string(),
-                summary=labelset.huey_summary,
+                summary=labelset.huey_summary if labelset.summary_origin == "HUMAN" else None,
                 labels=LabelSetDetail.from_orm(labelset),
             )
             for (work, edition, labelset) in row_results
