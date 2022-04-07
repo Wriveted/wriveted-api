@@ -54,7 +54,7 @@ class HueyBook(BaseModel):
     cover_url: HttpUrl | None
     display_title: str  # {leading article} {title} (leading article is optional, thus bridging whitespace optional)
     authors_string: str  # {a1.first_name} {a1.last_name}, {a2.first_name} {a2.last_name} ... (first name is optional, thus bridging whitespace optional)
-    summary: str
+    summary: str | None
     labels: LabelSetDetail
 
 
