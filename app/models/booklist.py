@@ -30,7 +30,15 @@ class ListType(str, enum.Enum):
 class BookList(Base):
     __tablename__ = "book_lists"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        unique=True,
+        primary_key=True,
+        index=True,
+        nullable=False,
+    )
+
     name = Column(String(200), nullable=False, index=True)
     type = Column(Enum(ListType), nullable=False)
     info = Column(MutableDict.as_mutable(JSON))
@@ -73,4 +81,4 @@ class BookList(Base):
     )
 
     def __repr__(self):
-        return f"<BookList id={self.id} - '{self.name}'>"
+        return f"<BookList '{self.name}'  type={self.type} id={self.id}>"
