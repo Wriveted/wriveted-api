@@ -1,3 +1,4 @@
+import random
 import secrets
 from datetime import timedelta
 from pathlib import Path
@@ -9,9 +10,12 @@ from app.db.session import get_session
 from app import crud
 from app.main import app, get_settings
 from app.models import School, ServiceAccountType
-from app.schemas.school import SchoolDetail
+from app.models.work import WorkType
+from app.schemas.author import AuthorCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
+from app.schemas.work import WorkCreateIn
 from app.services.security import create_access_token
+from app.tests.util.random_strings import random_lower_string
 
 
 @pytest.fixture(scope="module")
@@ -69,6 +73,54 @@ def backend_service_account_headers(backend_service_account_token):
 
 
 @pytest.fixture()
+def author_list(client, session):
+    n = 10
+    authors = [
+        crud.author.create(
+            db=session,
+            obj_in={
+                "first_name": random_lower_string(length=random.randint(2, 12)),
+                "last_name": random_lower_string(length=random.randint(2, 12)),
+            },
+        )
+        for _ in range(n)
+    ]
+
+    yield authors
+
+    for a in authors:
+        crud.author.remove(db=session, id=a.id)
+
+
+@pytest.fixture()
+def works_list(client, session, author_list):
+    n = 100
+
+    works = []
+    for _ in range(n):
+        author = random.choice(author_list)
+        work_authors = [
+            AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
+        ]
+        works.append(
+            crud.work.get_or_create(
+                db=session,
+                work_data=WorkCreateIn(
+                    type=WorkType.BOOK,
+                    title=random_lower_string(),
+                    authors=work_authors,
+                ),
+                authors=[author],
+            )
+        )
+
+    yield works
+
+    for w in works:
+        crud.work.remove(db=session, id=w.id)
+
+
+@pytest.fixture()
 def test_school(client, session, backend_service_account_headers) -> School:
     # Creating a test school (we could do this directly e.g. using crud or the api)
     test_school_id = secrets.token_hex(8)
@@ -87,7 +139,6 @@ def test_school(client, session, backend_service_account_headers) -> School:
         },
         timeout=120,
     )
-    print(new_test_school_response.text)
     new_test_school_response.raise_for_status()
     school_info = new_test_school_response.json()
     # yield SchoolDetail(**school_info)
@@ -126,7 +177,6 @@ def service_account_for_test_school(
             }
         ),
     )
-    print(sa)
 
     yield sa
 

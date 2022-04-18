@@ -103,7 +103,9 @@ async def get_schools(
     Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
     Admins can also optionally filter active/inactive schools using the "is_active" query parameter.
     """
-    has_details_permission = has_permission(principals, "details", bulk_school_access_control_list)
+    has_details_permission = has_permission(
+        principals, "details", bulk_school_access_control_list
+    )
     has_collection_permission = has_permission(
         principals, "read-collection", bulk_school_access_control_list
     )
@@ -276,9 +278,7 @@ async def bulk_add_schools(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
-        properties={
-            'identifiers': [s.wriveted_identifier for s in new_schools]
-        },
+        properties={"identifiers": [s.wriveted_identifier for s in new_schools]},
         account=account,
         commit=False,
     )
