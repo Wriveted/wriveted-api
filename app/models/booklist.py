@@ -14,7 +14,7 @@ from sqlalchemy import (
     DateTime,
     text,
 )
-from sqlalchemy.ext.associationproxy import association_proxy
+
 from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
