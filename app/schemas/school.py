@@ -24,6 +24,7 @@ class SchoolInfo(BaseModel):
     location: SchoolLocation
     type: Optional[str]
     sector: Optional[str]
+    URL: Optional[str]
     status: Optional[str]
     age_id: Optional[str]
     experiments: Optional[dict[str, bool]]
