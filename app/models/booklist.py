@@ -66,6 +66,7 @@ class BookList(Base):
         cascade="all, delete, delete-orphan",
         passive_deletes=True,
         back_populates="booklist",
+        order_by="asc(BookListItem.order_id)",
     )
 
     book_count = column_property(

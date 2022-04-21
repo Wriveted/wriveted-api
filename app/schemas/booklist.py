@@ -31,7 +31,7 @@ class BookListItemDetail(BookListItemBase):
 
 
 class BookListItemCreateIn(BookListItemBase):
-    pass
+    order_id: Optional[int]
 
 
 class BookListBase(BaseModel):
@@ -57,7 +57,6 @@ class ItemUpdateType(str, enum.Enum):
 class BookListItemUpdateIn(BaseModel):
     action: ItemUpdateType
     work_id: str
-
     order_id: Optional[int]
     info: Optional[BookListItemInfo] = None
 

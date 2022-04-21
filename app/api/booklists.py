@@ -122,7 +122,7 @@ async def get_booklist_detail(
     booklist_items = list(booklist.items)[
         pagination.skip : pagination.limit + pagination.skip
     ]
-    logger.debug("Items", items=booklist_items)
+
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
     booklist.data = booklist_items
     booklist.pagination = pagination.to_dict()
@@ -138,6 +138,11 @@ async def update_booklist(
     booklist: BookList = Permission("update", get_booklist_from_wriveted_id),
     session: Session = Depends(get_session),
 ):
+    """
+    Update a booklist
+
+
+    """
     logger.debug("Updating booklist", booklist=booklist)
 
     updated_booklist = crud.booklist.update(db=session, db_obj=booklist, obj_in=changes)

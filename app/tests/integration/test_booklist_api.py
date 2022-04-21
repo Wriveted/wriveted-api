@@ -96,6 +96,26 @@ def test_create_booklist(client, backend_service_account_headers, works_list):
         assert "title" in item["work"]
 
 
+def test_create_booklist_without_positions(
+    client, backend_service_account_headers, works_list
+):
+    response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.PERSONAL,
+            "items": [{"work_id": w.id} for w in works_list],
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    booklist_id = response.json()["id"]
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id=booklist_id
+    )
+
+
 def test_rename_booklist(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
         "v1/lists",
@@ -127,7 +147,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
         json={
             "name": "wizard wishes",
             "type": ListType.PERSONAL,
-            "info": {"foo": 42},
+            "info": {"description": "I'm the original"},
             "items": [
                 {"work_id": w.id, "order_id": i} for i, w in enumerate(works_list[:20])
             ],
@@ -143,7 +163,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
         json={
             "type": ListType.REGION,
             # Note this will replace the info blob entirely:
-            "info": {"bar": 100},
+            "info": {"description": "I'm the replacement"},
         },
     )
     assert edit_booklist_response.status_code == 200
@@ -157,7 +177,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
     assert detail_booklist_response.json()["type"] == ListType.REGION
     assert len(detail_booklist_response.json()["data"]) >= 20
     assert "foo" not in detail_booklist_response.json()["info"]
-    assert detail_booklist_response.json()["info"]["bar"] == 100
+    assert "replacement" in detail_booklist_response.json()["info"]["description"]
 
 
 def test_add_items_to_booklist(client, backend_service_account_headers, works_list):
@@ -182,9 +202,119 @@ def test_add_items_to_booklist(client, backend_service_account_headers, works_li
         json={
             "items": [
                 {"action": "add", "work_id": w.id, "order_id": i}
-                for i, w in enumerate(works_list[20:], start=20)
+                for i, w in enumerate(works_list[20:], start=19)
             ]
         },
     )
     assert edit_booklist_response.status_code == 200
     assert edit_booklist_response.json()["book_count"] > 20
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
+def test_add_items_without_position_to_booklist(
+    client, backend_service_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.PERSONAL,
+            "info": {"foo": 42},
+            "items": [{"work_id": w.id} for w in works_list[:20]],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to add new items
+    edit_booklist_response = client.patch(
+        f"v1/lists/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [
+                {"action": "add", "work_id": w.id, "order_id": i}
+                for i, w in enumerate(works_list[20:], start=19)
+            ]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+    assert edit_booklist_response.json()["book_count"] > 20
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
+def test_remove_missing_items_from_booklist(
+    client, backend_service_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.PERSONAL,
+            "info": {"foo": 42},
+            "items": [
+                {"work_id": w.id, "order_id": i} for i, w in enumerate(works_list[:10])
+            ],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to remove items that were never in the book list - should be ignored
+    edit_booklist_response = client.patch(
+        f"v1/lists/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [{"action": "remove", "work_id": w.id} for w in works_list[20:]]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+    assert edit_booklist_response.json()["book_count"] == 10
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
+def test_remove_items_in_booklist(client, backend_service_account_headers, works_list):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.PERSONAL,
+            "info": {"foo": 42},
+            "items": [
+                {"work_id": w.id, "order_id": i} for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to remove items
+    edit_booklist_response = client.patch(
+        f"v1/lists/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [{"action": "remove", "work_id": w.id} for w in works_list[10:20]]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+    assert edit_booklist_response.json()["book_count"] == 10
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
+def ensure_booklist_order_continuous(
+    client, backend_service_account_headers, booklist_id
+):
+    # check order is continuous
+    detail_booklist_response = client.get(
+        f"v1/lists/{booklist_id}", headers=backend_service_account_headers
+    )
+    detail = detail_booklist_response.json()
+    positions = [item["order_id"] for item in detail["data"]]
+    assert positions == list(range(len(positions)))
