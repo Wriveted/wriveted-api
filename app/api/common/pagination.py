@@ -12,3 +12,6 @@ class PaginatedQueryParams:
 
     def __repr__(self):
         return f"<Pagination skip={self.skip}, limit={self.limit}>"
+
+    def to_dict(self):
+        return {"skip": self.skip, "limit": self.limit}

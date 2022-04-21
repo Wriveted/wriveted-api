@@ -6,10 +6,7 @@ test_school_id = 42
 
 test_school_response = httpx.get(
     f"{settings.WRIVETED_API}/v1/schools",
-    params={
-        'country_code': "ATA",
-        'official_identifier': 42
-    },
+    params={"country_code": "ATA", "official_identifier": 42},
     headers={"Authorization": f"Bearer {admin_token}"},
 )
 print(test_school_response.status_code)

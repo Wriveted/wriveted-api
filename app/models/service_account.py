@@ -51,7 +51,12 @@ class ServiceAccount(Base):
         back_populates="service_accounts",
     )
 
-    booklists = relationship("BookList", back_populates="service_account")
+    booklists = relationship(
+        "BookList",
+        back_populates="service_account",
+        cascade="all, delete, delete-orphan",
+        passive_deletes=True,
+    )
 
     info = Column(MutableDict.as_mutable(JSON), nullable=True)
 

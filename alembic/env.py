@@ -27,9 +27,8 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
 )
 
-from app.models import Base  # noqa
+from app.db.base_class import Base  # noqa
 
-# from app.db.base import Base  # noqa
 
 target_metadata = Base.metadata
 

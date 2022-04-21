@@ -1,6 +1,7 @@
 from app.crud.base import CRUDBase
 
 from app.crud.author import CRUDAuthor, author
+from app.crud.booklist import CRUDBookList, booklist
 from app.crud.edition import CRUDEdition, edition
 from app.crud.illustrator import CRUDIllustrator, illustrator
 from app.crud.school import CRUDSchool, school

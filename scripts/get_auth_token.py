@@ -20,9 +20,9 @@ session = next(get_session(settings=config.get_settings()))
 
 user = crud.user.get_by_account_email(db=session, email="hardbyte@gmail.com")
 if user is None:
-    user = crud.user.create(db=session, obj_in=UserCreateIn(
-        name="Brian", email="hardbyte@gmail.com"
-    ))
+    user = crud.user.create(
+        db=session, obj_in=UserCreateIn(name="Brian", email="hardbyte@gmail.com")
+    )
     user.type = "wriveted"
 
 print("Generating auth token")

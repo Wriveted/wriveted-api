@@ -16,19 +16,28 @@ services:
       timeout: 30s
       retries: 5
 
-  api:
+  migration:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
-    command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0
+    command: alembic upgrade head
     depends_on:
       - db
     environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
+
+  api:
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
+    command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0 
+    depends_on:
+      - db
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
       - POSTGRESQL_PASSWORD=xvc8kcn
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app/app
+      - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro
     build:
       context: ./

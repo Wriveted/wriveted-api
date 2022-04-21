@@ -75,7 +75,10 @@ class User(Base):
     last_login_at = Column(DateTime, nullable=True)
 
     booklists = relationship(
-        "BookList", back_populates="user", cascade="all, delete-orphan"
+        "BookList",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
 
