@@ -1,7 +1,7 @@
+from typing import Optional
 from sqlalchemy import update, select, delete
 from sqlalchemy.orm import Session
 from structlog import get_logger
-
 from app.crud import CRUDBase
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
@@ -32,6 +32,18 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
 
         logger.debug("Refreshed booklist count", count=booklist_orm_object.book_count)
         return booklist_orm_object
+
+    def get_all_query_with_optional_filters(
+            self,
+            db: Session,
+            list_type: Optional[str] = None,
+    ):
+        booklists = self.get_all_query(db=db)
+
+        if list_type is not None:
+            booklists.where(BookList.type == list_type)
+
+        return booklists
 
     def update(
         self, db: Session, *, db_obj: BookList, obj_in: BookListUpdateIn

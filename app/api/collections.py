@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Security
+from fastapi import APIRouter, Depends, Security, BackgroundTasks
 from sqlalchemy import delete, func, update, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -8,9 +8,14 @@ from structlog import get_logger
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.db.session import get_session
-from app.models import CollectionItem, School, Edition
+from app.models import BookList, CollectionItem, School, Edition
 from app.permissions import Permission
+from app.schemas.booklist_collection_intersection import (
+    BookListItemInCollection,
+    CollectionBookListIntersection,
+)
 from app.schemas.collection import (
     CollectionInfo,
     CollectionItemBase,
@@ -20,15 +25,18 @@ from app.schemas.collection import (
     CollectionUpdateType,
     CollectionItemIn,
 )
+from app.schemas.pagination import Pagination
+
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
-    get_collection_info_with_criteria,
+    get_collection_info_with_criteria, get_collection_items_also_in_booklist,
 )
+from app.services.events import create_event
 
 logger = get_logger()
 
 router = APIRouter(
-    tags=["Schools"],
+    tags=["Library Collection"],
     dependencies=[
         # Shouldn't be necessary
         Security(get_current_active_user_or_service_account)
@@ -61,6 +69,9 @@ async def get_school_collection_info(
     school: School = Permission("read", get_school_from_wriveted_id),
     session: Session = Depends(get_session),
 ):
+    """
+    Endpoint returning information about how much of the collection is labeled.
+    """
     logger.debug("Getting collection info")
     output = {}
 
@@ -94,6 +105,67 @@ async def get_school_collection_info(
     ).scalar_one()
 
     return output
+
+
+@router.get(
+    "/school/{wriveted_identifier}/collection/compare-with-booklist/{booklist_identifier}",
+    response_model=CollectionBookListIntersection,
+)
+async def get_school_collection_booklist_intersection(
+    background_tasks: BackgroundTasks,
+    school: School = Permission("read", get_school_from_wriveted_id),
+    booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+    account = Depends(get_current_active_user_or_service_account),
+):
+    """
+    Endpoint returning information about which items in a booklist are part of a collection.
+
+    Pagination applies to the booklist
+    """
+    logger.debug(
+        "Computing booklist collection intersection", school=school, booklist=booklist
+    )
+
+    paginated_booklist_item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
+
+    common_collection_items = await get_collection_items_also_in_booklist(
+        session,
+        school,
+        paginated_booklist_item_query,
+    )
+    common_work_ids = {item.work_id for item in common_collection_items}
+
+    background_tasks.add_task(
+        create_event,
+        session,
+        title="Compared booklist and collection",
+        properties={
+            "items_in_common": len(common_collection_items),
+            "school_wriveted_id": str(school.wriveted_identifier),
+            "booklist_id": str(booklist.id),
+        },
+        school=school,
+        account=account,
+    )
+
+    return CollectionBookListIntersection(
+        pagination=Pagination(**pagination.to_dict(), total=booklist.book_count),
+        data=[
+            BookListItemInCollection(
+                in_collection=booklist_item.work_id in common_work_ids,
+                work_id=booklist_item.work_id,
+                work_brief=booklist_item.work,
+                editions_in_collection=[
+                    collection_item.edition_isbn
+                    for collection_item in common_collection_items
+                    if collection_item.work_id == booklist_item.work_id
+                ],
+            )
+            for booklist_item in session.scalars(paginated_booklist_item_query)
+        ]
+    )
 
 
 @router.post(
