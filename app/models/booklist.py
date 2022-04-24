@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from fastapi_permissions import Allow, Authenticated
+from fastapi_permissions import Allow, Authenticated, All
 from sqlalchemy import (
     Column,
     String,
@@ -111,15 +111,19 @@ class BookList(Base):
         """
         Defines who can do what to the BookList instance.
         """
-        return [
-            # TODO REMOVE TEMPORARY PERMISSIONS
-            # This would allow anyone logged in to view any book list
-            (Allow, Authenticated, "create"),
-            (Allow, Authenticated, "read"),
-            (Allow, Authenticated, "update"),
-            (Allow, Authenticated, "delete"),
-            (Allow, "role:admin", "create"),
-            (Allow, "role:admin", "read"),
-            (Allow, "role:admin", "update"),
-            (Allow, "role:admin", "delete"),
+
+        policies = [
+            (Allow, "role:admin", All),
+            # Allow users to manage their own lists
+            (Allow, f"user:{self.user_id}", All),
+            # School admins can manage school lists
+            (Allow, f"school:{self.school_id}", All),
         ]
+
+        if self.type in {ListType.HUEY, ListType.REGION}:
+            # Allow anyone Authenticated to view this "Public" book list
+            policies.append(
+                (Allow, Authenticated, "read")
+            )
+
+        return policies

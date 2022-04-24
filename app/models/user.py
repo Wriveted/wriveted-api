@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
+from fastapi_permissions import All, Allow
 from sqlalchemy import (
     Column,
     Enum,
@@ -80,7 +81,12 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
+    events = relationship(
+        "Event",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Event.timestamp)",
+    )
 
     newsletter = Column(Boolean(), nullable=False, server_default="false")
 
@@ -94,3 +100,19 @@ class User(Base):
         if self.school_as_student is not None:
             summary += f" (Student of school {self.school_as_student}) "
         return f"<User {self.name} - {summary}>"
+
+    def __acl__(self):
+        """defines who can do what to the instance
+        the function returns a list containing tuples in the form of
+        (Allow or Deny, principal identifier, permission name)
+
+        If a role is not listed (like "role:user") the access will be
+        automatically denied.
+
+        (Deny, Everyone, All) is automatically appended at the end.
+        """
+        return [
+
+            (Allow, f"user:{self.id}", All),
+            (Allow, "role:admin", All)
+        ]

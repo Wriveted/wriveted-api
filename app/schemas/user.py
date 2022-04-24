@@ -45,18 +45,21 @@ class UsersSchool(BaseModel):
         orm_mode = True
 
 
-class UserBrief(BaseModel):
+class UserIdentity(BaseModel):
     id: UUID4
     name: str
-    email: str
-    is_active: bool
     type: UserAccountType
-    last_login_at: Optional[datetime]
-    school_id_as_admin: Optional[str]
-    school_as_admin: Optional[UsersSchool]
 
     class Config:
         orm_mode = True
+
+
+class UserBrief(UserIdentity):
+    email: str
+    is_active: bool
+    last_login_at: Optional[datetime]
+    school_id_as_admin: Optional[str]
+    school_as_admin: Optional[UsersSchool]
 
 
 class UserDetail(UserBrief):

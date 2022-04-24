@@ -18,4 +18,5 @@ from .hue import Hue
 from .labelset import LabelSet
 from .db_job import DbJob
 from .booklist import BookList
+from .booklist_work_association import BookListItem
 from .reading_ability import ReadingAbility

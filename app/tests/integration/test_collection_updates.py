@@ -6,10 +6,8 @@ from app.services.editions import check_digit_13
 
 def test_collection_management(
     client,
-    settings,
     test_school,
-    service_account_for_test_school,
-    test_school_service_account_headers,
+    lms_service_account_headers_for_school,
     test_data_path,
 ):
     """
@@ -19,21 +17,10 @@ def test_collection_management(
     start_time = time.time()
     print("Checking authorization")
     account_details_response = client.get(
-        "/v1/auth/me", headers=test_school_service_account_headers
+        "/v1/auth/me", headers=lms_service_account_headers_for_school
     )
     account_details_response.raise_for_status()
     account_details = account_details_response.json()
-
-    is_admin = (
-        account_details["account_type"] == "user"
-        and account_details["user"]["type"] == "wriveted"
-    ) or (
-        account_details["account_type"] == "service_account"
-        and account_details["service_account"]["type"]
-        in {
-            "backend",
-        }
-    )
 
     INITIAL_NUMBER_OF_HYDRATED_BOOKS = 10
     INITIAL_NUMBER_OF_UNHYDRATED_BOOKS = 10
@@ -47,13 +34,13 @@ def test_collection_management(
     print("Resetting school collection")
     reset_collection_response = client.post(
         f"/v1/school/{test_school_id}/collection",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         json=[],
     )
     reset_collection_response.raise_for_status()
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
 
     get_collection_response.raise_for_status()
@@ -70,9 +57,7 @@ def test_collection_management(
         reader = csv.reader(csv_file)
 
         # Eat the header line
-        headers = next(reader)
-
-        print()
+        next(reader)
 
         # The Airtable data has some duplicates
         seen_isbns = set()
@@ -178,7 +163,7 @@ def test_collection_management(
         f"/v1/editions",
         json=original_hydrated,
         timeout=30,
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     add_books_response.raise_for_status()
     print(add_books_response.json())
@@ -205,7 +190,7 @@ def test_collection_management(
         f"/v1/school/{test_school_id}/collection",
         json=original_collection,
         timeout=30,
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     set_collection_response.raise_for_status()
     print(set_collection_response.json())
@@ -213,7 +198,7 @@ def test_collection_management(
     print("Checking the collection")
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=30,
     )
@@ -248,7 +233,7 @@ def test_collection_management(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     updates_response.raise_for_status()
     print(updates_response.status_code)
@@ -257,7 +242,7 @@ def test_collection_management(
 
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
     )
@@ -305,7 +290,7 @@ def test_collection_management(
         f"/v1/school/{test_school_id}/collection",
         json=collection_changes,
         timeout=120,
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     updates_response.raise_for_status()
     print(updates_response.json())
@@ -313,7 +298,7 @@ def test_collection_management(
     print("Added and removed books from collection")
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
     )

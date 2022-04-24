@@ -6,12 +6,14 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+from app.api.dependencies.security import create_user_access_token
 from app.db.session import get_session
 from app import crud
 from app.main import app, get_settings
 from app.models import School, ServiceAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
+from app.schemas.user import UserCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.security import create_access_token
@@ -55,6 +57,32 @@ def backend_service_account(session):
 
 
 @pytest.fixture()
+def test_user_account(session):
+    user = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="school integration test account",
+            email=f"{random_lower_string(6)}@test.com",
+        ),
+    )
+    yield user
+    session.delete(user)
+
+
+@pytest.fixture()
+def test_user_accounts(session):
+    user = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="school integration test account",
+            email=f"{random_lower_string(6)}@test.com",
+        ),
+    )
+    yield user
+    session.delete(user)
+
+
+@pytest.fixture()
 def backend_service_account_token(settings, backend_service_account):
     print("Generating auth token")
     access_token = create_access_token(
@@ -63,13 +91,27 @@ def backend_service_account_token(settings, backend_service_account):
             minutes=settings.SERVICE_ACCOUNT_ACCESS_TOKEN_EXPIRE_MINUTES
         ),
     )
+    return access_token
 
+
+@pytest.fixture()
+def test_user_account_token(test_user_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_user_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
     return access_token
 
 
 @pytest.fixture()
 def backend_service_account_headers(backend_service_account_token):
     return {"Authorization": f"bearer {backend_service_account_token}"}
+
+
+@pytest.fixture()
+def test_user_account_headers(test_user_account_token):
+    return {"Authorization": f"bearer {test_user_account_token}"}
 
 
 @pytest.fixture()
@@ -156,9 +198,25 @@ def test_school(client, session, backend_service_account_headers) -> School:
 
 
 @pytest.fixture()
-def service_account_for_test_school(
-    client, session, test_school, backend_service_account_headers
-):
+def admin_of_test_school(session, test_school, test_user_account):
+    test_user_account.school_id_as_admin = test_school.id
+    session.add(test_user_account)
+    session.commit()
+    yield test_user_account
+
+
+@pytest.fixture()
+def admin_of_test_school_token(admin_of_test_school):
+    return create_user_access_token(admin_of_test_school)
+
+
+@pytest.fixture()
+def admin_of_test_school_headers(admin_of_test_school_token):
+    return {"Authorization": f"bearer {admin_of_test_school_token}"}
+
+
+@pytest.fixture()
+def lms_service_account_for_test_school(session, test_school):
     print("Creating a LMS service account to carry out the rest of the test")
     sa = crud.service_account.create(
         db=session,
@@ -184,17 +242,16 @@ def service_account_for_test_school(
 
 
 @pytest.fixture()
-def test_school_service_account_token(settings, service_account_for_test_school):
+def lms_service_account_token_for_school(settings, lms_service_account_for_test_school):
     access_token = create_access_token(
-        subject=f"wriveted:service-account:{service_account_for_test_school.id}",
+        subject=f"wriveted:service-account:{lms_service_account_for_test_school.id}",
         expires_delta=timedelta(
             minutes=settings.SERVICE_ACCOUNT_ACCESS_TOKEN_EXPIRE_MINUTES
         ),
     )
-
     return access_token
 
 
 @pytest.fixture()
-def test_school_service_account_headers(test_school_service_account_token):
-    return {"Authorization": f"bearer {test_school_service_account_token}"}
+def lms_service_account_headers_for_school(lms_service_account_token_for_school):
+    return {"Authorization": f"bearer {lms_service_account_token_for_school}"}

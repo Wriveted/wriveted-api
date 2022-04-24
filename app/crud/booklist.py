@@ -38,12 +38,12 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             db: Session,
             list_type: Optional[str] = None,
     ):
-        booklists = self.get_all_query(db=db)
+        booklists_query = self.get_all_query(db=db)
 
         if list_type is not None:
-            booklists.where(BookList.type == list_type)
+            booklists_query = booklists_query.where(BookList.type == list_type)
 
-        return booklists
+        return booklists_query
 
     def update(
         self, db: Session, *, db_obj: BookList, obj_in: BookListUpdateIn

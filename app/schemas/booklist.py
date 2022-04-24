@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief
-from app.schemas.user import UserBrief
+from app.schemas.user import UserBrief, UserIdentity
 from app.schemas.work import WorkBrief
 
 
@@ -44,6 +44,10 @@ class BookListOptionalInfo(BaseModel):
 
 
 class BookListCreateIn(BookListBase):
+
+    school_id: Optional[str]
+    user_id: Optional[str]
+
     info: Optional[BookListOptionalInfo] = None
     items: Optional[list[BookListItemCreateIn]]
 
@@ -72,7 +76,7 @@ class BookListBrief(BookListBase):
     id: UUID
     created_at: datetime
     book_count: int
-    user: Optional[UserBrief]
+    user: Optional[UserIdentity]
     school: Optional[SchoolBrief]
 
     class Config:

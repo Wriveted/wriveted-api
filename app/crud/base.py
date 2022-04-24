@@ -70,6 +70,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def apply_pagination(query: Query, *, skip: int = None, limit: int = None):
         return query.offset(skip).limit(limit)
 
+    def count_query(self, db: Session, query) -> int:
+        cte = query.cte()
+        aliased_model = aliased(self.model, cte)
+        return db.scalar(select(func.count(aliased_model.id)))
+
     def count_all(self, db: Session) -> int:
         return db.scalar(select(func.count(self.model.id)))
 
