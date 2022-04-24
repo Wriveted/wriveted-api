@@ -12,7 +12,10 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.school import get_school_from_wriveted_id
-from app.api.dependencies.security import get_active_principals, get_current_active_user_or_service_account
+from app.api.dependencies.security import (
+    get_active_principals,
+    get_current_active_user_or_service_account,
+)
 from app.db.session import get_session
 from app.models import School, BookList, User, ServiceAccount
 from app.models.booklist import ListType
@@ -43,7 +46,6 @@ bulk_booklist_access_control_list = [
     (Allow, Authenticated, "create"),
     (Allow, Authenticated, "read"),
     (Allow, Authenticated, "update"),
-
     (Allow, "role:admin", "delete"),
     (Allow, "role:admin", "delete"),
 ]
@@ -66,30 +68,41 @@ async def add_booklist(
 ):
     logger.info("Creating a book list", account=account, type=booklist.type)
     logger.debug("Checking permissions", principals=principals)
-    if booklist.type in {ListType.OTHER_LIST, ListType.HUEY, ListType.REGION} and "role:admin" not in principals:
+    if (
+        booklist.type in {ListType.OTHER_LIST, ListType.HUEY, ListType.REGION}
+        and "role:admin" not in principals
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admin users may create that type of book list"
+            detail="Only admin users may create that type of book list",
         )
 
     if booklist.type == ListType.SCHOOL:
         if booklist.school_id is not None:
-            logger.debug("Caller supplied a school id, swapping out the wriveted identifier for the db id")
-            school_orm = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=booklist.school_id)
+            logger.debug(
+                "Caller supplied a school id, swapping out the wriveted identifier for the db id"
+            )
+            school_orm = crud.school.get_by_wriveted_id_or_404(
+                db=session, wriveted_id=booklist.school_id
+            )
         else:
             logger.debug("Seeing if the caller is clearly associated with *one* school")
             if isinstance(account, User) and account.school_id_as_admin is not None:
-                school_orm = crud.school.get_by_id_or_404(session, id=account.school_id_as_admin)
+                school_orm = crud.school.get_by_id_or_404(
+                    session, id=account.school_id_as_admin
+                )
             elif isinstance(account, ServiceAccount) and len(account.schools) == 1:
                 school_orm = account.schools[0]
             else:
                 logger.debug("Couldn't identify one school from given information")
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                                    detail="Need to know which school to use")
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Need to know which school to use",
+                )
         if not has_permission(principals, "update", school_orm):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only school admin accounts may create school book lists"
+                detail="Only school admin accounts may create school book lists",
             )
         booklist.school_id = school_orm.id
     elif booklist.type == ListType.PERSONAL:
@@ -100,16 +113,16 @@ async def add_booklist(
             if not has_permission(principals, "update", target_user):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You lack the permission to create book lists for other users"
+                    detail="You lack the permission to create book lists for other users",
                 )
         else:
 
             if isinstance(account, User):
                 booklist.user_id = account.id
             else:
-                 raise HTTPException(
+                raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Only user accounts may create book lists without specifying the user"
+                    detail="Only user accounts may create book lists without specifying the user",
                 )
 
     try:
@@ -161,20 +174,22 @@ async def get_booklists(
     Everyone can see Huey and Regional lists.
     Authenticated users can see their own personal lists.
     """
-    logger.debug("Getting list of booklists", list_type=list_type, pagination=pagination)
+    logger.debug(
+        "Getting list of booklists", list_type=list_type, pagination=pagination
+    )
     booklists_query = crud.booklist.get_all_query_with_optional_filters(
-        db=session,
-        list_type=list_type
+        db=session, list_type=list_type
     )
 
-    booklists = [booklist
-                 for booklist in session.scalars(
+    booklists = [
+        booklist
+        for booklist in session.scalars(
             crud.booklist.apply_pagination(
-                query=booklists_query,
-                skip=pagination.skip,
-                limit=pagination.limit
+                query=booklists_query, skip=pagination.skip, limit=pagination.limit
             )
-        ).all() if has_permission(principals, "read", booklist)]
+        ).all()
+        if has_permission(principals, "read", booklist)
+    ]
 
     booklist_count = crud.booklist.count_query(db=session, query=booklists_query)
 

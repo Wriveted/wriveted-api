@@ -34,9 +34,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         return booklist_orm_object
 
     def get_all_query_with_optional_filters(
-            self,
-            db: Session,
-            list_type: Optional[str] = None,
+        self,
+        db: Session,
+        list_type: Optional[str] = None,
     ):
         booklists_query = self.get_all_query(db=db)
 

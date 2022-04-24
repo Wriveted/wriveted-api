@@ -111,8 +111,4 @@ class User(Base):
 
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
-
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All)
-        ]
+        return [(Allow, f"user:{self.id}", All), (Allow, "role:admin", All)]

@@ -29,7 +29,8 @@ from app.schemas.pagination import Pagination
 
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
-    get_collection_info_with_criteria, get_collection_items_also_in_booklist,
+    get_collection_info_with_criteria,
+    get_collection_items_also_in_booklist,
 )
 from app.services.events import create_event
 
@@ -117,7 +118,7 @@ async def get_school_collection_booklist_intersection(
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
-    account = Depends(get_current_active_user_or_service_account),
+    account=Depends(get_current_active_user_or_service_account),
 ):
     """
     Endpoint returning information about which items in a booklist are part of a collection.
@@ -128,7 +129,9 @@ async def get_school_collection_booklist_intersection(
         "Computing booklist collection intersection", school=school, booklist=booklist
     )
 
-    paginated_booklist_item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
+    paginated_booklist_item_query = booklist.items.statement.offset(
+        pagination.skip
+    ).limit(pagination.limit)
 
     common_collection_items = await get_collection_items_also_in_booklist(
         session,
@@ -164,7 +167,7 @@ async def get_school_collection_booklist_intersection(
                 ],
             )
             for booklist_item in session.scalars(paginated_booklist_item_query)
-        ]
+        ],
     )
 
 

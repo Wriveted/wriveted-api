@@ -122,8 +122,6 @@ class BookList(Base):
 
         if self.type in {ListType.HUEY, ListType.REGION}:
             # Allow anyone Authenticated to view this "Public" book list
-            policies.append(
-                (Allow, Authenticated, "read")
-            )
+            policies.append((Allow, Authenticated, "read"))
 
         return policies

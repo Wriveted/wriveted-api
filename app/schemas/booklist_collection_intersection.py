@@ -8,7 +8,9 @@ class BookListItemInCollection(BaseModel):
     in_collection: bool
     work_id: str
     work_brief: WorkBrief
-    editions_in_collection: list[str] = Field(..., description="List of isbns associated with this work")
+    editions_in_collection: list[str] = Field(
+        ..., description="List of isbns associated with this work"
+    )
 
 
 class CollectionBookListIntersection(PaginatedResponse):
@@ -17,4 +19,3 @@ class CollectionBookListIntersection(PaginatedResponse):
     """
 
     data: list[BookListItemInCollection]
-

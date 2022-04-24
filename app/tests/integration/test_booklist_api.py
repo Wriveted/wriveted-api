@@ -28,10 +28,7 @@ def test_create_empty_booklist(client, test_user_account_headers):
     response = client.post(
         "v1/lists",
         headers=test_user_account_headers,
-        json={
-            "name": "empty wishes",
-            "type": ListType.PERSONAL
-        },
+        json={"name": "empty wishes", "type": ListType.PERSONAL},
     )
 
     assert response.status_code == status.HTTP_200_OK, response.text
@@ -57,7 +54,9 @@ def test_create_empty_booklist(client, test_user_account_headers):
     assert len(works) == 0
 
 
-def test_school_admin_can_create_school_booklist(client, admin_of_test_school, test_user_account_headers, works_list):
+def test_school_admin_can_create_school_booklist(
+    client, admin_of_test_school, test_user_account_headers, works_list
+):
     response = client.post(
         "v1/lists",
         headers=test_user_account_headers,
@@ -79,11 +78,13 @@ def test_school_admin_can_create_school_booklist(client, admin_of_test_school, t
 
     assert detail_response.status_code == status.HTTP_200_OK
     detail = detail_response.json()
-    assert 'school' in detail
-    assert detail['school'] is not None
+    assert "school" in detail
+    assert detail["school"] is not None
 
 
-def test_user_account_can_create_personal_booklist(client, test_user_account_headers, works_list):
+def test_user_account_can_create_personal_booklist(
+    client, test_user_account_headers, works_list
+):
     response = client.post(
         "v1/lists",
         headers=test_user_account_headers,
@@ -105,8 +106,8 @@ def test_user_account_can_create_personal_booklist(client, test_user_account_hea
 
     assert detail_response.status_code == status.HTTP_200_OK
     detail = detail_response.json()
-    assert 'user' in detail
-    assert detail['user'] is not None
+    assert "user" in detail
+    assert detail["user"] is not None
 
 
 def test_create_booklist(client, backend_service_account_headers, works_list):
@@ -151,7 +152,9 @@ def test_create_booklist(client, backend_service_account_headers, works_list):
         assert "title" in item["work"]
 
 
-def test_anyone_can_create_personal_booklist(client, test_user_account_headers, works_list):
+def test_anyone_can_create_personal_booklist(
+    client, test_user_account_headers, works_list
+):
     response = client.post(
         "v1/lists",
         headers=test_user_account_headers,
@@ -237,7 +240,9 @@ def test_rename_personal_booklist(client, test_user_account_headers, works_list)
     assert edit_booklist_response.json()["name"] == "witches wonders"
 
 
-def test_user_cant_rename_huey_booklist(client, backend_service_account_headers, test_user_account_headers, works_list):
+def test_user_cant_rename_huey_booklist(
+    client, backend_service_account_headers, test_user_account_headers, works_list
+):
     create_booklist_response = client.post(
         "v1/lists",
         headers=backend_service_account_headers,
@@ -398,7 +403,9 @@ def test_remove_missing_items_from_booklist(
     )
 
 
-def test_admin_can_remove_items_from_personal_booklist(client, test_user_account, backend_service_account_headers, works_list):
+def test_admin_can_remove_items_from_personal_booklist(
+    client, test_user_account, backend_service_account_headers, works_list
+):
     create_booklist_response = client.post(
         "v1/lists",
         headers=backend_service_account_headers,

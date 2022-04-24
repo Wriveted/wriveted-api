@@ -169,7 +169,9 @@ def get_collection_info_with_criteria(
     return query
 
 
-async def get_collection_items_also_in_booklist(session, school, paginated_booklist_item_query) -> list[CollectionItem]:
+async def get_collection_items_also_in_booklist(
+    session, school, paginated_booklist_item_query
+) -> list[CollectionItem]:
 
     paginated_booklist_cte = paginated_booklist_item_query.cte(
         name="paginated_booklist_items"

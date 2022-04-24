@@ -174,18 +174,14 @@ class School(Base):
             # This would allow anyone logged in to view any school's collection
             # (Allow, Authenticated, "read"),
             (Allow, "role:admin", All),
-
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
             (Allow, "role:lms", "read"),
             (Allow, "role:lms", "read-collection"),
-
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
-
             (Allow, f"school:{self.id}", "read"),
             (Allow, f"school:{self.id}", "read-collection"),
             (Allow, f"school:{self.id}", "update"),
-
             (Allow, Authenticated, "bind"),
         ]
