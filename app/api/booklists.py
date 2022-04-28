@@ -47,7 +47,6 @@ bulk_booklist_access_control_list = [
     (Allow, Authenticated, "read"),
     (Allow, Authenticated, "update"),
     (Allow, "role:admin", "delete"),
-    (Allow, "role:admin", "delete"),
 ]
 
 
