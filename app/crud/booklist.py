@@ -20,6 +20,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         items = obj_in.items
         obj_in.items = []
         booklist_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
+        logger.debug(
+            "Booklist entry created in database", booklist_id=booklist_orm_object.id
+        )
 
         for item in items:
             self._add_item_to_booklist(
@@ -183,7 +186,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         new_orm_item = BookListItem(
             booklist_id=booklist_orm_object.id,
             work_id=item_update.work_id,
-            info=item_update.info,
+            info=item_update.info.dict() if item_update.info is not None else None,
             order_id=new_order_id,
         )
 

@@ -225,18 +225,14 @@ def test_create_booklist_with_item_info(
         json={
             "name": "wizard wishes",
             "type": ListType.PERSONAL,
-            "items": [
-                {
-                    "work_id": w.id,
-                    "info": {"note": "blah"}
-                } for w in works_list],
+            "items": [{"work_id": w.id, "info": {"note": "blah"}} for w in works_list],
         },
     )
     print(response.text)
     assert response.status_code == status.HTTP_200_OK
     booklist_id = response.json()["id"]
     ensure_booklist_order_continuous(
-        client, backend_service_account_headers, booklist_id=booklist_id
+        client, admin_of_test_school_headers, booklist_id=booklist_id
     )
 
 
@@ -289,9 +285,7 @@ def test_user_cant_rename_huey_booklist(
     assert edit_booklist_response.status_code == 403
 
 
-def test_user_cant_create_huey_booklist(
-    client, test_user_account_headers, works_list
-):
+def test_user_cant_create_huey_booklist(client, test_user_account_headers, works_list):
     create_booklist_response = client.post(
         "v1/lists",
         headers=test_user_account_headers,
@@ -304,8 +298,8 @@ def test_user_cant_create_huey_booklist(
         },
     )
     assert create_booklist_response.status_code == 403
-    
-    
+
+
 def test_user_cant_create_region_booklist(
     client, test_user_account_headers, works_list
 ):
@@ -321,8 +315,8 @@ def test_user_cant_create_region_booklist(
         },
     )
     assert create_booklist_response.status_code == 403
-    
-    
+
+
 def test_change_booklist_type(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
         "v1/lists",
