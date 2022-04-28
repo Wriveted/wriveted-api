@@ -25,16 +25,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install black
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install black==22.3.0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      # load cached venv if cache exists
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      # install dependencies if cache does not exist
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
       - name: Check formatting
         run: |
-          if ! black --check --diff --target-version py310 . ; then
+          if ! poetry run black --check --diff --target-version py310 . ; then
               msg="file formatting does not match $(black --version); fix using \`black .\`"
               # convert the black output to syntax understood by GitHub Actions
-              black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
+              poetry run black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
               exit 1
           fi
 

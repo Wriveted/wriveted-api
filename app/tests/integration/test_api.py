@@ -75,15 +75,13 @@ def test_get_own_service_account_detail(
 
 def test_update_school_name(
     client,
-    settings,
     test_school,
-    service_account_for_test_school,
-    test_school_service_account_headers,
+    lms_service_account_headers_for_school,
 ):
     school_id = test_school.wriveted_identifier
     get_initial_school_details_response = client.get(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     get_initial_school_details_response.raise_for_status()
     initial_details = get_initial_school_details_response.json()
@@ -91,7 +89,7 @@ def test_update_school_name(
 
     update_response = client.put(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         json={"name": "cool school"},
     )
     update_response.raise_for_status()
@@ -99,7 +97,7 @@ def test_update_school_name(
 
     get_school_details_response = client.get(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     get_school_details_response.raise_for_status()
     assert get_school_details_response.json()["name"] == "cool school"
@@ -107,16 +105,14 @@ def test_update_school_name(
 
 def test_disallowed_update_to_school(
     client,
-    settings,
     test_school,
-    service_account_for_test_school,
-    test_school_service_account_headers,
+    lms_service_account_headers_for_school,
 ):
 
     school_id = test_school.wriveted_identifier
     get_initial_school_details_response = client.get(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     get_initial_school_details_response.raise_for_status()
     initial_details = get_initial_school_details_response.json()
@@ -124,7 +120,7 @@ def test_disallowed_update_to_school(
 
     update_response = client.put(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
         json={"country_code": "NZL"},
     )
     update_response.raise_for_status()
@@ -133,16 +129,14 @@ def test_disallowed_update_to_school(
 
 def test_get_school_experiments(
     client,
-    settings,
     test_school,
-    service_account_for_test_school,
-    test_school_service_account_headers,
+    lms_service_account_headers_for_school,
 ):
 
     school_id = test_school.wriveted_identifier
     get_school_details_response = client.get(
         f"/v1/school/{school_id}",
-        headers=test_school_service_account_headers,
+        headers=lms_service_account_headers_for_school,
     )
     get_school_details_response.raise_for_status()
     details = get_school_details_response.json()

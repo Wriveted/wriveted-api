@@ -10,7 +10,7 @@ from structlog import get_logger
 
 from app import crud
 
-from app.models import CollectionItem
+from app.models import BookListItem, CollectionItem
 from app.models.edition import Edition
 from app.models.hue import Hue
 from app.models.labelset import LabelSet, RecommendStatus
@@ -167,3 +167,22 @@ def get_collection_info_with_criteria(
         query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
 
     return query
+
+
+async def get_collection_items_also_in_booklist(
+    session, school, paginated_booklist_item_query
+) -> list[CollectionItem]:
+
+    paginated_booklist_cte = paginated_booklist_item_query.cte(
+        name="paginated_booklist_items"
+    )
+
+    aliased_booklist_item = aliased(BookListItem, paginated_booklist_cte)
+    booklist_item_work_id_query = select(aliased_booklist_item.work_id)
+    common_collection_items = session.scalars(
+        school.collection.statement.where(
+            CollectionItem.work_id.in_(booklist_item_work_id_query)
+        )
+    ).all()
+
+    return common_collection_items

@@ -1,15 +1,30 @@
 import enum
 from typing import Optional, Any
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, conint, Field
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 
 
 class CollectionInfo(BaseModel):
-    total_editions: int
-    hydrated: int
-    hydrated_and_labeled: int
-    recommendable: int
+    """
+    Count editions in each state in a collection.
+
+    Note this doesn't count additional copies of the same book.
+    """
+
+    total_editions: int = Field(
+        ..., description="Count of unique editions in this collection"
+    )
+    hydrated: int = Field(
+        ...,
+        description="Count of unique editions for which Wriveted has basic metadata",
+    )
+    hydrated_and_labeled: int = Field(
+        ..., description="Count of unique editions for which Wriveted has labelled"
+    )
+    recommendable: int = Field(
+        ..., description="Count of unique editions labelled and marked as recommendable"
+    )
 
 
 class CollectionItemBase(BaseModel):

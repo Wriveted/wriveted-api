@@ -1,7 +1,7 @@
+from typing import Optional
 from sqlalchemy import update, select, delete
 from sqlalchemy.orm import Session
 from structlog import get_logger
-
 from app.crud import CRUDBase
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
@@ -20,6 +20,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         items = obj_in.items
         obj_in.items = []
         booklist_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
+        logger.debug(
+            "Booklist entry created in database", booklist_id=booklist_orm_object.id
+        )
 
         for item in items:
             self._add_item_to_booklist(
@@ -32,6 +35,18 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
 
         logger.debug("Refreshed booklist count", count=booklist_orm_object.book_count)
         return booklist_orm_object
+
+    def get_all_query_with_optional_filters(
+        self,
+        db: Session,
+        list_type: Optional[str] = None,
+    ):
+        booklists_query = self.get_all_query(db=db)
+
+        if list_type is not None:
+            booklists_query = booklists_query.where(BookList.type == list_type)
+
+        return booklists_query
 
     def update(
         self, db: Session, *, db_obj: BookList, obj_in: BookListUpdateIn
@@ -115,7 +130,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         db: Session,
         *,
         booklist_orm_object: BookList,
-        item_to_remove: BookListItemUpdateIn
+        item_to_remove: BookListItemUpdateIn,
     ):
         item_position = db.scalar(
             select(BookListItem.order_id)
@@ -151,7 +166,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         db: Session,
         *,
         booklist_orm_object: BookList,
-        item_update: BookListItemUpdateIn
+        item_update: BookListItemUpdateIn,
     ):
         # The slightly tricky bit here is to deal with the order_id
         if item_update.order_id is None:
@@ -171,7 +186,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         new_orm_item = BookListItem(
             booklist_id=booklist_orm_object.id,
             work_id=item_update.work_id,
-            info=item_update.info,
+            info=item_update.info.dict() if item_update.info is not None else None,
             order_id=new_order_id,
         )
 

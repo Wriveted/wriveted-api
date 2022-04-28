@@ -196,6 +196,8 @@ def get_active_principals(
                 principals.append("role:lms")
             case UserAccountType.LIBRARY:
                 principals.append("role:library")
+                principals.append("role:school")
+
             case UserAccountType.PUBLIC:
                 # No special roles given to the default public
                 # user type

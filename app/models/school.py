@@ -19,7 +19,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship, column_property, backref
-from fastapi_permissions import Allow, Deny, Authenticated
+from fastapi_permissions import Allow, Deny, Authenticated, All
 from app.db import Base
 
 from app.models.collection_item import CollectionItem
@@ -173,12 +173,7 @@ class School(Base):
         return [
             # This would allow anyone logged in to view any school's collection
             # (Allow, Authenticated, "read"),
-            (Allow, "role:admin", "create"),
-            (Allow, "role:admin", "read"),
-            (Allow, "role:admin", "read-collection"),
-            (Allow, "role:admin", "update"),
-            (Allow, "role:admin", "delete"),
-            (Allow, "role:admin", "batch"),
+            (Allow, "role:admin", All),
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
             (Allow, "role:lms", "read"),

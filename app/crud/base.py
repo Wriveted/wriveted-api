@@ -3,8 +3,8 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, delete
-from sqlalchemy.orm import Session, Query
+from sqlalchemy import select, delete, func
+from sqlalchemy.orm import Session, Query, aliased
 
 from app.db import Base
 
@@ -70,6 +70,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def apply_pagination(query: Query, *, skip: int = None, limit: int = None):
         return query.offset(skip).limit(limit)
 
+    def count_query(self, db: Session, query) -> int:
+        cte = query.cte()
+        aliased_model = aliased(self.model, cte)
+        return db.scalar(select(func.count(aliased_model.id)))
+
+    def count_all(self, db: Session) -> int:
+        return db.scalar(select(func.count(self.model.id)))
+
     def get_all(
         self, db: Session, *, skip: int = 0, limit: int = 100, order_by=None
     ) -> List[ModelType]:
@@ -77,7 +85,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         query = self.apply_pagination(
             self.get_all_query(db=db, order_by=order_by), skip=skip, limit=limit
         )
-        return db.execute(query).scalars().all()
+        return db.scalars(query).all()
 
     def get_multi(
         self,

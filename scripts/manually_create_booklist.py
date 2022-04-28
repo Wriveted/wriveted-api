@@ -49,9 +49,7 @@ for i, line in enumerate(huey_picks_data):
 
     isbns = isbns_str.split(",")
 
-    editions = (
-        session.scalars(crud.edition.get_multi_query(db=session, ids=isbns))
-    )
+    editions = session.scalars(crud.edition.get_multi_query(db=session, ids=isbns))
 
     for edition in editions:
         if (
@@ -62,9 +60,7 @@ for i, line in enumerate(huey_picks_data):
             book_list_item = BookListItem(
                 work_id=edition.work_id,
                 order_id=len(booklist_items_by_work_id),
-                info={
-                    'edition': edition.isbn
-                }
+                info={"edition": edition.isbn},
             )
             booklist_items_by_work_id[edition.work_id] = book_list_item
 
@@ -79,7 +75,7 @@ booklist_orm = BookList(
     name="Huey's Picks",
     type=ListType.HUEY,
     info={},
-    items=list(booklist_items_by_work_id.values())
+    items=list(booklist_items_by_work_id.values()),
 )
 session.add(booklist_orm)
 session.commit()
