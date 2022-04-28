@@ -130,7 +130,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         db: Session,
         *,
         booklist_orm_object: BookList,
-        item_to_remove: BookListItemUpdateIn
+        item_to_remove: BookListItemUpdateIn,
     ):
         item_position = db.scalar(
             select(BookListItem.order_id)
@@ -166,7 +166,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         db: Session,
         *,
         booklist_orm_object: BookList,
-        item_update: BookListItemUpdateIn
+        item_update: BookListItemUpdateIn,
     ):
         # The slightly tricky bit here is to deal with the order_id
         if item_update.order_id is None:
