@@ -265,6 +265,40 @@ def test_user_cant_rename_huey_booklist(
     assert edit_booklist_response.status_code == 403
 
 
+def test_user_cant_create_huey_booklist(
+    client, test_user_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=test_user_account_headers,
+        json={
+            "name": "what does this button do",
+            "type": ListType.HUEY,
+            "items": [
+                {"work_id": w.id, "order_id": i} for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 403
+    
+    
+def test_user_cant_create_region_booklist(
+    client, test_user_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=test_user_account_headers,
+        json={
+            "name": "what does this button do",
+            "type": ListType.REGION,
+            "items": [
+                {"work_id": w.id, "order_id": i} for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 403
+    
+    
 def test_change_booklist_type(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
         "v1/lists",
