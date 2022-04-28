@@ -216,6 +216,30 @@ def test_create_school_booklist_without_positions(
     )
 
 
+def test_create_booklist_with_item_info(
+    client, admin_of_test_school_headers, works_list
+):
+    response = client.post(
+        "v1/lists",
+        headers=admin_of_test_school_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.PERSONAL,
+            "items": [
+                {
+                    "work_id": w.id,
+                    "info": {"note": "blah"}
+                } for w in works_list],
+        },
+    )
+    print(response.text)
+    assert response.status_code == status.HTTP_200_OK
+    booklist_id = response.json()["id"]
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id=booklist_id
+    )
+
+
 def test_rename_personal_booklist(client, test_user_account_headers, works_list):
     create_booklist_response = client.post(
         "v1/lists",
