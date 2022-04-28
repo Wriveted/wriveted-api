@@ -1,23 +1,24 @@
 """
 This script syncs a "Huey Book List" Google Sheet with Wriveted.
 
+The sheet is expected to have a particular structure:
+- "Books" sheet
+- Column of ISBNs starting at C4
+- Optional Wriveted Booklist ID in B2 (otherwise creates a new booklist)
+- School's Wriveted IDs in E2
+
+The script will use the existing booklist or create a new one using the ISBNs
+from the google sheet, will locate the school and compare the booklist with
+the school's collection and update the sheet with "In Collection" or
+"Not in collection".
+
+
 You will need Google Authorization credentials for a desktop application.
 To learn how to create credentials for a desktop application, refer to
 https://developers.google.com/workspace/guides/create-credentials
 
-TL;DR ensure there is a `credentials.json` in the current working directory.
-Execute the script with
+(ensure there is a `credentials.json` in the current working directory)
 
-The sheet is expected to have a "Books" sheet with ISBNs in column C4.
-
-This script gets the list of ISBNs and creates a booklist in Wriveted
-Booklist name should be in B1
-
-Then the script compares the booklist with any schools in the sheet.
-School's Wriveted IDs should be in E2, F2 etc
-
-Each school column will be output by the script if the item is in
-the schools collection.
 """
 import os.path
 
@@ -36,6 +37,7 @@ api_token = settings.WRIVETED_API_TOKEN
 wriveted_api_response = httpx.get(
     f"{settings.WRIVETED_API}/v1/version",
     headers={"Authorization": f"Bearer {api_token}"},
+    timeout=20
 )
 wriveted_api_response.raise_for_status()
 print(f"Connected to wriveted api: {settings.WRIVETED_API}")
@@ -97,6 +99,7 @@ def main():
                 wriveted_api_response = httpx.get(
                     f"{settings.WRIVETED_API}/v1/edition/{isbn}",
                     headers={"Authorization": f"Bearer {api_token}"},
+                    timeout=10
                 )
                 wriveted_api_response.raise_for_status()
                 edition_info = wriveted_api_response.json()
