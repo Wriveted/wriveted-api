@@ -36,10 +36,10 @@ jobs:
 
       - name: Check formatting
         run: |
-          if ! black --check --diff --target-version py310 . ; then
+          if ! poetry run black --check --diff --target-version py310 . ; then
               msg="file formatting does not match $(black --version); fix using \`black .\`"
               # convert the black output to syntax understood by GitHub Actions
-              black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
+              poetry run black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
               exit 1
           fi
 
