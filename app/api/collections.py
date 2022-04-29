@@ -30,7 +30,8 @@ from app.schemas.pagination import Pagination
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
-    get_collection_items_also_in_booklist, reset_school_collection,
+    get_collection_items_also_in_booklist,
+    reset_school_collection,
 )
 from app.services.events import create_event
 

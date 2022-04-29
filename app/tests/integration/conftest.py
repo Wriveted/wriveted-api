@@ -201,14 +201,14 @@ def test_school(client, session, backend_service_account_headers) -> School:
 @pytest.fixture()
 def test_isbns():
     return [
-        '9780007453573',
-        '9780141321288',
-        '9780008197049',
-        '9780008355050',
-        '9780734410672',
-        '9780143782797',
-        '9780143308591',
-        '9780006754008',
+        "9780007453573",
+        "9780141321288",
+        "9780008197049",
+        "9780008355050",
+        "9780734410672",
+        "9780143782797",
+        "9780143308591",
+        "9780006754008",
     ]
 
 
@@ -227,13 +227,16 @@ def test_unhydrated_editions(client, session, test_isbns):
 
 
 @pytest.fixture()
-def test_school_with_collection(client, session, test_school, test_unhydrated_editions) -> School:
+def test_school_with_collection(
+    client, session, test_school, test_unhydrated_editions
+) -> School:
 
     for e in test_unhydrated_editions:
-        crud.collection_item.create(db=session, obj_in={
-            'school_id': test_school.id,
-            'edition_isbn': e.isbn
-        }, commit=False)
+        crud.collection_item.create(
+            db=session,
+            obj_in={"school_id": test_school.id, "edition_isbn": e.isbn},
+            commit=False,
+        )
 
     session.commit()
 
@@ -242,7 +245,6 @@ def test_school_with_collection(client, session, test_school, test_unhydrated_ed
     yield test_school
 
     reset_school_collection(session=session, school=test_school)
-
 
 
 @pytest.fixture()

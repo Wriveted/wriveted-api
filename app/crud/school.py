@@ -43,9 +43,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
                 School.state == ("active" if is_active else "inactive")
             )
         if is_collection_connected is not None:
-            school_query = school_query.where(
-                School.collection_count > 0
-            )
+            school_query = school_query.where(School.collection_count > 0)
         if official_identifier is not None:
             school_query = school_query.where(
                 School.official_identifier == official_identifier
