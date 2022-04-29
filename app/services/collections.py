@@ -2,7 +2,7 @@ import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from starlette import status
@@ -186,3 +186,8 @@ async def get_collection_items_also_in_booklist(
     ).all()
 
     return common_collection_items
+
+
+def reset_school_collection(session, school):
+    session.execute(delete(CollectionItem).where(CollectionItem.school == school))
+    session.commit()

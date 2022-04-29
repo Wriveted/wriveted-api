@@ -88,6 +88,10 @@ async def get_schools(
     is_active: Optional[bool] = Query(
         None, description="Return active or inactive schools. Default is all."
     ),
+    connected_collection: Optional[bool] = Query(
+        None,
+        description="Return schools that have connected their collection. Default is all.",
+    ),
     official_identifier: Optional[str] = Query(
         None,
         description="Official identifier for the school - Country specific and usually government issued",
@@ -101,7 +105,10 @@ async def get_schools(
     Available to any valid user, primarily for selection upon signup.
 
     Provide any of country code, state/region, postcode, and/or school name query to further filter the schools.
-    Admins can also optionally filter active/inactive schools using the "is_active" query parameter.
+
+    Admins can also optionally filter by:
+    - active/inactive schools using the `is_active`
+    - collection uploaded using `connected_collection`
     """
     has_details_permission = has_permission(
         principals, "details", bulk_school_access_control_list
@@ -117,6 +124,9 @@ async def get_schools(
         postcode=postcode,
         query_string=q,
         is_active=is_active if has_details_permission else None,
+        is_collection_connected=connected_collection
+        if has_details_permission
+        else None,
         official_identifier=official_identifier,
         skip=pagination.skip,
         limit=pagination.limit,

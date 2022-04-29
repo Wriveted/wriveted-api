@@ -26,6 +26,29 @@ def test_list_service_accounts(client, backend_service_account_headers):
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_list_schools(client, backend_service_account_headers, test_school):
+    response = client.get("v1/schools", headers=backend_service_account_headers)
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) >= 1
+
+
+def test_list_schools_filter_by_collection(
+    client, backend_service_account_headers, test_school_with_collection
+):
+    response = client.get(
+        "v1/schools",
+        params={"connected_collection": True},
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) >= 1
+    assert data[0]["wriveted_identifier"] == str(
+        test_school_with_collection.wriveted_identifier
+    )
+    assert data[0]["collection_count"] > 0
+
+
 def test_school_exists_bad_uuid(client, backend_service_account_headers):
     response = client.get(
         "v1/school/not-a-uuid/exists", headers=backend_service_account_headers
