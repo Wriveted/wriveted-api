@@ -1,7 +1,9 @@
-from sqlalchemy import Column, ForeignKey, Enum
-from sqlalchemy.orm import relationship
-from app.db import Base
 import enum
+
+from sqlalchemy import Column, Enum, ForeignKey
+from sqlalchemy.orm import relationship
+
+from app.db import Base
 
 
 class Ordinal(str, enum.Enum):

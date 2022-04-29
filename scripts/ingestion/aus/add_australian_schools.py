@@ -1,7 +1,7 @@
-import time
 import json
-import httpx
+import time
 
+import httpx
 from config import settings
 
 print("Script to add all australian schools to Wriveted via the API")

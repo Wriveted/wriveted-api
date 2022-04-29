@@ -1,8 +1,8 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import delete, func, update, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -17,14 +17,14 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import School, BookList, User, ServiceAccount
+from app.models import BookList, School, ServiceAccount, User
 from app.models.booklist import ListType
 from app.permissions import Permission
 from app.schemas.booklist import (
-    BookListDetail,
     BookListBrief,
-    BookListsResponse,
     BookListCreateIn,
+    BookListDetail,
+    BookListsResponse,
     BookListUpdateIn,
     ItemUpdateType,
 )

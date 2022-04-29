@@ -1,20 +1,19 @@
 import enum
 
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Column,
+    Computed,
+    DateTime,
+    Enum,
     Integer,
     String,
-    JSON,
-    Enum,
-    Boolean,
-    DateTime,
     Text,
-    Computed,
     null,
 )
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.mutable import MutableDict
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table

@@ -1,17 +1,19 @@
+import re
 from multiprocessing import get_logger
 from sqlite3 import IntegrityError
 from typing import Any, List, Optional
+
 from sqlalchemy import and_, insert, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from app.crud import CRUDBase
-from app.models import Work, Author, Series
+from app.models import Author, Series, Work
 from app.models.edition import Edition
-from app.models.work import WorkType
 from app.models.series_works_association import series_works_association_table
+from app.models.work import WorkType
 from app.schemas.work import WorkCreateIn
-import re
 
 logger = get_logger()
 

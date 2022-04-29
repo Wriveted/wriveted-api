@@ -1,4 +1,5 @@
 import httpx
+
 from examples.config import settings
 
 admin_token = settings.WRIVETED_API_TOKEN

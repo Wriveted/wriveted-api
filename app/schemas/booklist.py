@@ -1,9 +1,10 @@
 import enum
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
 from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief

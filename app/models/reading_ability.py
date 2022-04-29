@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.db import Base
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
 

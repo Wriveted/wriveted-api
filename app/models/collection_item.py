@@ -1,10 +1,10 @@
 from sqlalchemy import (
+    JSON,
     Column,
     ForeignKey,
     Index,
-    String,
-    JSON,
     Integer,
+    String,
     UniqueConstraint,
 )
 from sqlalchemy.ext.associationproxy import association_proxy

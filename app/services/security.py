@@ -1,9 +1,8 @@
-import base64
 from datetime import datetime, timedelta
-from typing import Any, Union, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from jose import jwt
-from pydantic import BaseModel, constr, validator
+from pydantic import BaseModel, validator
 
 from app.config import get_settings
 

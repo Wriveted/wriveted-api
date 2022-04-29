@@ -9,7 +9,6 @@ from starlette import status
 from structlog import get_logger
 
 from app import crud
-
 from app.models import BookListItem, CollectionItem
 from app.models.edition import Edition
 from app.models.hue import Hue
@@ -20,12 +19,12 @@ from app.models.reading_ability import ReadingAbility
 from app.models.school import School
 from app.models.work import Work
 from app.schemas.collection import CollectionItemBase, CollectionItemIn
-from app.services.events import create_event
 from app.services.editions import (
     create_missing_editions,
     create_missing_editions_unhydrated,
     get_definitive_isbn,
 )
+from app.services.events import create_event
 
 logger = get_logger()
 

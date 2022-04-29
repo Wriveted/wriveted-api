@@ -1,17 +1,16 @@
+import textwrap
+
+from fastapi import FastAPI, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
-
-from app.config import get_settings
-
-import textwrap
-from fastapi import FastAPI, HTTPException
 from starlette import status
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from structlog import get_logger
-from app.api import api_router
 
+from app.api import api_router
+from app.config import get_settings
 
 logger = get_logger()
 api_docs = textwrap.dedent(

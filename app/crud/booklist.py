@@ -1,15 +1,17 @@
 from typing import Optional
-from sqlalchemy import update, select, delete
+
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app.crud import CRUDBase
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
 from app.schemas.booklist import (
     BookListCreateIn,
+    BookListItemUpdateIn,
     BookListUpdateIn,
     ItemUpdateType,
-    BookListItemUpdateIn,
 )
 
 logger = get_logger()

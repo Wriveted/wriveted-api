@@ -1,13 +1,13 @@
 from functools import lru_cache
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import sqlalchemy
 from fastapi import Depends
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker
 
-from app.config import get_settings, Settings
+from app.config import Settings, get_settings
 
 
 @lru_cache()

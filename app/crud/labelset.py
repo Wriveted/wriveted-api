@@ -1,17 +1,19 @@
 from typing import Any, Optional
+
 from sqlalchemy import and_, select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app import crud
 from app.crud import CRUDBase
+from app.models import LabelSetHue
 from app.models.hue import Hue
 from app.models.labelset import LabelSet
 from app.models.labelset_hue_association import Ordinal
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
-from app.models import LabelSetHue
 
 ORIGIN_WEIGHTS = {
     "HUMAN": 4,

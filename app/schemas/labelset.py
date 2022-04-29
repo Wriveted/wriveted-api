@@ -1,9 +1,11 @@
-from typing import Optional
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
 from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas.hue import Hue
-from uuid import UUID
 
 
 class ReadingAbility(BaseModel):

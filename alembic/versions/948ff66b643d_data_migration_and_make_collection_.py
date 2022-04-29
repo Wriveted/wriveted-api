@@ -5,9 +5,10 @@ Revises: 7b43e9a90443
 Create Date: 2022-01-03 12:15:33.797460
 
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import orm, update, select
+from sqlalchemy import orm, select, update
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 from app.models import CollectionItem

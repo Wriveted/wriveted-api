@@ -1,24 +1,25 @@
 import enum
+from datetime import datetime
 
 from sqlalchemy import (
-    Enum,
-    Index,
     JSON,
-    ForeignKey,
-    Column,
-    Integer,
     Boolean,
+    Column,
     DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
     Text,
     and_,
     func,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import relationship
+
 from app.db import Base
 from app.models.labelset_hue_association import LabelSetHue
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
-from datetime import datetime
 
 
 class RecommendStatus(str, enum.Enum):

@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from pydantic import BaseModel, UUID4
+from pydantic import UUID4, BaseModel
 
 from app.models import ServiceAccountType
 from app.schemas.event import EventBrief

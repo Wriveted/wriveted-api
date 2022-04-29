@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, JSON, Index, DateTime, func
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 

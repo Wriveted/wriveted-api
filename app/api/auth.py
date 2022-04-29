@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi_cloudauth.firebase import FirebaseClaims, FirebaseCurrentUser
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from fastapi_cloudauth.firebase import FirebaseCurrentUser, FirebaseClaims
 from structlog import get_logger
 
 from app import crud
@@ -15,8 +15,8 @@ from app.api.dependencies.security import (
 )
 from app.config import get_settings
 from app.db.session import get_session
-from app.models import User, ServiceAccount, EventLevel
-from app.schemas.auth import AuthenticatedAccountBrief, AccountType
+from app.models import EventLevel, ServiceAccount, User
+from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.user import UserCreateIn
 from app.services.events import create_event
 from app.services.security import TokenPayload

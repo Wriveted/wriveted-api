@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, AnyHttpUrl
+
+from pydantic import AnyHttpUrl, BaseModel
+
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn

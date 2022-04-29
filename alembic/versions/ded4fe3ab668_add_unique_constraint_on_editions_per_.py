@@ -5,13 +5,12 @@ Revises: 948ff66b643d
 Create Date: 2022-01-16 10:48:21.822396
 
 """
-from alembic import op
 import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 from sqlalchemy import orm
 
+from alembic import op
 from app.models import CollectionItem
 
 revision = "ded4fe3ab668"

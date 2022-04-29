@@ -1,11 +1,8 @@
 import datetime
 import enum
-from typing import Optional
+from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
-from typing import Generic, TypeVar, Optional, List
-
-from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
 DataT = TypeVar("DataT")

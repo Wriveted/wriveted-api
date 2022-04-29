@@ -1,20 +1,20 @@
-from sqlalchemy import distinct, func, select
-from sqlalchemy.orm import aliased
 from typing import Optional
 
+from sqlalchemy import distinct, func, select
+from sqlalchemy.orm import aliased
 from structlog import get_logger
+
+from app import crud
 from app.models import (
     CollectionItem,
     Edition,
     Hue,
     LabelSet,
     LabelSetHue,
+    LabelSetReadingAbility,
     ReadingAbility,
     Work,
-    LabelSetReadingAbility,
 )
-
-from app import crud
 from app.models.labelset import RecommendStatus
 
 logger = get_logger()
