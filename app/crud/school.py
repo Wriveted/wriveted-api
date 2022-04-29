@@ -19,6 +19,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         postcode: Optional[str] = None,
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
+        is_collection_connected: Optional[bool] = None,
         official_identifier: Optional[str] = None,
     ):
         school_query = self.get_all_query(db)
@@ -41,6 +42,10 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
             school_query = school_query.where(
                 School.state == ("active" if is_active else "inactive")
             )
+        if is_collection_connected is not None:
+            school_query = school_query.where(
+                School.collection_count > 0
+            )
         if official_identifier is not None:
             school_query = school_query.where(
                 School.official_identifier == official_identifier
@@ -55,6 +60,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         postcode: Optional[str] = None,
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
+        is_collection_connected: Optional[bool] = None,
         official_identifier: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
@@ -67,6 +73,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
                 postcode=postcode,
                 query_string=query_string,
                 is_active=is_active,
+                is_collection_connected=is_collection_connected,
                 official_identifier=official_identifier,
             ),
             skip=skip,

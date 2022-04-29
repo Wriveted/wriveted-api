@@ -150,20 +150,22 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         bulk_illustrator_data = {}
         bulk_series_titles = set()
         for edition_data in bulk_edition_data:
-            for author_data in edition_data.authors:
-                bulk_author_data.setdefault(
-                    first_last_to_name_key(
-                        author_data.first_name, author_data.last_name
-                    ),
-                    author_data,
-                )
-            for illustrator_data in edition_data.illustrators:
-                bulk_illustrator_data.setdefault(
-                    first_last_to_name_key(
-                        illustrator_data.first_name, illustrator_data.last_name
-                    ),
-                    illustrator_data,
-                )
+            if edition_data.authors is not None:
+                for author_data in edition_data.authors:
+                    bulk_author_data.setdefault(
+                        first_last_to_name_key(
+                            author_data.first_name, author_data.last_name
+                        ),
+                        author_data,
+                    )
+            if edition_data.illustrators is not None:
+                for illustrator_data in edition_data.illustrators:
+                    bulk_illustrator_data.setdefault(
+                        first_last_to_name_key(
+                            illustrator_data.first_name, illustrator_data.last_name
+                        ),
+                        illustrator_data,
+                    )
             if (
                 edition_data.series_name is not None
                 and len(edition_data.series_name) > 0
@@ -207,7 +209,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
         other_isbns = editions_service.clean_isbns(
-            edition_data.other_isbns if hasattr(edition_data, "other_isbns") else []
+            edition_data.other_isbns if edition_data.other_isbns is not None else []
         )
         other_isbns.discard(clean_isbn)
 
@@ -231,6 +233,11 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 break
 
         # Get or create the authors and illustrators (some data lists the same contributor multiple times, catch them too)
+        if edition_data.authors is None:
+            edition_data.authors = []
+        if edition_data.illustrators is None:
+            edition_data.illustrators = []
+
         authors = [
             crud_author.get_or_create(session, author_data, commit=False)
             for author_data in edition_data.authors
@@ -300,7 +307,6 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         return edition
 
     def get_or_create_unhydrated(self, db: Session, isbn: str, commit=True) -> Edition:
-
         edition = self.get(db, isbn)
         if not edition:
             edition = Edition(isbn=editions_service.get_definitive_isbn(isbn))

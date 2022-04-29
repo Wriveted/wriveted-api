@@ -30,7 +30,7 @@ from app.schemas.pagination import Pagination
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
-    get_collection_items_also_in_booklist,
+    get_collection_items_also_in_booklist, reset_school_collection,
 )
 from app.services.events import create_event
 
@@ -191,8 +191,7 @@ async def set_school_collection(
     logger.info(
         "Resetting the entire collection for school", school=school, account=account
     )
-    session.execute(delete(CollectionItem).where(CollectionItem.school == school))
-    session.commit()
+    reset_school_collection(session, school)
 
     logger.info(
         f"Adding/syncing {len(collection_data)} ISBNs with school collection",
