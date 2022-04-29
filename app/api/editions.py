@@ -15,8 +15,11 @@ from app.schemas.edition import (
     EditionDetail,
     KnownAndTaggedEditionCounts,
 )
-from app.services.collections import create_missing_editions
-from app.services.editions import compare_known_editions, get_definitive_isbn
+from app.services.editions import (
+    compare_known_editions,
+    create_missing_editions,
+    get_definitive_isbn,
+)
 
 logger = get_logger()
 router = APIRouter(

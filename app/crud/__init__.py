@@ -1,5 +1,8 @@
-from app.crud.author import CRUDAuthor, author
 from app.crud.base import CRUDBase
+
+# isort: split
+
+from app.crud.author import CRUDAuthor, author
 from app.crud.booklist import CRUDBookList, booklist
 from app.crud.collection_item import CRUDCollectionItem, collection_item
 from app.crud.edition import CRUDEdition, edition

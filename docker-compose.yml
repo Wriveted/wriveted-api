@@ -18,12 +18,14 @@ services:
 
   migration:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
-    command: alembic upgrade head
+    command: /app/scripts/run-migrations.sh
     depends_on:
       - db
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
-
+      - POSTGRESQL_PASSWORD=xvc8kcn
+      - POSTGRESQL_SERVER=db/
+      - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
     command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0 
