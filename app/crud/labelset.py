@@ -1,11 +1,9 @@
 from typing import Any, Optional
 
 from sqlalchemy import and_, select
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.crud import CRUDBase
 from app.models import LabelSetHue
 from app.models.hue import Hue

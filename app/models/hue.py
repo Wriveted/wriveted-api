@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
 
 from app.db import Base
-from app.models import LabelSetHue
 
 
 class Hue(Base):

@@ -1,5 +1,3 @@
-from app.db.base_class import Base
-
 from .author import Author
 from .booklist import BookList
 from .booklist_work_association import BookListItem

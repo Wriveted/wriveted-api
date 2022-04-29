@@ -19,7 +19,7 @@ from app.api.dependencies.security import (
     get_current_user,
 )
 from app.db.session import get_session
-from app.models import EventLevel, School, ServiceAccount
+from app.models import School, ServiceAccount
 from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (

@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, Computed, Integer, String
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 

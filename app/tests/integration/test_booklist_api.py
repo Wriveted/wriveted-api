@@ -1,5 +1,3 @@
-import uuid
-
 from starlette import status
 
 from app.models.booklist import ListType

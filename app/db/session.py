@@ -3,8 +3,7 @@ from typing import Optional, Tuple
 
 import sqlalchemy
 from fastapi import Depends
-from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.config import Settings, get_settings

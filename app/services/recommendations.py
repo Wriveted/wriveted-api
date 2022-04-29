@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import aliased
 from structlog import get_logger
 

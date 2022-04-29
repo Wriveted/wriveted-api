@@ -2,7 +2,7 @@ from typing import Any, List
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase

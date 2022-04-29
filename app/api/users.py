@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 

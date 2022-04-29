@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
-from app.models import Illustrator
 from app.models.collection_item import CollectionItem
 
 logger = get_logger()

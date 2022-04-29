@@ -5,23 +5,12 @@ repos:
     hooks:
       - id: black
 
-#  - repo: https://github.com/PyCQA/pylint
-#    rev: v2.12.0
-#    hooks:
-#      - id: pylint
-#        args: [--disable=all, --enable=unused-import]
-
-#  - repo: https://github.com/pre-commit/mirrors-mypy
-#    rev: v0.942
-#    hooks:
-#      - id: mypy
-#        exclude: (^tests|^examples|^docs)
-#        args: [--ignore-missing-imports]
-#        additional_dependencies:
-#          - boto3-stubs[s3,sqs]==1.20.50.post1
-#          - pydantic==1.8.2
-#          - types-requests
-#          - aws-lambda-powertools
+  - repo: https://github.com/PyCQA/pylint
+    rev: v2.12.0
+    hooks:
+      - id: pylint
+        args: [--disable=all, --enable=unused-import]
+        exclude: (^scripts|^alembic|^docs|^examples|^deployment)
 
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
