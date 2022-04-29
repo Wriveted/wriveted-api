@@ -5,13 +5,11 @@ The sheet is expected to have a particular structure:
 - "Books" sheet
 - Column of ISBNs starting at C4
 - Optional Wriveted Booklist ID in B2 (otherwise creates a new booklist)
-- School's Wriveted IDs in E2
 
 The script will use the existing booklist or create a new one using the ISBNs
-from the google sheet, will locate the school and compare the booklist with
-the school's collection and update the sheet with "In Collection" or
-"Not in collection".
-
+from the google sheet, will locate the schools that have uploaded their collections
+and compare the booklist with the school's collection and update the sheet with
+"In Collection" or "Not in collection".
 
 You will need Google Authorization credentials for a desktop application.
 To learn how to create credentials for a desktop application, refer to
@@ -168,7 +166,17 @@ def main():
         # Note this doesn't handle changes to the booklist
 
     # Now the comparison with particular school collections
-    # Get the school ids, then compare with the booklist, then update the sheet
+    # Get the school ids for schools that have added their collections to Wriveted.
+    wriveted_api_response = httpx.get(
+            f"{settings.WRIVETED_API}/v1/schools",
+            headers={"Authorization": f"Bearer {api_token}"},
+            params={
+                "country_code": "AUS",
+                "is_active": True,
+                "limit": 50
+            }
+        )
+    # Then compare with the booklist, then update the sheet
     wriveted_school_ids = (
         sheet.values()
         .get(spreadsheetId=SPREADSHEET_ID, range="Books!D2:Z2")
