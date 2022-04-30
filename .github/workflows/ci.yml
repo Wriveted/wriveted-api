@@ -56,6 +56,23 @@ jobs:
               exit 1
           fi
 
+  flake8:
+    name: "flake8"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install flake8
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install flake8
+      - name: Setup flake8 annotations
+        uses: rbialon/flake8-annotations@v1
+      - name: Lint with flake8
+        run: |
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+
   integration-tests:
     runs-on: ubuntu-latest
     steps:
@@ -97,22 +114,3 @@ jobs:
           export SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           poetry run pytest app/tests/unit
-
-  flake8:
-    name: "flake8"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install flake8
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install flake8
-      - name: Setup flake8 annotations
-        uses: rbialon/flake8-annotations@v1
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          #flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
