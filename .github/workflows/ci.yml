@@ -107,10 +107,6 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install flake8
-      - name: run flake8
-        run: |
-          echo "run Flake8";
-          flake8;
       - name: Setup flake8 annotations
         uses: rbialon/flake8-annotations@v1
       - name: Lint with flake8
