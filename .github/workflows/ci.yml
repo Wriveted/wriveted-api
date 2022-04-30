@@ -56,7 +56,6 @@ jobs:
               exit 1
           fi
 
-
   integration-tests:
     runs-on: ubuntu-latest
     steps:
@@ -98,3 +97,19 @@ jobs:
           export SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           poetry run pytest app/tests/unit
+
+  flake8:
+    name: "flake8"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install flake8
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install flake8
+          echo ::add-path::$HOME/.local/bin
+      - name: run flake8
+        run: |
+          echo "run Flake8";
+          flake8;
+
