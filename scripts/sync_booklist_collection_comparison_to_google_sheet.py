@@ -115,6 +115,8 @@ def main():
                     print(
                         f"Skipping row id {id} (no corresponding work found in Wriveted DB or work already in list)"
                     )
+                    print(row)
+                    print(edition_info)
 
     except HttpError as err:
         print(err)
@@ -173,20 +175,42 @@ def main():
             params={
                 "country_code": "AUS",
                 "is_active": True,
+                "connected_collection": True,
                 "limit": 50
             }
         )
-    # Then compare with the booklist, then update the sheet
-    wriveted_school_ids = (
+    wriveted_api_response.raise_for_status()
+    wriveted_schools = wriveted_api_response.json()
+
+    # Then, for each school compare with the booklist, then update the sheet
+
+    wriveted_school_ids, wriveted_school_names, school_collection_size = zip(*[(
+        s['wriveted_identifier'],
+        s['name'],
+        s['collection_count']
+    ) for s in wriveted_schools])
+
+    # Use R1C1 notation to avoid column ZZ etc
+    range_start = f"R1C4"
+    range_end = f"R3C{4 + len(wriveted_school_ids)}"
+    (
         sheet.values()
-        .get(spreadsheetId=SPREADSHEET_ID, range="Books!D2:Z2")
+            .update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=f"Books!{range_start}:{range_end}",
+                valueInputOption="RAW",
+                body={
+                    "values": [wriveted_school_names, wriveted_school_ids, school_collection_size]
+                },
+        )
         .execute()
-        .get("values", [])
-    )[0]
+    )
+
+    print("Updated school names")
     print(wriveted_school_ids)
 
-    for school_id in wriveted_school_ids:
-        print("Comparing booklist for school", school_id)
+    for column_index, (school_id, school_name) in enumerate(zip(wriveted_school_ids, wriveted_school_names), start=4):
+        print("Comparing booklist for school", school_name)
         wriveted_api_response = httpx.get(
             f"{settings.WRIVETED_API}/v1/school/{school_id}/collection/compare-with-booklist/{booklist_id}",
             headers={"Authorization": f"Bearer {api_token}"},
@@ -200,29 +224,32 @@ def main():
         for item in comparison_response["data"]:
             work_in_collection[item["work_id"]] = item
 
-        # Update the sheet cell by cell because it looks cooler
+        # Update the sheet an entire column at a time
+        values = ['' for _ in range(100)]
+
         for isbn in isbn_to_wriveted_edition_info:
             edition_info = isbn_to_wriveted_edition_info[isbn]
-            row_id = edition_info["order_id"]
+            # Note some rows might be missing!
+            row_id = int(edition_info["order_id"])
             work_id = edition_info["work_id"]
-            booklist_item_in_collection = work_in_collection[work_id]["in_collection"]
-            # Sheet index is position + 3
-            index = int(row_id) + 3
+            if work_id in work_in_collection:
+                booklist_item_in_collection = work_in_collection[work_id]["in_collection"]
+                values[row_id - 1] = (
+                    "In collection"
+                    if booklist_item_in_collection
+                    else "Not in collection"
+                )
 
-            sheet.values().update(
-                spreadsheetId=SPREADSHEET_ID,
-                range=f"Books!D{index}",
-                valueInputOption="RAW",
-                body={
-                    "values": [
-                        [
-                            "In collection"
-                            if booklist_item_in_collection
-                            else "Not in collection"
-                        ]
-                    ]
-                },
-            ).execute()
+        column_range = f"R4C{column_index}:R{4+len(values)}"
+
+        sheet.values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f"Books!{column_range}",
+            valueInputOption="RAW",
+            body={
+                "values": [[v] for v in values]
+            },
+        ).execute()
 
 
 if __name__ == "__main__":
