@@ -35,7 +35,7 @@ api_token = settings.WRIVETED_API_TOKEN
 wriveted_api_response = httpx.get(
     f"{settings.WRIVETED_API}/v1/version",
     headers={"Authorization": f"Bearer {api_token}"},
-    timeout=20
+    timeout=20,
 )
 wriveted_api_response.raise_for_status()
 print(f"Connected to wriveted api: {settings.WRIVETED_API}")
@@ -97,7 +97,7 @@ def main():
                 wriveted_api_response = httpx.get(
                     f"{settings.WRIVETED_API}/v1/edition/{isbn}",
                     headers={"Authorization": f"Bearer {api_token}"},
-                    timeout=10
+                    timeout=10,
                 )
                 wriveted_api_response.raise_for_status()
                 edition_info = wriveted_api_response.json()
@@ -171,38 +171,44 @@ def main():
     # Now the comparison with particular school collections
     # Get the school ids for schools that have added their collections to Wriveted.
     wriveted_api_response = httpx.get(
-            f"{settings.WRIVETED_API}/v1/schools",
-            headers={"Authorization": f"Bearer {api_token}"},
-            params={
-                "country_code": "AUS",
-                "is_active": True,
-                "connected_collection": True,
-                "limit": 50
-            }
-        )
+        f"{settings.WRIVETED_API}/v1/schools",
+        headers={"Authorization": f"Bearer {api_token}"},
+        params={
+            "country_code": "AUS",
+            "is_active": True,
+            "connected_collection": True,
+            "limit": 50,
+        },
+        timeout=30,
+    )
     wriveted_api_response.raise_for_status()
     wriveted_schools = wriveted_api_response.json()
 
     # Then, for each school compare with the booklist, then update the sheet
 
-    wriveted_school_ids, wriveted_school_names, school_collection_size = zip(*[(
-        s['wriveted_identifier'],
-        s['name'],
-        s['collection_count']
-    ) for s in wriveted_schools])
+    wriveted_school_ids, wriveted_school_names, school_collection_size = zip(
+        *[
+            (s["wriveted_identifier"], s["name"], s["collection_count"])
+            for s in wriveted_schools
+        ]
+    )
 
     # Use R1C1 notation to avoid column ZZ etc
     range_start = f"R1C4"
     range_end = f"R3C{4 + len(wriveted_school_ids)}"
     (
         sheet.values()
-            .update(
-                spreadsheetId=SPREADSHEET_ID,
-                range=f"Books!{range_start}:{range_end}",
-                valueInputOption="RAW",
-                body={
-                    "values": [wriveted_school_names, wriveted_school_ids, school_collection_size]
-                },
+        .update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f"Books!{range_start}:{range_end}",
+            valueInputOption="RAW",
+            body={
+                "values": [
+                    wriveted_school_names,
+                    wriveted_school_ids,
+                    school_collection_size,
+                ]
+            },
         )
         .execute()
     )
@@ -210,11 +216,14 @@ def main():
     print("Updated school names")
     print(wriveted_school_ids)
 
-    for column_index, (school_id, school_name) in enumerate(zip(wriveted_school_ids, wriveted_school_names), start=4):
+    for column_index, (school_id, school_name) in enumerate(
+        zip(wriveted_school_ids, wriveted_school_names), start=4
+    ):
         print("Comparing booklist for school", school_name)
         wriveted_api_response = httpx.get(
             f"{settings.WRIVETED_API}/v1/school/{school_id}/collection/compare-with-booklist/{booklist_id}",
             headers={"Authorization": f"Bearer {api_token}"},
+            timeout=30,
         )
         wriveted_api_response.raise_for_status()
         comparison_response = wriveted_api_response.json()
@@ -226,7 +235,7 @@ def main():
             work_in_collection[item["work_id"]] = item
 
         # Update the sheet an entire column at a time
-        values = ['' for _ in range(100)]
+        values = ["" for _ in range(100)]
 
         for isbn in isbn_to_wriveted_edition_info:
             edition_info = isbn_to_wriveted_edition_info[isbn]
@@ -234,7 +243,9 @@ def main():
             row_id = int(edition_info["order_id"])
             work_id = edition_info["work_id"]
             if work_id in work_in_collection:
-                booklist_item_in_collection = work_in_collection[work_id]["in_collection"]
+                booklist_item_in_collection = work_in_collection[work_id][
+                    "in_collection"
+                ]
                 values[row_id - 1] = (
                     "In collection"
                     if booklist_item_in_collection
@@ -247,9 +258,7 @@ def main():
             spreadsheetId=SPREADSHEET_ID,
             range=f"Books!{column_range}",
             valueInputOption="RAW",
-            body={
-                "values": [[v] for v in values]
-            },
+            body={"values": [[v] for v in values]},
         ).execute()
 
 
