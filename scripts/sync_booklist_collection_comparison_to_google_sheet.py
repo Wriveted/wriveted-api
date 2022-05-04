@@ -136,6 +136,7 @@ def main():
         wriveted_api_response = httpx.post(
             f"{settings.WRIVETED_API}/v1/lists",
             headers={"Authorization": f"Bearer {api_token}"},
+            timeout=20,
             json={
                 "name": booklist_name,
                 "type": "Huey",
