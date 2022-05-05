@@ -86,6 +86,8 @@ class Settings(BaseSettings):
         # Landbot
         "http://34.77.31.159",
         "http://23.251.142.192",
+        # TypeBot
+        "https://typebot.io",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
