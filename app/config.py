@@ -88,6 +88,7 @@ class Settings(BaseSettings):
         "http://23.251.142.192",
         # TypeBot
         "https://typebot.io",
+        "http://13.38.101.232"
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
