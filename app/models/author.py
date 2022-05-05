@@ -1,15 +1,7 @@
-from sqlalchemy import (
-    Column,
-    Computed,
-    Integer,
-    String,
-    JSON,
-    select,
-    func,
-    and_,
-)
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy import JSON, Column, Computed, Integer, String, and_, func, select
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import column_property, relationship
+
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.work import Work

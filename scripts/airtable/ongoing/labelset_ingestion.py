@@ -1,9 +1,11 @@
 import csv
 import json
 from typing import Optional
+
 import httpx
-from app.models.labelset import LabelOrigin, RecommendStatus
 import jsonpickle
+
+from app.models.labelset import LabelOrigin, RecommendStatus
 
 READING_ABILITY_MAP = {
     "Spot": "SPOT",

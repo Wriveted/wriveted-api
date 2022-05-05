@@ -1,6 +1,6 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -8,7 +8,6 @@ from structlog import get_logger
 from app.crud import CRUDBase
 from app.models import User
 from app.models.user import UserAccountType
-
 from app.schemas.user import UserCreateIn, UserUpdateIn
 
 logger = get_logger()

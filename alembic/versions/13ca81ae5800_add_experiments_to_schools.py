@@ -5,11 +5,10 @@ Revises: ad2bcbab60ae
 Create Date: 2022-03-24 13:54:33.245721
 
 """
-from alembic import op
-
 # revision identifiers, used by Alembic.
 from sqlalchemy import orm, select, update
 
+from alembic import op
 from app.models import School
 
 revision = "13ca81ae5800"

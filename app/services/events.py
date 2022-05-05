@@ -3,8 +3,7 @@ from typing import Union
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app.models import Event, ServiceAccount, User, EventLevel
-
+from app.models import Event, EventLevel, ServiceAccount, User
 
 logger = get_logger()
 

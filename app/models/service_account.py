@@ -2,18 +2,11 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (
-    Column,
-    String,
-    JSON,
-    DateTime,
-    Boolean,
-    ForeignKey,
-    Enum,
-)
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+
 from app.db import Base
 from app.models.service_account_school_association import (
     service_account_school_association_table,

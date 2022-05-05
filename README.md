@@ -211,3 +211,17 @@ https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/lo
 
 Not much effort has been putting into scaling. Running half a dozen `test_collection_updates.py` examples
 concurrently will stress the system - each execution might take 90 seconds or so.
+
+# Pre-Commit Checks
+
+Install pre-commit hooks to apply `black` formatter and sort imports with:
+
+```
+poetry run pre-commit install
+```
+
+Or run manually with:
+
+```shell
+poetry run pre-commit run --all-files 
+```

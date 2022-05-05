@@ -23,11 +23,10 @@ os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"
 
 # Note we have to set at least the above environment variables before importing our application code
 
-from app import crud, api, db, models, schemas
-from app import config
-from app.db.session import get_session
-
 import logging
+
+from app import api, config, crud, db, models, schemas
+from app.db.session import get_session
 
 logging.basicConfig()
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

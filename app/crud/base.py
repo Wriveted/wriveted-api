@@ -3,8 +3,8 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, delete, func
-from sqlalchemy.orm import Session, Query, aliased
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Query, Session, aliased
 
 from app.db import Base
 

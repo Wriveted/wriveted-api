@@ -1,8 +1,7 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import delete, func, update, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -11,22 +10,20 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
-from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import School, BookList, User, ServiceAccount
+from app.models import BookList, ServiceAccount, User
 from app.models.booklist import ListType
 from app.permissions import Permission
 from app.schemas.booklist import (
-    BookListDetail,
     BookListBrief,
-    BookListsResponse,
     BookListCreateIn,
+    BookListDetail,
+    BookListsResponse,
     BookListUpdateIn,
-    ItemUpdateType,
 )
 from app.schemas.pagination import Pagination
 from app.services.events import create_event

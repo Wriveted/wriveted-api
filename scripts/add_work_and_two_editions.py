@@ -1,12 +1,12 @@
-from enum import Enum
-import os
 import base64
-from time import sleep, time
+import os
+from enum import Enum
 from io import BytesIO
-from PIL import Image
 from xml.etree import ElementTree as ET
+
 import httpx
-from tomlkit import key
+from PIL import Image
+
 from examples.config import settings
 
 

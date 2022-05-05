@@ -1,22 +1,19 @@
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
-
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
 from app.models import School
 from app.schemas.labelset import LabelSetDetail
-
 from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
 from app.services.events import create_event
-
 from app.services.recommendations import get_recommended_labelset_query
 
 router = APIRouter(

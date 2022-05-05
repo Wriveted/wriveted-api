@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, UUID4, AnyHttpUrl
+from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr
 
 from app.models.user import UserAccountType
 from app.schemas.event import EventBrief

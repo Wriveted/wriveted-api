@@ -1,16 +1,16 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Security, BackgroundTasks
-from sqlalchemy import delete, func, update, select
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.db.session import get_session
-from app.models import BookList, CollectionItem, School, Edition
+from app.models import BookList, CollectionItem, Edition, School
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
@@ -20,13 +20,12 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
+    CollectionItemIn,
     CollectionUpdate,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
-    CollectionItemIn,
 )
 from app.schemas.pagination import Pagination
-
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,

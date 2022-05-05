@@ -6,15 +6,15 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+from app import crud
 from app.api.dependencies.security import create_user_access_token
 from app.db.session import get_session
-from app import crud
 from app.main import app, get_settings
 from app.models import School, ServiceAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
-from app.schemas.user import UserCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
+from app.schemas.user import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
 from app.services.security import create_access_token

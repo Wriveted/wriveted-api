@@ -2,21 +2,20 @@ from typing import Any, List
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm import Query, Session
 from structlog import get_logger
 
+import app.services.editions as editions_service
 from app import crud
 from app.crud import CRUDBase
-from app.crud.author import author as crud_author, first_last_to_name_key
-from app.crud.work import work as crud_work
+from app.crud.author import author as crud_author
+from app.crud.author import first_last_to_name_key
 from app.crud.illustrator import illustrator as crud_illustrator
-from app.models import Edition, Work, Illustrator
+from app.crud.work import work as crud_work
+from app.models import Edition, Illustrator, Work
 from app.models.work import WorkType
 from app.schemas.edition import EditionCreateIn
 from app.schemas.work import WorkCreateIn
-
-import app.services.editions as editions_service
-
 
 logger = get_logger()
 

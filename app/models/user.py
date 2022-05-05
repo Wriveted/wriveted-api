@@ -4,18 +4,19 @@ from datetime import datetime
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Column,
+    DateTime,
     Enum,
+    ForeignKey,
     Integer,
     String,
-    JSON,
-    DateTime,
-    Boolean,
-    ForeignKey,
 )
-from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+
 from app.db import Base
 
 

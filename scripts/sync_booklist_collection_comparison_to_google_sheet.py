@@ -21,14 +21,13 @@ https://developers.google.com/workspace/guides/create-credentials
 import os.path
 
 import httpx
-
-from examples.config import settings
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+
+from examples.config import settings
 
 api_token = settings.WRIVETED_API_TOKEN
 

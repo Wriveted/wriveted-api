@@ -5,12 +5,12 @@ Revises: a65ff088f9ae
 Create Date: 2021-12-27 10:16:36.191379
 
 """
-from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 from sqlalchemy import orm
 
+from alembic import op
 from app.models import Country
 
 revision = "9e2c2d162ac7"

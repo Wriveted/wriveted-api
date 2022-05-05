@@ -2,26 +2,26 @@ import enum
 import uuid
 from datetime import datetime
 
+from fastapi_permissions import All, Allow, Authenticated, Deny
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
-    JSON,
-    Enum,
-    Index,
-    select,
     func,
+    select,
     text,
 )
-from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship, column_property, backref
-from fastapi_permissions import Allow, Deny, Authenticated, All
-from app.db import Base
+from sqlalchemy.orm import column_property, relationship
 
+from app.db import Base
 from app.models.collection_item import CollectionItem
 from app.models.service_account_school_association import (
     service_account_school_association_table,

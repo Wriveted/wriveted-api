@@ -1,5 +1,3 @@
-import collections
-from importlib.util import LazyLoader
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
@@ -12,14 +10,16 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas.edition import (
-    EditionDetail,
     EditionBrief,
     EditionCreateIn,
+    EditionDetail,
     KnownAndTaggedEditionCounts,
 )
-from app.services.collections import create_missing_editions
-from app.services.editions import compare_known_editions, get_definitive_isbn
-
+from app.services.editions import (
+    compare_known_editions,
+    create_missing_editions,
+    get_definitive_isbn,
+)
 
 logger = get_logger()
 router = APIRouter(

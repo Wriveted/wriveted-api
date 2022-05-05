@@ -1,15 +1,13 @@
-import enum
 from datetime import timedelta
-from typing import Optional, Union, List
+from typing import Optional, Union
 
 from fastapi import Depends, HTTPException
 from fastapi.security import (
-    OAuth2PasswordBearer,
     HTTPAuthorizationCredentials,
     HTTPBearer,
+    OAuth2PasswordBearer,
 )
-from fastapi_permissions import Everyone, Authenticated
-
+from fastapi_permissions import Authenticated, Everyone
 from jose import jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -19,15 +17,13 @@ from structlog import get_logger
 from app import crud
 from app.config import get_settings
 from app.db.session import get_session
-
-from app.models import User, ServiceAccount, ServiceAccountType, School
+from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
 from app.services.security import (
+    TokenPayload,
     create_access_token,
     get_payload_from_access_token,
-    TokenPayload,
 )
-
 
 settings = get_settings()
 logger = get_logger()

@@ -1,9 +1,9 @@
 from typing import Any, List
 
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
 from app.models import Author

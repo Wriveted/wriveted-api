@@ -1,9 +1,11 @@
 from typing import List
+
 from sqlalchemy import and_, select
+from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app import crud
 from app.models import Edition
-from sqlalchemy.orm import Session
 from app.schemas.edition import EditionCreateIn
 
 logger = get_logger()

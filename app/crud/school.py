@@ -1,12 +1,12 @@
 from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select, delete, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
-from app.models import School, CollectionItem, User, Event
+from app.models import CollectionItem, Event, School, User
 from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
 
 

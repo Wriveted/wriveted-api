@@ -1,13 +1,14 @@
 import enum
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
 from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief
-from app.schemas.user import UserBrief, UserIdentity
+from app.schemas.user import UserIdentity
 from app.schemas.work import WorkBrief
 
 

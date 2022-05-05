@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.work import WorkBrief
 from app.schemas.pagination import PaginatedResponse
+from app.schemas.work import WorkBrief
 
 
 class BookListItemInCollection(BaseModel):

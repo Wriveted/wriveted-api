@@ -1,5 +1,6 @@
 import csv
 import random
+
 import httpx
 
 from examples.config import settings

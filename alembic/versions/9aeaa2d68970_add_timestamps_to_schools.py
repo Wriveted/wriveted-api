@@ -5,9 +5,9 @@ Revises: c4218bd700a5
 Create Date: 2022-02-10 14:32:54.143062
 
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "9aeaa2d68970"

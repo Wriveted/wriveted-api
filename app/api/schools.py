@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,28 +9,27 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-
+from app.api.dependencies.school import (
+    get_school_from_raw_id,
+    get_school_from_wriveted_id,
+)
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
     get_current_user,
 )
 from app.db.session import get_session
-from app.models import School, ServiceAccount, EventLevel
+from app.models import School, ServiceAccount
 from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (
     SchoolBookbotInfo,
     SchoolBrief,
-    SchoolDetail,
     SchoolCreateIn,
+    SchoolDetail,
     SchoolPatchOptions,
     SchoolSelectorOption,
     SchoolUpdateIn,
-)
-from app.api.dependencies.school import (
-    get_school_from_wriveted_id,
-    get_school_from_raw_id,
 )
 from app.services.events import create_event
 from app.services.experiments import get_experiments

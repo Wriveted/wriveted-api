@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import List, Union
 
-from fastapi import Depends, APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -14,11 +14,11 @@ from app.api.dependencies.security import (
 )
 from app.config import get_settings
 from app.db.session import get_session
-from app.models import User, Event, ServiceAccount
+from app.models import Event, ServiceAccount, User
 from app.schemas.service_account import (
-    ServiceAccountCreateIn,
-    ServiceAccountCreatedResponse,
     ServiceAccountBrief,
+    ServiceAccountCreatedResponse,
+    ServiceAccountCreateIn,
     ServiceAccountDetail,
     ServiceAccountUpdateIn,
 )

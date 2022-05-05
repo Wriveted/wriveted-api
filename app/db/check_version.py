@@ -1,7 +1,8 @@
 import logging
-from alembic.runtime.migration import MigrationContext
+
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
+from alembic.runtime.migration import MigrationContext
 from app.config import Settings, get_settings
 from app.db.session import get_session
 

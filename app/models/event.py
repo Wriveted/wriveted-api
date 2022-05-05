@@ -2,19 +2,12 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (
-    Column,
-    JSON,
-    String,
-    DateTime,
-    ForeignKey,
-    Enum,
-    select,
-)
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import relationship
+
 from app.db import Base
 
 

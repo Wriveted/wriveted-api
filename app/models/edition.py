@@ -1,18 +1,16 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON, func, select
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, func, select
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import backref
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.orm import column_property, relationship
 from sqlalchemy.sql.functions import coalesce
 
 from app.db import Base
-from app.models.author import Author
 from app.models.collection_item import CollectionItem
-from app.models.work import Work
 from app.models.illustrator_edition_association import (
     illustrator_edition_association_table,
 )
+from app.models.work import Work
 
 
 class Edition(Base):

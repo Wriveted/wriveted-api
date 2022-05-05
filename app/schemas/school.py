@@ -1,8 +1,8 @@
-from uuid import UUID
-from typing import List, Optional, Any
 from datetime import datetime
+from typing import Any, List, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, AnyHttpUrl, constr
+from pydantic import AnyHttpUrl, BaseModel, constr
 
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType

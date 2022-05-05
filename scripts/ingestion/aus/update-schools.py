@@ -1,9 +1,8 @@
-import time
 import json
+import time
 from pprint import pprint
 
 import httpx
-
 from config import settings
 
 
