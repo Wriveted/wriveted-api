@@ -4,7 +4,6 @@ from typing import List, Optional
 from pydantic import UUID4, BaseModel
 
 from app.models import ServiceAccountType
-from app.schemas.event import EventBrief
 from app.schemas.school import SchoolIdentity, SchoolWrivetedIdentity
 
 
@@ -22,7 +21,7 @@ class ServiceAccountDetail(ServiceAccountBrief):
     info: Optional[dict]
     created_at: datetime
     updated_at: datetime
-    events: List[EventBrief]
+    # events: List[EventBrief]
     schools: List[SchoolIdentity]
 
 

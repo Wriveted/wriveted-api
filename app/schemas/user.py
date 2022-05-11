@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr
 
 from app.models.user import UserAccountType
-from app.schemas.event import EventBrief
 
 
 class UserPatchOptions(BaseModel):
@@ -68,6 +67,6 @@ class UserDetail(UserBrief):
     created_at: datetime
     updated_at: datetime
 
-    events: List[EventBrief]
+    # events: List[EventBrief]
 
     newsletter: bool

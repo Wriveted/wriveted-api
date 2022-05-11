@@ -15,6 +15,7 @@ logger = get_logger()
 class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
     def create(
+        self,
         session: Session,
         title: str,
         description: str = "",
