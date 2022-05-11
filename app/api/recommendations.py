@@ -13,7 +13,6 @@ from app.db.session import get_session
 from app.models import School
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
-from app.services.events import create_event
 from app.services.recommendations import get_recommended_labelset_query
 
 router = APIRouter(
@@ -129,11 +128,11 @@ async def get_recommendations_with_fallback(
         ]
 
         background_tasks.add_task(
-            create_event,
+            crud.event.create,
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(row_results)} books",
-            properties={
+            info={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
                 "fallback_level": fallback_level,
@@ -144,11 +143,11 @@ async def get_recommendations_with_fallback(
     else:
         if len(row_results) == 0:
             background_tasks.add_task(
-                create_event,
+                crud.event.create,
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
-                properties={
+                info={
                     "query_parameters": query_parameters,
                     "fallback_level": fallback_level,
                 },
