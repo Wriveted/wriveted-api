@@ -12,3 +12,4 @@ from app.crud.school import CRUDSchool, school
 from app.crud.service_account import CRUDServiceAccount, service_account
 from app.crud.user import CRUDUser, user
 from app.crud.work import CRUDWork, work
+from app.crud.event import CRUDEvent, event
