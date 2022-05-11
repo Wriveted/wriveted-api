@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.school import get_school_from_raw_id, get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models.event import EventLevel

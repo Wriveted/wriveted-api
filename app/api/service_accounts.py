@@ -99,6 +99,8 @@ async def create_service_account(
 async def get_service_account_detail(
     service_account_id: str, session: Session = Depends(get_session)
 ):
+    # sa = crud.service_account.get_or_404(db=session, id=service_account_id)
+    # sa.events = crud.event.get_all_with_optional_filters(db=session, account=sa, limit=10)
     return crud.service_account.get_or_404(db=session, id=service_account_id)
 
 

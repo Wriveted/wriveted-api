@@ -83,7 +83,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters(
         self,
         db: Session,
-        query_string: Optional[str],
+        query_string: Optional[str] = None,
         level: Optional[EventLevel] = None,
         school: Optional[School] = None,
         account: Optional[Union[ServiceAccount, User]] = None,
