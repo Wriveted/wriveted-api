@@ -26,7 +26,6 @@ from app.schemas.booklist import (
     BookListUpdateIn,
 )
 from app.schemas.pagination import Pagination
-from app.services.events import create_event
 
 logger = get_logger()
 
@@ -130,11 +129,11 @@ async def add_booklist(
             db=session, obj_in=booklist, commit=True
         )
 
-        create_event(
+        crud.event.create(
             session=session,
             title=f"Booklist created",
             description=f"{account.name} created booklist '{booklist.name}'",
-            properties={
+            info={
                 "type": booklist.type,
                 "id": str(booklist_orm_object.id),
             },
