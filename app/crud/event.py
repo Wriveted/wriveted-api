@@ -103,7 +103,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             skip=skip,
             limit=limit,
         )
-        return db.execute(query).scalars().all()
+        return db.scalars(query).all()
 
 
 event = CRUDEvent(Event)
