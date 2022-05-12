@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import AnyHttpUrl, BaseModel, validator
 
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
@@ -65,6 +65,10 @@ class EditionDetail(EditionBrief):
 
     date_published: Optional[int]
     info: Optional[EditionInfo]
+
+    @validator('authors', 'illustrators', pre=True)
+    def contributors_not_none(cls, v):
+        return v or []
 
 
 class EditionCreateIn(BaseModel):
