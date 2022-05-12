@@ -144,7 +144,10 @@ async def get_schools(
 
 
 @router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
-async def get_school(db: Session = Depends(get_session), school: School = Permission("read", get_school_from_wriveted_id)):
+async def get_school(
+    db: Session = Depends(get_session),
+    school: School = Permission("read", get_school_from_wriveted_id),
+):
     """
     Detail on a particular school
     """

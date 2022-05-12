@@ -8,12 +8,12 @@ from app.crud import CRUDBase
 from app.models import Event, ServiceAccount, User
 from app.models.event import EventLevel
 from app.models.school import School
-from app.schemas.event import EventCreateIn 
+from app.schemas.event import EventCreateIn
 
 logger = get_logger()
 
-class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
+class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def create(
         self,
         session: Session,
@@ -26,7 +26,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         commit: bool = True,
     ):
         description = description or ""
-        info = info or {}        
+        info = info or {}
         user = account if isinstance(account, User) else None
         service_account = account if isinstance(account, ServiceAccount) else None
         info["description"] = description
@@ -53,7 +53,6 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         )
         return event
 
-
     def get_all_with_optional_filters_query(
         self,
         db: Session,
@@ -61,7 +60,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         level: Optional[EventLevel] = None,
         school: Optional[School] = None,
         user: Optional[User] = None,
-        service_account: Optional[ServiceAccount] = None
+        service_account: Optional[ServiceAccount] = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
@@ -81,7 +80,6 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
         return event_query
 
-
     def get_all_with_optional_filters(
         self,
         db: Session,
@@ -100,7 +98,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                 level=level,
                 school=school,
                 user=user,
-                service_account=service_account
+                service_account=service_account,
             ),
             skip=skip,
             limit=limit,

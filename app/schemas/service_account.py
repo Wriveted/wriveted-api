@@ -27,8 +27,8 @@ class ServiceAccountDetail(ServiceAccountBrief):
     events: List[EventBrief]
     schools: List[SchoolIdentity]
 
-    @validator('events', pre=True)
-    def limit_events(cls, v):        
+    @validator("events", pre=True)
+    def limit_events(cls, v):
         return v[:10] if isinstance(v, AppenderQuery) else v
 
 

@@ -16,7 +16,7 @@ class EventBrief(BaseModel):
 
     class Config:
         orm_mode = True
-        
+
 
 class EventCreateIn(BaseModel):
     title: str
