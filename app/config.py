@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         # TypeBot
         "https://typebot.io",
         "http://13.38.101.232",
-        "http://15.188.52.37"
+        "http://15.188.52.37",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
