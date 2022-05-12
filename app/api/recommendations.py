@@ -165,11 +165,11 @@ async def get_recommendations_with_fallback(
         ]
 
         background_tasks.add_task(
-            create_event,
+            crud.event.create,
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(row_results)} books",
-            properties={
+            info={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
                 "fallback_level": fallback_level,
@@ -180,11 +180,11 @@ async def get_recommendations_with_fallback(
     else:
         if len(row_results) == 0:
             background_tasks.add_task(
-                create_event,
+                crud.event.create,
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
-                properties={
+                info={
                     "query_parameters": query_parameters,
                     "fallback_level": fallback_level,
                 },

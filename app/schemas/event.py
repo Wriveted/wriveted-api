@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -15,3 +16,11 @@ class EventBrief(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class EventCreateIn(BaseModel):
+    title: str
+    description: str
+    level: EventLevel
+    school_id: UUID | None
+    info: dict[str, Any] | None

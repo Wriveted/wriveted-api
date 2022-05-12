@@ -22,7 +22,6 @@ from app.schemas.service_account import (
     ServiceAccountDetail,
     ServiceAccountUpdateIn,
 )
-from app.services.events import create_event
 from app.services.security import create_access_token
 
 logger = get_logger()
@@ -72,7 +71,7 @@ async def create_service_account(
         db=session, obj_in=service_account_data
     )
 
-    create_event(
+    crud.event.create(
         session=session,
         title="{new_service_account.name} service account created",
         description=f"Service account '{new_service_account.name}' created by '{current_account.name}'",

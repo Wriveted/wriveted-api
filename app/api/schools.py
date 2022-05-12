@@ -31,7 +31,6 @@ from app.schemas.school import (
     SchoolSelectorOption,
     SchoolUpdateIn,
 )
-from app.services.events import create_event
 from app.services.experiments import get_experiments
 
 logger = get_logger()
@@ -145,7 +144,10 @@ async def get_schools(
 
 
 @router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
-async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
+async def get_school(
+    db: Session = Depends(get_session),
+    school: School = Permission("read", get_school_from_wriveted_id),
+):
     """
     Detail on a particular school
     """
@@ -235,7 +237,7 @@ async def update_school_extras(
 
     if patch.status:
         if patch.status != school.state:
-            create_event(
+            crud.event.create(
                 session=session,
                 title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
@@ -283,11 +285,11 @@ async def bulk_add_schools(
     for school in new_schools:
         school.info["experiments"] = get_experiments(school=school)
 
-    create_event(
+    crud.event.create(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
-        properties={"identifiers": [s.wriveted_identifier for s in new_schools]},
+        info={"identifiers": [s.wriveted_identifier for s in new_schools]},
         account=account,
         commit=False,
     )
@@ -317,7 +319,7 @@ async def add_school(
         school_orm = crud.school.create(db=session, obj_in=school, commit=False)
         school_orm.info["experiments"] = get_experiments(school=school_orm)
         session.commit()
-        create_event(
+        crud.event.create(
             session=session,
             title="New school created",
             description=f"{account.name} created school '{school.name}'",
@@ -340,7 +342,7 @@ async def update_school(
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
 ):
-    create_event(
+    crud.event.create(
         session=session,
         title="School Updated",
         description=f"School '{school.name}' in {school.country.name} updated.",
@@ -360,7 +362,7 @@ async def delete_school(
     session: Session = Depends(get_session),
 ):
     logger.info("Deleting a school", account=account, school=school)
-    create_event(
+    crud.event.create(
         session=session,
         title="School Deleted",
         description=f"School {school.name} in {school.country.name} deleted.",

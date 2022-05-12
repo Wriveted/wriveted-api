@@ -18,7 +18,6 @@ from app.db.session import get_session
 from app.models import EventLevel, ServiceAccount, User
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.user import UserCreateIn
-from app.services.events import create_event
 from app.services.security import TokenPayload
 
 logger = get_logger()
@@ -84,7 +83,7 @@ def secure_user_endpoint(
 
     user, was_created = crud.user.get_or_create(session, user_data)
     if was_created:
-        create_event(
+        crud.event.create(
             session=session,
             title="User account created",
             description="",
@@ -92,7 +91,7 @@ def secure_user_endpoint(
             commit=False,
         )
     else:
-        create_event(
+        crud.event.create(
             session=session,
             title="User logged in",
             description="",

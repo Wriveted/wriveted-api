@@ -15,6 +15,7 @@ from app.api.users import public_router as user_router_public
 from app.api.users import router as user_router
 from app.api.version import router as version_router
 from app.api.works import router as work_router
+from app.api.events import router as events_router
 
 api_router = APIRouter()
 
@@ -33,3 +34,4 @@ api_router.include_router(version_router)
 api_router.include_router(labelset_router)
 api_router.include_router(recommendations_router)
 api_router.include_router(booklist_router)
+api_router.include_router(events_router)

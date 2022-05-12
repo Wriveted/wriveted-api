@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, validator
 
 from app.models import ServiceAccountType
 from app.schemas.event import EventBrief
 from app.schemas.school import SchoolIdentity, SchoolWrivetedIdentity
+
+from sqlalchemy.orm.dynamic import AppenderQuery
 
 
 class ServiceAccountBrief(BaseModel):
@@ -24,6 +26,10 @@ class ServiceAccountDetail(ServiceAccountBrief):
     updated_at: datetime
     events: List[EventBrief]
     schools: List[SchoolIdentity]
+
+    @validator("events", pre=True)
+    def limit_events(cls, v):
+        return v[:10] if isinstance(v, AppenderQuery) else v
 
 
 class ServiceAccountCreatedResponse(ServiceAccountBrief):
