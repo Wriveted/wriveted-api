@@ -53,20 +53,14 @@ async def get_events(
     service_account_id: UUID = None,
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
-):
-    if(user_id and service_account_id):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Must only provide one of user_id or service_account_id"
-        )
-        
-    account = crud.user.get_or_404(
+):       
+    user = crud.user.get_or_404(
         db=session, id=user_id
-    ) if user_id else (
-        crud.service_account.get_or_404(
-            db=session, id=service_account_id
-        ) if service_account_id else None
-    )
+    ) if user_id else None
+
+    service_account = crud.service_account.get_or_404(
+        db=session, id=service_account_id
+    ) if service_account_id else None
 
     school = crud.school.get_by_wriveted_id_or_404(
         db=session, wriveted_id=school_id
@@ -77,7 +71,8 @@ async def get_events(
         query_string=query,
         level=level,
         school=school,
-        account=account,
+        user=user,
+        service_account=service_account,
         skip=pagination.skip, 
         limit=pagination.limit
     )
