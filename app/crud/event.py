@@ -17,13 +17,15 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def create(
         session: Session,
         title: str,
-        description: str = "",
-        info: dict = {},
+        description: str = None,
+        info: dict = None,
         level: EventLevel = EventLevel.NORMAL,
         school: School = None,
         account: Union[ServiceAccount, User] = None,
         commit: bool = True,
     ):
+        description = description or ""
+        info = info or {}        
         user = account if isinstance(account, User) else None
         service_account = account if isinstance(account, ServiceAccount) else None
         info["description"] = description
