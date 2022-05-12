@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -21,5 +22,5 @@ class EventCreateIn(BaseModel):
     title: str
     description: str
     level: EventLevel
-    school_id: Optional[str]
-    info: Optional[dict[str, Any]] 
+    school_id: UUID | None
+    info: dict[str, Any] | None
