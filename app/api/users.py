@@ -16,7 +16,6 @@ from app.api.dependencies.security import (
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
 from app.schemas.user import UserBrief, UserDetail, UserPatchOptions, UserUpdateIn
-from app.services.events import create_event
 
 logger = get_logger()
 
@@ -135,7 +134,7 @@ async def deactivate_user(
     user = crud.user.get(db=session, id=uuid)
     logger.info("Request to delete a user", user_to_delete=user, account=account)
 
-    create_event(
+    crud.event.create(
         title="User account deleted",
         description=f"User {user.name} marked inactive by {account}",
         account=account,

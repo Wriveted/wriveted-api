@@ -84,6 +84,7 @@ class User(Base):
     )
     events = relationship(
         "Event",
+        lazy="dynamic",
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="desc(Event.timestamp)",

@@ -125,7 +125,7 @@ class School(Base):
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
     )
-    events = relationship("Event", back_populates="school")
+    events = relationship("Event", back_populates="school", lazy="dynamic")
 
     # The primary admin for the school, but note other users could also be an admin for the school
     # via the user table's `school_as_admin` column.

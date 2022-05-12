@@ -16,7 +16,6 @@ from app.models.school import School
 from app.models.work import Work
 from app.schemas.collection import CollectionItemBase
 from app.services.editions import get_definitive_isbn
-from app.services.events import create_event
 
 logger = get_logger()
 
@@ -80,11 +79,11 @@ async def add_editions_to_collection_by_isbn(
     )
 
     num_existing_editions = num_collection_items_created - num_editions_created
-    create_event(
+    crud.event.create(
         session=session,
         title="Collection Update",
         description=f"Adding {num_existing_editions} existing editions, adding {num_editions_created} new, unhydrated editions",
-        properties={
+        info={
             "collection_items_created_count": num_collection_items_created,
             "existing_edition_count": num_existing_editions,
             "unhydrated_edition_count": num_editions_created,

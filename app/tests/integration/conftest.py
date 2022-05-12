@@ -276,6 +276,7 @@ def lms_service_account_for_test_school(session, test_school):
                 "type": "lms",
                 "schools": [
                     {
+                        "name": test_school.name,
                         "country_code": "ATA",
                         "official_identifier": test_school.id,
                         "wriveted_identifier": test_school.wriveted_identifier,

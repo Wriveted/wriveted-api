@@ -8,13 +8,14 @@ from app.crud import CRUDBase
 from app.models import Event, ServiceAccount, User
 from app.models.event import EventLevel
 from app.models.school import School
-from app.schemas.event import EventCreateIn 
+from app.schemas.event import EventCreateIn
 
 logger = get_logger()
 
-class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
+class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def create(
+        self,
         session: Session,
         title: str,
         description: str = None,
@@ -25,7 +26,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         commit: bool = True,
     ):
         description = description or ""
-        info = info or {}        
+        info = info or {}
         user = account if isinstance(account, User) else None
         service_account = account if isinstance(account, ServiceAccount) else None
         info["description"] = description
@@ -52,14 +53,14 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         )
         return event
 
-
     def get_all_with_optional_filters_query(
         self,
         db: Session,
         query_string: Optional[str] = None,
         level: Optional[EventLevel] = None,
         school: Optional[School] = None,
-        account: Optional[Union[ServiceAccount, User]] = None,
+        user: Optional[User] = None,
+        service_account: Optional[ServiceAccount] = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
@@ -72,22 +73,21 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             event_query = event_query.where(Event.level == level)
         if school is not None:
             event_query = event_query.where(Event.school == school)
-        if account is not None:
-            if isinstance(account, User):
-                event_query = event_query.where(Event.user == account)
-            elif isinstance(account, ServiceAccount):
-                event_query = event_query.where(Event.service_account == account)
+        if user is not None:
+            event_query = event_query.where(Event.user == user)
+        if service_account is not None:
+            event_query = event_query.where(Event.service_account == service_account)
 
         return event_query
-
 
     def get_all_with_optional_filters(
         self,
         db: Session,
-        query_string: Optional[str],
+        query_string: Optional[str] = None,
         level: Optional[EventLevel] = None,
         school: Optional[School] = None,
-        account: Optional[Union[ServiceAccount, User]] = None,
+        user: Optional[User] = None,
+        service_account: Optional[ServiceAccount] = None,
         skip: int = 0,
         limit: int = 100,
     ):
@@ -97,7 +97,8 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                 query_string=query_string,
                 level=level,
                 school=school,
-                account=account,
+                user=user,
+                service_account=service_account,
             ),
             skip=skip,
             limit=limit,

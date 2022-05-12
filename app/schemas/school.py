@@ -1,13 +1,10 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 from uuid import UUID
-
 from pydantic import AnyHttpUrl, BaseModel, constr
-
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
-from app.schemas.event import EventBrief
 from app.schemas.user import UserBrief
 
 
@@ -32,14 +29,15 @@ class SchoolInfo(BaseModel):
 
 class SchoolWrivetedIdentity(BaseModel):
     wriveted_identifier: UUID
+    name: str
+
+    class Config:
+        orm_mode = True
 
 
 class SchoolIdentity(SchoolWrivetedIdentity):
     official_identifier: Optional[str]
     country_code: str
-
-    class Config:
-        orm_mode = True
 
 
 class SchoolSelectorOption(SchoolIdentity):
@@ -59,9 +57,6 @@ class SchoolBrief(SchoolIdentity):
     state: SchoolState
     collection_count: int
 
-    class Config:
-        orm_mode = True
-
 
 class SchoolBookbotInfo(BaseModel):
     wriveted_identifier: UUID
@@ -78,7 +73,6 @@ class SchoolDetail(SchoolBrief):
     info: Optional[SchoolInfo]
 
     admin: Optional[UserBrief]
-    events: List[EventBrief]
     lms_type: str
 
     created_at: datetime
@@ -86,9 +80,6 @@ class SchoolDetail(SchoolBrief):
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
-
-    class Config:
-        orm_mode = True
 
 
 class SchoolCreateIn(BaseModel):
