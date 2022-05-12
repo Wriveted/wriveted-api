@@ -18,7 +18,6 @@ from app.schemas.recommendations import (
     HueyRecommendationFilter,
     ReadingAbilityKey,
 )
-from app.services.events import create_event
 from app.services.recommendations import get_recommended_labelset_query
 
 router = APIRouter(
