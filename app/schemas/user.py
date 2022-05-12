@@ -2,9 +2,12 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr
+from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 
 from app.models.user import UserAccountType
+from app.schemas.event import EventBrief
+
+from sqlalchemy.orm.dynamic import AppenderQuery
 
 
 class UserPatchOptions(BaseModel):
@@ -67,6 +70,11 @@ class UserDetail(UserBrief):
     created_at: datetime
     updated_at: datetime
 
-    # events: List[EventBrief]
+    events: list[EventBrief]
 
     newsletter: bool
+
+    @validator('events', pre=True)
+    def limit_events(cls, v):        
+        return v[:10] if isinstance(v, AppenderQuery) else v
+        

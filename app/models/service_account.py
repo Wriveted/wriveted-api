@@ -58,7 +58,7 @@ class ServiceAccount(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    events = relationship("Event", back_populates="service_account")
+    events = relationship("Event", back_populates="service_account", lazy="dynamic", order_by="desc(Event.timestamp)")
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

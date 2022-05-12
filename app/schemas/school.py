@@ -1,9 +1,7 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 from uuid import UUID
-
 from pydantic import AnyHttpUrl, BaseModel, constr
-
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
@@ -75,7 +73,6 @@ class SchoolDetail(SchoolBrief):
     info: Optional[SchoolInfo]
 
     admin: Optional[UserBrief]
-    # events: List[EventBrief]
     lms_type: str
 
     created_at: datetime

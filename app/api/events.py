@@ -12,7 +12,8 @@ from app.models.event import EventLevel
 from app.models.school import School
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.event import EventBrief, EventCreateIn, EventDetail
+from app.schemas.event import EventCreateIn
+from app.schemas.event_detail import EventDetail
 
 from starlette import status
 
