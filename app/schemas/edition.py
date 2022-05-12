@@ -66,7 +66,7 @@ class EditionDetail(EditionBrief):
     date_published: Optional[int]
     info: Optional[EditionInfo]
 
-    @validator('authors', 'illustrators', pre=True)
+    @validator("authors", "illustrators", pre=True)
     def contributors_not_none(cls, v):
         return v or []
 
