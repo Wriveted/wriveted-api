@@ -10,7 +10,7 @@ from app.schemas.labelset import LabelSetDetail
 class WorkInfo(BaseModel):
     genres: list[Genre]
     other: dict
-        
+
     @validator("genres", pre=True)
     def genres_not_none(cls, v):
         return v or []
