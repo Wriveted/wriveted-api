@@ -83,5 +83,9 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         )
         return db.execute(query).scalars().all()
 
+    def get_by_username(self, db: Session, username: str):
+        q = select(User).where(User.username == username)
+        return db.execute(q).scalar_one_or_none()
+
 
 user = CRUDUser(User)
