@@ -1,9 +1,10 @@
 from typing import List, Union
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Security
+from fastapi import APIRouter, Depends, Security, HTTPException
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
+from starlette import status
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
@@ -32,7 +33,13 @@ async def create(
 ):
     if data.school_id is not None:
         school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=data.school_id)
-        assert has_permission(principals, "read", school)
+        if not has_permission(principals, "read", school):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"The current account is not allowed to create an event associated with that school",
+            )
+    else:
+        school = None
 
     return crud.event.create(
         session=session,
