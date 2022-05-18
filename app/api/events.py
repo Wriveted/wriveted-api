@@ -2,11 +2,12 @@ from typing import List, Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Security
+from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import get_current_active_user_or_service_account, get_active_principals
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -26,13 +27,12 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
+    principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
-    school = (
-        crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=data.school_id)
-        if data.school_id
-        else None
-    )
+    if data.school_id is not None:
+        school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=data.school_id)
+        assert has_permission(principals, "read", school)
 
     return crud.event.create(
         session=session,
