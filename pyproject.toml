@@ -26,7 +26,7 @@ tenacity = "^8.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
-jupyterlab = "^3.3.2"
+jupyterlab = "^3.4.2"
 black = {extras = ["jupyter"], version = "^22.3.0"}
 google-api-python-client = "^2.46.0"
 google-auth-httplib2 = "^0.1.0"
