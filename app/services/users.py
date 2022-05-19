@@ -37,19 +37,24 @@ def new_random_username(
     session: Session,
     wordlist: list[WordListItem],
     adjective: bool = False,
-    color: bool = True,
+    colour: bool = True,
     noun: bool = True,
     numbers: int = 2,
     slugify: bool = False,
 ):
-    name = ""
-    valid_name = False
-
-    while not valid_name:
-        name = generate_random_username_from_wordlist(
-            wordlist, adjective, color, noun, numbers, slugify
+    if not (adjective or colour or noun or numbers):
+        raise ValueError(
+            "Must enable at least one username constituent (adjective, colour, noun, numbers)"
         )
-        valid_name = name and crud.user.get_by_username(session, name) is None
+
+    name = ""
+    name_valid = False
+
+    while not name_valid:
+        name = generate_random_username_from_wordlist(
+            wordlist, adjective, colour, noun, numbers, slugify
+        )
+        name_valid = name and crud.user.get_by_username(session, name) is None
 
     return name
 
