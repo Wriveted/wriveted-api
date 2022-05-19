@@ -7,6 +7,8 @@ from app import crud
 
 logger = get_logger()
 
+# generates a new random username of the specified or default complexity,
+# ensuring it's not already claimed by a user.
 # default complexity: ColourNounNumber (RedWolf52)
 def new_random_username(
     session: Session,
@@ -14,7 +16,7 @@ def new_random_username(
     color: bool = True,
     noun: bool = True,
     numbers: int = 2,
-    slugify: bool = False
+    slugify: bool = False,
 ):
     name = ""
     valid_name = False
@@ -44,12 +46,14 @@ class WordListItem:
 
 
 def generate_random_username_from_wordlist(
-    wordlist: list[WordListItem],
-    adjective: bool,
-    colour: bool,
-    noun: bool,
-    numbers: int,
-    slugify: bool
+    wordlist: list[
+        WordListItem
+    ],  # array of dicts, assuming the csv is consumed outside of this func
+    adjective: bool,  # whether or not to include an adjective
+    colour: bool,  # whether or not to include a colour
+    noun: bool,  # whether or not to include a noun
+    numbers: int,  # suffix with how many digits
+    slugify: bool,  # whether or not to lowercase and hyphenate the username
 ) -> str:
     name = ""
     slug = "-" if slugify else ""
@@ -61,6 +65,8 @@ def generate_random_username_from_wordlist(
     if noun:
         name += (slug if name else "") + random.choice(wordlist)["noun"].title()
     if numbers:
-        name += (slug if name else "") + "".join([str(random.randint(0, 9)) for i in range(numbers)])
+        name += (slug if name else "") + "".join(
+            [str(random.randint(0, 9)) for i in range(numbers)]
+        )
 
     return name if not slugify else name.lower()
