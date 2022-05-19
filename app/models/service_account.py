@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
+from fastapi_permissions import Allow, All
 from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
@@ -69,3 +70,9 @@ class ServiceAccount(Base):
         active = "Active" if self.is_active else "Inactive"
         summary = f"{self.type} {active}"
         return f"<ServiceAccount {self.name} - {summary}>"
+
+    def __acl__(self):
+
+        return [
+            (Allow, "role:admin", All),
+        ] + [(Allow, f"teacher:{s.id}", All) for s in self.schools]

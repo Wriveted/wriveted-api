@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
+from fastapi_permissions import Allow, All
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -51,3 +52,17 @@ class Event(Base):
 
     def __repr__(self):
         return f"<Event {self.title} - {self.description}>"
+
+    def __acl__(self):
+        acl = [
+            (Allow, "role:admin", All),
+        ]
+
+        if self.school_id is not None:
+            acl.append((Allow, f"teacher:{self.school_id}", "read"))
+            # acl.append((Allow, f"student:{self.school_id}", "read"))
+
+        if self.user_id is not None:
+            acl.append((Allow, f"user:{self.user_id}", "read"))
+
+        return acl
