@@ -14,6 +14,7 @@ def new_random_username(
     color: bool = True,
     noun: bool = True,
     numbers: int = 2,
+    slugify: bool = False
 ):
     name = ""
     valid_name = False
@@ -27,7 +28,7 @@ def new_random_username(
 
         while not valid_name:
             name = generate_random_username_from_wordlist(
-                wordlist, adjective, color, noun, numbers
+                wordlist, adjective, color, noun, numbers, slugify
             )
             valid_name = (
                 name is not None and crud.user.get_by_username(session, name) is None
@@ -48,16 +49,18 @@ def generate_random_username_from_wordlist(
     colour: bool,
     noun: bool,
     numbers: int,
+    slugify: bool
 ) -> str:
     name = ""
+    slug = "-" if slugify else ""
 
     if adjective:
-        name = name + random.choice(wordlist)["adjective"].title()
+        name += random.choice(wordlist)["adjective"].title()
     if colour:
-        name = name + random.choice(wordlist)["colour"].title()
+        name += (slug if name else "") + random.choice(wordlist)["colour"].title()
     if noun:
-        name = name + random.choice(wordlist)["noun"].title()
+        name += (slug if name else "") + random.choice(wordlist)["noun"].title()
     if numbers:
-        name = name + "".join([str(random.randint(0, 9)) for i in range(numbers)])
+        name += (slug if name else "") + "".join([str(random.randint(0, 9)) for i in range(numbers)])
 
-    return name
+    return name if not slugify else name.lower()
