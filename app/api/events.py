@@ -9,7 +9,10 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.security import get_current_active_user_or_service_account, get_active_principals
+from app.api.dependencies.security import (
+    get_current_active_user_or_service_account,
+    get_active_principals,
+)
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -36,7 +39,9 @@ async def create(
     session: Session = Depends(get_session),
 ):
     if data.school_id is not None:
-        school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=data.school_id)
+        school = crud.school.get_by_wriveted_id_or_404(
+            db=session, wriveted_id=data.school_id
+        )
         if not has_permission(principals, "read", school):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -89,12 +94,13 @@ async def get_events(
                 detail=f"The current account is not allowed to request global events. Try filtering by your school or user.",
             )
 
-
     # At this point we know that we have either a school id, a user id or the request is from an admin
     if user_id is not None:
         user = crud.user.get_or_404(db=session, id=user_id)
         if not has_permission(principals, "read", user):
-            logger.warning("Forbidden event request due to lack of permissions to read user account")
+            logger.warning(
+                "Forbidden event request due to lack of permissions to read user account"
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"The current account is not allowed to filter events associated with that user",
@@ -109,9 +115,13 @@ async def get_events(
     )
 
     if school_id is not None:
-        school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=school_id)
+        school = crud.school.get_by_wriveted_id_or_404(
+            db=session, wriveted_id=school_id
+        )
         if not has_permission(principals, "read", school):
-            logger.warning("Forbidden event request due to to lack of read permission on school")
+            logger.warning(
+                "Forbidden event request due to to lack of read permission on school"
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"The current account is not allowed to filter events associated with that school",
@@ -131,5 +141,7 @@ async def get_events(
     )
     filtered_events = [e for e in events if has_permission(principals, "read", e)]
     if len(filtered_events) != len(events):
-        logger.info(f"Filtering out {len(events)-len(filtered_events)} events", account=account)
+        logger.info(
+            f"Filtering out {len(events)-len(filtered_events)} events", account=account
+        )
     return filtered_events

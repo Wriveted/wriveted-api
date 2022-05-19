@@ -53,7 +53,6 @@ class Event(Base):
     def __repr__(self):
         return f"<Event {self.title} - {self.description}>"
 
-
     def __acl__(self):
         acl = [
             (Allow, "role:admin", All),
@@ -61,7 +60,7 @@ class Event(Base):
 
         if self.school_id is not None:
             acl.append((Allow, f"teacher:{self.school_id}", "read"))
-            #acl.append((Allow, f"student:{self.school_id}", "read"))
+            # acl.append((Allow, f"student:{self.school_id}", "read"))
 
         if self.user_id is not None:
             acl.append((Allow, f"user:{self.user_id}", "read"))

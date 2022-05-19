@@ -92,18 +92,15 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         limit: int = 100,
     ):
         optional_filters = {
-            'query_string': query_string,
-            'level': level,
-            'school': school,
-            'user': user,
-            'service_account': service_account
+            "query_string": query_string,
+            "level": level,
+            "school": school,
+            "user": user,
+            "service_account": service_account,
         }
         logger.debug("Querying events", **optional_filters)
         query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(
-                db=db,
-                **optional_filters
-            ),
+            self.get_all_with_optional_filters_query(db=db, **optional_filters),
             skip=skip,
             limit=limit,
         )
