@@ -180,6 +180,11 @@ class School(Base):
             (Allow, "role:lms", "read-collection"),
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
+
+            (Allow, f"teacher:{self.id}", All),
+            (Allow, f"student:{self.id}", "read"),
+            (Allow, f"student:{self.id}", "read-collection"),
+
             (Allow, f"school:{self.id}", "read"),
             (Allow, f"school:{self.id}", "read-collection"),
             (Allow, f"school:{self.id}", "update"),
