@@ -7,11 +7,35 @@ from app import crud
 
 logger = get_logger()
 
+
+class WordListItem:
+    adjective: str
+    colour: str
+    noun: str
+
+
+class WordList:
+    def __init__(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        # current csv capable of 11*11*11*99 ≈ 130k names
+        self.filename = os.path.join(here, "wordlist.csv")
+
+    def __enter__(self):
+        self.file = open(self.filename)
+        data = csv.DictReader(self.file)
+        wordlist = list(data)
+        return wordlist
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.file.close()
+
+
 # generates a new random username of the specified or default complexity,
 # ensuring it's not already claimed by a user.
 # default complexity: ColourNounNumber (RedWolf52)
 def new_random_username(
     session: Session,
+    wordlist: list[WordListItem],
     adjective: bool = False,
     color: bool = True,
     noun: bool = True,
@@ -21,28 +45,13 @@ def new_random_username(
     name = ""
     valid_name = False
 
-    here = os.path.dirname(os.path.abspath(__file__))
-    # current csv capable of 11*11*11*99 ≈ 130k names
-    filename = os.path.join(here, "wordlist.csv")
-    with open(filename) as f:
-        data = csv.DictReader(f)
-        wordlist = list(data)
-
-        while not valid_name:
-            name = generate_random_username_from_wordlist(
-                wordlist, adjective, color, noun, numbers, slugify
-            )
-            valid_name = (
-                name is not None and crud.user.get_by_username(session, name) is None
-            )
+    while not valid_name:
+        name = generate_random_username_from_wordlist(
+            wordlist, adjective, color, noun, numbers, slugify
+        )
+        valid_name = name and crud.user.get_by_username(session, name) is None
 
     return name
-
-
-class WordListItem:
-    adjective: str
-    colour: str
-    noun: str
 
 
 def generate_random_username_from_wordlist(
