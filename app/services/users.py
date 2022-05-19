@@ -17,7 +17,7 @@ class WordListItem:
 class WordList:
     def __init__(self):
         here = os.path.dirname(os.path.abspath(__file__))
-        # current csv capable of 11*11*11*99 ≈ 130k names
+        # current csv capable of 11*11*11*100 ≈ 130k names
         self.filename = os.path.join(here, "wordlist.csv")
 
     def __enter__(self):
@@ -30,9 +30,6 @@ class WordList:
         self.file.close()
 
 
-# generates a new random username of the specified or default complexity,
-# ensuring it's not already claimed by a user.
-# default complexity: ColourNounNumber (RedWolf52)
 def new_random_username(
     session: Session,
     wordlist: list[WordListItem],
@@ -42,6 +39,13 @@ def new_random_username(
     numbers: int = 2,
     slugify: bool = False,
 ):
+    """
+    Generates a new random username of the specified or default complexity,
+    ensuring it's not already claimed by a user.
+    Default complexity: ColourNounNumber (RedWolf52)
+
+    """
+
     if not (adjective or colour or noun or numbers):
         raise ValueError(
             "Must enable at least one username constituent (adjective, colour, noun, numbers)"
