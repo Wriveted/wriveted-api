@@ -1,7 +1,7 @@
 """Add defferable unique constraint for booklist order
 
 Revision ID: 2b4a649442a7
-Revises: d8b758fccb45
+Revises: 51f197c74186
 Create Date: 2022-05-19 18:02:38.472062
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '2b4a649442a7'
-down_revision = 'd8b758fccb45'
+down_revision = '51f197c74186'
 branch_labels = None
 depends_on = None
 
