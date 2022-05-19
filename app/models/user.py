@@ -67,6 +67,8 @@ class User(Base):
 
     name = Column(String, nullable=False)
 
+    username = Column(String, unique=True, index=True, nullable=True)
+
     # Social stuff: Twitter, Goodreads
     info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
