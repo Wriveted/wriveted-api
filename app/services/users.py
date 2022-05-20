@@ -1,14 +1,17 @@
 import csv
 import os
 import random
-from structlog import get_logger
+
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from structlog import get_logger
+
 from app import crud
 
 logger = get_logger()
 
 
-class WordListItem:
+class WordListItem(BaseModel):
     adjective: str
     colour: str
     noun: str
@@ -23,7 +26,7 @@ class WordList:
     def __enter__(self):
         self.file = open(self.filename)
         data = csv.DictReader(self.file)
-        wordlist = list(data)
+        wordlist = [WordListItem(**item) for item in data]
         return wordlist
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -77,11 +80,11 @@ def generate_random_username_from_wordlist(
     slug = "-" if slugify else ""
 
     if adjective:
-        name += random.choice(wordlist)["adjective"].title()
+        name += random.choice(wordlist).adjective.title()
     if colour:
-        name += (slug if name else "") + random.choice(wordlist)["colour"].title()
+        name += (slug if name else "") + random.choice(wordlist).colour.title()
     if noun:
-        name += (slug if name else "") + random.choice(wordlist)["noun"].title()
+        name += (slug if name else "") + random.choice(wordlist).noun.title()
     if numbers:
         name += (slug if name else "") + "".join(
             [str(random.randint(0, 9)) for i in range(numbers)]
