@@ -93,13 +93,19 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         # Deal with an item's position change
         if item_update.order_id is not None:
             old_position = item_orm_object.order_id
+
+            # This little gem tells postgresql to only check the constraints
+            # AFTER the whole transaction is ready to commit.
+            db.execute("SET CONSTRAINTS ALL DEFERRED")
+
             new_position = item_update.order_id
             if new_position < old_position:
                 # Change requested is to move an item up - towards 0 (the start of the list)
                 # E.g new_position=2, old_position=12
                 # We have to move every item down the list one from the new insertion point to the old point.
                 # Move every item greater than the new position but less than the old position down the list
-                # by one position.
+                # by one position (by adding one to their position/order_id)
+
                 stmt = (
                     update(BookListItem)
                     .where(BookListItem.booklist_id == booklist_id)

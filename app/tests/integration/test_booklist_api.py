@@ -487,6 +487,64 @@ def test_admin_can_remove_items_from_personal_booklist(
     )
 
 
+def test_reorder_item_up_booklist(client, backend_service_account_headers, works_list):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.OTHER_LIST,
+            "info": {"foo": 42},
+            "items": [{"work_id": w.id} for w in works_list[:20]],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to reorder a single item to the top of the list
+    edit_booklist_response = client.patch(
+        f"v1/lists/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [{"action": "update", "work_id": works_list[5].id, "order_id": 1}]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
+def test_reorder_item_down_booklist(
+    client, backend_service_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/lists",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.OTHER_LIST,
+            "info": {"foo": 42},
+            "items": [{"work_id": w.id} for w in works_list[:20]],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to reorder a few items
+    edit_booklist_response = client.patch(
+        f"v1/lists/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [{"action": "update", "work_id": works_list[5].id, "order_id": 10}]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+
+    ensure_booklist_order_continuous(
+        client, backend_service_account_headers, booklist_id
+    )
+
+
 def ensure_booklist_order_continuous(
     client, backend_service_account_headers, booklist_id
 ):
