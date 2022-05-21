@@ -11,7 +11,7 @@ from app.services.users import (
 )
 
 
-def test_generate_new_random_user_name(client):
+def test_generate_new_random_user_name():
     with WordList() as wordlist:
         assert isinstance(wordlist[0], WordListItem)
         output = generate_random_username_from_wordlist(
@@ -25,7 +25,7 @@ def test_generate_new_random_user_name(client):
     assert isinstance(output, str)
 
 
-def test_generate_random_user_name_from_fixed_list(client):
+def test_generate_random_user_name_from_fixed_list():
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
     output = generate_random_username_from_wordlist(
         wordlist=wordlist,
@@ -73,7 +73,7 @@ def test_generate_random_user_name_from_fixed_list(client):
     assert output[3:].isdigit()
 
 
-def test_generate_random_user_name_checks_existing_users(client, session):
+def test_generate_random_user_name_checks_existing_users(session):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
 
     for i in range(5):

@@ -7,8 +7,44 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.models.user import User
 
 logger = get_logger()
+
+
+def generate_random_users(session: Session, num_users: int, **kwargs):
+    """
+    Generate `num_users` new users with random usernames.
+
+    Any additional `kwargs` are passed directly to the `User` model, so
+    to add 100 students to a particular school:
+
+    >>> generate_random_users(session, 100, school_as_student=some_school, type=UserAccountType.STUDENT)
+
+    By default, `name` is set to a blank string, `is_active` is set to False. Pass
+    alternatives as kwargs.
+
+    Note this function adds users to the current transaction, but doesn't
+    commit the transaction.
+    """
+    # Default user arguments:
+    user_kwargs = {
+        "name": "",
+        "is_active": False,
+    }
+    user_kwargs.update(kwargs)
+    new_users = []
+    with WordList() as wordlist:
+        for i in range(num_users):
+            username = new_random_username(
+                session=session,
+                wordlist=wordlist,
+            )
+            user = User(username=username, **user_kwargs)
+            session.add(user)
+            session.flush()
+            new_users.append(user)
+    return new_users
 
 
 class WordListItem(BaseModel):
@@ -46,7 +82,6 @@ def new_random_username(
     Generates a new random username of the specified or default complexity,
     ensuring it's not already claimed by a user.
     Default complexity: ColourNounNumber (RedWolf52)
-
     """
 
     if not (adjective or colour or noun or numbers):
