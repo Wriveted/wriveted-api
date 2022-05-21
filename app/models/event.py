@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from fastapi_permissions import Allow, All
+from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property

@@ -1,9 +1,9 @@
-from typing import Any, List, Optional, Union
-from sqlalchemy import func
+from typing import Any, Optional, Union
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from structlog import get_logger
+
 from app.crud import CRUDBase
 from app.models import Event, ServiceAccount, User
 from app.models.event import EventLevel
