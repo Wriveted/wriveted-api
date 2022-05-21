@@ -63,6 +63,10 @@ class User(Base):
         index=True,
     )
 
+    school_as_admin = relationship(
+        "School", backref="admins", foreign_keys=[school_id_as_admin]
+    )
+
     email = Column(String, unique=True, index=True, nullable=True)
 
     name = Column(String, nullable=False)
