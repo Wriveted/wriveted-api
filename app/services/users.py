@@ -56,12 +56,17 @@ def new_random_username(
 
     name = ""
     name_valid = False
+    attempts_remaining = 1000
 
-    while not name_valid:
+    while not name_valid and attempts_remaining > 0:
         name = generate_random_username_from_wordlist(
             wordlist, adjective, colour, noun, numbers, slugify
         )
         name_valid = name and crud.user.get_by_username(session, name) is None
+        attempts_remaining -= 1
+
+    if attempts_remaining == 0:
+        raise ValueError("Couldn't generate a random user name")
 
     return name
 

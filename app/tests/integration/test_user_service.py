@@ -1,22 +1,124 @@
-from app.services.users import WordList, WordListItem, new_random_username
+import pytest
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
+from app.models import User
+from app.services.users import (
+    WordList,
+    WordListItem,
+    generate_random_username_from_wordlist,
+    new_random_username,
+)
 
 
-def test_generate_new_random_user_name(client, session):
-
+def test_generate_new_random_user_name(client):
     with WordList() as wordlist:
         assert isinstance(wordlist[0], WordListItem)
-        output = new_random_username(session=session, wordlist=wordlist)
-
+        output = generate_random_username_from_wordlist(
+            wordlist=wordlist,
+            adjective=False,
+            colour=False,
+            noun=True,
+            numbers=0,
+            slugify=False,
+        )
     assert isinstance(output, str)
 
 
-def test_generate_random_user_name_from_fixed_list(client, session):
+def test_generate_random_user_name_from_fixed_list(client):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
+    output = generate_random_username_from_wordlist(
+        wordlist=wordlist,
+        adjective=False,
+        colour=False,
+        noun=True,
+        numbers=0,
+        slugify=False,
+    )
+    assert isinstance(output, str)
+    assert output.startswith("N")
 
-    output = new_random_username(session=session, wordlist=wordlist)
+    output = generate_random_username_from_wordlist(
+        wordlist=wordlist,
+        adjective=False,
+        colour=True,
+        noun=True,
+        numbers=0,
+        slugify=False,
+    )
     assert isinstance(output, str)
     assert output.startswith("CN")
 
-    output = new_random_username(session=session, wordlist=wordlist, adjective=True)
+    output = generate_random_username_from_wordlist(
+        wordlist=wordlist,
+        adjective=True,
+        colour=True,
+        noun=True,
+        numbers=0,
+        slugify=False,
+    )
+    assert isinstance(output, str)
+    assert output == "ACN"
+    output = generate_random_username_from_wordlist(
+        wordlist=wordlist,
+        adjective=True,
+        colour=True,
+        noun=True,
+        numbers=2,
+        slugify=False,
+    )
+
     assert isinstance(output, str)
     assert output.startswith("ACN")
+    assert output[3:].isdigit()
+
+
+def test_generate_random_user_name_checks_existing_users(client, session):
+    wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
+
+    for i in range(5):
+        session.add(User(name=f"TestUser{i}", username=f"ACN{i}", email=f"ACN{i}"))
+
+    # Ensure the database has all these supposed existing users in the current transaction
+    session.flush()
+
+    # Manually check db knows about them:
+    # print(session.scalars(select(User.username).where(User.username.is_not(None))).all())
+
+    for i in range(5):
+        output = new_random_username(
+            session=session,
+            wordlist=wordlist,
+            adjective=True,
+            colour=True,
+            noun=True,
+            numbers=1,
+            slugify=False,
+        )
+        session.add(User(name=f"TestUser{i}", username=output, email=output))
+
+        # Should be all fine to here - send everything to the db to check
+        session.flush()
+
+    print(
+        session.scalars(select(User.username).where(User.username.is_not(None))).all()
+    )
+
+    # Trigger impossible to satisfy demand
+    with pytest.raises(ValueError):
+        impossible = new_random_username(
+            session=session,
+            wordlist=wordlist,
+            adjective=True,
+            colour=True,
+            noun=True,
+            numbers=1,
+            slugify=False,
+        )
+
+    # Finally, check that the username unique constraint is enforced:
+    with pytest.raises(IntegrityError):
+        session.add(User(name=f"TestUser", username=output, email="a-new-email"))
+        session.flush()
+
+    session.rollback()
