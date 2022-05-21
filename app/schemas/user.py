@@ -49,6 +49,7 @@ class UsersSchool(BaseModel):
 class UserIdentity(BaseModel):
     id: UUID4
     name: str
+    username: str | None
     type: UserAccountType
 
     class Config:
