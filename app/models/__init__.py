@@ -17,3 +17,5 @@ from .series import Series
 from .service_account import ServiceAccount, ServiceAccountType
 from .user import User
 from .work import Work
+from .user_group import UserGroup
+from .user_group_association import UserGroupMembership
