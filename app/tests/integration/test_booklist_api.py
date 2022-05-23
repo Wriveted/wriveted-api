@@ -15,7 +15,7 @@ def test_create_empty_booklist_invalid_data_returns_validation_error(
     client, backend_service_account_headers
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={"name": "my almost valid booklist", "type": "an invalid book list type"},
     )
@@ -24,7 +24,7 @@ def test_create_empty_booklist_invalid_data_returns_validation_error(
 
 def test_create_empty_booklist(client, test_user_account_headers):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={"name": "empty wishes", "type": ListType.PERSONAL},
     )
@@ -35,7 +35,7 @@ def test_create_empty_booklist(client, test_user_account_headers):
     assert "id" in data
 
     detail_response = client.get(
-        f"v1/lists/{data['id']}", headers=test_user_account_headers
+        f"v1/list/{data['id']}", headers=test_user_account_headers
     )
 
     assert detail_response.status_code == status.HTTP_200_OK
@@ -56,7 +56,7 @@ def test_school_admin_can_create_school_booklist(
     client, admin_of_test_school, test_user_account_headers, works_list
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "wizard wishes",
@@ -69,7 +69,7 @@ def test_school_admin_can_create_school_booklist(
 
     assert response.status_code == status.HTTP_200_OK
     detail_response = client.get(
-        f"v1/lists/{response.json()['id']}",
+        f"v1/list/{response.json()['id']}",
         params={"limit": 10},
         headers=test_user_account_headers,
     )
@@ -84,7 +84,7 @@ def test_user_account_can_create_personal_booklist(
     client, test_user_account_headers, works_list
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "wizard wishes",
@@ -97,7 +97,7 @@ def test_user_account_can_create_personal_booklist(
 
     assert response.status_code == status.HTTP_200_OK
     detail_response = client.get(
-        f"v1/lists/{response.json()['id']}",
+        f"v1/list/{response.json()['id']}",
         params={"limit": 10},
         headers=test_user_account_headers,
     )
@@ -110,7 +110,7 @@ def test_user_account_can_create_personal_booklist(
 
 def test_create_booklist(client, backend_service_account_headers, works_list):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -127,7 +127,7 @@ def test_create_booklist(client, backend_service_account_headers, works_list):
     assert "data" not in data
 
     detail_response = client.get(
-        f"v1/lists/{data['id']}",
+        f"v1/list/{data['id']}",
         params={"limit": 10},
         headers=backend_service_account_headers,
     )
@@ -154,7 +154,7 @@ def test_anyone_can_create_personal_booklist(
     client, test_user_account_headers, works_list
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "my absolute must reads",
@@ -171,7 +171,7 @@ def test_anyone_can_create_personal_booklist(
     assert "data" not in data
 
     detail_response = client.get(
-        f"v1/lists/{data['id']}",
+        f"v1/list/{data['id']}",
         params={"limit": 10},
         headers=test_user_account_headers,
     )
@@ -198,7 +198,7 @@ def test_create_school_booklist_without_positions(
     client, admin_of_test_school_headers, works_list
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=admin_of_test_school_headers,
         json={
             "name": "wizard wishes",
@@ -218,7 +218,7 @@ def test_create_booklist_with_item_info(
     client, admin_of_test_school_headers, works_list
 ):
     response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=admin_of_test_school_headers,
         json={
             "name": "wizard wishes",
@@ -236,7 +236,7 @@ def test_create_booklist_with_item_info(
 
 def test_rename_personal_booklist(client, test_user_account_headers, works_list):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "wizard wishes",
@@ -250,7 +250,7 @@ def test_rename_personal_booklist(client, test_user_account_headers, works_list)
 
     # Now patch it to change the name
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=test_user_account_headers,
         json={"name": "witches wonders"},
     )
@@ -262,7 +262,7 @@ def test_user_cant_rename_huey_booklist(
     client, backend_service_account_headers, test_user_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "witches wants",
@@ -276,7 +276,7 @@ def test_user_cant_rename_huey_booklist(
 
     # Now if a normal user tries to patch it to change the name:
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=test_user_account_headers,
         json={"name": "witches wonders"},
     )
@@ -285,7 +285,7 @@ def test_user_cant_rename_huey_booklist(
 
 def test_user_cant_create_huey_booklist(client, test_user_account_headers, works_list):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "what does this button do",
@@ -302,7 +302,7 @@ def test_user_cant_create_region_booklist(
     client, test_user_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=test_user_account_headers,
         json={
             "name": "what does this button do",
@@ -317,7 +317,7 @@ def test_user_cant_create_region_booklist(
 
 def test_change_booklist_type(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -333,7 +333,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
 
     # Now patch it to change the type
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "type": ListType.REGION,
@@ -345,7 +345,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
     assert edit_booklist_response.json()["type"] == ListType.REGION
 
     detail_booklist_response = client.get(
-        f"v1/lists/{booklist_id}", headers=backend_service_account_headers
+        f"v1/list/{booklist_id}", headers=backend_service_account_headers
     )
     print(detail_booklist_response.json())
     assert detail_booklist_response.status_code == 200
@@ -357,7 +357,7 @@ def test_change_booklist_type(client, backend_service_account_headers, works_lis
 
 def test_add_items_to_booklist(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -372,7 +372,7 @@ def test_add_items_to_booklist(client, backend_service_account_headers, works_li
 
     # Now patch it to add new items
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [
@@ -392,7 +392,7 @@ def test_add_items_without_position_to_booklist(
     client, backend_service_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -405,7 +405,7 @@ def test_add_items_without_position_to_booklist(
 
     # Now patch it to add new items
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [
@@ -425,7 +425,7 @@ def test_remove_missing_items_from_booklist(
     client, backend_service_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -440,7 +440,7 @@ def test_remove_missing_items_from_booklist(
 
     # Now patch it to remove items that were never in the book list - should be ignored
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [{"action": "remove", "work_id": w.id} for w in works_list[20:]]
@@ -457,7 +457,7 @@ def test_admin_can_remove_items_from_personal_booklist(
     client, test_user_account, backend_service_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -474,7 +474,7 @@ def test_admin_can_remove_items_from_personal_booklist(
 
     # Now patch it to remove items
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [{"action": "remove", "work_id": w.id} for w in works_list[10:20]]
@@ -489,7 +489,7 @@ def test_admin_can_remove_items_from_personal_booklist(
 
 def test_reorder_item_up_booklist(client, backend_service_account_headers, works_list):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -502,7 +502,7 @@ def test_reorder_item_up_booklist(client, backend_service_account_headers, works
 
     # Now patch it to reorder a single item to the top of the list
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [{"action": "update", "work_id": works_list[5].id, "order_id": 1}]
@@ -519,7 +519,7 @@ def test_reorder_item_down_booklist(
     client, backend_service_account_headers, works_list
 ):
     create_booklist_response = client.post(
-        "v1/lists",
+        "v1/list",
         headers=backend_service_account_headers,
         json={
             "name": "wizard wishes",
@@ -532,7 +532,7 @@ def test_reorder_item_down_booklist(
 
     # Now patch it to reorder a few items
     edit_booklist_response = client.patch(
-        f"v1/lists/{booklist_id}",
+        f"v1/list/{booklist_id}",
         headers=backend_service_account_headers,
         json={
             "items": [{"action": "update", "work_id": works_list[5].id, "order_id": 10}]
@@ -550,7 +550,7 @@ def ensure_booklist_order_continuous(
 ):
     # check order is continuous
     detail_booklist_response = client.get(
-        f"v1/lists/{booklist_id}", headers=backend_service_account_headers
+        f"v1/list/{booklist_id}", headers=backend_service_account_headers
     )
     detail = detail_booklist_response.json()
     positions = [item["order_id"] for item in detail["data"]]

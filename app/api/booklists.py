@@ -47,7 +47,7 @@ bulk_booklist_access_control_list = [
 
 
 @router.post(
-    "/lists",
+    "/list",
     dependencies=[
         Permission("create", bulk_booklist_access_control_list),
     ],
@@ -195,7 +195,7 @@ async def get_booklists(
 
 
 @router.get(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListDetail,
 )
 async def get_booklist_detail(
@@ -217,7 +217,7 @@ async def get_booklist_detail(
 
 
 @router.patch(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListBrief,
 )
 async def update_booklist(
@@ -235,7 +235,7 @@ async def update_booklist(
 
 
 @router.delete(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListBrief,
 )
 async def delete_booklist(
