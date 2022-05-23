@@ -2,12 +2,11 @@ from datetime import datetime
 from typing import List, Optional
 
 from pydantic import UUID4, BaseModel, validator
+from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models import ServiceAccountType
 from app.schemas.event import EventBrief
 from app.schemas.school import SchoolIdentity, SchoolWrivetedIdentity
-
-from sqlalchemy.orm.dynamic import AppenderQuery
 
 
 class ServiceAccountBrief(BaseModel):

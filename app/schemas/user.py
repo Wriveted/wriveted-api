@@ -1,13 +1,12 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
+from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
-
-from sqlalchemy.orm.dynamic import AppenderQuery
 
 
 class UserPatchOptions(BaseModel):
@@ -50,6 +49,7 @@ class UsersSchool(BaseModel):
 class UserIdentity(BaseModel):
     id: UUID4
     name: str
+    username: str | None
     type: UserAccountType
 
     class Config:
@@ -60,7 +60,6 @@ class UserBrief(UserIdentity):
     email: str
     is_active: bool
     last_login_at: Optional[datetime]
-    school_id_as_admin: Optional[str]
     school_as_admin: Optional[UsersSchool]
 
 

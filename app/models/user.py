@@ -63,7 +63,11 @@ class User(Base):
         index=True,
     )
 
-    email = Column(String, unique=True, index=True, nullable=False)
+    school_as_admin = relationship(
+        "School", backref="admins", foreign_keys=[school_id_as_admin]
+    )
+
+    email = Column(String, unique=True, index=True, nullable=True)
 
     name = Column(String, nullable=False)
 
@@ -103,7 +107,8 @@ class User(Base):
             summary += f" (Admin of school {self.school_id_as_admin}) "
         if self.school_as_student is not None:
             summary += f" (Student of school {self.school_as_student}) "
-        return f"<User {self.name} - {summary}>"
+
+        return f"<User {self.name if self.name else self.username} - {summary}>"
 
     def __acl__(self):
         """defines who can do what to the instance

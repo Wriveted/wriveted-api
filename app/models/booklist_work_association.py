@@ -5,8 +5,8 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    func,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship

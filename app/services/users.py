@@ -1,14 +1,53 @@
 import csv
 import os
 import random
-from structlog import get_logger
+
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from structlog import get_logger
+
 from app import crud
+from app.models.user import User
 
 logger = get_logger()
 
 
-class WordListItem:
+def generate_random_users(session: Session, num_users: int, **kwargs):
+    """
+    Generate `num_users` new users with random usernames.
+
+    Any additional `kwargs` are passed directly to the `User` model, so
+    to add 100 students to a particular school:
+
+    >>> generate_random_users(session, 100, school_as_student=some_school, type=UserAccountType.STUDENT)
+
+    By default, `name` is set to a blank string, `is_active` is set to False. Pass
+    alternatives as kwargs.
+
+    Note this function adds users to the current transaction, but doesn't
+    commit the transaction.
+    """
+    # Default user arguments:
+    user_kwargs = {
+        "name": "",
+        "is_active": False,
+    }
+    user_kwargs.update(kwargs)
+    new_users = []
+    with WordList() as wordlist:
+        for i in range(num_users):
+            username = new_random_username(
+                session=session,
+                wordlist=wordlist,
+            )
+            user = User(username=username, **user_kwargs)
+            session.add(user)
+            session.flush()
+            new_users.append(user)
+    return new_users
+
+
+class WordListItem(BaseModel):
     adjective: str
     colour: str
     noun: str
@@ -23,7 +62,7 @@ class WordList:
     def __enter__(self):
         self.file = open(self.filename)
         data = csv.DictReader(self.file)
-        wordlist = list(data)
+        wordlist = [WordListItem(**item) for item in data]
         return wordlist
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -43,7 +82,6 @@ def new_random_username(
     Generates a new random username of the specified or default complexity,
     ensuring it's not already claimed by a user.
     Default complexity: ColourNounNumber (RedWolf52)
-
     """
 
     if not (adjective or colour or noun or numbers):
@@ -53,12 +91,17 @@ def new_random_username(
 
     name = ""
     name_valid = False
+    attempts_remaining = 1000
 
-    while not name_valid:
+    while not name_valid and attempts_remaining > 0:
         name = generate_random_username_from_wordlist(
             wordlist, adjective, colour, noun, numbers, slugify
         )
         name_valid = name and crud.user.get_by_username(session, name) is None
+        attempts_remaining -= 1
+
+    if attempts_remaining == 0:
+        raise ValueError("Couldn't generate a random user name")
 
     return name
 
@@ -77,11 +120,11 @@ def generate_random_username_from_wordlist(
     slug = "-" if slugify else ""
 
     if adjective:
-        name += random.choice(wordlist)["adjective"].title()
+        name += random.choice(wordlist).adjective.title()
     if colour:
-        name += (slug if name else "") + random.choice(wordlist)["colour"].title()
+        name += (slug if name else "") + random.choice(wordlist).colour.title()
     if noun:
-        name += (slug if name else "") + random.choice(wordlist)["noun"].title()
+        name += (slug if name else "") + random.choice(wordlist).noun.title()
     if numbers:
         name += (slug if name else "") + "".join(
             [str(random.randint(0, 9)) for i in range(numbers)]

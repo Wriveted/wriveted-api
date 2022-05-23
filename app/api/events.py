@@ -1,7 +1,7 @@
 from typing import List, Union
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 from starlette import status
@@ -10,8 +10,8 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
-    get_current_active_user_or_service_account,
     get_active_principals,
+    get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
 from app.models.event import EventLevel
@@ -19,7 +19,6 @@ from app.models.service_account import ServiceAccount
 from app.models.user import User
 from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail
-
 
 logger = get_logger()
 
