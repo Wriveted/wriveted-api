@@ -128,10 +128,10 @@ class School(Base):
     events = relationship("Event", back_populates="school", lazy="dynamic")
 
     # The primary admin for the school, but note other users could also be an admin for the school
-    # via the user table's `school_as_admin` column.
-    admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    admin = relationship(
-        "User",
+    # via the school_admins table's `school_id` column.
+    admin_id = Column(UUID(as_uuid=True), ForeignKey("school_admins.id"))
+    primary_admin = relationship(
+        "SchoolAdmin",
         foreign_keys=[admin_id],
     )
 
