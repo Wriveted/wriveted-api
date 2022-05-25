@@ -18,7 +18,8 @@ from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
 from app.schemas.event import EventCreateIn
-from app.schemas.event_detail import EventDetail
+from app.schemas.event_detail import EventDetail, EventListsResponse
+from app.schemas.pagination import Pagination
 
 logger = get_logger()
 
@@ -60,7 +61,7 @@ async def create(
     )
 
 
-@router.get("/events", response_model=List[EventDetail])
+@router.get("/events", response_model=EventListsResponse)
 async def get_events(
     query: str = None,
     level: EventLevel = None,
@@ -143,4 +144,8 @@ async def get_events(
         logger.info(
             f"Filtering out {len(events)-len(filtered_events)} events", account=account
         )
-    return filtered_events
+
+    return EventListsResponse(
+        pagination=Pagination(**pagination.to_dict(), total=None),
+        data=filtered_events
+    )
