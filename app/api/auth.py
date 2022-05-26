@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Union
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_cloudauth.firebase import FirebaseClaims, FirebaseCurrentUser
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,8 +17,9 @@ from app.api.dependencies.security import (
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import EventLevel, ServiceAccount, User
+from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
-from app.schemas.user import UserCreateIn
+from app.schemas.user import UserCreateIn, UserIdentity
 from app.services.security import TokenPayload
 
 logger = get_logger()
@@ -122,6 +124,95 @@ def secure_user_endpoint(
         "access_token": wriveted_access_token,
         "token_type": "bearer",
     }
+
+
+@router.post(
+    "/auth/class-code",
+    responses={
+        401: {"description": "Unauthorized"},
+        422: {"description": "Invalid data"},
+    },
+)
+def student_user_auth(
+    username: str,
+    class_joining_code: str,
+    session: Session = Depends(get_session),
+):
+    """Login to Wriveted API as a student by posting a valid username and class code.
+
+    This API is used to create access tokens for existing student users.
+
+    The generated access token is a JSON Web Token (JWT) which contains a user specific unique
+    identifier so Wriveted can recognize the user when that access token is provided as part of
+    an API call.
+
+    Note this API doesn't create new users.
+    """
+
+    # Get the class by joining code or 401
+    # Get the associated school
+    # Get the user by username - if the school doesn't match -> 401
+
+
+    # TODO check the school + user is active else 403 (difference being the server knows who you are)
+
+    # If the user has been removed from the class we log them in anyway
+
+    pass
+
+
+@router.post(
+    "/auth/register-student",
+    response_model=UserIdentity
+)
+def create_student_user(
+    first_name: str,
+    last_initial: str,
+    school_id: UUID,
+    class_joining_code: str,
+    session: Session = Depends(get_session),
+):
+    """Create a new student account associated with a school by posting a valid class code.
+
+    The generated access token is a JSON Web Token (JWT) which contains a user specific unique
+    identifier so Wriveted can recognize the user when that access token is provided as part of
+    an API call.
+
+    Note this API always creates a new user, to log in to an existing account see `/auth/class-code`
+    """
+
+    school = crud.school.get_by_wriveted_id_or_404(
+        db=session, wriveted_id=school_id
+    )
+
+    # TODO check the class joining code belongs to this school
+
+    # TODO generate a valid username based on the name
+    name = f'{first_name} {last_initial}'
+    username = ...
+
+    new_user = User(
+        type=UserAccountType.STUDENT,
+        name=name,
+        email=None,
+        username=username,
+        info={
+            "sign_in_provider": "class-code"
+        },
+    )
+
+    crud.event.create(
+        session=session,
+        title="Student account created",
+        description=f"",
+        account=new_user,
+        school=school,
+        commit=False,
+    )
+    session.commit()
+    session.refresh(new_user)
+
+    return new_user
 
 
 @router.get("/auth/me", response_model=AuthenticatedAccountBrief)
