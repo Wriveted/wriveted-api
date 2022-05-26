@@ -83,9 +83,7 @@ async def add_booklist(
         else:
             logger.debug("Seeing if the caller is clearly associated with *one* school")
             if isinstance(account, User) and account.school_id is not None:
-                school_orm = crud.school.get_by_id_or_404(
-                    session, id=account.school_id
-                )
+                school_orm = crud.school.get_by_id_or_404(session, id=account.school_id)
             elif isinstance(account, ServiceAccount) and len(account.schools) == 1:
                 school_orm = account.schools[0]
             else:
