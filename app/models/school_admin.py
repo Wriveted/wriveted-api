@@ -47,7 +47,7 @@ class SchoolAdmin(User):
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
         school = f"(Admin of {self.school})" if self.school else "(Not a school admin)"
-        return f"<SchoolAdmin {self.name} - {school} - {active}>"
+        return f"<SchoolAdmin {self.name if self.name else self.username} - {school} - {active}>"
 
     def __acl__(self):
         """defines who can do what to the instance

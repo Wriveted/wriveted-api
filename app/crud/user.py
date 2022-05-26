@@ -1,4 +1,5 @@
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
+from fastapi import Query
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
@@ -6,7 +7,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
-from app.models import User
+from app.models import User, SchoolAdmin, WrivetedAdmin, Student
 from app.models.user import UserAccountType
 from app.schemas.user import UserCreateIn, UserUpdateIn
 
@@ -16,6 +17,27 @@ logger = get_logger()
 class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
     # TODO handle create student account linked to school
+
+    # ----CRUD override----
+
+    def get_query(self, db: Session, id: Any) -> Query:
+        query = select(User).where(User.id == id)
+        user = db.execute(query).scalar_one_or_none()
+
+        if not user:
+            return query
+
+        match user.type:
+            case UserAccountType.LIBRARY:
+                return select(SchoolAdmin).where(SchoolAdmin.id == id)
+            case UserAccountType.WRIVETED:
+                return select(WrivetedAdmin).where(WrivetedAdmin.id == id)
+            case UserAccountType.STUDENT:
+                return select(Student).where(Student.id == id)
+            case _:
+                return query
+
+    # ---------------------
 
     def get_or_create(
         self, db: Session, user_data: UserCreateIn, commit=True
