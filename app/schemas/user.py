@@ -7,6 +7,7 @@ from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
+from app.schemas.recommendations import ReadingAbilityKey
 
 
 class UserPatchOptions(BaseModel):
@@ -14,11 +15,17 @@ class UserPatchOptions(BaseModel):
 
 
 class UserInfo(BaseModel):
-    sign_in_provider: Optional[str]
+    sign_in_provider: str | None
 
     # hoping pictures won't be base64 strings
-    picture: Optional[AnyHttpUrl]
-    other: Optional[dict]
+    picture: AnyHttpUrl | None
+    other: dict | None
+
+
+class StudentInfo(BaseModel):
+    reading_ability_preference: ReadingAbilityKey | None
+    age: int | None
+    other: dict | None
 
 
 class UserCreateIn(BaseModel):
@@ -28,16 +35,16 @@ class UserCreateIn(BaseModel):
 
 
 class UserUpdateIn(BaseModel):
-    name: Optional[str]
-    is_active: Optional[bool]
-    type: Optional[UserAccountType]
+    name: str | None
+    is_active: bool | None
+    type: UserAccountType | None
     # school: Optional[SchoolBrief]
-    info: Optional[UserInfo]
+    info: UserInfo | None
 
 
 class UsersSchool(BaseModel):
     wriveted_identifier: UUID
-    official_identifier: Optional[str]
+    official_identifier: str | None
     country_code: str
     name: str
     collection_count: int
@@ -56,15 +63,33 @@ class UserIdentity(BaseModel):
         orm_mode = True
 
 
+class StudentIdentity(UserIdentity):
+    first_name: str
+    last_name_initial: str
+
+
 class UserBrief(UserIdentity):
     email: str
     is_active: bool
-    last_login_at: Optional[datetime]
-    school_as_admin: Optional[UsersSchool]
+    last_login_at: datetime | None
+
+
+class StudentBrief(UserBrief):
+    school: UsersSchool | None
+    # class_group: ClassGroupBrief | None
+
+
+class SchoolAdminBrief(UserBrief):
+    school: UsersSchool | None
+    # class_group: ClassGroupBrief | None
+
+
+class WrivetedAdminBrief(UserBrief):
+    pass
 
 
 class UserDetail(UserBrief):
-    info: Optional[UserInfo]
+    info: UserInfo | None
 
     created_at: datetime
     updated_at: datetime
@@ -76,3 +101,15 @@ class UserDetail(UserBrief):
     @validator("events", pre=True)
     def limit_events(cls, v):
         return v[:10] if isinstance(v, AppenderQuery) else v
+
+
+class StudentDetail(UserDetail, StudentBrief):
+    student_info: StudentInfo | None
+
+
+class SchoolAdminDetail(UserDetail, SchoolAdminBrief):
+    school_admin_info: dict | None
+
+
+class WrivetedAdminDetail(UserDetail, WrivetedAdminBrief):
+    wriveted_admin_info: dict | None
