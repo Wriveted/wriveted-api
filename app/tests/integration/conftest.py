@@ -249,7 +249,7 @@ def test_school_with_collection(
 
 @pytest.fixture()
 def admin_of_test_school(session, test_school, test_user_account):
-    test_user_account.school_id_as_admin = test_school.id
+    test_user_account.school_id = test_school.id
     session.add(test_user_account)
     session.commit()
     yield test_user_account

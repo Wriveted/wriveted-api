@@ -199,6 +199,15 @@ def get_active_principals(
             case UserAccountType.LIBRARY:
                 principals.append("role:library")
                 principals.append("role:school")
+                if user.school_id is not None:
+                    principals.append(f"school:{user.school_id}")
+                    principals.append(f"teacher:{user.school_id}")
+            case UserAccountType.STUDENT:
+                principals.append("role:student")
+                principals.append("role:school")
+                if user.school_id is not None:
+                    principals.append(f"school:{user.school_id}")
+                    principals.append(f"student:{user.school_id}")
 
             case UserAccountType.PUBLIC:
                 # No special roles given to the default public
@@ -207,16 +216,6 @@ def get_active_principals(
 
         # All users have a user specific role:
         principals.append(f"user:{user.id}")
-
-        # Users can optionally be associated with a school
-        # Either as a teacher
-        if user.school_id_as_admin is not None:
-            principals.append(f"school:{user.school_id_as_admin}")
-            principals.append(f"teacher:{user.school_id_as_admin}")
-        # Or a student:
-        if user.school_id_as_student is not None:
-            principals.append(f"school:{user.school_id_as_student}")
-            principals.append(f"student:{user.school_id_as_student}")
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account

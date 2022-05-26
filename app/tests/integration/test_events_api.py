@@ -25,7 +25,7 @@ def test_get_school_events_as_user(
 ):
 
     school_id = test_school.wriveted_identifier
-    assert test_user_account.school_id_as_student is None
+    assert test_user_account.school_id is None
 
     # Shouldn't be able to filter by the school:
     get_events_response = client.get(
