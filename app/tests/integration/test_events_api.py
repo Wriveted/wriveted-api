@@ -21,17 +21,17 @@ def test_get_school_events_as_school_admin(
 
 
 def test_get_school_events_as_user(
-    client, test_school, test_user_account, test_user_account_headers
+    client, test_school, test_schooladmin_account, test_schooladmin_account_headers
 ):
 
     school_id = test_school.wriveted_identifier
-    assert test_user_account.school_id is None
+    assert test_schooladmin_account.school_id is None
 
     # Shouldn't be able to filter by the school:
     get_events_response = client.get(
         f"/v1/events",
         params={"school_id": school_id},
-        headers=test_user_account_headers,
+        headers=test_schooladmin_account_headers,
     )
 
     assert get_events_response.status_code == status.HTTP_403_FORBIDDEN
