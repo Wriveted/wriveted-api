@@ -31,7 +31,16 @@ class StudentInfo(BaseModel):
 class UserCreateIn(BaseModel):
     name: str
     email: EmailStr
-    info: Optional[UserInfo]
+    info: UserInfo | None
+    type: UserAccountType | None
+
+
+class SchoolAdminCreateIn(UserCreateIn):
+    school_id: str | None
+
+
+class StudentAdminCreateIn(UserCreateIn):
+    school_id: str | None
 
 
 class UserUpdateIn(BaseModel):
