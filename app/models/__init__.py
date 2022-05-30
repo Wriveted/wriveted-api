@@ -16,4 +16,7 @@ from .school import School, SchoolState
 from .series import Series
 from .service_account import ServiceAccount, ServiceAccountType
 from .user import User
+from .student import Student
+from .school_admin import SchoolAdmin
+from .wriveted_admin import WrivetedAdmin
 from .work import Work

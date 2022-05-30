@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
 from app.models import CollectionItem, Event, School, User
+from app.models.school_admin import SchoolAdmin
+from app.models.student import Student
 from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
 
 
@@ -113,16 +115,16 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         # Deactivate and unlink any student users that were linked to this school
         # This seems safer than deleting them...
         stmt = (
-            update(User)
-            .where(User.school_id_as_student == obj_in.id)
-            .values(school_id_as_student=None, is_active=False)
+            update(Student)
+            .where(Student.school_id == obj_in.id)
+            .values(school_id=None, is_active=False)
         )
         db.execute(stmt)
         # Do the same for admin users
         stmt = (
-            update(User)
-            .where(User.school_id_as_admin == obj_in.id)
-            .values(school_id_as_admin=None, is_active=False)
+            update(SchoolAdmin)
+            .where(SchoolAdmin.school_id == obj_in.id)
+            .values(school_id=None, is_active=False)
         )
         db.execute(stmt)
 

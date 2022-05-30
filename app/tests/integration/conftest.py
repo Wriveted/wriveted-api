@@ -11,10 +11,11 @@ from app.api.dependencies.security import create_user_access_token
 from app.db.session import get_session
 from app.main import app, get_settings
 from app.models import School, ServiceAccountType
+from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
-from app.schemas.user import UserCreateIn
+from app.schemas.user import SchoolAdminCreateIn, UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
 from app.services.security import create_access_token
@@ -62,7 +63,7 @@ def test_user_account(session):
     user = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
-            name="school integration test account",
+            name="integration test account (public)",
             email=f"{random_lower_string(6)}@test.com",
         ),
     )
@@ -71,16 +72,31 @@ def test_user_account(session):
 
 
 @pytest.fixture()
-def test_user_accounts(session):
-    user = crud.user.create(
+def test_schooladmin_account(session):
+    schooladmin = crud.user.create(
         db=session,
-        obj_in=UserCreateIn(
-            name="school integration test account",
+        obj_in=SchoolAdminCreateIn(
+            name="integration test account (school admin)",
             email=f"{random_lower_string(6)}@test.com",
+            type=UserAccountType.LIBRARY,
         ),
     )
-    yield user
-    session.delete(user)
+    yield schooladmin
+    session.delete(schooladmin)
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account(session):
+    wrivetedadmin = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="integration test account (wriveted admin)",
+            email=f"{random_lower_string(6)}@test.com",
+            type=UserAccountType.WRIVETED,
+        ),
+    )
+    yield wrivetedadmin
+    session.delete(wrivetedadmin)
 
 
 @pytest.fixture()
@@ -106,6 +122,26 @@ def test_user_account_token(test_user_account):
 
 
 @pytest.fixture()
+def test_schooladmin_account_token(test_schooladmin_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_schooladmin_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
+    return access_token
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account_token(test_wrivetedadmin_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_wrivetedadmin_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
+    return access_token
+
+
+@pytest.fixture()
 def backend_service_account_headers(backend_service_account_token):
     return {"Authorization": f"bearer {backend_service_account_token}"}
 
@@ -113,6 +149,21 @@ def backend_service_account_headers(backend_service_account_token):
 @pytest.fixture()
 def test_user_account_headers(test_user_account_token):
     return {"Authorization": f"bearer {test_user_account_token}"}
+
+
+@pytest.fixture()
+def test_user_account_headers(test_user_account_token):
+    return {"Authorization": f"bearer {test_user_account_token}"}
+
+
+@pytest.fixture()
+def test_schooladmin_account_headers(test_schooladmin_account_token):
+    return {"Authorization": f"bearer {test_schooladmin_account_token}"}
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account_headers(test_wrivetedadmin_account_token):
+    return {"Authorization": f"bearer {test_wrivetedadmin_account_token}"}
 
 
 @pytest.fixture()
@@ -248,11 +299,11 @@ def test_school_with_collection(
 
 
 @pytest.fixture()
-def admin_of_test_school(session, test_school, test_user_account):
-    test_user_account.school_id_as_admin = test_school.id
-    session.add(test_user_account)
+def admin_of_test_school(session, test_school, test_schooladmin_account):
+    test_schooladmin_account.school_id = test_school.id
+    session.add(test_schooladmin_account)
     session.commit()
-    yield test_user_account
+    yield test_schooladmin_account
 
 
 @pytest.fixture()

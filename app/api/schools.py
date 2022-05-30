@@ -213,7 +213,7 @@ async def bind_school(
         )
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.id
+    user.school_id = school.id
     session.commit()
 
     return school.admin_id

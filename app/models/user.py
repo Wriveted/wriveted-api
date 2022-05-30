@@ -38,7 +38,9 @@ class User(Base):
         index=True,
         nullable=False,
     )
+
     is_active = Column(Boolean(), default=True)
+
     type = Column(
         Enum(UserAccountType, name="enum_user_account_type"),
         nullable=False,
@@ -46,29 +48,14 @@ class User(Base):
         default=UserAccountType.PUBLIC,
     )
 
-    school_id_as_student = Column(
-        Integer,
-        ForeignKey("schools.id", name="fk_student_school"),
-        nullable=True,
-        index=True,
-    )
-    school_as_student = relationship(
-        "School", backref="students", foreign_keys=[school_id_as_student]
-    )
-
-    school_id_as_admin = Column(
-        Integer,
-        ForeignKey("schools.id", name="fk_admin_school"),
-        nullable=True,
-        index=True,
-    )
-
-    school_as_admin = relationship(
-        "School", backref="admins", foreign_keys=[school_id_as_admin]
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": UserAccountType.PUBLIC,
+        "polymorphic_on": type,
+    }
 
     email = Column(String, unique=True, index=True, nullable=True)
 
+    # overall "name" string, most likely provided by SSO
     name = Column(String, nullable=False)
 
     username = Column(String, unique=True, index=True, nullable=True)
@@ -103,11 +90,6 @@ class User(Base):
         if self.type == UserAccountType.WRIVETED:
             summary += " superuser "
 
-        if self.school_id_as_admin is not None:
-            summary += f" (Admin of school {self.school_id_as_admin}) "
-        if self.school_as_student is not None:
-            summary += f" (Student of school {self.school_as_student}) "
-
         return f"<User {self.name if self.name else self.username} - {summary}>"
 
     def __acl__(self):
@@ -123,5 +105,5 @@ class User(Base):
         return [
             (Allow, f"user:{self.id}", All),
             (Allow, "role:admin", All),
-            (Allow, "role:library", "read"),
+            # (Allow, "role:library", "read"),
         ]
