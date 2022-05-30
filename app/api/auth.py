@@ -153,7 +153,6 @@ def student_user_auth(
     # Get the associated school
     # Get the user by username - if the school doesn't match -> 401
 
-
     # TODO check the school + user is active else 403 (difference being the server knows who you are)
 
     # If the user has been removed from the class we log them in anyway
@@ -161,10 +160,7 @@ def student_user_auth(
     pass
 
 
-@router.post(
-    "/auth/register-student",
-    response_model=UserIdentity
-)
+@router.post("/auth/register-student", response_model=UserIdentity)
 def create_student_user(
     first_name: str,
     last_initial: str,
@@ -181,14 +177,12 @@ def create_student_user(
     Note this API always creates a new user, to log in to an existing account see `/auth/class-code`
     """
 
-    school = crud.school.get_by_wriveted_id_or_404(
-        db=session, wriveted_id=school_id
-    )
+    school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=school_id)
 
     # TODO check the class joining code belongs to this school
 
     # TODO generate a valid username based on the name
-    name = f'{first_name} {last_initial}'
+    name = f"{first_name} {last_initial}"
     username = ...
 
     new_user = User(
@@ -196,9 +190,7 @@ def create_student_user(
         name=name,
         email=None,
         username=username,
-        info={
-            "sign_in_provider": "class-code"
-        },
+        info={"sign_in_provider": "class-code"},
     )
 
     crud.event.create(

@@ -13,4 +13,3 @@ class EventDetail(EventBrief):
 
 class EventListsResponse(PaginatedResponse):
     data: list[EventDetail]
-
