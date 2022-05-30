@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
+import uuid
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
@@ -30,17 +31,21 @@ class StudentInfo(BaseModel):
 
 class UserCreateIn(BaseModel):
     name: str
-    email: EmailStr
+    email: EmailStr | None
+    username: str | None
     info: UserInfo | None
     type: UserAccountType | None
 
 
 class SchoolAdminCreateIn(UserCreateIn):
-    school_id: str | None
+    type = UserAccountType.LIBRARY
+    school_id: int | None
 
 
-class StudentAdminCreateIn(UserCreateIn):
-    school_id: str | None
+class StudentCreateIn(UserCreateIn):
+    type = UserAccountType.STUDENT
+    school_id: int | None
+    class_group_id: UUID | None
 
 
 class UserUpdateIn(BaseModel):
