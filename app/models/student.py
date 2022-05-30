@@ -35,15 +35,15 @@ class Student(User):
     )
     school = relationship("School", backref="students", foreign_keys=[school_id])
 
-    # class_id = Column(
-    #     UUID,
-    #     ForeignKey("class_groups.id", name="fk_student_class_group"),
-    #     nullable=False,
-    #     index=True
-    # )
-    # class = relationship(
-    #     "ClassGroup", backref="students", foreign_keys=[class_id]
-    # )
+    class_group_id = Column(
+        UUID,
+        ForeignKey("class_groups.id", name="fk_student_class_group"),
+        nullable=False,
+        index=True,
+    )
+    class_group = relationship(
+        "ClassGroup", backref="students", foreign_keys=[class_group_id]
+    )
 
     # Student details / preferences
     student_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})

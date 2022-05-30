@@ -20,3 +20,4 @@ from .student import Student
 from .school_admin import SchoolAdmin
 from .wriveted_admin import WrivetedAdmin
 from .work import Work
+from .class_group import ClassGroup

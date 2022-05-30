@@ -12,7 +12,7 @@ from app.schemas.user import UserIdentity
 from app.schemas.work import WorkBrief
 
 
-class ClassIdentifier(BaseModel):
+class ClassGroupIdentifier(BaseModel):
     id: UUID = Field(None, description="Class Identifier (Wriveted UUID)")
     school_id: UUID = Field(None, description="School Identifier (Wriveted UUID)")
 
@@ -20,44 +20,44 @@ class ClassIdentifier(BaseModel):
         orm_mode = True
 
 
-class ClassBrief(ClassIdentifier):
+class ClassGroupBrief(ClassGroupIdentifier):
     name: str = Field(None, description="Class name")
 
 
-class ClassBriefWithJoiningCode(ClassIdentifier):
+class ClassGroupBriefWithJoiningCode(ClassGroupIdentifier):
     code: str = Field(None, description="Joining code")
     note: Optional[str] = Field(None, description="Note about this class")
 
 
-class ClassDetail(ClassBriefWithJoiningCode):
+class ClassGroupDetail(ClassGroupBriefWithJoiningCode):
     admins: list[UserIdentity]
     members: list[UserIdentity]
 
 
-class ClassListResponse(PaginatedResponse):
-    data: list[ClassBrief]
+class ClassGroupListResponse(PaginatedResponse):
+    data: list[ClassGroupBrief]
 
 
-class ClassCreateIn(BaseModel):
-    school_id: UUID = Field(None, description="School Identifier")
+class ClassGroupCreateIn(BaseModel):
+    school_id: int = Field(None, description="School Identifier")
     name: str = Field(None, description="Class name")
 
 
-class ClassMemberUpdateType(str, enum.Enum):
+class ClassGroupMemberUpdateType(str, enum.Enum):
     ADD = "add"
     REMOVE = "remove"
-    #UPDATE = "update"
+    # UPDATE = "update"
 
 
-class ClassMemberUpdateIn(BaseModel):
-    action: ClassMemberUpdateType
+class ClassGroupMemberUpdateIn(BaseModel):
+    action: ClassGroupMemberUpdateType
     user_id: UUID
 
 
 # Note we don't allow changing the joining code (should we?)
-class ClassUpdateIn(BaseModel):
+class ClassGroupUpdateIn(BaseModel):
     name: Optional[str]
     note: Optional[str] = Field(None, description="Note about this class")
 
-    members: Optional[list[ClassMemberUpdateIn]]
-    admins: Optional[list[ClassMemberUpdateIn]]
+    members: Optional[list[ClassGroupMemberUpdateIn]]
+    admins: Optional[list[ClassGroupMemberUpdateIn]]
