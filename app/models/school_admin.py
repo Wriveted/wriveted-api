@@ -62,5 +62,5 @@ class SchoolAdmin(User):
         return [
             (Allow, f"user:{self.id}", All),
             (Allow, "role:admin", All),
-            (Allow, "role:library", All),
+            (Allow, "teacher:{self.school_id}", All),
         ]
