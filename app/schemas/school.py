@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, constr
+from pydantic import AnyHttpUrl, BaseModel, constr, validator
 
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
@@ -42,22 +42,19 @@ class SchoolIdentity(SchoolWrivetedIdentity):
     country_code: str
 
 
-class SchoolSelectorOption(SchoolIdentity):
-    name: str
-    info: SchoolInfo
-    state: Optional[SchoolState]
-
-    collection_count: Optional[int]
-    admin: Optional[UserBrief]
-
-    class Config:
-        orm_mode = True
-
-
 class SchoolBrief(SchoolIdentity):
     name: str
-    state: SchoolState
+    state: SchoolState | None
     collection_count: int
+
+    @validator('collection_count', pre=True)
+    def set_collection_count(cls, v):
+        return v or 0
+
+
+class SchoolSelectorOption(SchoolBrief):
+    info: SchoolInfo
+    admin: Optional[UserBrief]
 
 
 class SchoolBookbotInfo(BaseModel):
