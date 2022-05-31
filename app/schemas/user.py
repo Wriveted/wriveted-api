@@ -44,11 +44,27 @@ class StudentAdminCreateIn(UserCreateIn):
 
 
 class UserUpdateIn(BaseModel):
+    # base
     name: str | None
     is_active: bool | None
     type: UserAccountType | None
-    # school: Optional[SchoolBrief]
     info: UserInfo | None
+    username: str | None
+
+    # school association
+    school_id: int | None
+
+    # student
+    first_name: str | None
+    last_name_initial: str | None
+    student_info: StudentInfo | None
+
+    # schooladmin
+    school_admin_info: dict | None
+    class_id: UUID4 | None
+
+    # wrivetedadmin
+    wriveted_admin_info: dict | None
 
 
 class UsersSchool(BaseModel):

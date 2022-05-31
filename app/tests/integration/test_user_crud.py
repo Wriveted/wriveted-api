@@ -1,7 +1,7 @@
 from app import crud
 from app.models import WrivetedAdmin, SchoolAdmin, Student, User
 from app.models.user import UserAccountType
-from app.schemas.user import UserCreateIn
+from app.schemas.user import UserCreateIn, UserUpdateIn
 from app.tests.util.random_strings import random_lower_string
 
 
@@ -57,3 +57,27 @@ def test_user_crud_types(session):
     assert isinstance(
         student, Student
     ), "CRUD: User account with type='student' not constructing a Student object"
+
+
+def test_cross_model_updates(session):
+    student = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="Test Student to Update",
+            email=f"{random_lower_string(6)}@test.com",
+            type=UserAccountType.STUDENT,
+        ),
+        commit=False,
+    )
+
+    update = UserUpdateIn(
+        first_name="Joshua",
+        last_name_initial="L"
+    )
+   
+    updated_student = crud.user.update(
+        db=session,
+        obj_in=update,
+        db_obj=student
+    )
+    assert updated_student.first_name == "Joshua" and updated_student.last_name_initial == "L"
