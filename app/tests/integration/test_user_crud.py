@@ -70,14 +70,10 @@ def test_cross_model_updates(session):
         commit=False,
     )
 
-    update = UserUpdateIn(
-        first_name="Joshua",
-        last_name_initial="L"
+    update = UserUpdateIn(first_name="Joshua", last_name_initial="L")
+
+    updated_student = crud.user.update(db=session, obj_in=update, db_obj=student)
+    assert (
+        updated_student.first_name == "Joshua"
+        and updated_student.last_name_initial == "L"
     )
-   
-    updated_student = crud.user.update(
-        db=session,
-        obj_in=update,
-        db_obj=student
-    )
-    assert updated_student.first_name == "Joshua" and updated_student.last_name_initial == "L"

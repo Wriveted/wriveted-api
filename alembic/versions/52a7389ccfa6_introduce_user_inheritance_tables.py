@@ -70,9 +70,9 @@ def upgrade():
 
     # instantiate table objects for schooladmin and wrivetedadmin to access op.bulk_insert
     meta = sa.MetaData(bind=op.get_bind())
-    meta.reflect(only=('school_admins', 'wriveted_admins'))
-    school_admins_table = sa.Table('school_admins', meta)
-    wriveted_admins_table = sa.Table('wriveted_admins', meta)
+    meta.reflect(only=("school_admins", "wriveted_admins"))
+    school_admins_table = sa.Table("school_admins", meta)
+    wriveted_admins_table = sa.Table("wriveted_admins", meta)
 
     # extract existing school admins and insert into new table before updating the schools->admin_id FK
     conn = op.get_bind()
