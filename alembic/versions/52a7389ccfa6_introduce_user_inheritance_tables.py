@@ -9,9 +9,6 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from app.models.school_admin import SchoolAdmin
-from app.models.wriveted_admin import WrivetedAdmin
-
 # revision identifiers, used by Alembic.
 revision = "52a7389ccfa6"
 down_revision = "2b2edef753de"
@@ -71,6 +68,12 @@ def upgrade():
     op.drop_column("users", "school_id_as_student")
     op.drop_constraint("schools_admin_id_fkey", "schools", type_="foreignkey")
 
+    # instantiate table objects for schooladmin and wrivetedadmin to access op.bulk_insert
+    meta = sa.MetaData(bind=op.get_bind())
+    meta.reflect(only=('school_admins', 'wriveted_admins'))
+    school_admins_table = sa.Table('school_admins', meta)
+    wriveted_admins_table = sa.Table('wriveted_admins', meta)
+
     # extract existing school admins and insert into new table before updating the schools->admin_id FK
     conn = op.get_bind()
     res = conn.execute(
@@ -78,19 +81,19 @@ def upgrade():
     )
     results = res.fetchall()
     existing_admins = [
-        {"id": r[0], "school_id": r[1], "school_admin_info": {}} for r in results
+        {"id": str(r[0]), "school_id": r[1], "school_admin_info": {}} for r in results
     ]
-    op.bulk_insert(SchoolAdmin.__table__, existing_admins)
+    op.bulk_insert(school_admins_table, existing_admins)
     op.create_foreign_key(
         "schools_admin_id_fkey", "schools", "school_admins", ["admin_id"], ["id"]
     )
 
-    # do the same for admins (dw bout FK this time)
+    # do the same for wriveted admins (dw bout FK this time)
     conn = op.get_bind()
     res = conn.execute("select id from users where type = 'WRIVETED'")
     results = res.fetchall()
-    existing_admins = [{"id": r[0], "wriveted_admin_info": {}} for r in results]
-    op.bulk_insert(WrivetedAdmin.__table__, existing_admins)
+    existing_admins = [{"id": str(r[0]), "wriveted_admin_info": {}} for r in results]
+    op.bulk_insert(wriveted_admins_table, existing_admins)
 
     # remove relationships from base user
     op.drop_index("ix_users_school_id_as_admin", table_name="users")
@@ -126,13 +129,6 @@ def downgrade():
         where users.id = school_admins_to_revert.id;
         """
     )
-    bind = op.get_bind()
-    session = sa.orm.Session(bind=bind)
-    session.query(SchoolAdmin).delete()
-
-    bind = op.get_bind()
-    session = sa.orm.Session(bind=bind)
-    session.query(WrivetedAdmin).delete()
 
     op.create_foreign_key(
         "schools_admin_id_fkey", "schools", "users", ["admin_id"], ["id"]
