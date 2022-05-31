@@ -22,13 +22,18 @@ from app.db import Base
 
 class UserAccountType(str, enum.Enum):
     WRIVETED = "wriveted"
-    LMS = "lms"
-    LIBRARY = "library"
     STUDENT = "student"
     PUBLIC = "public"
+    EDUCATOR = "educator"
+    SCHOOL_ADMIN = "school_admin"
+    PARENT = "parent"
 
 
 class User(Base):
+    """
+    An abstract user.
+    Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
+    """
 
     id = Column(
         UUID(as_uuid=True),
@@ -38,7 +43,9 @@ class User(Base):
         index=True,
         nullable=False,
     )
+
     is_active = Column(Boolean(), default=True)
+
     type = Column(
         Enum(UserAccountType, name="enum_user_account_type"),
         nullable=False,
@@ -46,32 +53,13 @@ class User(Base):
         default=UserAccountType.PUBLIC,
     )
 
-    school_id_as_student = Column(
-        Integer,
-        ForeignKey("schools.id", name="fk_student_school"),
-        nullable=True,
-        index=True,
-    )
-    school_as_student = relationship(
-        "School", backref="students", foreign_keys=[school_id_as_student]
-    )
-
-    school_id_as_admin = Column(
-        Integer,
-        ForeignKey("schools.id", name="fk_admin_school"),
-        nullable=True,
-        index=True,
-    )
-
-    school_as_admin = relationship(
-        "School", backref="admins", foreign_keys=[school_id_as_admin]
-    )
+    __mapper_args__ = {
+        "polymorphic_on": type,
+    }
 
     email = Column(String, unique=True, index=True, nullable=True)
 
     name = Column(String, nullable=False)
-
-    username = Column(String, unique=True, index=True, nullable=True)
 
     # Social stuff: Twitter, Goodreads
     info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
@@ -97,31 +85,3 @@ class User(Base):
     )
 
     newsletter = Column(Boolean(), nullable=False, server_default="false")
-
-    def __repr__(self):
-        summary = "Active" if self.is_active else "Inactive"
-        if self.type == UserAccountType.WRIVETED:
-            summary += " superuser "
-
-        if self.school_id_as_admin is not None:
-            summary += f" (Admin of school {self.school_id_as_admin}) "
-        if self.school_as_student is not None:
-            summary += f" (Student of school {self.school_as_student}) "
-
-        return f"<User {self.name if self.name else self.username} - {summary}>"
-
-    def __acl__(self):
-        """defines who can do what to the instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-
-        If a role is not listed (like "role:user") the access will be
-        automatically denied.
-
-        (Deny, Everyone, All) is automatically appended at the end.
-        """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-            (Allow, "role:library", "read"),
-        ]

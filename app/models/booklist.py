@@ -86,11 +86,13 @@ class BookList(Base):
         "School", back_populates="booklists", foreign_keys=[school_id]
     )
 
-    user_id = Column(
-        ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
+    reader_id = Column(
+        ForeignKey("users.id", name="fk_booklist_reader", ondelete="CASCADE"),
         nullable=True,
     )
-    user = relationship("User", back_populates="booklists", foreign_keys=[user_id])
+    reader = relationship(
+        "Reader", back_populates="booklists", foreign_keys=[reader_id]
+    )
 
     service_account_id = Column(
         ForeignKey(

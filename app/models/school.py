@@ -122,18 +122,13 @@ class School(Base):
     #     overlaps="school"
     # )
 
+    # backref:
+    # students = relationship("Student")
+
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
     )
     events = relationship("Event", back_populates="school", lazy="dynamic")
-
-    # The primary admin for the school, but note other users could also be an admin for the school
-    # via the user table's `school_as_admin` column.
-    admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    admin = relationship(
-        "User",
-        foreign_keys=[admin_id],
-    )
 
     service_accounts = relationship(
         "ServiceAccount",

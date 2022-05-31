@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cf1000e6f66b'
-down_revision = '2b2edef753de'
+revision = "cf1000e6f66b"
+down_revision = "2b2edef753de"
 branch_labels = None
 depends_on = None
 
@@ -29,12 +29,18 @@ def upgrade():
     op.execute("UPDATE users SET type = 'SCHOOL_ADMIN' where type = 'LIBRARY'")
 
     # actually, let's also set other unaccounted for accounts (lms) to public just in case
-    op.execute("UPDATE users SET type = 'PUBLIC' where type not in ('PUBLIC', 'STUDENT', 'WRIVETED')")
+    op.execute(
+        "UPDATE users SET type = 'PUBLIC' where type not in ('PUBLIC', 'STUDENT', 'WRIVETED')"
+    )
 
     # now update the underlying enum type, then switch the column back to enum
     op.execute("ALTER TYPE enum_user_account_type RENAME TO enum_user_account_type_old")
-    op.execute("CREATE TYPE enum_user_account_type AS ENUM('EDUCATOR', 'PARENT', 'PUBLIC', 'SCHOOL_ADMIN', 'STUDENT', 'WRIVETED')")
-    op.execute("ALTER TABLE users ALTER COLUMN type TYPE enum_user_account_type USING type::text::enum_user_account_type")
+    op.execute(
+        "CREATE TYPE enum_user_account_type AS ENUM('EDUCATOR', 'PARENT', 'PUBLIC', 'SCHOOL_ADMIN', 'STUDENT', 'WRIVETED')"
+    )
+    op.execute(
+        "ALTER TABLE users ALTER COLUMN type TYPE enum_user_account_type USING type::text::enum_user_account_type"
+    )
     op.execute("DROP TYPE enum_user_account_type_old")
 
     # return the constraint
@@ -48,12 +54,18 @@ def downgrade():
     op.execute("ALTER TABLE users ALTER COLUMN type TYPE text USING type::text")
     op.execute("ALTER TABLE users ALTER COLUMN type DROP DEFAULT")
 
-    op.execute("UPDATE users SET type = 'LIBRARY' where type in ('EDUCATOR', 'SCHOOL_ADMIN')")
+    op.execute(
+        "UPDATE users SET type = 'LIBRARY' where type in ('EDUCATOR', 'SCHOOL_ADMIN')"
+    )
     op.execute("UPDATE users SET type = 'PUBLIC' where type = 'PARENT'")
 
     op.execute("ALTER TYPE enum_user_account_type RENAME TO enum_user_account_type_old")
-    op.execute("CREATE TYPE enum_user_account_type AS ENUM('PUBLIC', 'LMS', 'STUDENT', 'WRIVETED', 'LIBRARY')")
-    op.execute("ALTER TABLE users ALTER COLUMN type TYPE enum_user_account_type USING type::text::enum_user_account_type")
+    op.execute(
+        "CREATE TYPE enum_user_account_type AS ENUM('PUBLIC', 'LMS', 'STUDENT', 'WRIVETED', 'LIBRARY')"
+    )
+    op.execute(
+        "ALTER TABLE users ALTER COLUMN type TYPE enum_user_account_type USING type::text::enum_user_account_type"
+    )
     op.execute("DROP TYPE enum_user_account_type_old")
 
     op.execute("ALTER TABLE users ALTER COLUMN type SET DEFAULT 'PUBLIC'")
