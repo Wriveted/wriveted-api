@@ -45,7 +45,7 @@ class UsersSchool(BaseModel):
     class Config:
         orm_mode = True
 
-    @validator('collection_count', pre=True)
+    @validator("collection_count", pre=True)
     def set_collection_count(cls, v):
         return v or 0
 
