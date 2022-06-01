@@ -47,8 +47,5 @@ class Parent(User):
         return [
             (Allow, f"user:{self.id}", All),
             (Allow, "role:admin", All),
-            (Allow, f"parent:{self.id}", All),
-            (Allow, f"educator:{self.school_id}", "read")(
-                Allow, f"schooladmin:{self.school_id}", All
-            ),
+            (Allow, f"child:{self.id}", "read"),
         ]
