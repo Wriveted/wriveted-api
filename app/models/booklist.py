@@ -118,8 +118,9 @@ class BookList(Base):
             (Allow, "role:admin", All),
             # Allow users to manage their own lists
             (Allow, f"user:{self.user_id}", All),
-            # School admins can manage school lists
-            (Allow, f"school:{self.school_id}", All),
+            # Educators can manage school lists
+            (Allow, f"educator:{self.school_id}", All),
+            (Allow, f"school:{self.school_id}", All)
         ]
 
         if self.type in {ListType.HUEY, ListType.REGION}:

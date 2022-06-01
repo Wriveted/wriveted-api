@@ -17,6 +17,9 @@ from app.api.dependencies.security import (
 from app.db.session import get_session
 from app.models import BookList, ServiceAccount, User
 from app.models.booklist import ListType
+from app.models.educator import Educator
+from app.models.school_admin import SchoolAdmin
+from app.models.student import Student
 from app.permissions import Permission
 from app.schemas.booklist import (
     BookListBrief,
@@ -82,9 +85,9 @@ async def add_booklist(
             )
         else:
             logger.debug("Seeing if the caller is clearly associated with *one* school")
-            if isinstance(account, User) and account.school_id_as_admin is not None:
+            if isinstance(account, (Student, Educator, SchoolAdmin)) and account.school_id is not None:
                 school_orm = crud.school.get_by_id_or_404(
-                    session, id=account.school_id_as_admin
+                    session, id=account.school_id
                 )
             elif isinstance(account, ServiceAccount) and len(account.schools) == 1:
                 school_orm = account.schools[0]
