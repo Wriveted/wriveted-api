@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
+from numpy import isin
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -19,7 +20,7 @@ from app.api.dependencies.security import (
     get_current_user,
 )
 from app.db.session import get_session
-from app.models import School, ServiceAccount
+from app.models import School, ServiceAccount, SchoolAdmin
 from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (
@@ -207,13 +208,18 @@ async def bind_school(
     Binds the current user to a school as its administrator.
     Will fail if target school already has an admin.
     """
+    if not isinstance(user, SchoolAdmin):
+        raise HTTPException(
+            status.HTTP_401_UNATHORIZED, "User not a school administrator."
+        )
+
     if school.admin is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "School already bound to an admin user."
         )
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.id
+    user.school_id = school.id
     session.commit()
 
     return school.admin_id
