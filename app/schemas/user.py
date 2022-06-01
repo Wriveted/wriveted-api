@@ -6,7 +6,9 @@ from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType
+from app.schemas.booklist import BookListBase
 from app.schemas.event import EventBrief
+from app.schemas.recommendations import ReadingAbilityKey
 
 
 class UserPatchOptions(BaseModel):
@@ -24,7 +26,15 @@ class UserInfo(BaseModel):
 class UserCreateIn(BaseModel):
     name: str
     email: EmailStr
-    info: Optional[UserInfo]
+    info: UserInfo | None
+    type: UserAccountType | None
+
+    # reader
+    username: str | None
+
+    # student/educator/schooladmin
+    school_id: int | None
+    class_id: UUID | None
 
 
 class UserUpdateIn(BaseModel):
@@ -53,7 +63,6 @@ class UsersSchool(BaseModel):
 class UserIdentity(BaseModel):
     id: UUID4
     name: str
-    username: str | None
     type: UserAccountType
 
     class Config:
@@ -64,7 +73,6 @@ class UserBrief(UserIdentity):
     email: str
     is_active: bool
     last_login_at: Optional[datetime]
-    school_as_admin: Optional[UsersSchool]
 
 
 class UserDetail(UserBrief):

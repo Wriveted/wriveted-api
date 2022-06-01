@@ -1,5 +1,6 @@
 from typing import Any, Optional, Tuple
 from fastapi import Query
+from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
@@ -50,6 +51,32 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 return select(Parent).where(Parent.id == id)
             case _:
                 return query
+
+
+    def build_orm_object(self, obj_in: UserCreateIn) -> User:
+        """An uncommitted ORM object from the input data"""
+        type = obj_in.type or UserAccountType.PUBLIC
+        model = User
+
+        match type:
+            case UserAccountType.PUBLIC:
+                model = PublicReader
+            case UserAccountType.STUDENT:
+                model = Student
+            case UserAccountType.EDUCATOR:
+                model = Educator
+            case UserAccountType.SCHOOL_ADMIN:
+                model = SchoolAdmin
+            case UserAccountType.WRIVETED:
+                model = WrivetedAdmin
+            case UserAccountType.PARENT:
+                model = Parent
+            case _:
+                model = User
+
+        obj_in_data = jsonable_encoder(obj_in)
+        db_obj = model(**obj_in_data)
+        return db_obj
 
     # ---------------------
 
