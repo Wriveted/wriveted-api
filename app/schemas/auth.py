@@ -1,11 +1,14 @@
 import datetime
 import enum
-from typing import Optional
-
 from pydantic import BaseModel
 
 from app.schemas.service_account import ServiceAccountBrief
 from app.schemas.user import UserDetail
+from app.schemas.student import StudentDetail
+from app.schemas.educator import EducatorDetail
+from app.schemas.school_admin import SchoolAdminDetail
+from app.schemas.wriveted_admin import WrivetedAdminDetail
+from app.schemas.parent import ParentDetail
 
 
 class AccountType(str, enum.Enum):
@@ -16,5 +19,5 @@ class AccountType(str, enum.Enum):
 class AuthenticatedAccountBrief(BaseModel):
     account_type: AccountType
     token_expiry: datetime.datetime
-    user: Optional[UserDetail]
-    service_account: Optional[ServiceAccountBrief]
+    user: UserDetail | StudentDetail | EducatorDetail | SchoolAdminDetail | WrivetedAdminDetail | ParentDetail | None
+    service_account: ServiceAccountBrief | None
