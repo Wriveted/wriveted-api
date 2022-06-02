@@ -5,8 +5,9 @@ import random
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from app import config
+from app.db.session import get_session
 
-from app import crud
 from app.models.user import User
 
 logger = get_logger()
@@ -27,6 +28,7 @@ def generate_random_users(session: Session, num_users: int, **kwargs):
     Note this function adds users to the current transaction, but doesn't
     commit the transaction.
     """
+
     # Default user arguments:
     user_kwargs = {
         "name": "",
@@ -83,6 +85,7 @@ def new_random_username(
     ensuring it's not already claimed by a user.
     Default complexity: ColourNounNumber (RedWolf52)
     """
+    from app import crud
 
     if not (adjective or colour or noun or numbers):
         raise ValueError(
@@ -104,6 +107,32 @@ def new_random_username(
         raise ValueError("Couldn't generate a random user name")
 
     return name
+
+
+def new_identifiable_username(first_name: str, last_name_initial: str):
+    """
+    Generates a new identifiable username using Reader's first name and initial of last name,
+    ensuring it's not already claimed by another user.
+    Appends with digits for extra entropy.
+    """
+    from app import crud
+
+    session = next(get_session(settings=config.get_settings()))
+
+    username_base = (first_name + last_name_initial).replace(" ", "")
+    username = username_base
+    username_valid = False
+    attempts_remaining = 1000
+
+    while not username_valid and attempts_remaining > 0:
+        username = username_base + str(random.randint(100, 999))
+        username_valid = username and crud.user.get_by_username(session, username) is None
+        attempts_remaining -= 1
+
+    if attempts_remaining == 0:
+        raise ValueError("Couldn't generate a unique username for Reader")
+
+    return username
 
 
 def generate_random_username_from_wordlist(

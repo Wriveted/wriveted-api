@@ -1,5 +1,7 @@
+from sqlalchemy import select
 from app import crud
 from app.models import WrivetedAdmin, SchoolAdmin, Student, User, PublicReader
+from app.models.reader import Reader
 from app.models.user import UserAccountType
 from app.schemas.user import UserCreateIn, UserUpdateIn
 from app.tests.util.random_strings import random_lower_string
@@ -64,11 +66,11 @@ def test_cross_model_updates(session, test_school):
         db=session,
         obj_in=UserCreateIn(
             name="Test Student to Update",
-            email=f"teststudentupdate@test.com",
+            email=f"teststudentupdate5@test.com",
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
-            first_name="Test",
-            last_name_initial="T"
+            first_name="Joshua",
+            last_name_initial="L"
         ),
         commit=True,
     )
@@ -82,4 +84,32 @@ def test_cross_model_updates(session, test_school):
         and isinstance(updated_student, Student)
     )
 
-    
+
+def test_access_subclass_through_superclass_query(session, test_school):
+
+    student = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="Test Student to retrieve via parent tables",
+            email=f"teststudentretrieve@test.com",
+            type=UserAccountType.STUDENT,
+            school_id=test_school.id,
+            first_name="Test",
+            last_name_initial="T"
+        ),
+        commit=False,
+    )
+    session.add(student)
+    session.flush()
+
+    assert student.id
+
+    assert crud.user.get_by_account_email(session, "teststudentretrieve@test.com") is not None
+
+    reader = session.execute(
+        select(Reader).where(Reader.email == "teststudentretrieve@test.com")
+    ).scalar_one_or_none()
+
+    assert reader == student
+
+    session.rollback()

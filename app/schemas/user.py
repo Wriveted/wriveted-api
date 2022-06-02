@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
+from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, root_validator, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType  
@@ -46,6 +46,32 @@ class UserCreateIn(BaseModel):
     student_info: dict | None
     school_admin_info: dict | None
     wriveted_admin_info: dict | None
+
+    @root_validator
+    def validate_user_creation(cls, values):
+        match values.get("type"):
+            case UserAccountType.STUDENT:
+                if not (values.get("first_name") and values.get("last_name_initial") and values.get("school_id")):
+                    raise ValueError(
+                        "Student users must provide first_name, last_name_initial, and school_id."
+                    )
+            case UserAccountType.EDUCATOR:
+                if not (values.get("first_name") and values.get("last_name_initial") and values.get("school_id")):
+                    raise ValueError(
+                        "Educator users must provide school_id."
+                    )
+            case UserAccountType.SCHOOL_ADMIN:
+                if not (values.get("school_id")):
+                    raise ValueError(
+                        "SchoolAdmin users must provide school_id."
+                    )
+            case _:
+                if not (values.get("first_name") and values.get("last_name_initial")):
+                    raise ValueError(
+                        "PublicReader users must provide first_name and last_name_initial."
+                    )
+        return values
+
 
 
 class UserUpdateIn(BaseModel):
