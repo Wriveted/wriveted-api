@@ -77,7 +77,7 @@ def test_cross_model_updates(session, test_school, test_class_group):
             school_id=test_school.id,
             first_name="Joe Shooer",
             last_name_initial="P",
-            class_group_id=test_class_group.id
+            class_group_id=test_class_group.id,
         ),
         commit=True,
     )

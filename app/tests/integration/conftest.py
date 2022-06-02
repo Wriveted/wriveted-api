@@ -254,22 +254,19 @@ def test_school(client, session, backend_service_account_headers) -> School:
 
 
 @pytest.fixture()
-def test_class_group(client, session, backend_service_account_headers, test_school) -> ClassGroup:
+def test_class_group(
+    client, session, backend_service_account_headers, test_school
+) -> ClassGroup:
     new_test_class_response = client.post(
         f"/v1/school/{test_school.wriveted_identifier}/class",
         headers=backend_service_account_headers,
-        json={
-            "name": f"Test Class",
-            "school_id": str(test_school.wriveted_identifier)
-        },
+        json={"name": f"Test Class", "school_id": str(test_school.wriveted_identifier)},
         timeout=120,
     )
     new_test_class_response.raise_for_status()
     class_info = new_test_class_response.json()
 
-    yield crud.class_group.get(
-        db=session, id=class_info["id"]
-    )
+    yield crud.class_group.get(db=session, id=class_info["id"])
 
     # Afterwards delete it
     client.delete(

@@ -38,7 +38,7 @@ class Student(Reader):
         UUID(as_uuid=True),
         ForeignKey("class_groups.id", name="fk_student_class_group"),
         nullable=False,
-        index=True
+        index=True,
     )
     class_group = relationship(
         "ClassGroup", backref="students", foreign_keys=[class_group_id]
