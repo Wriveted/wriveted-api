@@ -53,11 +53,11 @@ def test_create_empty_booklist(client, test_user_account_headers):
 
 
 def test_school_admin_can_create_school_booklist(
-    client, admin_of_test_school, test_user_account_headers, works_list
+    client, admin_of_test_school_headers, works_list
 ):
     response = client.post(
         "v1/list",
-        headers=test_user_account_headers,
+        headers=admin_of_test_school_headers,
         json={
             "name": "wizard wishes",
             "type": ListType.SCHOOL,
@@ -71,7 +71,7 @@ def test_school_admin_can_create_school_booklist(
     detail_response = client.get(
         f"v1/list/{response.json()['id']}",
         params={"limit": 10},
-        headers=test_user_account_headers,
+        headers=admin_of_test_school_headers,
     )
 
     assert detail_response.status_code == status.HTTP_200_OK

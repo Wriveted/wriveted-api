@@ -2,7 +2,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.models import User
+from app.models.public_reader import PublicReader
+from app.models.user import UserAccountType
 from app.services.users import (
     WordList,
     WordListItem,
@@ -77,7 +78,7 @@ def test_generate_random_user_name_checks_existing_users(session):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
 
     for i in range(5):
-        session.add(User(name=f"TestUser{i}", username=f"ACN{i}", email=f"ACN{i}"))
+        session.add(PublicReader(name=f"TestUser{i}", username=f"ACN{i}", email=f"ACN{i}", type=UserAccountType.PUBLIC))
 
     # Ensure the database has all these supposed existing users in the current transaction
     session.flush()
@@ -95,13 +96,13 @@ def test_generate_random_user_name_checks_existing_users(session):
             numbers=1,
             slugify=False,
         )
-        session.add(User(name=f"TestUser{i}", username=output, email=output))
+        session.add(PublicReader(name=f"TestUser{i}", username=output, email=output, type=UserAccountType.PUBLIC))
 
         # Should be all fine to here - send everything to the db to check
         session.flush()
 
     print(
-        session.scalars(select(User.username).where(User.username.is_not(None))).all()
+        session.scalars(select(PublicReader.username).where(PublicReader.username.is_not(None))).all()
     )
 
     # Trigger impossible to satisfy demand
@@ -118,7 +119,7 @@ def test_generate_random_user_name_checks_existing_users(session):
 
     # Finally, check that the username unique constraint is enforced:
     with pytest.raises(IntegrityError):
-        session.add(User(name=f"TestUser", username=output, email="a-new-email"))
+        session.add(PublicReader(name=f"TestUser", username=output, email="a-new-email", type=UserAccountType.PUBLIC))
         session.flush()
 
     session.rollback()

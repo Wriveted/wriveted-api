@@ -32,7 +32,7 @@ class WrivetedAdmin(User):
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
-        return f"<Public Reader {self.username} - {active}>"
+        return f"<Wriveted Admin {self.name} - {active}>"
 
     def __acl__(self):
         """defines who can do what to the instance

@@ -66,12 +66,12 @@ def test_get_school_events_as_school_admin(
     assert len(events) >= 0
 
 
-def test_get_school_events_as_user(
+def test_cant_get_school_events_as_public(
     client, test_school, test_user_account, test_user_account_headers
 ):
 
     school_id = test_school.wriveted_identifier
-    assert test_user_account.school_id_as_student is None
+    assert not hasattr(test_user_account, "school_id") or test_user_account.school_id is None
 
     # Shouldn't be able to filter by the school:
     get_events_response = client.get(

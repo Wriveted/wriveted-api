@@ -9,6 +9,7 @@ from structlog import get_logger
 
 from app.crud import CRUDBase
 from app.models import User
+from app.models.reader import Reader
 from app.models.user import UserAccountType
 from app.schemas.user import UserCreateIn, UserUpdateIn
 from app.models import (
@@ -56,7 +57,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
     def build_orm_object(self, obj_in: UserCreateIn) -> User:
         """An uncommitted ORM object from the input data"""
         type = obj_in.type or UserAccountType.PUBLIC
-        model = User
 
         match type:
             case UserAccountType.PUBLIC:
@@ -75,6 +75,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 model = User
 
         obj_in_data = jsonable_encoder(obj_in)
+
+        # clean up None attributes
+        obj_in_data = {k: v for k, v in obj_in_data.items() if v is not None}
+
         db_obj = model(**obj_in_data)
         return db_obj
 
@@ -147,7 +151,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         return db.execute(query).scalars().all()
 
     def get_by_username(self, db: Session, username: str):
-        q = select(User).where(User.username == username)
+        q = select(Reader).where(Reader.username == username)
         return db.execute(q).scalar_one_or_none()
 
 
