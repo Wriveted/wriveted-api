@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from app.models.user import UserAccountType    
+if TYPE_CHECKING:  
     from app.schemas.event import EventBrief
     from app.schemas.reader import ReadingPreferences
 
@@ -12,6 +11,8 @@ from uuid import UUID
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
+
+from app.models.user import UserAccountType  
 
 
 class UserPatchOptions(BaseModel):
@@ -31,7 +32,7 @@ class UserCreateIn(BaseModel):
     name: str
     email: EmailStr
     info: UserInfo | None
-    type: UserAccountType | None
+    type: UserAccountType | None = UserAccountType.PUBLIC
 
     # readers
     username: str | None
@@ -49,7 +50,7 @@ class UserCreateIn(BaseModel):
 
 class UserUpdateIn(BaseModel):
     # all users
-    name: str
+    name: str | None
     is_active: bool | None
     email: EmailStr | None
     info: UserInfo | None
@@ -59,7 +60,7 @@ class UserUpdateIn(BaseModel):
     username: str | None
     first_name: str | None
     last_name_initial: str | None
-    reading_preferences: ReadingPreferences | None
+    reading_preferences: ReadingPreferences | None = {}
 
     # students / educators
     school_id: int | None

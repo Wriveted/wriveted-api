@@ -24,6 +24,8 @@ class Reader(User):
     )
 
     username = Column(String, unique=True, index=True, nullable=True)
+    first_name = Column(String, nullable=False)
+    last_name_initial = Column(String, nullable=False)
 
     parent_id = Column(
         UUID,
