@@ -124,14 +124,16 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         db.execute(demote_students)
         db.execute(delete_students)
 
-        # Do the same with SchoolAdmins. 
+        # Do the same with SchoolAdmins.
         # Work from the lowest level of inheritance up, preserving User data at the top
         demote_schooladmins = (
             update(SchoolAdmin)
             .where(SchoolAdmin.school_id == obj_in.id)
             .values(type=UserAccountType.PUBLIC, is_active=False)
         )
-        delete_schooladmins = delete(SchoolAdmin).where(SchoolAdmin.school_id == obj_in.id)
+        delete_schooladmins = delete(SchoolAdmin).where(
+            SchoolAdmin.school_id == obj_in.id
+        )
         db.execute(demote_schooladmins)
         db.execute(delete_schooladmins)
 

@@ -79,7 +79,7 @@ def test_schooladmin_account(test_school, session):
             name="integration test account (school admin)",
             email=f"{random_lower_string(6)}@test.com",
             type=UserAccountType.SCHOOL_ADMIN,
-            school_id=test_school.id
+            school_id=test_school.id,
         ),
     )
     yield schooladmin

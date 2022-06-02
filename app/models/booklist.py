@@ -90,9 +90,7 @@ class BookList(Base):
         ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
         nullable=True,
     )
-    user = relationship(
-        "User", back_populates="booklists", foreign_keys=[user_id]
-    )
+    user = relationship("User", back_populates="booklists", foreign_keys=[user_id])
 
     service_account_id = Column(
         ForeignKey(
@@ -120,7 +118,7 @@ class BookList(Base):
             (Allow, f"user:{self.user_id}", All),
             # Educators can manage school lists
             (Allow, f"educator:{self.school_id}", All),
-            (Allow, f"school:{self.school_id}", All)
+            (Allow, f"school:{self.school_id}", All),
         ]
 
         if self.type in {ListType.HUEY, ListType.REGION}:

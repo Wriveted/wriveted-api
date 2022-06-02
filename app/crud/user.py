@@ -53,7 +53,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             case _:
                 return query
 
-
     def build_orm_object(self, obj_in: UserCreateIn) -> User:
         """An uncommitted ORM object from the input data"""
         type = obj_in.type or UserAccountType.PUBLIC

@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from app.schemas.school import SchoolIdentity
-    
+
 from app.schemas.user import UserDetail, UserIdentity, UsersSchool
 
 

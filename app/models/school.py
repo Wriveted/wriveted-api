@@ -171,15 +171,12 @@ class School(Base):
         return [
             (Allow, "role:admin", All),
             (Allow, f"schooladmin:{self.id}", All),
-
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
             (Allow, "role:lms", "read"),
             (Allow, "role:lms", "read-collection"),
-
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
-            
             (Allow, f"school:{self.id}", "read"),
             (Allow, f"school:{self.id}", "read-collection"),
             (Allow, f"school:{self.id}", "update"),

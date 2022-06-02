@@ -71,7 +71,10 @@ def test_cant_get_school_events_as_public(
 ):
 
     school_id = test_school.wriveted_identifier
-    assert not hasattr(test_user_account, "school_id") or test_user_account.school_id is None
+    assert (
+        not hasattr(test_user_account, "school_id")
+        or test_user_account.school_id is None
+    )
 
     # Shouldn't be able to filter by the school:
     get_events_response = client.get(

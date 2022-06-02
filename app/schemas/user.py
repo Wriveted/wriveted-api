@@ -42,7 +42,6 @@ class UserCreateIn(BaseModel):
     student_info: dict | None
     school_admin_info: dict | None
     wriveted_admin_info: dict | None
-    
 
 
 class UserUpdateIn(BaseModel):
