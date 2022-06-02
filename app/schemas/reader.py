@@ -1,10 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.schemas.booklist import BookListBase
+    from app.schemas.parent import ParentIdentity
+    from app.schemas.recommendations import ReadingAbilityKey
+
 from datetime import datetime
 from pydantic import BaseModel
-from app.schemas.booklist import BookListBase
 
-from app.schemas.recommendations import ReadingAbilityKey
 from app.schemas.user import UserIdentity, UserDetail
-import app.schemas.parent as parent_schema
 
 
 class ReadingPreferences(BaseModel):
@@ -21,7 +26,7 @@ class ReaderIdentity(UserIdentity):
 
 class ReaderBrief(ReaderIdentity):
     reading_preferences: ReadingPreferences
-    parent: parent_schema.ParentIdentity | None
+    parent: ParentIdentity | None
 
 
 class ReaderDetail(UserDetail, ReaderBrief):

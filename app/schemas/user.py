@@ -1,13 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.user import UserAccountType    
+    from app.schemas.event import EventBrief
+    from app.schemas.reader import ReadingPreferences
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
-
-from app.models.user import UserAccountType
-from app.schemas.event import EventBrief
-from app.schemas.reader import ReadingPreferences
 
 
 class UserPatchOptions(BaseModel):
