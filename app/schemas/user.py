@@ -1,4 +1,5 @@
 from datetime import datetime
+from sys import last_traceback
 from typing import Optional
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType
 from app.schemas.event import EventBrief
+from app.schemas.reader import ReadingPreferences
 
 
 class UserPatchOptions(BaseModel):
@@ -22,25 +24,48 @@ class UserInfo(BaseModel):
 
 
 class UserCreateIn(BaseModel):
+    # all users
     name: str
     email: EmailStr
     info: UserInfo | None
     type: UserAccountType | None
 
-    # reader
+    # readers
     username: str | None
+    first_name: str | None
+    last_name_initial: str | None
 
-    # student/educator/schooladmin
+    # students / educators
     school_id: int | None
     class_id: UUID | None
 
+    student_info: dict | None
+    school_admin_info: dict | None
+    wriveted_admin_info: dict | None
+    
+
 
 class UserUpdateIn(BaseModel):
-    name: Optional[str]
-    is_active: Optional[bool]
-    type: Optional[UserAccountType]
-    # school: Optional[SchoolBrief]
-    info: Optional[UserInfo]
+    # all users
+    name: str
+    is_active: bool | None
+    email: EmailStr | None
+    info: UserInfo | None
+    type: UserAccountType | None
+
+    # readers
+    username: str | None
+    first_name: str | None
+    last_name_initial: str | None
+    reading_preferences: ReadingPreferences | None
+
+    # students / educators
+    school_id: int | None
+    class_id: UUID | None
+
+    student_info: dict | None
+    school_admin_info: dict | None
+    wriveted_admin_info: dict | None
 
 
 class UsersSchool(BaseModel):
