@@ -2,7 +2,6 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
-from numpy import isin
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
