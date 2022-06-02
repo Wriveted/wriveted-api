@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from app.schemas.booklist import BookListBase
 
 from app.schemas.recommendations import ReadingAbilityKey
-from app.schemas.user import ParentIdentity, UserDetail, UserIdentity
+from app.schemas.user import UserIdentity, UserDetail
+import app.schemas.parent as parent_schema
 
 
 class ReadingPreferences(BaseModel):
@@ -20,7 +21,7 @@ class ReaderIdentity(UserIdentity):
 
 class ReaderBrief(ReaderIdentity):
     reading_preferences: ReadingPreferences
-    parent: ParentIdentity | None
+    parent: parent_schema.ParentIdentity | None
 
 
 class ReaderDetail(UserDetail, ReaderBrief):

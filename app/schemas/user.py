@@ -6,9 +6,7 @@ from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models.user import UserAccountType
-from app.schemas.booklist import BookListBase
 from app.schemas.event import EventBrief
-from app.schemas.recommendations import ReadingAbilityKey
 
 
 class UserPatchOptions(BaseModel):

@@ -7,7 +7,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
 from app.models.educator import Educator
 from app.models.user import UserAccountType
 

@@ -144,14 +144,17 @@ async def get_schools(
     return schools
 
 
-@router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
+@public_router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def get_school(
     db: Session = Depends(get_session),
-    school: School = Permission("read", get_school_from_wriveted_id),
+    # school: School = get_school_from_wriveted_id,
+    school: School = Depends(get_school_from_wriveted_id),
 ):
     """
     Detail on a particular school
     """
+    admins = school.admins
+    print(admins)
     return school
 
 

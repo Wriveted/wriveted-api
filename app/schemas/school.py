@@ -1,13 +1,13 @@
-from datetime import datetime
-from typing import Any, Optional
-from uuid import UUID
-
-from pydantic import AnyHttpUrl, BaseModel, constr, validator
-
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
 from app.schemas.user import UserBrief
+from app.schemas.school_admin import SchoolAdminBrief
+
+from datetime import datetime
+from typing import Any, Optional
+from uuid import UUID
+from pydantic import AnyHttpUrl, BaseModel, constr, validator
 
 
 class SchoolLocation(BaseModel):
@@ -54,7 +54,7 @@ class SchoolBrief(SchoolIdentity):
 
 class SchoolSelectorOption(SchoolBrief):
     info: SchoolInfo
-    admin: Optional[UserBrief]
+    admins: list[SchoolAdminBrief]
 
 
 class SchoolBookbotInfo(BaseModel):
@@ -71,7 +71,7 @@ class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
 
-    admin: Optional[UserBrief]
+    admins: list[SchoolAdminBrief]
     lms_type: str
 
     created_at: datetime

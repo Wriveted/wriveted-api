@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from fastapi_permissions import All, Allow, Authenticated, Deny
+from fastapi_permissions import All, Allow, Deny
 from sqlalchemy import (
     JSON,
     Column,
@@ -23,6 +23,8 @@ from sqlalchemy.orm import column_property, relationship
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
+from app.models.educator import Educator
+from app.models.school_admin import SchoolAdmin
 from app.models.service_account_school_association import (
     service_account_school_association_table,
 )
@@ -122,8 +124,9 @@ class School(Base):
     #     overlaps="school"
     # )
 
-    # backref:
-    # students = relationship("Student")
+    # students  = list[Student]  (backref)
+    # educators = list[Educator] (backref)
+    admins = relationship(SchoolAdmin)
 
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
