@@ -12,7 +12,7 @@ def test_user_crud_types(session):
         db=session,
         obj_in=UserCreateIn(
             name="integration test account (user)",
-            email=f"{random_lower_string(6)}@test.com"
+            email=f"{random_lower_string(6)}@test.com",
         ),
         commit=False,
     )
@@ -61,7 +61,7 @@ def test_user_crud_types(session):
 
 
 def test_cross_model_updates(session, test_school):
-    
+
     student = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
@@ -70,7 +70,7 @@ def test_cross_model_updates(session, test_school):
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
             first_name="Joshua",
-            last_name_initial="L"
+            last_name_initial="L",
         ),
         commit=True,
     )
@@ -95,7 +95,7 @@ def test_access_subclass_through_superclass_query(session, test_school):
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
             first_name="Test",
-            last_name_initial="T"
+            last_name_initial="T",
         ),
         commit=False,
     )
@@ -104,7 +104,10 @@ def test_access_subclass_through_superclass_query(session, test_school):
 
     assert student.id
 
-    assert crud.user.get_by_account_email(session, "teststudentretrieve@test.com") is not None
+    assert (
+        crud.user.get_by_account_email(session, "teststudentretrieve@test.com")
+        is not None
+    )
 
     reader = session.execute(
         select(Reader).where(Reader.email == "teststudentretrieve@test.com")

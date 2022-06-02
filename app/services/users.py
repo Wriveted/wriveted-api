@@ -126,7 +126,9 @@ def new_identifiable_username(first_name: str, last_name_initial: str):
 
     while not username_valid and attempts_remaining > 0:
         username = username_base + str(random.randint(100, 999))
-        username_valid = username and crud.user.get_by_username(session, username) is None
+        username_valid = (
+            username and crud.user.get_by_username(session, username) is None
+        )
         attempts_remaining -= 1
 
     if attempts_remaining == 0:

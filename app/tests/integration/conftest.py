@@ -66,7 +66,7 @@ def test_user_account(session):
             name="integration test account (public)",
             email=f"{random_lower_string(6)}@test.com",
             first_name="Test",
-            last_name_initial="L"
+            last_name_initial="L",
         ),
     )
     yield user

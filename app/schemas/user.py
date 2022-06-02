@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:  
+if TYPE_CHECKING:
     from app.schemas.event import EventBrief
     from app.schemas.reader import ReadingPreferences
 
@@ -12,7 +12,7 @@ from uuid import UUID
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, root_validator, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
-from app.models.user import UserAccountType  
+from app.models.user import UserAccountType
 
 
 class UserPatchOptions(BaseModel):
@@ -51,27 +51,30 @@ class UserCreateIn(BaseModel):
     def validate_user_creation(cls, values):
         match values.get("type"):
             case UserAccountType.STUDENT:
-                if not (values.get("first_name") and values.get("last_name_initial") and values.get("school_id")):
+                if not (
+                    values.get("first_name")
+                    and values.get("last_name_initial")
+                    and values.get("school_id")
+                ):
                     raise ValueError(
                         "Student users must provide first_name, last_name_initial, and school_id."
                     )
             case UserAccountType.EDUCATOR:
-                if not (values.get("first_name") and values.get("last_name_initial") and values.get("school_id")):
-                    raise ValueError(
-                        "Educator users must provide school_id."
-                    )
+                if not (
+                    values.get("first_name")
+                    and values.get("last_name_initial")
+                    and values.get("school_id")
+                ):
+                    raise ValueError("Educator users must provide school_id.")
             case UserAccountType.SCHOOL_ADMIN:
                 if not (values.get("school_id")):
-                    raise ValueError(
-                        "SchoolAdmin users must provide school_id."
-                    )
+                    raise ValueError("SchoolAdmin users must provide school_id.")
             case _:
                 if not (values.get("first_name") and values.get("last_name_initial")):
                     raise ValueError(
                         "PublicReader users must provide first_name and last_name_initial."
                     )
         return values
-
 
 
 class UserUpdateIn(BaseModel):

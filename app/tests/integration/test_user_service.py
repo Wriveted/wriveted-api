@@ -84,6 +84,8 @@ def test_generate_random_user_name_checks_existing_users(session):
                 username=f"ACN{i}",
                 email=f"ACN{i}",
                 type=UserAccountType.PUBLIC,
+                first_name=f"Testman{i}",
+                last_name_initial="C",
             )
         )
 
@@ -109,6 +111,8 @@ def test_generate_random_user_name_checks_existing_users(session):
                 username=output,
                 email=output,
                 type=UserAccountType.PUBLIC,
+                first_name=f"Testman{i}",
+                last_name_initial="C",
             )
         )
 
