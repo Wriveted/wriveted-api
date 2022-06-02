@@ -13,6 +13,8 @@ def test_user_crud_types(session):
         obj_in=UserCreateIn(
             name="integration test account (user)",
             email=f"{random_lower_string(6)}@test.com",
+            first_name="Test",
+            last_name_initial="T"
         ),
         commit=False,
     )
@@ -52,6 +54,8 @@ def test_user_crud_types(session):
             name="integration test account (student)",
             email=f"{random_lower_string(6)}@test.com",
             type=UserAccountType.STUDENT,
+            first_name="Test",
+            last_name_initial="S"
         ),
         commit=False,
     )
