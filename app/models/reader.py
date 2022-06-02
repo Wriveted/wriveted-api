@@ -37,10 +37,3 @@ class Reader(User):
     reading_preferences = Column(
         MutableDict.as_mutable(JSON), nullable=True, default={}
     )
-
-    booklists = relationship(
-        "BookList",
-        back_populates="owner",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )

@@ -1,7 +1,3 @@
-import enum
-import uuid
-from datetime import datetime
-
 from fastapi_permissions import All, Allow
 from sqlalchemy import (
     JSON,
@@ -36,13 +32,6 @@ class Educator(User):
         index=True,
     )
     school = relationship("School", backref="educators", foreign_keys=[school_id])
-
-    booklists = relationship(
-        "BookList",
-        back_populates="owner",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
 
     # class_history? other misc
     educator_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})

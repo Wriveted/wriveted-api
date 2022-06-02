@@ -99,22 +99,6 @@ def upgrade():
         op.f("ix_students_school_id"), "students", ["school_id"], unique=False
     )
 
-    # quick booklists update
-    op.add_column(
-        "book_lists",
-        sa.Column("reader_id", postgresql.UUID(as_uuid=True), nullable=True),
-    )
-    op.drop_constraint("fk_booklist_user", "book_lists", type_="foreignkey")
-    op.create_foreign_key(
-        "fk_booklist_reader",
-        "book_lists",
-        "users",
-        ["reader_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.drop_column("book_lists", "user_id")
-
     # clean up schools table
     op.drop_constraint("schools_admin_id_fkey", "schools", type_="foreignkey")
     op.drop_column("schools", "admin_id")
