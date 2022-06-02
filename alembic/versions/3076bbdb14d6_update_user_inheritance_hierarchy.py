@@ -54,7 +54,7 @@ def upgrade():
         "readers",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("username", sa.String(), nullable=True),
-        sa.Column("parent_id", postgresql.UUID(), nullable=True),
+        sa.Column("parent_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("reading_preferences", sa.JSON(), nullable=True),
         sa.ForeignKeyConstraint(["id"], ["users.id"], name="fk_reader_inherits_user"),
         sa.ForeignKeyConstraint(["parent_id"], ["parents.id"], name="fk_reader_parent"),

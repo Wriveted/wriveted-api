@@ -13,6 +13,7 @@ from app.main import app, get_settings
 from app.models import School, ServiceAccountType
 from app.models.user import UserAccountType
 from app.models.work import WorkType
+from app.models.class_group import ClassGroup
 from app.schemas.author import AuthorCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.user import UserCreateIn
@@ -248,6 +249,31 @@ def test_school(client, session, backend_service_account_headers) -> School:
     # Afterwards delete it
     client.delete(
         f"/v1/school/{school_info['wriveted_identifier']}",
+        headers=backend_service_account_headers,
+    )
+
+
+@pytest.fixture()
+def test_class_group(client, session, backend_service_account_headers, test_school) -> ClassGroup:
+    new_test_class_response = client.post(
+        f"/v1/school/{test_school.wriveted_identifier}/class",
+        headers=backend_service_account_headers,
+        json={
+            "name": f"Test Class",
+            "school_id": str(test_school.wriveted_identifier)
+        },
+        timeout=120,
+    )
+    new_test_class_response.raise_for_status()
+    class_info = new_test_class_response.json()
+
+    yield crud.class_group.get(
+        db=session, id=class_info["id"]
+    )
+
+    # Afterwards delete it
+    client.delete(
+        f"/v1/class/{class_info['id']}",
         headers=backend_service_account_headers,
     )
 

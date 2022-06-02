@@ -1,15 +1,11 @@
 import enum
-from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.school import SchoolBrief
 from app.schemas.user import UserIdentity
-from app.schemas.work import WorkBrief
 
 
 class ClassGroupIdentifier(BaseModel):
@@ -39,7 +35,7 @@ class ClassGroupListResponse(PaginatedResponse):
 
 
 class ClassGroupCreateIn(BaseModel):
-    school_id: int = Field(None, description="School Identifier")
+    school_id: UUID = Field(None, description="School Identifier")
     name: str = Field(None, description="Class name")
 
 

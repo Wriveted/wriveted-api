@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 if TYPE_CHECKING:
     from app.schemas.event import EventBrief
@@ -7,7 +8,6 @@ if TYPE_CHECKING:
 
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
 
 from pydantic import UUID4, AnyHttpUrl, BaseModel, EmailStr, root_validator, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
@@ -41,7 +41,7 @@ class UserCreateIn(BaseModel):
 
     # students / educators
     school_id: int | None
-    class_id: UUID | None
+    class_group_id: UUID4 | None
 
     student_info: dict | None
     school_admin_info: dict | None
@@ -91,7 +91,7 @@ class UserUpdateIn(BaseModel):
 
     # students / educators
     school_id: int | None
-    class_id: UUID | None
+    class_group_id: UUID | None
 
     student_info: dict | None
     school_admin_info: dict | None

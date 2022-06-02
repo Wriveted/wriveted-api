@@ -66,7 +66,7 @@ def test_user_crud_types(session, test_school):
     ), "CRUD: User account with type='student' not constructing a Student object"
 
 
-def test_cross_model_updates(session, test_school):
+def test_cross_model_updates(session, test_school, test_class_group):
 
     student = crud.user.create(
         db=session,
@@ -75,8 +75,9 @@ def test_cross_model_updates(session, test_school):
             email=f"teststudentupdate5@test.com",
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
-            first_name="Joshua",
-            last_name_initial="L",
+            first_name="Joe Shooer",
+            last_name_initial="P",
+            class_group_id=test_class_group.id
         ),
         commit=True,
     )

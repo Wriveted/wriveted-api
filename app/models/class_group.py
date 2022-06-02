@@ -22,8 +22,8 @@ class ClassGroup(Base):
     )
 
     school_id = Column(
-        Integer,
-        ForeignKey("schools.id", name="fk_class_groups_school"),
+        UUID(as_uuid=True),
+        ForeignKey("schools.wriveted_identifier", name="fk_class_groups_school"),
         index=True,
         nullable=True,
     )
