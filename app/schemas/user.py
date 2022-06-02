@@ -1,5 +1,4 @@
 from datetime import datetime
-from sys import last_traceback
 from typing import Optional
 from uuid import UUID
 
