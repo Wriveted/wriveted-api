@@ -6,7 +6,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-
 from app.models.user import User, UserAccountType
 
 

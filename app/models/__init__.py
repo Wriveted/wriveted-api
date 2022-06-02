@@ -24,3 +24,4 @@ from .school_admin import SchoolAdmin
 from .parent import Parent
 from .wriveted_admin import WrivetedAdmin
 from .work import Work
+from .class_group import ClassGroup

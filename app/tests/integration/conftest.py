@@ -10,7 +10,7 @@ from app import crud
 from app.api.dependencies.security import create_user_access_token
 from app.db.session import get_session
 from app.main import app, get_settings
-from app.models import School, ServiceAccountType, school
+from app.models import School, ServiceAccountType
 from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn

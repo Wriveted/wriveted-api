@@ -81,6 +81,8 @@ class School(Base):
     # All users with this email domain will be granted teacher rights
     teacher_domain = Column(String(256), nullable=True)
 
+    class_groups = relationship("ClassGroup", cascade="all, delete-orphan")
+
     # Extra info:
     # school website
     # Suburb,State,Postcode,

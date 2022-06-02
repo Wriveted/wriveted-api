@@ -1,6 +1,14 @@
+from pydantic import BaseModel
 from app.schemas.reader import ReaderBrief, ReaderDetail, ReaderIdentity
+from app.schemas.recommendations import ReadingAbilityKey
 from app.schemas.school import SchoolIdentity
 from app.schemas.user import UsersSchool
+
+
+class StudentInfo(BaseModel):
+    reading_ability_preference: ReadingAbilityKey | None
+    age: int | None
+    other: dict | None
 
 
 class StudentIdentity(ReaderIdentity):
@@ -13,4 +21,4 @@ class StudentBrief(StudentIdentity, ReaderBrief):
 
 
 class StudentDetail(ReaderDetail, StudentBrief):
-    student_info: dict | None
+    student_info: StudentInfo | None

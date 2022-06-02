@@ -59,6 +59,7 @@ class User(Base):
 
     email = Column(String, unique=True, index=True, nullable=True)
 
+    # overall "name" string, most likely provided by SSO
     name = Column(String, nullable=False)
 
     # Social stuff: Twitter, Goodreads

@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
-from app.models import CollectionItem, Event, School, User, Student
+from app.models import CollectionItem, Event, School, Student
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.models.user import UserAccountType

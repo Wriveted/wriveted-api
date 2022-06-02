@@ -20,11 +20,11 @@ class UserPatchOptions(BaseModel):
 
 
 class UserInfo(BaseModel):
-    sign_in_provider: Optional[str]
+    sign_in_provider: str | None
 
     # hoping pictures won't be base64 strings
-    picture: Optional[AnyHttpUrl]
-    other: Optional[dict]
+    picture: AnyHttpUrl | None
+    other: dict | None
 
 
 class UserCreateIn(BaseModel):
@@ -100,7 +100,7 @@ class UserUpdateIn(BaseModel):
 
 class UsersSchool(BaseModel):
     wriveted_identifier: UUID
-    official_identifier: Optional[str]
+    official_identifier: str | None
     country_code: str
     name: str
     collection_count: int
@@ -129,7 +129,7 @@ class UserBrief(UserIdentity):
 
 
 class UserDetail(UserBrief):
-    info: Optional[UserInfo]
+    info: UserInfo | None
 
     created_at: datetime
     updated_at: datetime

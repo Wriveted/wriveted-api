@@ -19,7 +19,6 @@ from app.models import BookList, ServiceAccount, User
 from app.models.booklist import ListType
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
-from app.models.student import Student
 from app.permissions import Permission
 from app.schemas.booklist import (
     BookListBrief,
