@@ -70,10 +70,8 @@ class UserCreateIn(BaseModel):
                 if not (values.get("school_id")):
                     raise ValueError("SchoolAdmin users must provide school_id.")
             case _:
-                if not (values.get("first_name") and values.get("last_name_initial")):
-                    raise ValueError(
-                        "PublicReader users must provide first_name and last_name_initial."
-                    )
+                pass
+
         return values
 
 

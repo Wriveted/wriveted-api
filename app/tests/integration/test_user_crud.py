@@ -7,14 +7,14 @@ from app.schemas.user import UserCreateIn, UserUpdateIn
 from app.tests.util.random_strings import random_lower_string
 
 
-def test_user_crud_types(session):
+def test_user_crud_types(session, test_school):
     publicuser = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
             name="integration test account (user)",
             email=f"{random_lower_string(6)}@test.com",
             first_name="Test",
-            last_name_initial="T"
+            last_name_initial="T",
         ),
         commit=False,
     )
@@ -41,6 +41,7 @@ def test_user_crud_types(session):
             name="integration test account (school admin)",
             email=f"{random_lower_string(6)}@test.com",
             type=UserAccountType.SCHOOL_ADMIN,
+            school_id=test_school.id,
         ),
         commit=False,
     )
@@ -55,7 +56,8 @@ def test_user_crud_types(session):
             email=f"{random_lower_string(6)}@test.com",
             type=UserAccountType.STUDENT,
             first_name="Test",
-            last_name_initial="S"
+            last_name_initial="S",
+            school_id=test_school.id,
         ),
         commit=False,
     )

@@ -126,7 +126,7 @@ class School(Base):
 
     # students  = list[Student]  (backref)
     # educators = list[Educator] (backref)
-    admins = relationship(SchoolAdmin)
+    admins = relationship(SchoolAdmin, overlaps="educators,school")
 
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
