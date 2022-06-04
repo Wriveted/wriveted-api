@@ -76,3 +76,34 @@ def test_register_student_by_class_code_then_login(
     response = client.get("v1/auth/me", headers=headers)
     assert response.status_code == 200
     assert response.json()["user"]["username"] == new_user_data["username"]
+
+
+def test_register_students_by_class_code_then_login(
+    client, session, test_school, test_class_group
+):
+    for i in range(10):
+        response = client.post(
+            "v1/auth/register-student",
+            json={
+                "first_name": "Test",
+                "last_name_initial": "U",
+                "school_id": str(test_school.wriveted_identifier),
+                "class_joining_code": test_class_group.join_code,
+            },
+        )
+        new_user_data = response.json()
+        login_response = client.post(
+            "v1/auth/class-code",
+            json={
+                "username": new_user_data["username"],
+                "class_joining_code": test_class_group.join_code,
+            },
+        )
+        assert login_response.status_code == 200
+        payload = login_response.json()
+
+        assert "access_token" in payload
+        headers = {"Authorization": f"bearer {payload['access_token']}"}
+        response = client.get("v1/auth/me", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["user"]["username"] == new_user_data["username"]

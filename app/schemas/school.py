@@ -7,6 +7,7 @@ from pydantic import AnyHttpUrl, BaseModel, constr, validator
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
+from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users.school_admin import SchoolAdminBrief
 
 
@@ -27,19 +28,6 @@ class SchoolInfo(BaseModel):
     status: Optional[str]
     age_id: Optional[str]
     experiments: Optional[dict[str, bool]]
-
-
-class SchoolWrivetedIdentity(BaseModel):
-    wriveted_identifier: UUID
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class SchoolIdentity(SchoolWrivetedIdentity):
-    official_identifier: Optional[str]
-    country_code: str
 
 
 class SchoolBrief(SchoolIdentity):

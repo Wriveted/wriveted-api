@@ -54,7 +54,6 @@ def test_remove_school_with_students(session_factory, test_school, test_class_gr
 
     with session_factory() as session:
         # Note the students are still valid users - just no longer "Students"
-
         u = crud.user.get_by_account_email(
             db=session, email=f"test-student-0@test-{fake_domain}.com"
         )
