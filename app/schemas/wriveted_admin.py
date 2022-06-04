@@ -1,4 +1,5 @@
-from app.schemas.user import UserBrief, UserDetail, UserIdentity
+from app.schemas.users.user import UserDetail
+from app.schemas.users.user_identity import UserBrief, UserIdentity
 
 
 class WrivetedAdminIdentity(UserIdentity):

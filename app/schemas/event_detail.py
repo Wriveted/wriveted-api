@@ -2,7 +2,7 @@ from app.schemas.event import EventBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.service_account import ServiceAccountBrief
-from app.schemas.user import UserIdentity
+from app.schemas.users.user_identity import UserIdentity
 
 
 class EventDetail(EventBrief):

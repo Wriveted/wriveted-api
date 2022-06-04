@@ -1,13 +1,13 @@
-from app.models import SchoolState
-from app.models.school import SchoolBookbotType
-from app.schemas.country import CountryDetail
-from app.schemas.user import UserBrief
-from app.schemas.school_admin import SchoolAdminBrief
-
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
+
 from pydantic import AnyHttpUrl, BaseModel, constr, validator
+
+from app.models import SchoolState
+from app.models.school import SchoolBookbotType
+from app.schemas.country import CountryDetail
+from app.schemas.users.school_admin import SchoolAdminBrief
 
 
 class SchoolLocation(BaseModel):

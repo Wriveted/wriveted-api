@@ -3,36 +3,31 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.params import Query
-from fastapi_permissions import Allow, has_permission, All
+from fastapi_permissions import All, Allow, has_permission
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.classes import (
-    get_class_from_id,
-    get_school_from_class_id,
-)
+from app.api.dependencies.classes import get_class_from_id, get_school_from_class_id
 from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import ServiceAccount, User, School
+from app.models import School, ServiceAccount, User
 from app.models.class_group import ClassGroup
 from app.permissions import Permission
 from app.schemas.class_group import (
+    ClassGroupBrief,
     ClassGroupBriefWithJoiningCode,
     ClassGroupCreateIn,
-    ClassGroupCreateIn,
-    ClassGroupListResponse,
     ClassGroupDetail,
-    ClassGroupBrief,
+    ClassGroupListResponse,
     ClassGroupUpdateIn,
 )
-
 from app.schemas.pagination import Pagination
 
 logger = get_logger()
@@ -150,7 +145,7 @@ async def add_class(
 
 
 @router.get(
-    "/class/{wriveted_identifier}",
+    "/class/{id}",
     response_model=ClassGroupDetail,
     dependencies=[Permission("read", get_school_from_class_id)],
 )
@@ -161,7 +156,7 @@ async def get_class_detail(
 
 
 @router.patch(
-    "/class/{wriveted_identifier}",
+    "/class/{id}",
     response_model=ClassGroupDetail,
 )
 async def update_class(
@@ -178,7 +173,7 @@ async def update_class(
 
 
 @router.delete(
-    "/class/{wriveted_identifier}",
+    "/class/{id}",
     response_model=ClassGroupBrief,
 )
 async def delete_class(
@@ -200,4 +195,4 @@ async def delete_class(
         account=account,
         school=school,
     )
-    return crud.class_group.remove(db=session, obj_in=school)
+    return crud.class_group.remove(db=session, id=class_orm.id)

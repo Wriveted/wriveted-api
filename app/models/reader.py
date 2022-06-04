@@ -1,21 +1,9 @@
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-    String,
-)
+from sqlalchemy import JSON, Column, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 
 from app.models.user import User
-from app.services.users import new_identifiable_username
-
-
-def contextual_default_username_generation(context):
-    first_name = context.get_current_parameters()["first_name"]
-    last_name_initial = context.get_current_parameters()["last_name_initial"]
-    return new_identifiable_username(first_name, last_name_initial)
 
 
 class Reader(User):
@@ -26,7 +14,7 @@ class Reader(User):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_reader_inherits_user"),
+        ForeignKey("users.id", name="fk_reader_inherits_user", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -35,7 +23,6 @@ class Reader(User):
         unique=True,
         index=True,
         nullable=False,
-        default=contextual_default_username_generation,
     )
     first_name = Column(String, nullable=False)
     last_name_initial = Column(String, nullable=False)

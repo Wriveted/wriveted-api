@@ -7,6 +7,7 @@ from app.crud import CRUDBase
 from app.models import School
 from app.models.class_group import ClassGroup
 from app.schemas.class_group import ClassGroupCreateIn, ClassGroupUpdateIn
+from app.services.class_groups import new_random_class_code
 
 
 class CRUDClassGroup(CRUDBase[ClassGroup, ClassGroupCreateIn, ClassGroupUpdateIn]):
@@ -51,6 +52,17 @@ class CRUDClassGroup(CRUDBase[ClassGroup, ClassGroupCreateIn, ClassGroupUpdateIn
         return db.execute(
             select(ClassGroup).where(ClassGroup.join_code == code)
         ).scalar_one_or_none()
+
+    def build_orm_object(
+        self, obj_in: ClassGroupCreateIn, session: Session
+    ) -> ClassGroup:
+        """An uncommitted ORM object from the input data"""
+
+        return ClassGroup(
+            name=obj_in.name,
+            school_id=obj_in.school_id,
+            join_code=new_random_class_code(session),
+        )
 
 
 class_group = CRUDClassGroup(ClassGroup)

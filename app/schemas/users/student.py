@@ -1,8 +1,10 @@
 from pydantic import BaseModel
-from app.schemas.reader import ReaderBrief, ReaderDetail, ReaderIdentity
+
 from app.schemas.recommendations import ReadingAbilityKey
 from app.schemas.school import SchoolIdentity
-from app.schemas.user import UsersSchool
+from app.schemas.users.reader import ReaderBrief, ReaderDetail
+from app.schemas.users.user import UsersSchool
+from app.schemas.users.user_identity import ReaderIdentity
 
 
 class StudentInfo(BaseModel):

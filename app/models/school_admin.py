@@ -1,12 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-    Integer,
-)
+from sqlalchemy import JSON, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+
 from app.models.educator import Educator
 from app.models.user import UserAccountType
 
@@ -21,7 +17,9 @@ class SchoolAdmin(Educator):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("educators.id", name="fk_school_admin_inherits_educator"),
+        ForeignKey(
+            "educators.id", name="fk_school_admin_inherits_educator", ondelete="CASCADE"
+        ),
         primary_key=True,
     )
 

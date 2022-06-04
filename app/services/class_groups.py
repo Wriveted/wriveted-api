@@ -1,10 +1,9 @@
 import random
-from app import config
-from app.db.session import get_session
+
 from sqlalchemy.orm import Session
 
 
-def new_random_class_code(length: int = 6):
+def new_random_class_code(session: Session, length: int = 6):
     """
     Generates a new random class code using 6 alphanumerics*,
     ensuring it's not already claimed by a class.
@@ -14,8 +13,6 @@ def new_random_class_code(length: int = 6):
     Final entropy: 24 ^ 6 = 191,102,976 combinations
     """
     from app import crud
-
-    session = next(get_session(settings=config.get_settings()))
 
     code = ""
     code_valid = False

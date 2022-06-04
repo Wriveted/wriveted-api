@@ -5,11 +5,13 @@ Revises: 3076bbdb14d6
 Create Date: 2022-06-02 15:03:17.406912
 
 """
-from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
+from sqlalchemy import update
+
+from alembic import op
+
 revision = "77c90a741ba7"
 down_revision = "3076bbdb14d6"
 branch_labels = None
@@ -26,6 +28,27 @@ def upgrade():
         "readers",
         sa.Column("last_name_initial", sa.String(), server_default="", nullable=False),
     )
+    meta = sa.MetaData(bind=op.get_bind())
+    meta.reflect(only=("readers",))
+    readers_table = sa.Table("readers", meta)
+    conn = op.get_bind()
+
+    res = conn.execute(
+        "select id, name from users where type = 'PUBLIC' or type = 'STUDENT'"
+    )
+    results = res.fetchall()
+    for userid, name in results:
+        conn.execute(
+            update(readers_table)
+            .where(readers_table.c.id == str(userid))
+            .values(
+                first_name=name.split()[0] if name is not None else "",
+                last_name_initial=name.split()[1][0]
+                if name is not None and len(name.split()) > 1
+                else "",
+            )
+        )
+
     op.alter_column("readers", "first_name", server_default=None)
     op.alter_column("readers", "last_name_initial", server_default=None)
     # ### end Alembic commands ###

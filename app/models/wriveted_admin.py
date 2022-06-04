@@ -1,11 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-)
+from sqlalchemy import JSON, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+
 from app.models.user import User, UserAccountType
 
 
@@ -18,7 +15,9 @@ class WrivetedAdmin(User):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_wriveted_admin_inherits_user"),
+        ForeignKey(
+            "users.id", name="fk_wriveted_admin_inherits_user", ondelete="CASCADE"
+        ),
         primary_key=True,
     )
 
