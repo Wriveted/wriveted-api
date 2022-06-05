@@ -5,8 +5,6 @@ import random
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from app import config
-from app.db.session import get_session
 
 from app.models.user import User
 
@@ -109,15 +107,13 @@ def new_random_username(
     return name
 
 
-def new_identifiable_username(first_name: str, last_name_initial: str):
+def new_identifiable_username(first_name: str, last_name_initial: str, session):
     """
     Generates a new identifiable username using Reader's first name and initial of last name,
     ensuring it's not already claimed by another user.
     Appends with digits for extra entropy.
     """
     from app import crud
-
-    session = next(get_session(settings=config.get_settings()))
 
     username_base = (first_name + last_name_initial).replace(" ", "")
     username = username_base

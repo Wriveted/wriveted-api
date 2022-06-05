@@ -1,5 +1,5 @@
-from app.schemas.educator import EducatorBrief, EducatorDetail, EducatorIdentity
-from app.schemas.user import UserDetail
+from app.schemas.users.educator import EducatorBrief, EducatorDetail, EducatorIdentity
+from app.schemas.users.user import UserDetail
 
 
 class SchoolAdminIdentity(EducatorIdentity):

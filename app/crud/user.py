@@ -1,25 +1,27 @@
 from typing import Any, Optional, Tuple
+
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
-from app.models import User
+from app.models import (
+    Educator,
+    Parent,
+    PublicReader,
+    SchoolAdmin,
+    Student,
+    User,
+    WrivetedAdmin,
+)
 from app.models.reader import Reader
 from app.models.user import UserAccountType
-from app.schemas.user import UserCreateIn, UserUpdateIn
-from app.models import (
-    WrivetedAdmin,
-    Student,
-    PublicReader,
-    Educator,
-    SchoolAdmin,
-    Parent,
-)
+from app.schemas.users.user_create import UserCreateIn
+from app.schemas.users.user_update import UserUpdateIn
+from app.services.users import new_identifiable_username
 
 logger = get_logger()
 
@@ -53,15 +55,17 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             case _:
                 return query
 
-    def build_orm_object(self, obj_in: UserCreateIn) -> User:
+    def build_orm_object(self, obj_in: UserCreateIn, session: Session) -> User:
         """An uncommitted ORM object from the input data"""
         type = obj_in.type or UserAccountType.PUBLIC
 
         match type:
             case UserAccountType.PUBLIC:
                 model = PublicReader
+                self._generate_username_if_missing(session, obj_in)
             case UserAccountType.STUDENT:
                 model = Student
+                self._generate_username_if_missing(session, obj_in)
             case UserAccountType.EDUCATOR:
                 model = Educator
             case UserAccountType.SCHOOL_ADMIN:
@@ -80,6 +84,12 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
         db_obj = model(**obj_in_data)
         return db_obj
+
+    def _generate_username_if_missing(self, session, obj_in: UserCreateIn):
+        if obj_in.username is None:
+            obj_in.username = new_identifiable_username(
+                obj_in.first_name, obj_in.last_name_initial, session
+            )
 
     # ---------------------
 
@@ -122,7 +132,11 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         if is_active is not None:
             user_query = user_query.where(User.is_active == is_active)
         if students_of is not None:
-            user_query = user_query.where(User.school_as_student == students_of)
+            user_query = (
+                user_query.join(Student)
+                .where(User.id == Student.id)
+                .where(Student.school == students_of)
+            )
 
         return user_query
 

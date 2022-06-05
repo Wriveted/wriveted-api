@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -41,6 +41,13 @@ class Event(Base):
 
     user_id = Column(ForeignKey("users.id", name="fk_event_user"), nullable=True)
     user = relationship("User", back_populates="events", foreign_keys=[user_id])
+
+    # Partial indexes for school and user events
+
+    __table_args__ = (
+        Index("ix_events_school", "school_id", postgresql_where=school_id.is_not(None)),
+        Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
+    )
 
     service_account_id = Column(
         ForeignKey("service_accounts.id", name="fk_event_service_account"),

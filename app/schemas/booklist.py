@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief
-from app.schemas.user import UserIdentity
+from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkBrief
 
 

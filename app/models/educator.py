@@ -1,13 +1,9 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-    Integer,
-)
+from sqlalchemy import JSON, Column, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+
 from app.models.user import User, UserAccountType
 
 
@@ -19,7 +15,7 @@ class Educator(User):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_educator_inherits_user"),
+        ForeignKey("users.id", name="fk_educator_inherits_user", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -27,7 +23,7 @@ class Educator(User):
 
     school_id = Column(
         Integer,
-        ForeignKey("schools.id", name="fk_educator_school"),
+        ForeignKey("schools.id", name="fk_educator_school", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

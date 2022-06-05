@@ -37,8 +37,6 @@ class BookListItem(Base):
     order_id = Column(Integer)
 
     # Might need to opt in to say this is "deferrable"
-    Index("index_booklist_ordered", booklist_id, order_id)
-    UniqueConstraint("ck_booklist_order", "booklist_id", "order_id", deferrable=True)
 
     # Information about this particular work in the context of this list
     # E.g. "note": "Recommended by Alistair", "edition": "<isbn>"
@@ -46,6 +44,13 @@ class BookListItem(Base):
 
     booklist = relationship("BookList", back_populates="items")
     work = relationship("Work", lazy="joined", viewonly=True)
+
+    __table_args__ = (
+        Index("index_booklist_ordered", booklist_id, order_id),
+        UniqueConstraint(
+            "booklist_id", "order_id", name="ck_booklist_order", deferrable=True
+        ),
+    )
 
     def __repr__(self):
         try:

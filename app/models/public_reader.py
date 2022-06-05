@@ -1,9 +1,5 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-)
+from sqlalchemy import JSON, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 
@@ -20,7 +16,9 @@ class PublicReader(Reader):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("readers.id", name="fk_public_reader_inherits_reader"),
+        ForeignKey(
+            "readers.id", name="fk_public_reader_inherits_reader", ondelete="CASCADE"
+        ),
         primary_key=True,
     )
 

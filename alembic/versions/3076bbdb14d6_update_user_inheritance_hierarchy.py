@@ -5,9 +5,10 @@ Revises: cf1000e6f66b
 Create Date: 2022-06-01 00:06:24.749219
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3076bbdb14d6"
@@ -99,20 +100,6 @@ def upgrade():
         op.f("ix_students_school_id"), "students", ["school_id"], unique=False
     )
 
-    # clean up schools table
-    op.drop_constraint("schools_admin_id_fkey", "schools", type_="foreignkey")
-    op.drop_column("schools", "admin_id")
-
-    # clean up original users table
-    op.drop_index("ix_users_school_id_as_admin", table_name="users")
-    op.drop_index("ix_users_school_id_as_student", table_name="users")
-    op.drop_index("ix_users_username", table_name="users")
-    op.drop_constraint("fk_admin_school", "users", type_="foreignkey")
-    op.drop_constraint("fk_student_school", "users", type_="foreignkey")
-    op.drop_column("users", "username")
-    op.drop_column("users", "school_id_as_admin")
-    op.drop_column("users", "school_id_as_student")
-
     # instantiate table objects to access op.bulk_insert without relying on model
     meta = sa.MetaData(bind=op.get_bind())
     meta.reflect(
@@ -151,17 +138,29 @@ def upgrade():
     )
 
     # students
-    res = conn.execute("select id from users where type = 'STUDENT'")
+    res = conn.execute(
+        "select id, school_id_as_student from users where type = 'STUDENT'"
+    )
     results = res.fetchall()
     op.bulk_insert(
-        students_table, [{"id": str(r[0]), "student_info": {}} for r in results]
+        students_table,
+        [
+            {"id": str(r[0]), "school_id": str(r[1]), "student_info": {}}
+            for r in results
+        ],
     )
 
     # educator
-    res = conn.execute("select id from users where type = 'EDUCATOR'")
+    res = conn.execute(
+        "select id, school_id_as_admin from users where type = 'EDUCATOR' or type = 'SCHOOL_ADMIN'"
+    )
     results = res.fetchall()
     op.bulk_insert(
-        educators_table, [{"id": str(r[0]), "educator_info": {}} for r in results]
+        educators_table,
+        [
+            {"id": str(r[0]), "school_id": str(r[1]), "educator_info": {}}
+            for r in results
+        ],
     )
 
     # school admin
@@ -179,7 +178,20 @@ def upgrade():
         wriveted_admins_table,
         [{"id": str(r[0]), "wriveted_admin_info": {}} for r in results],
     )
-    # ### end Alembic commands ###
+
+    # clean up schools table
+    op.drop_constraint("schools_admin_id_fkey", "schools", type_="foreignkey")
+    op.drop_column("schools", "admin_id")
+
+    # clean up original users table
+    op.drop_index("ix_users_school_id_as_admin", table_name="users")
+    op.drop_index("ix_users_school_id_as_student", table_name="users")
+    op.drop_index("ix_users_username", table_name="users")
+    op.drop_constraint("fk_admin_school", "users", type_="foreignkey")
+    op.drop_constraint("fk_student_school", "users", type_="foreignkey")
+    op.drop_column("users", "username")
+    op.drop_column("users", "school_id_as_admin")
+    op.drop_column("users", "school_id_as_student")
 
 
 def downgrade():
@@ -219,20 +231,7 @@ def downgrade():
     op.create_foreign_key(
         "schools_admin_id_fkey", "schools", "users", ["admin_id"], ["id"]
     )
-    op.add_column(
-        "book_lists",
-        sa.Column("user_id", postgresql.UUID(), autoincrement=False, nullable=True),
-    )
-    op.drop_constraint("fk_booklist_reader", "book_lists", type_="foreignkey")
-    op.create_foreign_key(
-        "fk_booklist_user",
-        "book_lists",
-        "users",
-        ["user_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.drop_column("book_lists", "reader_id")
+
     op.drop_index(op.f("ix_students_school_id"), table_name="students")
     op.drop_table("students")
     op.drop_table("school_admins")

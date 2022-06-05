@@ -1,10 +1,5 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    ForeignKey,
-    Integer,
-)
+from sqlalchemy import JSON, Column, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -20,7 +15,7 @@ class Student(Reader):
 
     id = Column(
         UUID(as_uuid=True),
-        ForeignKey("readers.id", name="fk_student_inherits_reader"),
+        ForeignKey("readers.id", name="fk_student_inherits_reader", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -28,7 +23,7 @@ class Student(Reader):
 
     school_id = Column(
         Integer,
-        ForeignKey("schools.id", name="fk_student_school"),
+        ForeignKey("schools.id", name="fk_student_school", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -36,7 +31,9 @@ class Student(Reader):
 
     class_group_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("class_groups.id", name="fk_student_class_group"),
+        ForeignKey(
+            "class_groups.id", name="fk_student_class_group", ondelete="CASCADE"
+        ),
         nullable=False,
         index=True,
     )

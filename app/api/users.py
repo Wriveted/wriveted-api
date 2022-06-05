@@ -15,7 +15,9 @@ from app.api.dependencies.security import (
 )
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
-from app.schemas.user import UserBrief, UserDetail, UserPatchOptions, UserUpdateIn
+from app.schemas.users.user import UserDetail, UserPatchOptions
+from app.schemas.users.user_identity import UserBrief
+from app.schemas.users.user_update import UserUpdateIn
 
 logger = get_logger()
 

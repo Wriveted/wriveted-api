@@ -1,14 +1,13 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func, select, text
+from sqlalchemy import Column, DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import column_property, relationship
 
 from app.db import Base
 from app.models.student import Student
-from app.services.class_groups import new_random_class_code
 
 
 class ClassGroup(Base):
@@ -23,7 +22,11 @@ class ClassGroup(Base):
 
     school_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("schools.wriveted_identifier", name="fk_class_groups_school"),
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_class_groups_school",
+            ondelete="CASCADE",
+        ),
         index=True,
         nullable=True,
     )
@@ -31,7 +34,7 @@ class ClassGroup(Base):
 
     name = Column(String(256), nullable=False)
 
-    join_code = Column(String(6), default=new_random_class_code)
+    join_code = Column(String(6))
 
     student_count = column_property(
         select(func.count(Student.id))

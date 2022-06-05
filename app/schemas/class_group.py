@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.user import UserIdentity
+from app.schemas.users.user_identity import UserIdentity
 
 
 class ClassGroupIdentifier(BaseModel):
