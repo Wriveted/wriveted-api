@@ -162,11 +162,6 @@ def test_user_account_headers(test_user_account_token):
 
 
 @pytest.fixture()
-def test_user_account_headers(test_user_account_token):
-    return {"Authorization": f"bearer {test_user_account_token}"}
-
-
-@pytest.fixture()
 def test_schooladmin_account_headers(test_schooladmin_account_token):
     return {"Authorization": f"bearer {test_schooladmin_account_token}"}
 

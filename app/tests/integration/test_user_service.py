@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models.public_reader import PublicReader
+from app.models.student import Student
 from app.models.user import UserAccountType
 from app.services.users import (
     WordList,
@@ -74,16 +75,18 @@ def test_generate_random_user_name_from_fixed_list():
     assert output[3:].isdigit()
 
 
-def test_generate_random_user_name_checks_existing_users(session, test_school):
+def test_generate_random_student_user_name_checks_existing_students(session, test_school, test_class_group):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
 
     for i in range(5):
         session.add(
-            PublicReader(
+            Student(
                 name=f"TestUser{i}",
                 username=f"ACN{i}",
                 email=f"ACN{i}",
-                type=UserAccountType.PUBLIC,
+                type=UserAccountType.STUDENT,
+                school_id=test_school.id,
+                class_group_id=test_class_group.id,
                 first_name=f"Testman{i}",
                 last_name_initial="C",
             )
@@ -107,11 +110,13 @@ def test_generate_random_user_name_checks_existing_users(session, test_school):
             slugify=False,
         )
         session.add(
-            PublicReader(
+            Student(
                 name=f"TestUser{i}",
                 username=output,
                 email=output,
-                type=UserAccountType.PUBLIC,
+                type=UserAccountType.STUDENT,
+                school_id=test_school.id,
+                class_group_id=test_class_group.id,
                 first_name=f"Testman{i}",
                 last_name_initial="C",
             )
@@ -122,7 +127,7 @@ def test_generate_random_user_name_checks_existing_users(session, test_school):
 
     print(
         session.scalars(
-            select(PublicReader.username).where(PublicReader.username.is_not(None))
+            select(Student.username).where(Student.username.is_not(None))
         ).all()
     )
 
@@ -142,11 +147,13 @@ def test_generate_random_user_name_checks_existing_users(session, test_school):
     # Finally, check that the username unique constraint is enforced:
     with pytest.raises(IntegrityError):
         session.add(
-            PublicReader(
+            Student(
                 name=f"TestUser",
                 username=output,
                 email="a-new-email",
-                type=UserAccountType.PUBLIC,
+                type=UserAccountType.STUDENT,
+                school_id=test_school.id,
+                class_group_id=test_class_group.id,
             )
         )
         session.flush()
