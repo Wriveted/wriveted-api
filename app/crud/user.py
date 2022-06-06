@@ -1,8 +1,9 @@
 from typing import Any, Optional, Tuple
+from uuid import UUID
 
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -62,7 +63,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         match type:
             case UserAccountType.PUBLIC:
                 model = PublicReader
-                self._generate_username_if_missing(session, obj_in)
             case UserAccountType.STUDENT:
                 model = Student
                 self._generate_username_if_missing(session, obj_in)
@@ -88,7 +88,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
     def _generate_username_if_missing(self, session, obj_in: UserCreateIn):
         if obj_in.username is None:
             obj_in.username = new_identifiable_username(
-                obj_in.first_name, obj_in.last_name_initial, session
+                obj_in.first_name, obj_in.last_name_initial, session, obj_in.school_id
             )
 
     # ---------------------
@@ -163,8 +163,12 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         )
         return db.execute(query).scalars().all()
 
-    def get_by_username(self, db: Session, username: str):
-        q = select(Reader).where(Reader.username == username)
+    def get_student_by_username_and_school_id(
+        self, db: Session, username: str, school_id: int
+    ):
+        q = select(Student).where(
+            and_(Student.username == username, Student.school_id == school_id)
+        )
         return db.execute(q).scalar_one_or_none()
 
 

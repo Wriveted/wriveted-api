@@ -169,7 +169,9 @@ def student_user_auth(
 
     logger.debug("Get the user by username")
     # if the school doesn't match -> 401
-    user = crud.user.get_by_username(session, username=data.username)
+    user = crud.user.get_student_by_username_and_school_id(
+        session, username=data.username, school_id=school.id
+    )
     # Note the user could have been moved to another class, or removed from a class but we log them in anyway
     if (
         user is None
@@ -246,7 +248,7 @@ def create_student_user(
 
     # Note this generates a valid username based on the name
     username = new_identifiable_username(
-        data.first_name, data.last_name_initial, session
+        data.first_name, data.last_name_initial, session, school.id
     )
     new_user = Student(
         type=UserAccountType.STUDENT,

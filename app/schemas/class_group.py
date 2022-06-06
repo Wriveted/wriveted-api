@@ -20,8 +20,8 @@ class ClassGroupBrief(ClassGroupIdentifier):
     name: str = Field(None, description="Class name")
 
 
-class ClassGroupBriefWithJoiningCode(ClassGroupIdentifier):
-    code: str = Field(None, description="Joining code")
+class ClassGroupBriefWithJoiningCode(ClassGroupBrief, ClassGroupIdentifier):
+    join_code: str = Field(None, description="Joining code")
     note: Optional[str] = Field(None, description="Note about this class")
 
 

@@ -1,5 +1,5 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey, Integer
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -20,6 +20,18 @@ class Student(Reader):
     )
 
     __mapper_args__ = {"polymorphic_identity": UserAccountType.STUDENT}
+
+    __table_args__ = (
+        UniqueConstraint(
+            "username", "school_id", name="unique_student_username_per_school"
+        ),
+    )
+
+    username = Column(
+        String,
+        index=True,
+        nullable=False,
+    )
 
     school_id = Column(
         Integer,

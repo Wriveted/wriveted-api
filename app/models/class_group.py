@@ -2,7 +2,16 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import Column, DateTime, ForeignKey, String, func, select, text
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import column_property, relationship
 
@@ -18,6 +27,10 @@ class ClassGroup(Base):
         primary_key=True,
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("name", "school_id", name="unique_class_name_per_school"),
     )
 
     school_id = Column(

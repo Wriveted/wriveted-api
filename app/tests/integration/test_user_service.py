@@ -74,7 +74,7 @@ def test_generate_random_user_name_from_fixed_list():
     assert output[3:].isdigit()
 
 
-def test_generate_random_user_name_checks_existing_users(session):
+def test_generate_random_user_name_checks_existing_users(session, test_school):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
 
     for i in range(5):
@@ -98,6 +98,7 @@ def test_generate_random_user_name_checks_existing_users(session):
     for i in range(5):
         output = new_random_username(
             session=session,
+            school_id=test_school.id,
             wordlist=wordlist,
             adjective=True,
             colour=True,
@@ -129,6 +130,7 @@ def test_generate_random_user_name_checks_existing_users(session):
     with pytest.raises(ValueError):
         impossible = new_random_username(
             session=session,
+            school_id=test_school.id,
             wordlist=wordlist,
             adjective=True,
             colour=True,

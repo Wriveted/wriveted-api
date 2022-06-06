@@ -18,12 +18,6 @@ class Reader(User):
         primary_key=True,
     )
 
-    username = Column(
-        String,
-        unique=True,
-        index=True,
-        nullable=False,
-    )
     first_name = Column(String, nullable=False)
     last_name_initial = Column(String, nullable=False)
 

@@ -1,6 +1,7 @@
 import csv
 import os
 import random
+from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -11,7 +12,7 @@ from app.models.user import User
 logger = get_logger()
 
 
-def generate_random_users(session: Session, num_users: int, **kwargs):
+def generate_random_users(session: Session, num_users: int, school_id: int, **kwargs):
     """
     Generate `num_users` new users with random usernames.
 
@@ -37,8 +38,7 @@ def generate_random_users(session: Session, num_users: int, **kwargs):
     with WordList() as wordlist:
         for i in range(num_users):
             username = new_random_username(
-                session=session,
-                wordlist=wordlist,
+                session=session, wordlist=wordlist, school_id=school_id
             )
             user = User(username=username, **user_kwargs)
             session.add(user)
@@ -71,6 +71,7 @@ class WordList:
 
 def new_random_username(
     session: Session,
+    school_id: int,
     wordlist: list[WordListItem],
     adjective: bool = False,
     colour: bool = True,
@@ -98,7 +99,13 @@ def new_random_username(
         name = generate_random_username_from_wordlist(
             wordlist, adjective, colour, noun, numbers, slugify
         )
-        name_valid = name and crud.user.get_by_username(session, name) is None
+        name_valid = (
+            name
+            and crud.user.get_student_by_username_and_school_id(
+                session, name, school_id
+            )
+            is None
+        )
         attempts_remaining -= 1
 
     if attempts_remaining == 0:
@@ -107,7 +114,9 @@ def new_random_username(
     return name
 
 
-def new_identifiable_username(first_name: str, last_name_initial: str, session):
+def new_identifiable_username(
+    first_name: str, last_name_initial: str, session, school_id: int
+):
     """
     Generates a new identifiable username using Reader's first name and initial of last name,
     ensuring it's not already claimed by another user.
@@ -121,9 +130,13 @@ def new_identifiable_username(first_name: str, last_name_initial: str, session):
     attempts_remaining = 1000
 
     while not username_valid and attempts_remaining > 0:
-        username = username_base + str(random.randint(100, 999))
+        username = username_base + str(random.randint(10, 99))
         username_valid = (
-            username and crud.user.get_by_username(session, username) is None
+            username
+            and crud.user.get_student_by_username_and_school_id(
+                session, username, school_id
+            )
+            is None
         )
         attempts_remaining -= 1
 

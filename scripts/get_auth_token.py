@@ -3,7 +3,7 @@
 # via docker-compose versus a Cloud SQL database.
 import os
 
-from app.schemas.user import UserCreateIn
+from app.schemas.users.user_create import UserCreateIn
 
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
 # os.environ['POSTGRESQL_PASSWORD'] = ''
@@ -17,10 +17,10 @@ from app.db.session import get_session
 
 session = next(get_session(settings=config.get_settings()))
 
-user = crud.user.get_by_account_email(db=session, email="hardbyte@gmail.com")
+user = crud.user.get_by_account_email(db=session, email="joshuaplandy@gmail.com")
 if user is None:
     user = crud.user.create(
-        db=session, obj_in=UserCreateIn(name="Brian", email="hardbyte@gmail.com")
+        db=session, obj_in=UserCreateIn(name="Josh2", email="hardbyte@gmail.com")
     )
     user.type = "wriveted"
 

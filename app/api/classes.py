@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, has_permission
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
@@ -45,7 +46,8 @@ Further access control is applied inside each endpoint.
 """
 bulk_class_access_control_list = [
     (Allow, "role:admin", All),
-    (Allow, "role:teacher", All),
+    (Allow, "role:educator", All),
+    (Allow, "role:schooladmin", All),
     (Allow, "role:student", "read"),
 ]
 
@@ -133,7 +135,16 @@ async def add_class(
     session: Session = Depends(get_session),
 ):
     logger.info("Creating a class", school=school)
-    new_class_orm = crud.class_group.create(db=session, obj_in=class_data)
+
+    try:
+        new_class_orm = crud.class_group.create(db=session, obj_in=class_data)
+    except IntegrityError as e:
+        logger.warning("Database integrity error while adding class", exc_info=e)
+        raise HTTPException(
+            status_code=422,
+            detail="Couldn't add class to school. It might already exist? Check the name.",
+        )
+
     crud.event.create(
         session=session,
         title="New class created",
