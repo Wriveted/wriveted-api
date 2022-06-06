@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, insert, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -18,7 +18,9 @@ from app.models import (
     User,
     WrivetedAdmin,
 )
+from app.models.class_group import ClassGroup
 from app.models.reader import Reader
+from app.models.school import School
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_update import UserUpdateIn
@@ -170,6 +172,27 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             and_(Student.username == username, Student.school_id == school_id)
         )
         return db.execute(q).scalar_one_or_none()
+
+    # def update_user_type(self, db: Session, user: User, new_data: UserCreateIn):
+    #     if user.type == new_data.type:
+    #         return user
+
+    #     match new_data.type:
+
+    #         # if updating to SchoolAdmin
+    #         case UserAccountType.SCHOOL_ADMIN:
+    #             if user.type == UserAccountType.EDUCATOR:
+    #                 # if the Educator prerequisites have already been met then
+    #                 # we only need change the type and add a school_admins row
+    #                 user.type = UserAccountType.SCHOOL_ADMIN
+    #                 db.execute(insert(SchoolAdmin).values(id=user.id))
+    #                 # always close the session after changing polymorphic entities
+    #                 db.commit()
+    #                 db.close()
+    #             else
+    #                 # otherwise we need to populate the Educator level as well
+    #                 user.type = UserAccountType.SCHOOL_ADMIN
+    #                 db.execute(insert(Educator).values())
 
 
 user = CRUDUser(User)

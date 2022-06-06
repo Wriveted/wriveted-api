@@ -75,7 +75,9 @@ def test_generate_random_user_name_from_fixed_list():
     assert output[3:].isdigit()
 
 
-def test_generate_random_student_user_name_checks_existing_students(session, test_school, test_class_group):
+def test_generate_random_student_user_name_checks_existing_students(
+    session, test_school, test_class_group
+):
     wordlist = [WordListItem(adjective="A", colour="C", noun="N")]
 
     for i in range(5):

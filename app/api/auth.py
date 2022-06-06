@@ -20,9 +20,11 @@ from app.db.session import get_session
 from app.models import EventLevel, SchoolState, ServiceAccount, Student, User
 from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
+from app.schemas.users.educator import EducatorDetail
+from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
-from app.schemas.users.user_create import UserCreateIn
+from app.schemas.users.user_create import UserCreateAuth, UserCreateIn
 from app.schemas.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
 from app.services.users import new_identifiable_username
@@ -52,6 +54,7 @@ class Token(BaseModel):
 def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
     raw_data=Depends(get_raw_info),
+    user_data=UserCreateAuth | None,
     session: Session = Depends(get_session),
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
@@ -63,7 +66,7 @@ def secure_user_endpoint(
     identifier so Wriveted can recognize the user when that access token is provided as part of
     an API call.
 
-    Note this API creates a new user if required, updates existing users with the latest SSO data
+    Note this API creates a new PENDING user if required, updates existing users with the latest SSO data
     (e.g. their profile picture).
     """
 
@@ -82,6 +85,7 @@ def secure_user_endpoint(
     user_data = UserCreateIn(
         name=name,
         email=email,
+        # NOW ADD THE USER_DATA STUFF
         info={
             "sign_in_provider": raw_data["firebase"].get("sign_in_provider"),
             "picture": picture,
@@ -183,7 +187,7 @@ def student_user_auth(
     logger.debug("Check active user and school")
     # Check the school + user is active else 403 (difference being the server knows who you are)
     if not user.is_active or school.state != SchoolState.ACTIVE:
-        logger.info("User active?", r=user.is_active)
+        logger.info("User active?", r=user.status)
         logger.info("School active", school_state=school.state)
         logger.warning(
             "Login attempt to inactive user or school", user=user, school=school
@@ -296,8 +300,14 @@ async def get_current_user(
                 user_detail = WrivetedAdminDetail.from_orm(
                     current_user_or_service_account
                 )
+            case UserAccountType.EDUCATOR:
+                user_detail = EducatorDetail.from_orm(current_user_or_service_account)
+            case UserAccountType.SCHOOL_ADMIN:
+                user_detail = SchoolAdminDetail.from_orm(
+                    current_user_or_service_account
+                )
 
-            # case UserAccountType.EDUCATOR:
+            # case UserAccountType.PARENT:
             #     user_detail =
             # ...
 
@@ -309,6 +319,7 @@ async def get_current_user(
             user=user_detail,
             token_expiry=token_data.exp,
         )
+
     elif isinstance(current_user_or_service_account, ServiceAccount):
         return AuthenticatedAccountBrief(
             account_type=AccountType.service_account,

@@ -6,6 +6,46 @@ from app.models.user import UserAccountType
 from app.schemas.users.user import UserInfo
 
 
+class UserCreateAuth(BaseModel):
+    """
+    A schema to validate any initial `/auth/me` call that creates a user.
+    """
+
+    type: UserAccountType | None = UserAccountType.PUBLIC
+    username: str | None
+    first_name: str | None
+    last_name_initial: str | None
+    school_id: UUID4 | None
+    class_join_code: UUID4 | None
+
+    @root_validator
+    def validate_user_creation(cls, values):
+        match values.get("type"):
+            case UserAccountType.STUDENT:
+                if not (values.get("school_id") and values.get("class_join_code")):
+                    raise ValueError(
+                        "Student users must provide school_id and class_join_code."
+                    )
+                else:
+                    values[
+                        "name"
+                    ] = f"{values['first_name']} {values['last_name_initial']}"
+            case UserAccountType.EDUCATOR:
+                if not (
+                    values.get("first_name")
+                    and values.get("last_name_initial")
+                    and values.get("school_id")
+                ):
+                    raise ValueError("Educator users must provide school_id.")
+            case UserAccountType.SCHOOL_ADMIN:
+                if not (values.get("school_id")):
+                    raise ValueError("SchoolAdmin users must provide school_id.")
+            case _:
+                pass
+
+        return values
+
+
 class UserCreateIn(BaseModel):
     # all users
     name: str | None
@@ -54,15 +94,16 @@ class UserCreateIn(BaseModel):
 
     @root_validator
     def validate_user_creation(cls, values):
-        match values.get("type"):
+        match values["type"]:
             case UserAccountType.STUDENT:
                 if not (
-                    values.get("first_name")
-                    and values.get("last_name_initial")
-                    and values.get("school_id")
+                    values["first_name"]
+                    and values["last_name_initial"]
+                    and values["school_id"]
+                    and values["class_group_id"]
                 ):
                     raise ValueError(
-                        "Student users must provide first_name, last_name_initial, and school_id."
+                        "Student users must provide first_name, last_name_initial, school_id, and class_group_id."
                     )
                 else:
                     values[
@@ -70,13 +111,13 @@ class UserCreateIn(BaseModel):
                     ] = f"{values['first_name']} {values['last_name_initial']}"
             case UserAccountType.EDUCATOR:
                 if not (
-                    values.get("first_name")
-                    and values.get("last_name_initial")
-                    and values.get("school_id")
+                    values["first_name"]
+                    and values["last_name_initial"]
+                    and values["school_id"]
                 ):
                     raise ValueError("Educator users must provide school_id.")
             case UserAccountType.SCHOOL_ADMIN:
-                if not (values.get("school_id")):
+                if not (values["school_id"]):
                     raise ValueError("SchoolAdmin users must provide school_id.")
             case _:
                 pass

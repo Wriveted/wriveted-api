@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.schemas.service_account import ServiceAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.parent import ParentDetail
+from app.schemas.users.reader import ReaderDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail
 from app.schemas.users.user import UserDetail
@@ -20,5 +21,5 @@ class AccountType(str, enum.Enum):
 class AuthenticatedAccountBrief(BaseModel):
     account_type: AccountType
     token_expiry: datetime.datetime
-    user: UserDetail | StudentDetail | EducatorDetail | SchoolAdminDetail | WrivetedAdminDetail | ParentDetail | None
+    user: StudentDetail | ReaderDetail | SchoolAdminDetail | EducatorDetail | WrivetedAdminDetail | ParentDetail | UserDetail | None
     service_account: ServiceAccountBrief | None
