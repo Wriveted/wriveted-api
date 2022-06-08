@@ -28,7 +28,7 @@ def test_user_crud_extracts_name_components(session, test_school):
     assert publicuser.last_name_initial == "U"
 
 
-def test_user_crud_types(session, test_school):
+def test_user_crud_types(session, test_school, test_class_group):
     test_email = f"{random_lower_string(6)}@test.com"
     publicuser = crud.user.create(
         db=session,
@@ -85,6 +85,7 @@ def test_user_crud_types(session, test_school):
             first_name="Test",
             last_name_initial="S",
             school_id=test_school.id,
+            class_group_id=test_class_group.id
         ),
         commit=False,
     )
