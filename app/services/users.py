@@ -1,18 +1,18 @@
 import csv
 import os
 import random
+from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.models.user import User
 
 logger = get_logger()
 
 
-def generate_random_users(session: Session, num_users: int, **kwargs):
+def generate_random_users(session: Session, num_users: int, school_id: int, **kwargs):
     """
     Generate `num_users` new users with random usernames.
 
@@ -27,6 +27,7 @@ def generate_random_users(session: Session, num_users: int, **kwargs):
     Note this function adds users to the current transaction, but doesn't
     commit the transaction.
     """
+
     # Default user arguments:
     user_kwargs = {
         "name": "",
@@ -37,8 +38,7 @@ def generate_random_users(session: Session, num_users: int, **kwargs):
     with WordList() as wordlist:
         for i in range(num_users):
             username = new_random_username(
-                session=session,
-                wordlist=wordlist,
+                session=session, wordlist=wordlist, school_id=school_id
             )
             user = User(username=username, **user_kwargs)
             session.add(user)
@@ -71,6 +71,7 @@ class WordList:
 
 def new_random_username(
     session: Session,
+    school_id: int,
     wordlist: list[WordListItem],
     adjective: bool = False,
     colour: bool = True,
@@ -83,6 +84,7 @@ def new_random_username(
     ensuring it's not already claimed by a user.
     Default complexity: ColourNounNumber (RedWolf52)
     """
+    from app import crud
 
     if not (adjective or colour or noun or numbers):
         raise ValueError(
@@ -97,13 +99,51 @@ def new_random_username(
         name = generate_random_username_from_wordlist(
             wordlist, adjective, colour, noun, numbers, slugify
         )
-        name_valid = name and crud.user.get_by_username(session, name) is None
+        name_valid = (
+            name
+            and crud.user.get_student_by_username_and_school_id(
+                session, name, school_id
+            )
+            is None
+        )
         attempts_remaining -= 1
 
     if attempts_remaining == 0:
         raise ValueError("Couldn't generate a random user name")
 
     return name
+
+
+def new_identifiable_username(
+    first_name: str, last_name_initial: str, session, school_id: int
+):
+    """
+    Generates a new identifiable username using Reader's first name and initial of last name,
+    ensuring it's not already claimed by another user.
+    Appends with digits for extra entropy.
+    """
+    from app import crud
+
+    username_base = (first_name + last_name_initial).replace(" ", "")
+    username = username_base
+    username_valid = False
+    attempts_remaining = 1000
+
+    while not username_valid and attempts_remaining > 0:
+        username = username_base + str(random.randint(10, 99))
+        username_valid = (
+            username
+            and crud.user.get_student_by_username_and_school_id(
+                session, username, school_id
+            )
+            is None
+        )
+        attempts_remaining -= 1
+
+    if attempts_remaining == 0:
+        raise ValueError("Couldn't generate a unique username for Reader")
+
+    return username
 
 
 def generate_random_username_from_wordlist(

@@ -146,6 +146,5 @@ async def get_events(
         )
 
     return EventListsResponse(
-        pagination=Pagination(**pagination.to_dict(), total=None),
-        data=filtered_events
+        pagination=Pagination(**pagination.to_dict(), total=None), data=filtered_events
     )

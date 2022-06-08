@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from fastapi_permissions import All, Allow, Authenticated, Deny
+from fastapi_permissions import All, Allow, Deny
 from sqlalchemy import (
     JSON,
     Column,
@@ -23,6 +23,7 @@ from sqlalchemy.orm import column_property, relationship
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
+from app.models.school_admin import SchoolAdmin
 from app.models.service_account_school_association import (
     service_account_school_association_table,
 )
@@ -79,6 +80,8 @@ class School(Base):
     # All users with this email domain will be granted teacher rights
     teacher_domain = Column(String(256), nullable=True)
 
+    class_groups = relationship("ClassGroup", cascade="all, delete-orphan")
+
     # Extra info:
     # school website
     # Suburb,State,Postcode,
@@ -122,18 +125,14 @@ class School(Base):
     #     overlaps="school"
     # )
 
+    # students  = list[Student]  (backref)
+    # educators = list[Educator] (backref)
+    admins = relationship(SchoolAdmin, overlaps="educators,school")
+
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
     )
     events = relationship("Event", back_populates="school", lazy="dynamic")
-
-    # The primary admin for the school, but note other users could also be an admin for the school
-    # via the user table's `school_as_admin` column.
-    admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    admin = relationship(
-        "User",
-        foreign_keys=[admin_id],
-    )
 
     service_accounts = relationship(
         "ServiceAccount",
@@ -171,20 +170,15 @@ class School(Base):
         (Deny, Everyone, All) is automatically appended at the end.
         """
         return [
-            # This would allow anyone logged in to view any school's collection
-            # (Allow, Authenticated, "read"),
             (Allow, "role:admin", All),
+            (Allow, f"schooladmin:{self.id}", All),
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
             (Allow, "role:lms", "read"),
             (Allow, "role:lms", "read-collection"),
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
-            (Allow, f"teacher:{self.id}", All),
-            (Allow, f"student:{self.id}", "read"),
-            (Allow, f"student:{self.id}", "read-collection"),
             (Allow, f"school:{self.id}", "read"),
             (Allow, f"school:{self.id}", "read-collection"),
             (Allow, f"school:{self.id}", "update"),
-            (Allow, Authenticated, "bind"),
         ]

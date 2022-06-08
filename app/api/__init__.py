@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.authors import router as author_router
 from app.api.booklists import router as booklist_router
+from app.api.classes import router as class_group_router
 from app.api.collections import router as collections_router
 from app.api.editions import router as edition_router
 from app.api.events import router as events_router
@@ -35,3 +36,4 @@ api_router.include_router(labelset_router)
 api_router.include_router(recommendations_router)
 api_router.include_router(booklist_router)
 api_router.include_router(events_router)
+api_router.include_router(class_group_router)

@@ -6,7 +6,10 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
-from app.models import CollectionItem, Event, School, User
+from app.models import ClassGroup, CollectionItem, Event, School, Student
+from app.models.educator import Educator
+from app.models.school_admin import SchoolAdmin
+from app.models.user import User, UserAccountType
 from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
 
 
@@ -110,29 +113,72 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
         stmt = delete(CollectionItem).where(CollectionItem.school_id == obj_in.id)
         db.execute(stmt)
 
-        # Deactivate and unlink any student users that were linked to this school
-        # This seems safer than deleting them...
-        stmt = (
+        # Convert any students from this school to PublicReader,
+        # then delete the Student-level data (preserving the Reader level)
+        demote_students = (
             update(User)
-            .where(User.school_id_as_student == obj_in.id)
-            .values(school_id_as_student=None, is_active=False)
+            .where(
+                User.id.in_(select(Student.id).where(Student.school_id == obj_in.id))
+            )
+            .values(type=UserAccountType.PUBLIC, is_active=False)
+            .execution_options(synchronize_session=False)
+        )
+
+        db.execute(demote_students)
+
+        # DB should do this on school deletion via Cascade
+        delete_students = delete(Student).where(Student.school_id == obj_in.id)
+        db.execute(delete_students)
+        # Now the students are deleted... remove the classes
+        stmt = delete(ClassGroup).where(
+            ClassGroup.school_id == obj_in.wriveted_identifier
         )
         db.execute(stmt)
-        # Do the same for admin users
-        stmt = (
+
+        # Do the same with SchoolAdmins.
+        # Work from the lowest level of inheritance up, preserving User data at the top
+        demote_schooladmins = (
             update(User)
-            .where(User.school_id_as_admin == obj_in.id)
-            .values(school_id_as_admin=None, is_active=False)
+            .where(
+                User.id.in_(
+                    select(SchoolAdmin.id).where(SchoolAdmin.school_id == obj_in.id)
+                )
+            )
+            .values(type=UserAccountType.PUBLIC, is_active=False)
+            .execution_options(synchronize_session=False)
         )
-        db.execute(stmt)
+
+        db.execute(demote_schooladmins)
+        # delete_schooladmins = delete(SchoolAdmin).where(
+        #     SchoolAdmin.school_id == obj_in.id
+        # )
+        # db.execute(delete_schooladmins)
+
+        # and Educators in general
+        demote_educators = (
+            update(User)
+            .where(
+                User.id.in_(select(Educator.id).where(Educator.school_id == obj_in.id))
+            )
+            .values(type=UserAccountType.PUBLIC, is_active=False)
+            .execution_options(synchronize_session=False)
+        )
+        db.execute(demote_educators)
+        # delete_educators = delete(Educator).where(Educator.school_id == obj_in.id)
+        # db.execute(delete_educators)
 
         # Delete any events that were linked to this school
         stmt = delete(Event).where(Event.school_id == obj_in.id)
         db.execute(stmt)
-
+        print("Deleting database objects related to the school")
         db.commit()
+        print("Deleting the school", obj_in)
         # Now delete the school
-        db.delete(obj_in)
+        db.execute(
+            delete(School)
+            .where(School.wriveted_identifier == obj_in.wriveted_identifier)
+            .execution_options(synchronize_session=False)
+        )
         db.commit()
         return obj_in
 

@@ -4,6 +4,7 @@ from app.crud.base import CRUDBase
 
 from app.crud.author import CRUDAuthor, author
 from app.crud.booklist import CRUDBookList, booklist
+from app.crud.class_group import CRUDClassGroup, class_group
 from app.crud.collection_item import CRUDCollectionItem, collection_item
 from app.crud.edition import CRUDEdition, edition
 from app.crud.event import CRUDEvent, event

@@ -19,7 +19,7 @@ from app.api.dependencies.security import (
     get_current_user,
 )
 from app.db.session import get_session
-from app.models import School, ServiceAccount
+from app.models import School, SchoolAdmin, ServiceAccount
 from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (
@@ -143,14 +143,17 @@ async def get_schools(
     return schools
 
 
-@router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
+@public_router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def get_school(
     db: Session = Depends(get_session),
-    school: School = Permission("read", get_school_from_wriveted_id),
+    # school: School = get_school_from_wriveted_id,
+    school: School = Depends(get_school_from_wriveted_id),
 ):
     """
     Detail on a particular school
     """
+    admins = school.admins
+    print(admins)
     return school
 
 
@@ -207,13 +210,18 @@ async def bind_school(
     Binds the current user to a school as its administrator.
     Will fail if target school already has an admin.
     """
+    if not isinstance(user, SchoolAdmin):
+        raise HTTPException(
+            status.HTTP_401_UNATHORIZED, "User not a school administrator."
+        )
+
     if school.admin is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "School already bound to an admin user."
         )
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.id
+    user.school_id = school.id
     session.commit()
 
     return school.admin_id
