@@ -3,6 +3,11 @@ import uuid
 from starlette import status
 
 
+def test_read_openapi_spec(client):
+    response = client.get("openapi.json")
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_read_version(client):
     response = client.get("v1/version")
     assert "database" in response.text
