@@ -85,7 +85,7 @@ def test_user_crud_types(session, test_school, test_class_group):
             first_name="Test",
             last_name_initial="S",
             school_id=test_school.id,
-            class_group_id=test_class_group.id
+            class_group_id=test_class_group.id,
         ),
         commit=False,
     )
