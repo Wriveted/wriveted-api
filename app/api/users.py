@@ -15,8 +15,10 @@ from app.api.dependencies.security import (
 )
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
+from app.schemas.pagination import Pagination
 from app.schemas.users.user import UserDetail, UserPatchOptions
 from app.schemas.users.user_identity import UserBrief
+from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import UserUpdateIn
 
 logger = get_logger()
@@ -29,7 +31,7 @@ router = APIRouter(
 public_router = APIRouter(tags=["Public", "Users"])
 
 
-@router.get("/users", response_model=List[UserBrief])
+@router.get("/users", response_model=UserListsResponse)
 async def get_users(
     q: Optional[str] = Query(None, description="Filter users by name"),
     is_active: Optional[bool] = Query(
@@ -42,16 +44,21 @@ async def get_users(
     session: Session = Depends(get_session),
 ):
     """
-    List all users
+    List all users with optional filters.
     """
     logger.info("Listing users")
-    return crud.user.get_all_with_optional_filters(
+    total_matching_query, page_of_users = crud.user.get_filtered_with_count(
         db=session,
         query_string=q,
         is_active=is_active,
         type=type,
         skip=pagination.skip,
         limit=pagination.limit,
+    )
+
+    return UserListsResponse(
+        data=page_of_users,
+        pagination=Pagination(**pagination.to_dict(), total=total_matching_query)
     )
 
 

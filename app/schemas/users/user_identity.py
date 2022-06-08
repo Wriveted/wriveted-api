@@ -18,7 +18,7 @@ class UserIdentity(BaseModel):
 
 
 class UserBrief(UserIdentity):
-    email: str
+    email: str | None
     is_active: bool
     last_login_at: Optional[datetime]
 
