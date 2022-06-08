@@ -66,7 +66,7 @@ def secure_user_endpoint(
     identifier so Wriveted can recognize the user when that access token is provided as part of
     an API call.
 
-    Note this API creates a new PENDING user if required, updates existing users with the latest SSO data
+    Note this API creates a new user if required, updates existing users with the latest SSO data
     (e.g. their profile picture).
     """
 
@@ -187,7 +187,7 @@ def student_user_auth(
     logger.debug("Check active user and school")
     # Check the school + user is active else 403 (difference being the server knows who you are)
     if not user.is_active or school.state != SchoolState.ACTIVE:
-        logger.info("User active?", r=user.status)
+        logger.info("User active?", r=user.is_active)
         logger.info("School active", school_state=school.state)
         logger.warning(
             "Login attempt to inactive user or school", user=user, school=school
