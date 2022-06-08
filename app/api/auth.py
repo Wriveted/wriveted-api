@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union
+from typing import Union, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -41,7 +41,7 @@ get_raw_info = get_current_firebase_user.claim(None)
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    token_type: Literal['bearer'] = 'bearer'
 
 
 @router.get(
@@ -50,11 +50,12 @@ class Token(BaseModel):
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
     },
+    response_model=Token
 )
 def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
     raw_data=Depends(get_raw_info),
-    user_data=UserCreateAuth | None,
+    user_data: Union[UserCreateAuth, None] = None,
     session: Session = Depends(get_session),
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
