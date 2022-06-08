@@ -26,11 +26,13 @@ def upgrade():
     op.execute("ALTER TABLE users ALTER COLUMN type DROP DEFAULT")
 
     # the only toe-stepping is the renaming of library to school_admin, manually update those users
-    op.execute("UPDATE users SET type = 'SCHOOL_ADMIN' where type = 'LIBRARY'")
+    op.execute(
+        "UPDATE users SET type = 'SCHOOL_ADMIN' where type = 'LIBRARY' and school_id_as_admin is not null"
+    )
 
     # actually, let's also set other unaccounted for accounts (lms) to public just in case
     op.execute(
-        "UPDATE users SET type = 'PUBLIC' where type not in ('PUBLIC', 'STUDENT', 'WRIVETED')"
+        "UPDATE users SET type = 'PUBLIC' where type not in ('PUBLIC', 'STUDENT', 'WRIVETED', 'SCHOOL_ADMIN')"
     )
 
     # now update the underlying enum type, then switch the column back to enum

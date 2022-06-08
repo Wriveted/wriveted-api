@@ -52,7 +52,7 @@ def upgrade():
     op.create_index(
         op.f("ix_class_groups_school_id"), "class_groups", ["school_id"], unique=False
     )
-    op.alter_column("readers", "username", existing_type=sa.VARCHAR(), nullable=False)
+    # op.alter_column("readers", "username", existing_type=sa.VARCHAR(), nullable=False)
     op.add_column(
         "students",
         sa.Column("class_group_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -71,7 +71,7 @@ def downgrade():
     op.drop_constraint("fk_student_class_group", "students", type_="foreignkey")
     op.drop_index(op.f("ix_students_class_group_id"), table_name="students")
     op.drop_column("students", "class_group_id")
-    op.alter_column("readers", "username", existing_type=sa.VARCHAR(), nullable=True)
+    # op.alter_column("readers", "username", existing_type=sa.VARCHAR(), nullable=True)
     op.drop_index(op.f("ix_class_groups_school_id"), table_name="class_groups")
     op.drop_table("class_groups")
     # ### end Alembic commands ###
