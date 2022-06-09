@@ -142,7 +142,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
         return user_query
 
-    def get_all_with_optional_filters(
+    def get_filtered_with_count(
         self,
         db: Session,
         query_string: Optional[str] = None,
@@ -152,14 +152,37 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         skip: int = 0,
         limit: int = 100,
     ):
+        """
+        Get users with optional filtering.
+
+        :return: Tuple[int, list]
+        Returns a count of the total matching rows, and the requested
+        page of users.
+        """
+        select_statement = self.get_all_with_optional_filters_query(
+            db=db,
+            query_string=query_string,
+            type=type,
+            is_active=is_active,
+            students_of=students_of,
+        )
+        matching_count = self.count_query(db=db, query=select_statement)
+
+        paginated_users_query = self.apply_pagination(
+            select_statement, skip=skip, limit=limit
+        )
+
+        return matching_count, db.scalars(paginated_users_query).all()
+
+    def get_all_with_optional_filters(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        **kwargs,
+    ):
         query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(
-                db=db,
-                query_string=query_string,
-                type=type,
-                is_active=is_active,
-                students_of=students_of,
-            ),
+            self.get_all_with_optional_filters_query(db=db, **kwargs),
             skip=skip,
             limit=limit,
         )

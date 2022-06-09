@@ -41,7 +41,7 @@ get_raw_info = get_current_firebase_user.claim(None)
 
 class Token(BaseModel):
     access_token: str
-    token_type: Literal['bearer'] = 'bearer'
+    token_type: Literal["bearer"] = "bearer"
 
 
 @router.get(
@@ -50,7 +50,7 @@ class Token(BaseModel):
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
     },
-    response_model=Token
+    response_model=Token,
 )
 def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
