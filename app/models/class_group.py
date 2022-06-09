@@ -44,6 +44,7 @@ class ClassGroup(Base):
         nullable=True,
     )
     school = relationship("School", back_populates="class_groups", lazy="joined")
+    students = relationship("Student", back_populates="class_group")
 
     name = Column(String(256), nullable=False)
 

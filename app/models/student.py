@@ -50,7 +50,7 @@ class Student(Reader):
         index=True,
     )
     class_group = relationship(
-        "ClassGroup", backref="students", foreign_keys=[class_group_id]
+        "ClassGroup", back_populates="students", foreign_keys=[class_group_id]
     )
 
     # class_history? other misc

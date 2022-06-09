@@ -1,11 +1,12 @@
 import enum
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.users.user_identity import UserIdentity
+from app.schemas.users.student import StudentIdentity
 
 
 class ClassGroupIdentifier(BaseModel):
@@ -18,6 +19,8 @@ class ClassGroupIdentifier(BaseModel):
 
 class ClassGroupBrief(ClassGroupIdentifier):
     name: str = Field(None, description="Class name")
+    student_count: int
+    updated_at: datetime
 
 
 class ClassGroupBriefWithJoiningCode(ClassGroupBrief, ClassGroupIdentifier):
@@ -26,8 +29,7 @@ class ClassGroupBriefWithJoiningCode(ClassGroupBrief, ClassGroupIdentifier):
 
 
 class ClassGroupDetail(ClassGroupBriefWithJoiningCode):
-    admins: list[UserIdentity]
-    members: list[UserIdentity]
+    students: list[StudentIdentity]
 
 
 class ClassGroupListResponse(PaginatedResponse):
