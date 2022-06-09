@@ -142,17 +142,15 @@ async def get_schools(
     return schools
 
 
-@public_router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
+@router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def get_school(
-    db: Session = Depends(get_session),
-    # school: School = get_school_from_wriveted_id,
-    school: School = Depends(get_school_from_wriveted_id),
+    school: School = Permission('read', get_school_from_wriveted_id),
 ):
     """
     Detail on a particular school
+
+    🔒 Requires "read" permission on the school.
     """
-    admins = school.admins
-    print(admins)
     return school
 
 
@@ -181,14 +179,6 @@ async def get_school_bookbot_type(
         "experiments": school.info["experiments"],
     }
 
-
-# Intended to be deprecated if wriveted_identifier is promoted to primary key
-@router.get("/school_raw/{id}", response_model=SchoolBookbotInfo, deprecated=True)
-async def get_school(school: School = Permission("read", get_school_from_raw_id)):
-    """
-    Detail on a particular school, accessed via raw sql id (integer)
-    """
-    return school
 
 
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
