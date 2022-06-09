@@ -189,7 +189,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         self, db: Session, username: str, school_id: int
     ):
         q = select(Student).where(
-            and_(func.lower(Student.username) == username.lower(), Student.school_id == school_id)
+            and_(
+                func.lower(Student.username) == username.lower(),
+                Student.school_id == school_id,
+            )
         )
         return db.execute(q).scalar_one_or_none()
 
