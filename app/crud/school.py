@@ -10,10 +10,10 @@ from app.models import ClassGroup, CollectionItem, Event, School, Student
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.models.user import User, UserAccountType
-from app.schemas.school import SchoolCreateIn, SchoolUpdateIn
+from app.schemas.school import SchoolCreateIn, SchoolPatchOptions
 
 
-class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolUpdateIn]):
+class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
     def get_all_query_with_optional_filters(
         self,
         db: Session,
