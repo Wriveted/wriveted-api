@@ -61,6 +61,7 @@ class SchoolDetail(SchoolBrief):
 
     admins: list[SchoolAdminBrief]
     lms_type: str
+    bookbot_type: SchoolBookbotType
 
     created_at: datetime
     updated_at: datetime
