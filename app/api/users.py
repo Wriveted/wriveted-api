@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -17,7 +17,6 @@ from app.db.session import get_session
 from app.models.user import User, UserAccountType
 from app.schemas.pagination import Pagination
 from app.schemas.users.user import UserDetail, UserPatchOptions
-from app.schemas.users.user_identity import UserBrief
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import UserUpdateIn
 

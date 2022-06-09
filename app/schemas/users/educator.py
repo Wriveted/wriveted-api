@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users.user import UserDetail, UsersSchool
-from app.schemas.users.user_identity import UserIdentity
+from app.schemas.users.user_identity import UserBrief
 
 
-class EducatorIdentity(UserIdentity):
-    school: SchoolIdentity
-
-
-class EducatorBrief(EducatorIdentity):
+class EducatorBrief(UserBrief):
     school: UsersSchool
     # class_group: ClassGroupBrief | None
 

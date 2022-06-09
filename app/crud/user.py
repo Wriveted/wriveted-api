@@ -1,9 +1,8 @@
 from typing import Any, Optional, Tuple
-from uuid import UUID
 
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import and_, func, insert, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -18,8 +17,6 @@ from app.models import (
     User,
     WrivetedAdmin,
 )
-from app.models.class_group import ClassGroup
-from app.models.reader import Reader
 from app.models.school import School
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
@@ -148,7 +145,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         query_string: Optional[str] = None,
         type: Optional[UserAccountType] = None,
         is_active: Optional[bool] = None,
-        students_of: Optional["School"] = None,
+        students_of: Optional[School] = None,
         skip: int = 0,
         limit: int = 100,
     ):

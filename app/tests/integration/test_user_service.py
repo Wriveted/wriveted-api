@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.models.public_reader import PublicReader
 from app.models.student import Student
 from app.models.user import UserAccountType
 from app.services.users import (

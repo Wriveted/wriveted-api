@@ -3,6 +3,8 @@
 # via docker-compose versus a Cloud SQL database.
 import os
 
+from app.schemas.class_group import ClassGroupCreateIn
+
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
 # os.environ['POSTGRESQL_PASSWORD'] = ''
 os.environ["SECRET_KEY"] = ""
@@ -16,19 +18,32 @@ from app.services.users import generate_random_users
 
 session = next(get_session(settings=config.get_settings()))
 
-school = crud.school.get_by_wriveted_id_or_404(
-    db=session, wriveted_id="784039ba-7eda-406d-9058-efe65f62f034"
-)
+school_id = "784039ba-7eda-406d-9058-efe65f62f034"
+school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=school_id)
 print(school)
 
-num_users = 50
+current_classes = crud.class_group.get_all_with_optional_filters(session, school=school)
+print(current_classes)
+
+if len(current_classes) < 3:
+    crud.class_group.create(
+        db=session,
+        obj_in=ClassGroupCreateIn(
+            school_id=school_id, name=f"Test Class {len(current_classes)}"
+        ),
+    )
+
+num_users = 3
 
 for new_user in generate_random_users(
     session=session,
     num_users=num_users,
+    school_id=school.id,
+    first_name="Test",
+    last_name_initial="U",
     type=UserAccountType.STUDENT,
     is_active=True,
-    school_as_student=school,
+    class_group_id=current_classes[-1].id,
 ):
     print(new_user)
 
