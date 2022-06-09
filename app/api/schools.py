@@ -9,10 +9,7 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.school import (
-    get_school_from_raw_id,
-    get_school_from_wriveted_id,
-)
+from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
@@ -144,7 +141,7 @@ async def get_schools(
 
 @router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def get_school(
-    school: School = Permission('read', get_school_from_wriveted_id),
+    school: School = Permission("read", get_school_from_wriveted_id),
 ):
     """
     Detail on a particular school
@@ -178,7 +175,6 @@ async def get_school_bookbot_type(
         "type": school.bookbot_type,
         "experiments": school.info["experiments"],
     }
-
 
 
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)

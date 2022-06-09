@@ -27,9 +27,7 @@ class UserDetail(UserBrief):
 
     created_at: datetime
     updated_at: datetime
-
     events: list[EventBrief]
-
     newsletter: bool
 
     @validator("events", pre=True)
@@ -42,11 +40,6 @@ class UsersSchool(BaseModel):
     official_identifier: str | None
     country_code: str
     name: str
-    collection_count: int
 
     class Config:
         orm_mode = True
-
-    @validator("collection_count", pre=True)
-    def set_collection_count(cls, v):
-        return v or 0

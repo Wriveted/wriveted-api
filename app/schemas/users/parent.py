@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from app.schemas.users import ParentIdentity
+from typing import Literal
+
+from app.schemas.users.reader import ReaderIdentity
 from app.schemas.users.user import UserDetail
-from app.schemas.users.user_identity import ReaderIdentity, UserBrief
+from app.schemas.users.user_identity import UserBrief
 
 
-class ParentBrief(UserBrief, ParentIdentity):
+class ParentBrief(UserBrief):
+    type: Literal["parent"]
     children: list[ReaderIdentity]
 
 
