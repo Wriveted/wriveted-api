@@ -29,7 +29,6 @@ from app.schemas.school import (
     SchoolDetail,
     SchoolPatchOptions,
     SchoolSelectorOption,
-    SchoolUpdateIn,
 )
 from app.services.experiments import get_experiments
 
@@ -227,8 +226,8 @@ async def bind_school(
     return school.admin_id
 
 
-@router.patch("/school/{wriveted_identifier}")
-async def update_school_extras(
+@router.patch("/school/{wriveted_identifier}", response_model=SchoolDetail)
+async def update_school(
     patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
@@ -237,12 +236,11 @@ async def update_school_extras(
     session: Session = Depends(get_session),
 ):
     """
-    Optional patch updates to less-essential parts of a school object.
-    Only available to users with the "update" permission for the
-    selected school; i.e. superusers, and its admin/owner.
-    """
-    output = {}
+    Update a school.
 
+    Only available to users with the "update" permission for the
+    selected school; i.e. superusers, and school administrators.
+    """
     if patch.status:
         if patch.status != school.state:
             crud.event.create(
@@ -252,22 +250,18 @@ async def update_school_extras(
                 school=school,
                 account=account,
             )
-        output["original_status"] = school.state
         school.state = patch.status
-        output["new_status"] = school.state
-    if patch.bookbot_type:
-        output["original_bookbot_type"] = school.bookbot_type
-        school.bookbot_type = patch.bookbot_type
-        output["new_bookbot_type"] = school.bookbot_type
+    crud.event.create(
+        session=session,
+        title="School Updated",
+        description=f"School '{school.name}' in {school.country.name} updated.",
+        school=school,
+        account=account,
+        commit=False,
+    )
+    updated_orm_object = crud.school.update(db=session, obj_in=patch, db_obj=school)
 
-    if patch.lms_type:
-        output["original_lms_type"] = school.lms_type
-        school.lms_type = patch.lms_type
-        output["new_bookbot_type"] = school.lms_type
-
-    session.commit()
-
-    return output
+    return updated_orm_object
 
 
 @router.post(
@@ -341,26 +335,6 @@ async def add_school(
             status_code=422,
             detail="Couldn't add school to database. It might already exist? Check the country code.",
         )
-
-
-@router.put("/school/{wriveted_identifier}", response_model=SchoolDetail)
-async def update_school(
-    school_update_data: SchoolUpdateIn,
-    school: School = Permission("update", get_school_from_wriveted_id),
-    account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
-):
-    crud.event.create(
-        session=session,
-        title="School Updated",
-        description=f"School '{school.name}' in {school.country.name} updated.",
-        school=school,
-        account=account,
-    )
-    updated_orm_object = crud.school.update(
-        db=session, obj_in=school_update_data, db_obj=school
-    )
-    return updated_orm_object
 
 
 @router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)

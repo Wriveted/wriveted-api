@@ -91,3 +91,7 @@ class SchoolPatchOptions(BaseModel):
     status: Optional[SchoolState]
     bookbot_type: Optional[SchoolBookbotType]
     lms_type: Optional[str]
+    name: Optional[str]
+    info: Optional[Any]
+    student_domain: Optional[AnyHttpUrl]
+    teacher_domain: Optional[AnyHttpUrl]
