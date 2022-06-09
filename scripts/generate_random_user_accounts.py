@@ -33,6 +33,8 @@ if len(current_classes) < 3:
         ),
     )
 
+    current_classes = crud.class_group.get_all_with_optional_filters(session, school=school)
+
 num_users = 3
 
 for new_user in generate_random_users(
