@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union, Literal
+from typing import Literal, Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -230,10 +230,6 @@ def create_student_user(
     session: Session = Depends(get_session),
 ):
     """Create a new student account associated with a school by posting a valid class code.
-
-    The generated access token is a JSON Web Token (JWT) which contains a user specific unique
-    identifier so Wriveted can recognize the user when that access token is provided as part of
-    an API call.
 
     Note this API always creates a new user, to log in to an existing account see `/auth/class-code`
     """

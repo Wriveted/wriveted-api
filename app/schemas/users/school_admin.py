@@ -1,13 +1,11 @@
-from app.schemas.users.educator import EducatorBrief, EducatorDetail, EducatorIdentity
+from typing import Literal
+
+from app.schemas.users.educator import EducatorBrief, EducatorDetail
 from app.schemas.users.user import UserDetail
 
 
-class SchoolAdminIdentity(EducatorIdentity):
-    pass
-
-
-class SchoolAdminBrief(EducatorBrief, SchoolAdminIdentity):
-    pass
+class SchoolAdminBrief(EducatorBrief):
+    type: Literal["school_admin"]
 
 
 class SchoolAdminDetail(EducatorDetail, UserDetail, SchoolAdminBrief):

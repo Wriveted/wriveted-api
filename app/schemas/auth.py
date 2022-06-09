@@ -18,8 +18,20 @@ class AccountType(str, enum.Enum):
     service_account = "service_account"
 
 
+SpecificUserDetail = (
+    StudentDetail
+    | ReaderDetail
+    | SchoolAdminDetail
+    | EducatorDetail
+    | WrivetedAdminDetail
+    | ParentDetail
+    | UserDetail
+)
+
+
 class AuthenticatedAccountBrief(BaseModel):
     account_type: AccountType
     token_expiry: datetime.datetime
-    user: StudentDetail | ReaderDetail | SchoolAdminDetail | EducatorDetail | WrivetedAdminDetail | ParentDetail | UserDetail | None
+
+    user: SpecificUserDetail | None
     service_account: ServiceAccountBrief | None
