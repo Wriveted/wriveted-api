@@ -165,7 +165,7 @@ def test_update_school_state(
     assert get_school_details_response.json()["state"] == "active"
 
 
-def test_disallowed_update_to_school(
+def test_allowed_update_to_school(
     client,
     test_school,
     lms_service_account_headers_for_school,
