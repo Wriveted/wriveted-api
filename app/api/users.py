@@ -46,7 +46,7 @@ async def get_users(
     """
     List all users with optional filters.
     """
-    logger.info("Listing users")
+    logger.info("Listing users", type=type)
     total_matching_query, page_of_users = crud.user.get_filtered_with_count(
         db=session,
         query_string=q,
@@ -58,7 +58,7 @@ async def get_users(
 
     return UserListsResponse(
         data=page_of_users,
-        pagination=Pagination(**pagination.to_dict(), total=total_matching_query)
+        pagination=Pagination(**pagination.to_dict(), total=total_matching_query),
     )
 
 

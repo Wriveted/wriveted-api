@@ -109,7 +109,7 @@ def get_definitive_isbn(isbn: str):
 
     # remove cheeky malformed isbns with valid chars i.e.'000000X79'
     # by ensuring that an X can only appear at the end of an isbn
-    assert "X" not in cleaned_isbn or cleaned_isbn.find("X") == len(cleaned_isbn)-1
+    assert "X" not in cleaned_isbn or cleaned_isbn.find("X") == len(cleaned_isbn) - 1
 
     # append leading zeroes to make at least 10 chars
     # (sometimes leading zeroes can be stripped from valid isbn's by excel or the like)

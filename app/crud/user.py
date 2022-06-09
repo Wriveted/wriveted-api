@@ -169,9 +169,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         matching_count = self.count_query(db=db, query=select_statement)
 
         paginated_users_query = self.apply_pagination(
-            select_statement,
-            skip=skip,
-            limit=limit
+            select_statement, skip=skip, limit=limit
         )
 
         return matching_count, db.scalars(paginated_users_query).all()
@@ -184,15 +182,11 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         **kwargs,
     ):
         query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(
-                db=db,
-                **kwargs
-            ),
+            self.get_all_with_optional_filters_query(db=db, **kwargs),
             skip=skip,
             limit=limit,
         )
         return db.execute(query).scalars().all()
-
 
     def get_student_by_username_and_school_id(
         self, db: Session, username: str, school_id: int
