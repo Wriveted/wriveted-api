@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app.models.user import User
+from app.models import Student
 
 logger = get_logger()
 
@@ -39,7 +39,7 @@ def generate_random_users(session: Session, num_users: int, school_id: int, **kw
             username = new_random_username(
                 session=session, wordlist=wordlist, school_id=school_id
             )
-            user = User(username=username, **user_kwargs)
+            user = Student(username=username, school_id=school_id, **user_kwargs)
             session.add(user)
             session.flush()
             new_users.append(user)
