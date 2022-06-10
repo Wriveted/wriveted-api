@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.params import Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import crud
@@ -29,7 +30,7 @@ async def get_works(
     works_query = crud.work.get_all_query(session).where(Work.type == type)
 
     if query is not None:
-        works_query = works_query.where(Work.title.match(query))
+        works_query = works_query.where(func.lower(Work.title).contains(query.lower()))
 
     if isbn is not None:
         works_query = works_query.where(Work.editions.any(Edition.isbn == isbn))
@@ -65,5 +66,5 @@ async def get_works(
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail)
-async def get_work_by_id(work_id: str, session: Session = Depends(get_session)):
+async def get_work_by_id(work_id: int, session: Session = Depends(get_session)):
     return crud.work.get_or_404(db=session, id=work_id)

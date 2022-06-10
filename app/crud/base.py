@@ -3,8 +3,8 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, delete, func
-from sqlalchemy.orm import Session, Query, aliased
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Query, Session, aliased
 
 from app.db import Base
 
@@ -33,7 +33,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.execute(self.get_query(db=db, id=id)).scalar_one_or_none()
 
     def get_or_404(self, db: Session, id: Any) -> ModelType:
-        """ " raises an HTTPException if object is not found."""
+        """raises an HTTPException if object is not found."""
         thing = self.get(db, id=id)
         if thing is None:
             raise HTTPException(
@@ -107,7 +107,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def create(
         self, db: Session, *, obj_in: CreateSchemaType, commit=True
     ) -> ModelType:
-        db_obj = self.build_orm_object(obj_in)
+        db_obj = self.build_orm_object(obj_in, session=db)
         db.add(db_obj)
 
         if commit:
@@ -115,7 +115,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             db.refresh(db_obj)
         return db_obj
 
-    def build_orm_object(self, obj_in: CreateSchemaType) -> ModelType:
+    def build_orm_object(self, obj_in: CreateSchemaType, session: Session) -> ModelType:
         """An uncommitted ORM object from the input data"""
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)  # type: ignore
@@ -146,8 +146,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def remove(self, db: Session, *, id: Any) -> ModelType:
         obj = self.get(db=db, id=id)
-        db.delete(obj)
-        db.commit()
+        if obj is not None:
+            db.delete(obj)
+            db.commit()
         return obj
 
     def remove_multi(self, db: Session, *, ids: Query):

@@ -7,15 +7,16 @@ Create Date: 2022-03-31 13:01:25.004641
 """
 import uuid
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, JSON, String, column, orm, select, table, update
+from sqlalchemy import JSON, Column, String, column, orm, select, table, update
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.automap import automap_base
 
 # revision identifiers, used by Alembic.
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm.attributes import flag_modified
+
+from alembic import op
 
 Base = automap_base()
 

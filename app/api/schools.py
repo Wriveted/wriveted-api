@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,30 +9,24 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-
+from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
     get_current_user,
 )
 from app.db.session import get_session
-from app.models import School, ServiceAccount, EventLevel
+from app.models import School, SchoolAdmin, ServiceAccount
 from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (
     SchoolBookbotInfo,
     SchoolBrief,
-    SchoolDetail,
     SchoolCreateIn,
+    SchoolDetail,
     SchoolPatchOptions,
     SchoolSelectorOption,
-    SchoolUpdateIn,
 )
-from app.api.dependencies.school import (
-    get_school_from_wriveted_id,
-    get_school_from_raw_id,
-)
-from app.services.events import create_event
 from app.services.experiments import get_experiments
 
 logger = get_logger()
@@ -146,9 +140,13 @@ async def get_schools(
 
 
 @router.get("/school/{wriveted_identifier}", response_model=SchoolDetail)
-async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
+async def get_school(
+    school: School = Permission("read", get_school_from_wriveted_id),
+):
     """
     Detail on a particular school
+
+    🔒 Requires "read" permission on the school.
     """
     return school
 
@@ -179,15 +177,6 @@ async def get_school_bookbot_type(
     }
 
 
-# Intended to be deprecated if wriveted_identifier is promoted to primary key
-@router.get("/school_raw/{id}", response_model=SchoolBookbotInfo, deprecated=True)
-async def get_school(school: School = Permission("read", get_school_from_raw_id)):
-    """
-    Detail on a particular school, accessed via raw sql id (integer)
-    """
-    return school
-
-
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
 async def get_school(school: School = Permission("read", get_school_from_wriveted_id)):
     """
@@ -206,20 +195,25 @@ async def bind_school(
     Binds the current user to a school as its administrator.
     Will fail if target school already has an admin.
     """
+    if not isinstance(user, SchoolAdmin):
+        raise HTTPException(
+            status.HTTP_401_UNATHORIZED, "User not a school administrator."
+        )
+
     if school.admin is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "School already bound to an admin user."
         )
 
     school.admin_id = user.id
-    user.school_id_as_admin = school.id
+    user.school_id = school.id
     session.commit()
 
     return school.admin_id
 
 
-@router.patch("/school/{wriveted_identifier}")
-async def update_school_extras(
+@router.patch("/school/{wriveted_identifier}", response_model=SchoolDetail)
+async def update_school(
     patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
@@ -228,37 +222,32 @@ async def update_school_extras(
     session: Session = Depends(get_session),
 ):
     """
-    Optional patch updates to less-essential parts of a school object.
-    Only available to users with the "update" permission for the
-    selected school; i.e. superusers, and its admin/owner.
-    """
-    output = {}
+    Update a school.
 
+    Only available to users with the "update" permission for the
+    selected school; i.e. superusers, and school administrators.
+    """
     if patch.status:
         if patch.status != school.state:
-            create_event(
+            crud.event.create(
                 session=session,
                 title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
                 school=school,
                 account=account,
             )
-        output["original_status"] = school.state
         school.state = patch.status
-        output["new_status"] = school.state
-    if patch.bookbot_type:
-        output["original_bookbot_type"] = school.bookbot_type
-        school.bookbot_type = patch.bookbot_type
-        output["new_bookbot_type"] = school.bookbot_type
+    crud.event.create(
+        session=session,
+        title="School Updated",
+        description=f"School '{school.name}' in {school.country.name} updated.",
+        school=school,
+        account=account,
+        commit=False,
+    )
+    updated_orm_object = crud.school.update(db=session, obj_in=patch, db_obj=school)
 
-    if patch.lms_type:
-        output["original_lms_type"] = school.lms_type
-        school.lms_type = patch.lms_type
-        output["new_bookbot_type"] = school.lms_type
-
-    session.commit()
-
-    return output
+    return updated_orm_object
 
 
 @router.post(
@@ -284,11 +273,11 @@ async def bulk_add_schools(
     for school in new_schools:
         school.info["experiments"] = get_experiments(school=school)
 
-    create_event(
+    crud.event.create(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
-        properties={"identifiers": [s.wriveted_identifier for s in new_schools]},
+        info={"identifiers": [s.wriveted_identifier for s in new_schools]},
         account=account,
         commit=False,
     )
@@ -318,7 +307,7 @@ async def add_school(
         school_orm = crud.school.create(db=session, obj_in=school, commit=False)
         school_orm.info["experiments"] = get_experiments(school=school_orm)
         session.commit()
-        create_event(
+        crud.event.create(
             session=session,
             title="New school created",
             description=f"{account.name} created school '{school.name}'",
@@ -334,26 +323,6 @@ async def add_school(
         )
 
 
-@router.put("/school/{wriveted_identifier}", response_model=SchoolDetail)
-async def update_school(
-    school_update_data: SchoolUpdateIn,
-    school: School = Permission("update", get_school_from_wriveted_id),
-    account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
-):
-    create_event(
-        session=session,
-        title="School Updated",
-        description=f"School '{school.name}' in {school.country.name} updated.",
-        school=school,
-        account=account,
-    )
-    updated_orm_object = crud.school.update(
-        db=session, obj_in=school_update_data, db_obj=school
-    )
-    return updated_orm_object
-
-
 @router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)
 async def delete_school(
     school: School = Permission("delete", get_school_from_wriveted_id),
@@ -361,7 +330,7 @@ async def delete_school(
     session: Session = Depends(get_session),
 ):
     logger.info("Deleting a school", account=account, school=school)
-    create_event(
+    crud.event.create(
         session=session,
         title="School Deleted",
         description=f"School {school.name} in {school.country.name} deleted.",

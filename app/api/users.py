@@ -1,7 +1,7 @@
 import datetime
-from typing import List, Optional
+from typing import Optional
 
-from fastapi import Depends, APIRouter, Query, Security
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -15,8 +15,10 @@ from app.api.dependencies.security import (
 )
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
-from app.schemas.user import UserBrief, UserDetail, UserPatchOptions, UserUpdateIn
-from app.services.events import create_event
+from app.schemas.pagination import Pagination
+from app.schemas.users.user import UserDetail, UserPatchOptions
+from app.schemas.users.user_list import UserListsResponse
+from app.schemas.users.user_update import UserUpdateIn
 
 logger = get_logger()
 
@@ -28,7 +30,7 @@ router = APIRouter(
 public_router = APIRouter(tags=["Public", "Users"])
 
 
-@router.get("/users", response_model=List[UserBrief])
+@router.get("/users", response_model=UserListsResponse)
 async def get_users(
     q: Optional[str] = Query(None, description="Filter users by name"),
     is_active: Optional[bool] = Query(
@@ -41,16 +43,21 @@ async def get_users(
     session: Session = Depends(get_session),
 ):
     """
-    List all users
+    List all users with optional filters.
     """
-    logger.info("Listing users")
-    return crud.user.get_all_with_optional_filters(
+    logger.info("Listing users", type=type)
+    total_matching_query, page_of_users = crud.user.get_filtered_with_count(
         db=session,
         query_string=q,
         is_active=is_active,
         type=type,
         skip=pagination.skip,
         limit=pagination.limit,
+    )
+
+    return UserListsResponse(
+        data=page_of_users,
+        pagination=Pagination(**pagination.to_dict(), total=total_matching_query),
     )
 
 
@@ -135,7 +142,7 @@ async def deactivate_user(
     user = crud.user.get(db=session, id=uuid)
     logger.info("Request to delete a user", user_to_delete=user, account=account)
 
-    create_event(
+    crud.event.create(
         title="User account deleted",
         description=f"User {user.name} marked inactive by {account}",
         account=account,

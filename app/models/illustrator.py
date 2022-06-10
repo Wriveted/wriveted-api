@@ -1,12 +1,7 @@
-from sqlalchemy import (
-    Column,
-    Computed,
-    Integer,
-    String,
-    JSON,
-)
-from sqlalchemy.orm import relationship
+from sqlalchemy import JSON, Column, Computed, Integer, String
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import relationship
+
 from app.db import Base
 from app.models.illustrator_edition_association import (
     illustrator_edition_association_table,

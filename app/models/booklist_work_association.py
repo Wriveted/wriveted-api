@@ -1,4 +1,13 @@
-from sqlalchemy import Column, ForeignKey, Integer, JSON, Index, DateTime, func
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 
@@ -27,7 +36,7 @@ class BookListItem(Base):
 
     order_id = Column(Integer)
 
-    Index("index_booklist_ordered", booklist_id, order_id, unique=True)
+    # Might need to opt in to say this is "deferrable"
 
     # Information about this particular work in the context of this list
     # E.g. "note": "Recommended by Alistair", "edition": "<isbn>"
@@ -35,6 +44,13 @@ class BookListItem(Base):
 
     booklist = relationship("BookList", back_populates="items")
     work = relationship("Work", lazy="joined", viewonly=True)
+
+    __table_args__ = (
+        Index("index_booklist_ordered", booklist_id, order_id),
+        UniqueConstraint(
+            "booklist_id", "order_id", name="ck_booklist_order", deferrable=True
+        ),
+    )
 
     def __repr__(self):
         try:

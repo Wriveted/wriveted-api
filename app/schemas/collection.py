@@ -1,6 +1,8 @@
 import enum
-from typing import Optional, Any
-from pydantic import BaseModel, conint, Field
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field, conint
+
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 

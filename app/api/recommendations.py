@@ -1,22 +1,23 @@
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
-
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
 from app.models import School
 from app.schemas.labelset import LabelSetDetail
-
-from app.schemas.recommendations import HueyBook, HueyOutput, HueyRecommendationFilter
-from app.services.events import create_event
-
+from app.schemas.recommendations import (
+    HueyBook,
+    HueyOutput,
+    HueyRecommendationFilter,
+    ReadingAbilityKey,
+)
 from app.services.recommendations import get_recommended_labelset_query
 
 router = APIRouter(
@@ -105,22 +106,53 @@ async def get_recommendations_with_fallback(
             f"Desired query returned {len(row_results)} books. Trying fallback method 1 of looking outside school collection",
             query_parameters=query_parameters,
         )
-
         row_results = get_recommended_editions_and_labelsets(
             session, **query_parameters
         )
-        if len(row_results) < 3:
-            # Still not enough, alright let's recommend outside the school collection
-            fallback_level += 1
-            # Let's just include all the hues and try the query again.
-            query_parameters["hues"] = None
+    if len(row_results) < 3:
+        # Still not enough, alright let's recommend outside the school collection
+        fallback_level += 1
+        # Let's just include all the hues and try the query again.
+        query_parameters["hues"] = None
+        logger.info(
+            f"Desired query returned {len(row_results)} books. Trying fallback method 2 of including all hues",
+            query_parameters=query_parameters,
+        )
+        row_results = get_recommended_editions_and_labelsets(
+            session, **query_parameters
+        )
+    if len(row_results) < 3:
+
+        fallback_level += 1
+        # Widen the reading ability
+        if len(query_parameters["reading_abilities"]) == 1:
+            match query_parameters["reading_abilities"][0]:
+                case ReadingAbilityKey.HARRY_POTTER:
+                    query_parameters["reading_abilities"].append(
+                        ReadingAbilityKey.CHARLIE_CHOCOLATE
+                    )
+                case ReadingAbilityKey.SPOT:
+                    query_parameters["reading_abilities"].append(
+                        ReadingAbilityKey.CAT_HAT
+                    )
+                case _:
+                    query_parameters["reading_abilities"].append(
+                        ReadingAbilityKey.TREEHOUSE
+                    )
             logger.info(
-                f"Desired query returned {len(row_results)} books. Trying fallback method 2 of including all hues",
+                f"Desired query returned {len(row_results)} books. Trying fallback method 3 of including widening the reading ability",
                 query_parameters=query_parameters,
             )
-            row_results = get_recommended_editions_and_labelsets(
-                session, **query_parameters
+        else:
+            logger.warning("Incrementing age")
+            query_parameters["age"] += 2
+            logger.info(
+                f"Desired query returned {len(row_results)} books. Trying fallback method 3 of increasing the age",
+                query_parameters=query_parameters,
             )
+        row_results = get_recommended_editions_and_labelsets(
+            session, **query_parameters
+        )
 
     # Note the row_results are an iterable of (work, edition, labelset) orm instances
 
@@ -132,11 +164,11 @@ async def get_recommendations_with_fallback(
         ]
 
         background_tasks.add_task(
-            create_event,
+            crud.event.create,
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(row_results)} books",
-            properties={
+            info={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
                 "fallback_level": fallback_level,
@@ -147,11 +179,11 @@ async def get_recommendations_with_fallback(
     else:
         if len(row_results) == 0:
             background_tasks.add_task(
-                create_event,
+                crud.event.create,
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
-                properties={
+                info={
                     "query_parameters": query_parameters,
                     "fallback_level": fallback_level,
                 },

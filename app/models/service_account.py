@@ -2,18 +2,12 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (
-    Column,
-    String,
-    JSON,
-    DateTime,
-    Boolean,
-    ForeignKey,
-    Enum,
-)
-from sqlalchemy.ext.mutable import MutableDict
+from fastapi_permissions import All, Allow
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+
 from app.db import Base
 from app.models.service_account_school_association import (
     service_account_school_association_table,
@@ -65,9 +59,20 @@ class ServiceAccount(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    events = relationship("Event", back_populates="service_account")
+    events = relationship(
+        "Event",
+        back_populates="service_account",
+        lazy="dynamic",
+        order_by="desc(Event.timestamp)",
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
         summary = f"{self.type} {active}"
         return f"<ServiceAccount {self.name} - {summary}>"
+
+    def __acl__(self):
+
+        return [
+            (Allow, "role:admin", All),
+        ] + [(Allow, f"teacher:{s.id}", All) for s in self.schools]

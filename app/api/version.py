@@ -3,12 +3,12 @@ from importlib import metadata
 from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
 
-from alembic.runtime.migration import MigrationContext
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from starlette.responses import Response
 
+from alembic.runtime.migration import MigrationContext
 from app.db.session import get_session
 
 

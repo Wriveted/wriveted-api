@@ -1,15 +1,13 @@
-import enum
 from datetime import timedelta
-from typing import Optional, Union, List
+from typing import Optional, Union
 
 from fastapi import Depends, HTTPException
 from fastapi.security import (
-    OAuth2PasswordBearer,
     HTTPAuthorizationCredentials,
     HTTPBearer,
+    OAuth2PasswordBearer,
 )
-from fastapi_permissions import Everyone, Authenticated
-
+from fastapi_permissions import Authenticated, Everyone
 from jose import jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -19,15 +17,13 @@ from structlog import get_logger
 from app import crud
 from app.config import get_settings
 from app.db.session import get_session
-
-from app.models import User, ServiceAccount, ServiceAccountType, School
+from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
 from app.services.security import (
+    TokenPayload,
     create_access_token,
     get_payload_from_access_token,
-    TokenPayload,
 )
-
 
 settings = get_settings()
 logger = get_logger()
@@ -161,20 +157,26 @@ def get_active_principals(
 
     Principals:
     - role:admin
-    - role:lms
-    - role:library
+    - role:educator
     - role:school
+    - role:student
     - role:kiosk
+    - role:reader
+    - role:parent
+
     - user:{id}
-    - school:{id}
+    - school:{id}  (this just means associated with this school)
+    - student:{school-id}
+    - educator:{school-id}
+    - schooladmin:{school-id}
+    - parent:{child-id}
+    - child:{parent-id}
+
     - Authenticated
     - Everyone
 
     Future Principals:
-    - role:student
-    - role:child
-    - role:parent
-    - role:teacher
+    - member:{group-id}
 
     Permissions:
     - CRUD (create, read, update, delete)
@@ -189,26 +191,45 @@ def get_active_principals(
     if maybe_user is not None and maybe_user.is_active:
         user = maybe_user
         principals.append(Authenticated)
+
         match user.type:
             case UserAccountType.WRIVETED:
                 principals.append("role:admin")
-            case UserAccountType.LMS:
-                principals.append("role:lms")
-            case UserAccountType.LIBRARY:
-                principals.append("role:library")
+
+            case UserAccountType.EDUCATOR:
+                principals.append("role:educator")
                 principals.append("role:school")
+                principals.append(f"school:{user.school_id}")
+                principals.append(f"educator:{user.school_id}")
+
+            case UserAccountType.SCHOOL_ADMIN:
+                principals.append("role:educator")
+                principals.append("role:school")
+                principals.append(f"school:{user.school_id}")
+                principals.append(f"educator:{user.school_id}")
+                principals.append(f"schooladmin:{user.school_id}")
+
+            case UserAccountType.STUDENT:
+                principals.append("role:reader")
+                principals.append("role:student")
+                principals.append("role:school")
+                principals.append(f"school:{user.school_id}")
+                principals.append(f"student:{user.school_id}")
+                if user.parent:
+                    principals.append(f"child:{user.parent_id}")
 
             case UserAccountType.PUBLIC:
-                # No special roles given to the default public
-                # user type
-                pass
+                principals.append("role:reader")
+                if user.parent:
+                    principals.append(f"child:{user.parent_id}")
+
+            case UserAccountType.PARENT:
+                principals.append("role:parent")
+                for child in user.children:
+                    principals.append(f"parent:{child.id}")
 
         # All users have a user specific role:
         principals.append(f"user:{user.id}")
-
-        # Users can optionally be associated with a school:
-        if user.school_id_as_admin is not None:
-            principals.append(f"school:{user.school_id_as_admin}")
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account

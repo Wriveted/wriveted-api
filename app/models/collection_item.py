@@ -1,12 +1,4 @@
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Index,
-    String,
-    JSON,
-    Integer,
-    UniqueConstraint,
-)
+from sqlalchemy import JSON, Column, ForeignKey, Index, Integer
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship

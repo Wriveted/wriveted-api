@@ -2,22 +2,22 @@ import enum
 import uuid
 from datetime import datetime
 
-from fastapi_permissions import Allow, Authenticated, All
+from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import (
-    Column,
-    String,
     JSON,
-    select,
-    func,
-    ForeignKey,
-    Enum,
+    Column,
     DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    func,
+    select,
     text,
 )
-
-from sqlalchemy.orm import relationship, column_property
-from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import column_property, relationship
+
 from app.db import Base
 from app.models.booklist_work_association import BookListItem
 
@@ -116,7 +116,8 @@ class BookList(Base):
             (Allow, "role:admin", All),
             # Allow users to manage their own lists
             (Allow, f"user:{self.user_id}", All),
-            # School admins can manage school lists
+            # Educators can manage school lists
+            (Allow, f"educator:{self.school_id}", All),
             (Allow, f"school:{self.school_id}", All),
         ]
 

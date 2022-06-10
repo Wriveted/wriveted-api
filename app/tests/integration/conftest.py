@@ -6,15 +6,17 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from app.api.dependencies.security import create_user_access_token
-from app.db.session import get_session
 from app import crud
+from app.api.dependencies.security import create_user_access_token
+from app.db.session import database_connection, get_session
 from app.main import app, get_settings
-from app.models import School, ServiceAccountType
+from app.models import School, SchoolState, ServiceAccountType, Student
+from app.models.class_group import ClassGroup
+from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
-from app.schemas.user import UserCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
+from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
 from app.services.security import create_access_token
@@ -43,6 +45,12 @@ def session(settings):
     return session
 
 
+@pytest.fixture(scope="session")
+def session_factory(settings):
+    engine, SessionMaker = database_connection(settings.SQLALCHEMY_DATABASE_URI)
+    return SessionMaker
+
+
 @pytest.fixture()
 def backend_service_account(session):
     sa = crud.service_account.create(
@@ -62,8 +70,10 @@ def test_user_account(session):
     user = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
-            name="school integration test account",
+            name="integration test account (public)",
             email=f"{random_lower_string(6)}@test.com",
+            first_name="Test",
+            last_name_initial="L",
         ),
     )
     yield user
@@ -71,16 +81,32 @@ def test_user_account(session):
 
 
 @pytest.fixture()
-def test_user_accounts(session):
-    user = crud.user.create(
+def test_schooladmin_account(test_school, session):
+    schooladmin = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
-            name="school integration test account",
+            name="integration test account (school admin)",
             email=f"{random_lower_string(6)}@test.com",
+            type=UserAccountType.SCHOOL_ADMIN,
+            school_id=test_school.id,
         ),
     )
-    yield user
-    session.delete(user)
+    yield schooladmin
+    session.delete(schooladmin)
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account(session):
+    wrivetedadmin = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="integration test account (wriveted admin)",
+            email=f"{random_lower_string(6)}@test.com",
+            type=UserAccountType.WRIVETED,
+        ),
+    )
+    yield wrivetedadmin
+    session.delete(wrivetedadmin)
 
 
 @pytest.fixture()
@@ -106,6 +132,26 @@ def test_user_account_token(test_user_account):
 
 
 @pytest.fixture()
+def test_schooladmin_account_token(test_schooladmin_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_schooladmin_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
+    return access_token
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account_token(test_wrivetedadmin_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_wrivetedadmin_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
+    return access_token
+
+
+@pytest.fixture()
 def backend_service_account_headers(backend_service_account_token):
     return {"Authorization": f"bearer {backend_service_account_token}"}
 
@@ -113,6 +159,16 @@ def backend_service_account_headers(backend_service_account_token):
 @pytest.fixture()
 def test_user_account_headers(test_user_account_token):
     return {"Authorization": f"bearer {test_user_account_token}"}
+
+
+@pytest.fixture()
+def test_schooladmin_account_headers(test_schooladmin_account_token):
+    return {"Authorization": f"bearer {test_schooladmin_account_token}"}
+
+
+@pytest.fixture()
+def test_wrivetedadmin_account_headers(test_wrivetedadmin_account_token):
+    return {"Authorization": f"bearer {test_wrivetedadmin_account_token}"}
 
 
 @pytest.fixture()
@@ -186,16 +242,64 @@ def test_school(client, session, backend_service_account_headers) -> School:
     school_info = new_test_school_response.json()
     # yield SchoolDetail(**school_info)
 
+    print("Yielding from school fixture")
     # Actually lets return the orm object to the tests
-    yield crud.school.get_by_wriveted_id_or_404(
+    school = crud.school.get_by_wriveted_id_or_404(
         db=session, wriveted_id=school_info["wriveted_identifier"]
     )
+    school.state = SchoolState.ACTIVE
+    session.add(school)
+    session.commit()
 
+    school_id = school.id
+    yield school
+    print("Cleaning up school fixture")
+    # Afterwards delete it
+
+    session.rollback()
+    if crud.school.get(session, id=school_id) is not None:
+        crud.school.remove(db=session, obj_in=school)
+
+
+@pytest.fixture()
+def test_class_group(
+    client, session, backend_service_account_headers, test_school
+) -> ClassGroup:
+    print("Fixture to create class group")
+    new_test_class_response = client.post(
+        f"/v1/school/{test_school.wriveted_identifier}/class",
+        headers=backend_service_account_headers,
+        json={"name": f"Test Class", "school_id": str(test_school.wriveted_identifier)},
+        timeout=120,
+    )
+    new_test_class_response.raise_for_status()
+    class_info = new_test_class_response.json()
+    print("Yielding from group fixture", class_info)
+    yield crud.class_group.get(db=session, id=class_info["id"])
+
+    print("Cleaning up group fixture")
     # Afterwards delete it
     client.delete(
-        f"/v1/school/{school_info['wriveted_identifier']}",
+        f"/v1/class/{class_info['id']}",
         headers=backend_service_account_headers,
     )
+
+
+@pytest.fixture()
+def test_school_with_students(client, session, test_school, test_class_group) -> School:
+    for i in range(100):
+        student = Student(
+            name=f"Test Student {i}",
+            email=f"teststudent-{i}@test.com",
+            type=UserAccountType.STUDENT,
+            school_id=test_school.id,
+            first_name=f"Test-{i}",
+            last_name_initial="T",
+            class_group_id=test_class_group.id,
+        )
+        session.add(student)
+        session.flush()
+    return test_school
 
 
 @pytest.fixture()
@@ -248,11 +352,11 @@ def test_school_with_collection(
 
 
 @pytest.fixture()
-def admin_of_test_school(session, test_school, test_user_account):
-    test_user_account.school_id_as_admin = test_school.id
-    session.add(test_user_account)
+def admin_of_test_school(session, test_school, test_schooladmin_account):
+    test_schooladmin_account.school_id = test_school.id
+    session.add(test_schooladmin_account)
     session.commit()
-    yield test_user_account
+    yield test_schooladmin_account
 
 
 @pytest.fixture()
@@ -276,6 +380,7 @@ def lms_service_account_for_test_school(session, test_school):
                 "type": "lms",
                 "schools": [
                     {
+                        "name": test_school.name,
                         "country_code": "ATA",
                         "official_identifier": test_school.id,
                         "wriveted_identifier": test_school.wriveted_identifier,

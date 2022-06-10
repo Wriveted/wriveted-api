@@ -1,8 +1,7 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import delete, func, update, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -11,25 +10,24 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
-from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import School, BookList, User, ServiceAccount
+from app.models import BookList, ServiceAccount, User
 from app.models.booklist import ListType
+from app.models.educator import Educator
+from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
 from app.schemas.booklist import (
-    BookListDetail,
     BookListBrief,
-    BookListsResponse,
     BookListCreateIn,
+    BookListDetail,
+    BookListsResponse,
     BookListUpdateIn,
-    ItemUpdateType,
 )
 from app.schemas.pagination import Pagination
-from app.services.events import create_event
 
 logger = get_logger()
 
@@ -51,7 +49,7 @@ bulk_booklist_access_control_list = [
 
 
 @router.post(
-    "/lists",
+    "/list",
     dependencies=[
         Permission("create", bulk_booklist_access_control_list),
     ],
@@ -86,10 +84,11 @@ async def add_booklist(
             )
         else:
             logger.debug("Seeing if the caller is clearly associated with *one* school")
-            if isinstance(account, User) and account.school_id_as_admin is not None:
-                school_orm = crud.school.get_by_id_or_404(
-                    session, id=account.school_id_as_admin
-                )
+            if (
+                isinstance(account, (Educator, SchoolAdmin))
+                and account.school_id is not None
+            ):
+                school_orm = crud.school.get_by_id_or_404(session, id=account.school_id)
             elif isinstance(account, ServiceAccount) and len(account.schools) == 1:
                 school_orm = account.schools[0]
             else:
@@ -133,11 +132,11 @@ async def add_booklist(
             db=session, obj_in=booklist, commit=True
         )
 
-        create_event(
+        crud.event.create(
             session=session,
             title=f"Booklist created",
             description=f"{account.name} created booklist '{booklist.name}'",
-            properties={
+            info={
                 "type": booklist.type,
                 "id": str(booklist_orm_object.id),
             },
@@ -199,7 +198,7 @@ async def get_booklists(
 
 
 @router.get(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListDetail,
 )
 async def get_booklist_detail(
@@ -221,7 +220,7 @@ async def get_booklist_detail(
 
 
 @router.patch(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListBrief,
 )
 async def update_booklist(
@@ -239,7 +238,7 @@ async def update_booklist(
 
 
 @router.delete(
-    "/lists/{booklist_identifier}",
+    "/list/{booklist_identifier}",
     response_model=BookListBrief,
 )
 async def delete_booklist(

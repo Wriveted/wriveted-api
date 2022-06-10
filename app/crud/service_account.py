@@ -6,8 +6,7 @@ from structlog import get_logger
 from app import crud
 from app.crud import CRUDBase
 from app.models import ServiceAccount
-from app.schemas.school import SchoolIdentity
-
+from app.schemas.school_identity import SchoolIdentity
 from app.schemas.service_account import ServiceAccountCreateIn, ServiceAccountUpdateIn
 
 logger = get_logger()

@@ -1,11 +1,10 @@
 from datetime import datetime
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.models.db_job import JobStatus
-from app.models.db_job import JobType
-from typing import Optional, Any
+from app.models.db_job import JobStatus, JobType
 
 
 class DbJob(BaseModel):

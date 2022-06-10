@@ -1,22 +1,27 @@
-from app.db.base_class import Base
-
-
 from .author import Author
-from .collection_item import CollectionItem
-from .labelset_hue_association import LabelSetHue
-from .labelset_reading_ability_association import LabelSetReadingAbility
-from .country import Country
-from .edition import Edition
-from .series import Series
-from .illustrator import Illustrator
-from .school import School, SchoolState
-from .work import Work
-from .user import User
-from .event import Event, EventLevel
-from .service_account import ServiceAccountType, ServiceAccount
-from .hue import Hue
-from .labelset import LabelSet
-from .db_job import DbJob
 from .booklist import BookList
 from .booklist_work_association import BookListItem
+from .class_group import ClassGroup
+from .collection_item import CollectionItem
+from .country import Country
+from .db_job import DbJob
+from .edition import Edition
+from .educator import Educator
+from .event import Event, EventLevel
+from .hue import Hue
+from .illustrator import Illustrator
+from .labelset import LabelSet
+from .labelset_hue_association import LabelSetHue
+from .labelset_reading_ability_association import LabelSetReadingAbility
+from .parent import Parent
+from .public_reader import PublicReader
+from .reader import Reader
 from .reading_ability import ReadingAbility
+from .school import School, SchoolState
+from .school_admin import SchoolAdmin
+from .series import Series
+from .service_account import ServiceAccount, ServiceAccountType
+from .student import Student
+from .user import User
+from .work import Work
+from .wriveted_admin import WrivetedAdmin

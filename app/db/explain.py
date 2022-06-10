@@ -7,8 +7,7 @@ SQLAlchemy 1.4 version.
 
 """
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import ClauseElement
-from sqlalchemy.sql.expression import Executable
+from sqlalchemy.sql.expression import ClauseElement, Executable
 
 
 class explain(Executable, ClauseElement):

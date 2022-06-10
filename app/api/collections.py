@@ -1,16 +1,17 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Security, BackgroundTasks
-from sqlalchemy import delete, func, update, select
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
+from app import crud
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.school import get_school_from_wriveted_id
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.db.session import get_session
-from app.models import BookList, CollectionItem, School, Edition
+from app.models import BookList, CollectionItem, Edition, School
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
@@ -20,20 +21,18 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
+    CollectionItemIn,
     CollectionUpdate,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
-    CollectionItemIn,
 )
 from app.schemas.pagination import Pagination
-
 from app.services.collections import (
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
     get_collection_items_also_in_booklist,
     reset_school_collection,
 )
-from app.services.events import create_event
 
 logger = get_logger()
 
@@ -142,10 +141,10 @@ async def get_school_collection_booklist_intersection(
     common_work_ids = {item.work_id for item in common_collection_items}
 
     background_tasks.add_task(
-        create_event,
+        crud.event.create,
         session,
         title="Compared booklist and collection",
-        properties={
+        info={
             "items_in_common": len(common_collection_items),
             "school_wriveted_id": str(school.wriveted_identifier),
             "booklist_id": str(booklist.id),

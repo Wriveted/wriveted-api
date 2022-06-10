@@ -7,9 +7,10 @@ Create Date: 2021-12-28 11:20:41.297418
 """
 from uuid import uuid4
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import orm
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 from app.models import User

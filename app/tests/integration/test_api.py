@@ -3,6 +3,11 @@ import uuid
 from starlette import status
 
 
+def test_read_openapi_spec(client):
+    response = client.get("openapi.json")
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_read_version(client):
     response = client.get("v1/version")
     assert "database" in response.text
@@ -110,7 +115,7 @@ def test_update_school_name(
     initial_details = get_initial_school_details_response.json()
     assert initial_details["name"] == test_school.name
 
-    update_response = client.put(
+    update_response = client.patch(
         f"/v1/school/{school_id}",
         headers=lms_service_account_headers_for_school,
         json={"name": "cool school"},
@@ -126,7 +131,41 @@ def test_update_school_name(
     assert get_school_details_response.json()["name"] == "cool school"
 
 
-def test_disallowed_update_to_school(
+def test_update_school_state(
+    client,
+    test_school,
+    admin_of_test_school_headers,
+):
+    school_id = test_school.wriveted_identifier
+    get_initial_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=admin_of_test_school_headers,
+    )
+    get_initial_school_details_response.raise_for_status()
+    initial_details = get_initial_school_details_response.json()
+    assert "state" in initial_details
+
+    update_response = client.patch(
+        f"/v1/school/{school_id}",
+        headers=admin_of_test_school_headers,
+        json={"status": "pending"},
+    )
+    update_response.raise_for_status()
+    assert update_response.json()["state"] == "pending"
+    client.patch(
+        f"/v1/school/{school_id}",
+        headers=admin_of_test_school_headers,
+        json={"status": "active"},
+    )
+    get_school_details_response = client.get(
+        f"/v1/school/{school_id}",
+        headers=admin_of_test_school_headers,
+    )
+    get_school_details_response.raise_for_status()
+    assert get_school_details_response.json()["state"] == "active"
+
+
+def test_allowed_update_to_school(
     client,
     test_school,
     lms_service_account_headers_for_school,
@@ -141,7 +180,7 @@ def test_disallowed_update_to_school(
     initial_details = get_initial_school_details_response.json()
     assert initial_details["name"] == test_school.name
 
-    update_response = client.put(
+    update_response = client.patch(
         f"/v1/school/{school_id}",
         headers=lms_service_account_headers_for_school,
         json={"country_code": "NZL"},

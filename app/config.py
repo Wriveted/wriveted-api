@@ -1,16 +1,7 @@
-import secrets
 from functools import lru_cache
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import (
-    AnyHttpUrl,
-    BaseSettings,
-    SecretStr,
-    validator,
-    FilePath,
-    DirectoryPath,
-    AnyUrl,
-)
+from pydantic import AnyHttpUrl, AnyUrl, BaseSettings, DirectoryPath, validator
 
 
 class Settings(BaseSettings):
@@ -95,6 +86,11 @@ class Settings(BaseSettings):
         # Landbot
         "http://34.77.31.159",
         "http://23.251.142.192",
+        "https://chats.landbot.io",
+        # TypeBot
+        "https://typebot.io",
+        "http://13.38.101.232",
+        "http://15.188.52.37",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)

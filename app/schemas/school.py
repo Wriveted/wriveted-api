@@ -1,14 +1,14 @@
-from uuid import UUID
-from typing import List, Optional, Any
 from datetime import datetime
+from typing import Any, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, AnyHttpUrl, constr
+from pydantic import AnyHttpUrl, BaseModel, constr, validator
 
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
-from app.schemas.event import EventBrief
-from app.schemas.user import UserBrief
+from app.schemas.school_identity import SchoolIdentity
+from app.schemas.users.school_admin import SchoolAdminBrief
 
 
 class SchoolLocation(BaseModel):
@@ -30,37 +30,19 @@ class SchoolInfo(BaseModel):
     experiments: Optional[dict[str, bool]]
 
 
-class SchoolWrivetedIdentity(BaseModel):
-    wriveted_identifier: UUID
-
-
-class SchoolIdentity(SchoolWrivetedIdentity):
-    official_identifier: Optional[str]
-    country_code: str
-
-    class Config:
-        orm_mode = True
-
-
-class SchoolSelectorOption(SchoolIdentity):
-    name: str
-    info: SchoolInfo
-    state: Optional[SchoolState]
-
-    collection_count: Optional[int]
-    admin: Optional[UserBrief]
-
-    class Config:
-        orm_mode = True
-
-
 class SchoolBrief(SchoolIdentity):
     name: str
-    state: SchoolState
+    state: SchoolState | None
     collection_count: int
 
-    class Config:
-        orm_mode = True
+    @validator("collection_count", pre=True)
+    def set_collection_count(cls, v):
+        return v or 0
+
+
+class SchoolSelectorOption(SchoolBrief):
+    info: SchoolInfo
+    admins: list[SchoolAdminBrief]
 
 
 class SchoolBookbotInfo(BaseModel):
@@ -77,18 +59,15 @@ class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
 
-    admin: Optional[UserBrief]
-    events: List[EventBrief]
+    admins: list[SchoolAdminBrief]
     lms_type: str
+    bookbot_type: SchoolBookbotType
 
     created_at: datetime
     updated_at: datetime
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
-
-    class Config:
-        orm_mode = True
 
 
 class SchoolCreateIn(BaseModel):
@@ -113,3 +92,7 @@ class SchoolPatchOptions(BaseModel):
     status: Optional[SchoolState]
     bookbot_type: Optional[SchoolBookbotType]
     lms_type: Optional[str]
+    name: Optional[str]
+    info: Optional[Any]
+    student_domain: Optional[AnyHttpUrl]
+    teacher_domain: Optional[AnyHttpUrl]

@@ -1,6 +1,7 @@
-from typing import Optional, List
-from pydantic import BaseModel
-from sqlalchemy import JSON
+from typing import List, Optional
+
+from pydantic import BaseModel, validator
+
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
@@ -10,6 +11,10 @@ from app.schemas.labelset import LabelSetDetail
 class WorkInfo(BaseModel):
     genres: list[Genre]
     other: dict
+
+    @validator("genres", pre=True)
+    def genres_not_none(cls, v):
+        return v or []
 
 
 class WorkBrief(BaseModel):

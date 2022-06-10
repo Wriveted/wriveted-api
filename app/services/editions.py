@@ -1,9 +1,11 @@
 from typing import List
+
 from sqlalchemy import and_, select
+from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app import crud
 from app.models import Edition
-from sqlalchemy.orm import Session
 from app.schemas.edition import EditionCreateIn
 
 logger = get_logger()
@@ -101,9 +103,13 @@ async def create_missing_editions_unhydrated(session: Session, isbn_list: list[s
 def get_definitive_isbn(isbn: str):
     # strip all characters that aren't "valid" (i.e. hyphens, spaces)
     valid_chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"]
-    cleaned_isbn = "".join([i for i in isbn if i in valid_chars])
+    cleaned_isbn = "".join([i for i in isbn.upper() if i in valid_chars])
 
     assert len(cleaned_isbn) > 0
+
+    # remove cheeky malformed isbns with valid chars i.e.'000000X79'
+    # by ensuring that an X can only appear at the end of an isbn
+    assert "X" not in cleaned_isbn or cleaned_isbn.find("X") == len(cleaned_isbn) - 1
 
     # append leading zeroes to make at least 10 chars
     # (sometimes leading zeroes can be stripped from valid isbn's by excel or the like)
