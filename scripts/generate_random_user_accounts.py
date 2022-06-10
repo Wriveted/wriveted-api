@@ -33,7 +33,9 @@ if len(current_classes) < 3:
         ),
     )
 
-    current_classes = crud.class_group.get_all_with_optional_filters(session, school=school)
+    current_classes = crud.class_group.get_all_with_optional_filters(
+        session, school=school
+    )
 
 num_users = 3
 
