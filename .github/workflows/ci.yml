@@ -69,9 +69,7 @@ jobs:
         uses: rbialon/flake8-annotations@v1
       - name: Lint with flake8
         run: |
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics --ignore \
-          E501
+          flake8 . --count --exit-zero --select F
 
 
   integration-tests:
