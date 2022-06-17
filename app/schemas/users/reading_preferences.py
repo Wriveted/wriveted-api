@@ -9,5 +9,5 @@ from app.schemas.recommendations import ReadingAbilityKey
 
 class ReadingPreferences(BaseModel):
     birthdate: str | None
-    reading_ability: ReadingAbilityKey | None
+    reading_ability: str | None
     last_visited: str | None
