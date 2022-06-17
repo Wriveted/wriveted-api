@@ -74,12 +74,13 @@ async def get_user(user: User = Permission("details", get_user_from_id)):
 @router.put("/user/{user_id}", response_model=SpecificUserDetail)
 async def update_user(
     user_update: UserUpdateIn,
+    merge_dicts: bool = False,
     session: Session = Depends(get_session),
     user: User = Permission("update", get_user_from_id),
 ):
     logger.info("Updating a user")
 
-    updated_user = crud.user.update(session, db_obj=user, obj_in=user_update)
+    updated_user = crud.user.update(session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts)
     return updated_user
 
 
