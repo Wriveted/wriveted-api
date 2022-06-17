@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import UUID4, BaseModel, EmailStr, root_validator, validator
 
 from app.models.user import UserAccountType
+from app.schemas.users.reading_preferences import ReadingPreferences
 from app.schemas.users.user import UserInfo
 
 
@@ -57,6 +58,7 @@ class UserCreateIn(BaseModel):
     username: str | None
     first_name: str | None
     last_name_initial: str | None
+    reading_preferences: ReadingPreferences | None = {}
 
     # students / educators
     school_id: int | None
