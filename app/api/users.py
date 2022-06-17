@@ -18,6 +18,7 @@ from app.api.dependencies.security import (
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
 from app.permissions import Permission
+from app.schemas.auth import SpecificUserDetail
 from app.schemas.pagination import Pagination
 from app.schemas.users.user import UserDetail, UserPatchOptions
 from app.schemas.users.user_list import UserListsResponse
@@ -64,13 +65,13 @@ async def get_users(
     )
 
 
-@router.get("/user/{user_id}", response_model=UserDetail)
+@router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user")
     return user
 
 
-@router.put("/user/{user_id}", response_model=UserDetail)
+@router.put("/user/{user_id}", response_model=SpecificUserDetail)
 async def update_user(
     user_update: UserUpdateIn,
     session: Session = Depends(get_session),
