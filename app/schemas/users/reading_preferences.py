@@ -8,6 +8,6 @@ from app.schemas.recommendations import ReadingAbilityKey
 
 
 class ReadingPreferences(BaseModel):
-    birthdate: date | None
+    birthdate: str | None
     reading_ability: ReadingAbilityKey | None
-    last_visited: datetime | None
+    last_visited: str | None

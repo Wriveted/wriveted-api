@@ -1,7 +1,8 @@
 from datetime import timedelta
 from typing import Optional, Union
+import uuid
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Path
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -265,3 +266,12 @@ def create_user_access_token(user, expires_delta=None):
     )
     logger.debug("Access token generated for user", user=user)
     return wriveted_access_token
+
+
+def get_user_from_id(
+    user_id: uuid.UUID = Path(
+        ..., description="UUID representing a unique user in the Wriveted database"
+    ),
+    session: Session = Depends(get_session),
+):
+    return crud.user.get(db=session, id=user_id)

@@ -1,7 +1,7 @@
 import datetime
-from typing import Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -9,12 +9,15 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
     create_user_access_token,
+    get_active_principals,
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
     get_current_user,
+    get_user_from_id,
 )
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
+from app.permissions import Permission
 from app.schemas.pagination import Pagination
 from app.schemas.users.user import UserDetail, UserPatchOptions
 from app.schemas.users.user_list import UserListsResponse
@@ -24,7 +27,7 @@ logger = get_logger()
 
 router = APIRouter(
     tags=["Users"],
-    dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
+    dependencies=[Security(get_current_active_user_or_service_account)],
 )
 
 public_router = APIRouter(tags=["Public", "Users"])
@@ -61,18 +64,19 @@ async def get_users(
     )
 
 
-@router.get("/user/{uuid}", response_model=UserDetail)
-async def get_user(uuid: str, session: Session = Depends(get_session)):
+@router.get("/user/{user_id}", response_model=UserDetail)
+async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user")
-    return crud.user.get(db=session, id=uuid)
+    return user
 
 
-@router.put("/user/{uuid}", response_model=UserDetail)
+@router.put("/user/{user_id}", response_model=UserDetail)
 async def update_user(
-    uuid: str, user_update: UserUpdateIn, session: Session = Depends(get_session)
+    user_update: UserUpdateIn,
+    session: Session = Depends(get_session),
+    user: User = Permission("update", get_user_from_id),
 ):
     logger.info("Updating a user")
-    user = crud.user.get(db=session, id=uuid)
 
     updated_user = crud.user.update(session, db_obj=user, obj_in=user_update)
     return updated_user
