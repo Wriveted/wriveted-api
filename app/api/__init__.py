@@ -13,7 +13,6 @@ from app.api.recommendations import router as recommendations_router
 from app.api.schools import public_router as school_router_public
 from app.api.schools import router as school_router
 from app.api.service_accounts import router as service_account_router
-from app.api.users import public_router as user_router_public
 from app.api.users import router as user_router
 from app.api.version import router as version_router
 from app.api.works import router as work_router
@@ -22,7 +21,6 @@ api_router = APIRouter()
 
 api_router.include_router(auth_router)
 api_router.include_router(user_router)
-api_router.include_router(user_router_public)
 api_router.include_router(author_router)
 api_router.include_router(illustrator_router)
 api_router.include_router(edition_router)

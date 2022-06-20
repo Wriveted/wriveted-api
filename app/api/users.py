@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy.orm import Session
@@ -9,10 +9,7 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
     create_user_access_token,
-    get_active_principals,
-    get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
-    get_current_user,
     get_user_from_id,
 )
 from app.db.session import get_session
@@ -20,7 +17,6 @@ from app.models.user import User, UserAccountType
 from app.permissions import Permission
 from app.schemas.auth import SpecificUserDetail
 from app.schemas.pagination import Pagination
-from app.schemas.users.user import UserDetail, UserPatchOptions
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import UserUpdateIn
 
@@ -30,9 +26,6 @@ router = APIRouter(
     tags=["Users"],
     dependencies=[Security(get_current_active_user_or_service_account)],
 )
-
-public_router = APIRouter(tags=["Public", "Users"])
-
 
 @router.get("/users", response_model=UserListsResponse)
 async def get_users(
@@ -109,29 +102,6 @@ def magic_link_endpoint(
         "access_token": wriveted_access_token,
         "token_type": "bearer",
     }
-
-
-@public_router.patch("/user")
-async def patch_update_user(
-    patch: UserPatchOptions,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    """
-    Optional patch updates to less-essential parts of a User object.
-    Self-serve api that extracts the user's info from the bearer token
-    (Cannot patch another user)
-    """
-    output = {}
-
-    if patch.newsletter is not None:
-        output["old_newsletter_preference"] = user.newsletter
-        user.newsletter = patch.newsletter
-        output["new_newsletter_preference"] = user.newsletter
-
-    session.commit()
-
-    return output
 
 
 @router.delete("/user/{uuid}")

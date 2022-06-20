@@ -53,6 +53,7 @@ class UserCreateIn(BaseModel):
     email: EmailStr | None
     info: UserInfo | None
     type: UserAccountType | None = UserAccountType.PUBLIC
+    newsletter: bool | None
 
     # readers
     username: str | None

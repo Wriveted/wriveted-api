@@ -16,6 +16,7 @@ class UserUpdateIn(BaseModel):
     email: EmailStr | None
     info: UserInfo | None
     type: UserAccountType | None
+    newsletter: bool | None
 
     # readers
     username: str | None
