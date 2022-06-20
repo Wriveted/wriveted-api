@@ -91,47 +91,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 obj_in.first_name, obj_in.last_name_initial, session, obj_in.school_id
             )
 
-    def update(
-        self,
-        db: Session,
-        *,
-        db_obj: User,
-        obj_in: Union[UserUpdateIn, Dict[str, Any]],
-        merge_dicts: bool = False,
-    ) -> SpecificUserDetail:
-
-        if isinstance(obj_in, dict):
-            update_data = obj_in
-        else:
-            update_data = obj_in.dict(exclude_unset=True)
-
-        for field in update_data:
-            if hasattr(db_obj, field):
-                if merge_dicts and isinstance(getattr(db_obj, field), dict):
-                    self._deep_merge_dicts(getattr(db_obj, field), update_data[field])
-                else:
-                    setattr(db_obj, field, update_data[field])
-
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def _deep_merge_dicts(self, original, incoming):
-        """
-        Thanks Vikas https://stackoverflow.com/a/50773244
-        Deep merge two dictionaries. Modifies original.
-
-        """
-        for key in incoming:
-            if key in original:
-                if isinstance(original[key], dict) and isinstance(incoming[key], dict):
-                    self._deep_merge_dicts(original[key], incoming[key])
-                else:
-                    original[key] = incoming[key]
-            else:
-                original[key] = incoming[key]
-
     # ---------------------
 
     def get_or_create(
