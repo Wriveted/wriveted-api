@@ -58,7 +58,7 @@ class UserCreateIn(BaseModel):
     username: str | None
     first_name: str | None
     last_name_initial: str | None
-    reading_preferences: ReadingPreferences | None = {}
+    reading_preferences: ReadingPreferences | None
 
     # students / educators
     school_id: int | None
