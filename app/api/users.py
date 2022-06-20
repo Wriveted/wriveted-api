@@ -80,7 +80,9 @@ async def update_user(
 ):
     logger.info("Updating a user")
 
-    updated_user = crud.user.update(session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts)
+    updated_user = crud.user.update(
+        session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts
+    )
     return updated_user
 
 

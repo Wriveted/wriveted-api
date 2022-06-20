@@ -162,15 +162,9 @@ def test_access_subclass_through_superclass_query(
     session.rollback()
 
 
-def test_user_info_dict_merging(
-    session
-):
-    original_reading_preferences = {
-        "last_visited": "now"
-    }
-    updated_reading_preferences = {
-        "reading_ability": "yeah not bad"
-    }
+def test_user_info_dict_merging(session):
+    original_reading_preferences = {"last_visited": "now"}
+    updated_reading_preferences = {"reading_ability": "yeah not bad"}
 
     reader = crud.user.create(
         db=session,
@@ -180,7 +174,7 @@ def test_user_info_dict_merging(
             type=UserAccountType.PUBLIC,
             first_name="Test",
             last_name_initial="T",
-            reading_preferences=original_reading_preferences
+            reading_preferences=original_reading_preferences,
         ),
         commit=False,
     )
@@ -188,13 +182,23 @@ def test_user_info_dict_merging(
     session.flush()
     assert reader.id
 
-    updated_reader_without_merge = crud.user.update(db=session, obj_in=UserUpdateIn(reading_preferences=updated_reading_preferences), db_obj=reader, merge_dicts=False)
-    assert updated_reader_without_merge.reading_preferences['reading_ability']
+    updated_reader_without_merge = crud.user.update(
+        db=session,
+        obj_in=UserUpdateIn(reading_preferences=updated_reading_preferences),
+        db_obj=reader,
+        merge_dicts=False,
+    )
+    assert updated_reader_without_merge.reading_preferences["reading_ability"]
     with pytest.raises(KeyError):
-        updated_reader_without_merge.reading_preferences['last_visited']
+        updated_reader_without_merge.reading_preferences["last_visited"]
 
-    updated_reader_with_merge = crud.user.update(db=session, obj_in=UserUpdateIn(reading_preferences=original_reading_preferences), db_obj=reader, merge_dicts=True)
-    assert updated_reader_with_merge.reading_preferences['reading_ability']
-    assert updated_reader_with_merge.reading_preferences['last_visited']
+    updated_reader_with_merge = crud.user.update(
+        db=session,
+        obj_in=UserUpdateIn(reading_preferences=original_reading_preferences),
+        db_obj=reader,
+        merge_dicts=True,
+    )
+    assert updated_reader_with_merge.reading_preferences["reading_ability"]
+    assert updated_reader_with_merge.reading_preferences["last_visited"]
 
     session.rollback()

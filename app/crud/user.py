@@ -97,7 +97,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         *,
         db_obj: User,
         obj_in: Union[UserUpdateIn, Dict[str, Any]],
-        merge_dicts: bool = False
+        merge_dicts: bool = False,
     ) -> SpecificUserDetail:
 
         if isinstance(obj_in, dict):
