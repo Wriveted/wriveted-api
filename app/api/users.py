@@ -70,7 +70,7 @@ async def get_user(user: User = Permission("details", get_user_from_id)):
     return user
 
 
-@router.put("/user/{user_id}", response_model=SpecificUserDetail)
+@router.patch("/user/{user_id}", response_model=SpecificUserDetail)
 async def update_user(
     user_update: UserUpdateIn,
     merge_dicts: bool = False,
