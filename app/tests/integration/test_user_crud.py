@@ -163,8 +163,8 @@ def test_access_subclass_through_superclass_query(
 
 
 def test_user_info_dict_merging(session):
-    original_reading_preferences = {"last_visited": "now"}
-    updated_reading_preferences = {"reading_ability": "yeah not bad"}
+    original_huey_attributes = {"last_visited": "now"}
+    updated_huey_attributes = {"reading_ability": "yeah not bad"}
 
     reader = crud.user.create(
         db=session,
@@ -174,7 +174,7 @@ def test_user_info_dict_merging(session):
             type=UserAccountType.PUBLIC,
             first_name="Test",
             last_name_initial="T",
-            reading_preferences=original_reading_preferences,
+            huey_attributes=original_huey_attributes,
         ),
         commit=False,
     )
@@ -184,21 +184,21 @@ def test_user_info_dict_merging(session):
 
     updated_reader_without_merge = crud.user.update(
         db=session,
-        obj_in=UserUpdateIn(reading_preferences=updated_reading_preferences),
+        obj_in=UserUpdateIn(huey_attributes=updated_huey_attributes),
         db_obj=reader,
         merge_dicts=False,
     )
-    assert updated_reader_without_merge.reading_preferences["reading_ability"]
+    assert updated_reader_without_merge.huey_attributes["reading_ability"]
     with pytest.raises(KeyError):
-        updated_reader_without_merge.reading_preferences["last_visited"]
+        updated_reader_without_merge.huey_attributes["last_visited"]
 
     updated_reader_with_merge = crud.user.update(
         db=session,
-        obj_in=UserUpdateIn(reading_preferences=original_reading_preferences),
+        obj_in=UserUpdateIn(huey_attributes=original_huey_attributes),
         db_obj=reader,
         merge_dicts=True,
     )
-    assert updated_reader_with_merge.reading_preferences["reading_ability"]
-    assert updated_reader_with_merge.reading_preferences["last_visited"]
+    assert updated_reader_with_merge.huey_attributes["reading_ability"]
+    assert updated_reader_with_merge.huey_attributes["last_visited"]
 
     session.rollback()

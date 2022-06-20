@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.schemas.recommendations import ReadingAbilityKey
 
 
-class ReadingPreferences(BaseModel):
+class HueyAttributes(BaseModel):
     birthdate: str | None
     reading_ability: Any | None
     last_visited: str | None

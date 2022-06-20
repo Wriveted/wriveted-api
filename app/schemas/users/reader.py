@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from app.schemas.booklist import BookListBase
-from app.schemas.users.reading_preferences import ReadingPreferences
+from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_identity import UserBrief, UserIdentity
 
 
@@ -18,7 +18,7 @@ class ReaderIdentity(ReaderBase, UserIdentity):
 
 
 class ReaderBrief(ReaderBase, UserBrief):
-    reading_preferences: ReadingPreferences
+    huey_attributes: HueyAttributes
     parent: UserIdentity | None
 
 
