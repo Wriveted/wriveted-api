@@ -9,6 +9,7 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
     create_user_access_token,
+    get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
     get_user_from_id,
 )
@@ -24,8 +25,9 @@ logger = get_logger()
 
 router = APIRouter(
     tags=["Users"],
-    dependencies=[Security(get_current_active_user_or_service_account)],
+    dependencies=[Depends(get_current_active_user_or_service_account)],
 )
+
 
 @router.get("/users", response_model=UserListsResponse)
 async def get_users(
@@ -36,6 +38,7 @@ async def get_users(
     type: Optional[UserAccountType] = Query(
         None, description="Filter users by account type. Default is all."
     ),
+    account=Security(get_current_active_superuser_or_backend_service_account),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -89,6 +92,7 @@ async def update_user(
 def magic_link_endpoint(
     uuid: str,
     session: Session = Depends(get_session),
+    account=Security(get_current_active_superuser_or_backend_service_account),
 ):
     """
     Create a Wriveted API magic-link token for a user.
@@ -108,7 +112,7 @@ def magic_link_endpoint(
 async def deactivate_user(
     uuid: str,
     purge: bool = False,
-    account=Depends(get_current_active_user_or_service_account),
+    account=Depends(get_current_active_superuser_or_backend_service_account),
     session: Session = Depends(get_session),
 ):
     """
