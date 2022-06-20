@@ -11,8 +11,8 @@ from app.api.dependencies.security import (
     create_user_access_token,
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
-    get_user_from_id,
 )
+from app.api.dependencies.user import get_user_from_id
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
 from app.permissions import Permission
@@ -29,7 +29,11 @@ router = APIRouter(
 )
 
 
-@router.get("/users", response_model=UserListsResponse)
+@router.get(
+    "/users",
+    response_model=UserListsResponse,
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
 async def get_users(
     q: Optional[str] = Query(None, description="Filter users by name"),
     is_active: Optional[bool] = Query(
@@ -38,7 +42,6 @@ async def get_users(
     type: Optional[UserAccountType] = Query(
         None, description="Filter users by account type. Default is all."
     ),
-    account=Security(get_current_active_superuser_or_backend_service_account),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -88,11 +91,11 @@ async def update_user(
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
     },
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
 def magic_link_endpoint(
     uuid: str,
     session: Session = Depends(get_session),
-    account=Security(get_current_active_superuser_or_backend_service_account),
 ):
     """
     Create a Wriveted API magic-link token for a user.
