@@ -38,7 +38,7 @@ class BookListItemCreateIn(BookListItemBase):
 class BookListBase(BaseModel):
     name: str
     type: ListType
-    book_count: int | None
+    book_count: Optional[int]
 
 
 class BookListOptionalInfo(BaseModel):

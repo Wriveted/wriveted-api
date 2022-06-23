@@ -176,7 +176,8 @@ async def get_booklists(
         "Getting list of booklists", list_type=list_type, pagination=pagination
     )
     booklists_query = crud.booklist.get_all_query_with_optional_filters(
-        db=session, list_type=list_type
+        db=session,
+        list_type=list_type
     )
 
     booklists = [
