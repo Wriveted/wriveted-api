@@ -1,8 +1,7 @@
 from datetime import timedelta
 from typing import Optional, Union
-import uuid
 
-from fastapi import Depends, HTTPException, Path
+from fastapi import Depends, HTTPException
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,

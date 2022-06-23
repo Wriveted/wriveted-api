@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import delete, select, update, func
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
