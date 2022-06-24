@@ -79,9 +79,12 @@ async def update_user(
 ):
     logger.info("Updating a user")
 
-    # catch phony requests now that we have session, since pydantic validation has to take user's word for it
+    # catch phony type-change requests now that we have session, since pydantic validation has to take user's word for it
     if user_update.current_type and user_update.current_type != user.type:
-        raise HTTPException(status_code=422, detail="Provided current_type does not match user's actual user type.")
+        raise HTTPException(
+            status_code=422,
+            detail="Provided current_type does not match user's actual user type.",
+        )
 
     updated_user = crud.user.update(
         session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts

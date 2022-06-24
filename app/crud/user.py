@@ -1,5 +1,4 @@
 from typing import Any, Dict, Optional, Tuple, Union
-
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import and_, func, select
@@ -19,7 +18,6 @@ from app.models import (
 )
 from app.models.school import School
 from app.models.user import UserAccountType
-from app.schemas.auth import SpecificUserDetail
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_update import UserUpdateIn
 from app.services.users import new_identifiable_username
@@ -85,13 +83,72 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         db_obj = model(**obj_in_data)
         return db_obj
 
+    def update(
+        self,
+        db: Session,
+        *,
+        db_obj: User,
+        obj_in: Union[UserUpdateIn, Dict[str, Any]],
+        merge_dicts: bool = False,
+    ) -> User:
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.dict(exclude_unset=True)
+
+        # if updating user type
+        if update_data.get("type") and update_data["type"] != db_obj.type:
+            # hold onto the current user data
+            original_data = vars(db_obj)
+
+            # remove the existing object from the db
+            db.delete(db_obj)
+            db.commit()
+
+            # combine existing and update data to create instantiation data for the new obj
+            combined_data = original_data
+            self._deep_merge_dicts(combined_data, update_data)
+
+            # trim the instantiation data to just the fields belonging to the target class
+            user_type_class_map = {
+                UserAccountType.PUBLIC: PublicReader,
+                UserAccountType.STUDENT: Student,
+                UserAccountType.EDUCATOR: Educator,
+                UserAccountType.SCHOOL_ADMIN: SchoolAdmin,
+                UserAccountType.PARENT: Parent,
+                UserAccountType.WRIVETED: WrivetedAdmin,
+            }
+            trimmed_data = {
+                k: combined_data[k]
+                for k in combined_data
+                if k in dir(user_type_class_map[obj_in.type])
+            }
+
+            new_obj = user_type_class_map[obj_in.type](**trimmed_data)
+            db_obj = new_obj
+
+        else:
+            for field in update_data:
+                if hasattr(db_obj, field):
+                    if merge_dicts and isinstance(getattr(db_obj, field), dict):
+                        self._deep_merge_dicts(
+                            getattr(db_obj, field), update_data[field]
+                        )
+                    else:
+                        setattr(db_obj, field, update_data[field])
+
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    # ---------------------
+
     def _generate_username_if_missing(self, session, obj_in: UserCreateIn):
         if obj_in.username is None:
             obj_in.username = new_identifiable_username(
                 obj_in.first_name, obj_in.last_name_initial, session, obj_in.school_id
             )
-
-    # ---------------------
 
     def get_or_create(
         self, db: Session, user_data: UserCreateIn, commit=True
@@ -196,27 +253,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             )
         )
         return db.execute(q).scalar_one_or_none()
-
-    # def update_user_type(self, db: Session, user: User, new_data: UserCreateIn):
-    #     if user.type == new_data.type:
-    #         return user
-
-    #     match new_data.type:
-
-    #         # if updating to SchoolAdmin
-    #         case UserAccountType.SCHOOL_ADMIN:
-    #             if user.type == UserAccountType.EDUCATOR:
-    #                 # if the Educator prerequisites have already been met then
-    #                 # we only need change the type and add a school_admins row
-    #                 user.type = UserAccountType.SCHOOL_ADMIN
-    #                 db.execute(insert(SchoolAdmin).values(id=user.id))
-    #                 # always close the session after changing polymorphic entities
-    #                 db.commit()
-    #                 db.close()
-    #             else
-    #                 # otherwise we need to populate the Educator level as well
-    #                 user.type = UserAccountType.SCHOOL_ADMIN
-    #                 db.execute(insert(Educator).values())
 
 
 user = CRUDUser(User)

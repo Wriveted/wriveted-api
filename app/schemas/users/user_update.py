@@ -20,7 +20,7 @@ user_type_attributes_map = {
     UserAccountType.EDUCATOR: educator_attributes,
     UserAccountType.SCHOOL_ADMIN: school_admin_attributes,
     UserAccountType.PARENT: parent_attributes,
-    UserAccountType.WRIVETED: wriveted_attributes
+    UserAccountType.WRIVETED: wriveted_attributes,
 }
 
 
@@ -54,8 +54,8 @@ class UserUpdateIn(BaseModel):
 
     @root_validator
     def validate_user_type_change(cls, values):
-        new_type: UserAccountType = values.get("type", None)
-        current_type: UserAccountType = values.get("current_type", None)
+        new_type: UserAccountType = values.get("type")
+        current_type: UserAccountType = values.get("current_type")
 
         if new_type:
             if not current_type:
@@ -63,10 +63,11 @@ class UserUpdateIn(BaseModel):
                     "Current user type must be provided if changing types."
                 )
 
-            if new_type == UserAccountType.WRIVETED and not current_type == UserAccountType.WRIVETED:
-                raise ValueError(
-                    "Nice try. Cannot change to a Wriveted admin."
-                )
+            if (
+                new_type == UserAccountType.WRIVETED
+                and not current_type == UserAccountType.WRIVETED
+            ):
+                raise ValueError("Nice try. Cannot change to a Wriveted admin.")
 
             # if changing types, ensure the required fields of new_type are met
             # by the union of the current_type's fields and provided UserUpdateIn fields
