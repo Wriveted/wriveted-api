@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -78,6 +78,10 @@ async def update_user(
     user: User = Permission("update", get_user_from_id),
 ):
     logger.info("Updating a user")
+
+    # catch phony requests now that we have session, since pydantic validation has to take user's word for it
+    if user_update.current_type and user_update.current_type != user.type:
+        raise HTTPException(status_code=422, detail="Provided current_type does not match user's actual user type.")
 
     updated_user = crud.user.update(
         session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts
