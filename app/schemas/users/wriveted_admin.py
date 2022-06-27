@@ -9,4 +9,4 @@ class WrivetedAdminBrief(UserBrief):
 
 
 class WrivetedAdminDetail(UserDetail, WrivetedAdminBrief):
-    wriveted_admin_info: dict | None
+    pass
