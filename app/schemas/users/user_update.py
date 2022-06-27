@@ -44,10 +44,6 @@ class UserUpdateIn(BaseModel):
     school_id: int | None
     class_group_id: UUID | None
 
-    student_info: dict | None
-    school_admin_info: dict | None
-    wriveted_admin_info: dict | None
-
     # changing user type
     current_type: UserAccountType | None
     type: UserAccountType | None

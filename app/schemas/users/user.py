@@ -19,6 +19,16 @@ class UserInfo(BaseModel):
 
     # hoping pictures won't be base64 strings
     picture: AnyHttpUrl | None
+
+    # storing each individual user type's info
+    # in the base will allow a type of posterity
+    # in the event of user type changes
+    reader_info: dict | None
+    student_info: dict | None
+    educator_info: dict | None
+    school_admin_info: dict | None
+    wriveted_admin_info: dict | None
+
     other: dict | None
 
 
