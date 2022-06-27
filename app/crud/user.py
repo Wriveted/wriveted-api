@@ -102,8 +102,11 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             original_data = vars(db_obj)
 
             # remove the existing object from the db
+            # (need to flush, or sqlalchemy will notice the identical 
+            # id's of the deleted and new user objects, and compose a 
+            # failing UPDATE instead of a fresh INSERT)
             db.delete(db_obj)
-            db.commit()
+            db.flush()
 
             # combine existing and update data to create instantiation data for the new obj
             combined_data = original_data
