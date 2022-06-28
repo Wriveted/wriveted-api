@@ -8,6 +8,10 @@ from app.schemas.recommendations import ReadingAbilityKey
 
 
 class HueyAttributes(BaseModel):
-    birthdate: constr(regex=r'(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?') | None
+    birthdate: constr(
+        regex=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+    ) | None
     reading_ability: list[ReadingAbilityKey] | None
-    last_visited: constr(regex=r'(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?') | None
+    last_visited: constr(
+        regex=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+    ) | None
