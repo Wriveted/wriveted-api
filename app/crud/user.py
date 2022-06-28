@@ -127,8 +127,8 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 if k in dir(user_type_class_map[obj_in.type])
             }
 
-            new_obj = user_type_class_map[obj_in.type](**trimmed_data)
-            db_obj = new_obj
+            NewUserType = user_type_class_map[obj_in.type]
+            db_obj = NewUserType(**trimmed_data)
 
         else:
             for field in update_data:
