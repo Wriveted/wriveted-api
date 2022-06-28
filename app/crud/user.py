@@ -109,7 +109,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             db.flush()
 
             # combine existing and update data to create instantiation data for the new obj
-            combined_data = original_data
+            combined_data = original_data.copy()
             self._deep_merge_dicts(combined_data, update_data)
 
             # trim the instantiation data to just the fields belonging to the target class
