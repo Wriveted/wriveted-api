@@ -1,3 +1,4 @@
+from datetime import date
 import pytest
 from sqlalchemy import select
 
@@ -163,8 +164,8 @@ def test_access_subclass_through_superclass_query(
 
 
 def test_user_info_dict_merging(session):
-    original_huey_attributes = {"last_visited": "now"}
-    updated_huey_attributes = {"reading_ability": "yeah not bad"}
+    original_huey_attributes = {"last_visited": str(date.today())}
+    updated_huey_attributes = {"reading_ability": ["SPOT"]}
 
     reader = crud.user.create(
         db=session,
