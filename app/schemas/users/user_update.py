@@ -1,6 +1,7 @@
 from __future__ import annotations
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, root_validator
+from fastapi import HTTPException
+from pydantic import BaseModel, EmailStr, ValidationError, root_validator
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user import UserInfo
@@ -8,7 +9,7 @@ from app.schemas.users.user import UserInfo
 
 user_base_attributes = ["name"]
 reader_attributes = user_base_attributes + ["first_name", "last_name_initial"]
-student_attributes = reader_attributes + ["school_id", "class_group_id"]
+student_attributes = reader_attributes + ["school_id", "class_group_id", "username"]
 educator_attributes = user_base_attributes + ["school_id"]
 school_admin_attributes = educator_attributes + []
 parent_attributes = user_base_attributes + []
@@ -45,8 +46,12 @@ class UserUpdateIn(BaseModel):
     class_group_id: UUID | None
 
     # changing user type
-    current_type: UserAccountType | None
     type: UserAccountType | None
+
+
+class InternalUserUpdateIn(UserUpdateIn):
+
+    current_type: UserAccountType | None
 
     @root_validator
     def validate_user_type_change(cls, values):
@@ -54,11 +59,6 @@ class UserUpdateIn(BaseModel):
         current_type: UserAccountType = values.get("current_type")
 
         if new_type:
-            if not current_type:
-                raise ValueError(
-                    "Current user type must be provided if changing types."
-                )
-
             if (
                 new_type == UserAccountType.WRIVETED
                 and not current_type == UserAccountType.WRIVETED

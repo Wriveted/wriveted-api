@@ -1,9 +1,12 @@
 import datetime
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from starlette import status
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
@@ -19,7 +22,7 @@ from app.permissions import Permission
 from app.schemas.auth import SpecificUserDetail
 from app.schemas.pagination import Pagination
 from app.schemas.users.user_list import UserListsResponse
-from app.schemas.users.user_update import UserUpdateIn
+from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 
 logger = get_logger()
 
@@ -77,17 +80,19 @@ async def update_user(
     session: Session = Depends(get_session),
     user: User = Permission("update", get_user_from_id),
 ):
-    logger.info("Updating a user")
-
-    # catch phony type-change requests now that we have session, since pydantic validation has to take user's word for it
-    if user_update.current_type and user_update.current_type != user.type:
+    try:
+        updated_items = user_update.dict(exclude_unset=True)
+        update_data = InternalUserUpdateIn(current_type=user.type, **updated_items)
+    except ValidationError as e:
         raise HTTPException(
-            status_code=422,
-            detail="Provided current_type does not match user's actual user type.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=json.loads(e.json()),
         )
 
+    logger.info("Updating a user")
+
     updated_user = crud.user.update(
-        session, db_obj=user, obj_in=user_update, merge_dicts=merge_dicts
+        session, db_obj=user, obj_in=update_data, merge_dicts=merge_dicts
     )
     return updated_user
 

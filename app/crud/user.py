@@ -19,7 +19,7 @@ from app.models import (
 from app.models.school import School
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
-from app.schemas.users.user_update import UserUpdateIn
+from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.services.users import new_identifiable_username
 
 logger = get_logger()
@@ -88,7 +88,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         db: Session,
         *,
         db_obj: User,
-        obj_in: Union[UserUpdateIn, Dict[str, Any]],
+        obj_in: Union[InternalUserUpdateIn, Dict[str, Any]],
         merge_dicts: bool = False,
     ) -> User:
         if isinstance(obj_in, dict):
@@ -102,8 +102,8 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             original_data = vars(db_obj)
 
             # remove the existing object from the db
-            # (need to flush, or sqlalchemy will notice the identical 
-            # id's of the deleted and new user objects, and compose a 
+            # (need to flush, or sqlalchemy will notice the identical
+            # id's of the deleted and new user objects, and compose a
             # failing UPDATE instead of a fresh INSERT)
             db.delete(db_obj)
             db.flush()
