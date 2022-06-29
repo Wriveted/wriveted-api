@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import UUID4, BaseModel, Field
 
 from app.models.booklist import ListType
 from app.schemas.pagination import PaginatedResponse
@@ -36,9 +36,13 @@ class BookListItemCreateIn(BookListItemBase):
 
 
 class BookListBase(BaseModel):
+    id: UUID4
     name: str
     type: ListType
     book_count: int | None
+
+    class Config:
+        orm_mode = True
 
 
 class BookListOptionalInfo(BaseModel):
@@ -75,14 +79,10 @@ class BookListUpdateIn(BookListBase):
 
 
 class BookListBrief(BookListBase):
-    id: UUID
     created_at: datetime
     book_count: int
     user: Optional[UserIdentity]
     school: Optional[SchoolBrief]
-
-    class Config:
-        orm_mode = True
 
 
 class BookListsResponse(PaginatedResponse):
