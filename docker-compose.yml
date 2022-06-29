@@ -28,7 +28,7 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
-    command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0 
+    command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0 --reload
     depends_on:
       - db
     environment:

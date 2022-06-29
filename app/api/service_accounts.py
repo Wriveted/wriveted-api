@@ -73,7 +73,7 @@ async def create_service_account(
 
     crud.event.create(
         session=session,
-        title="{new_service_account.name} service account created",
+        title="Service account created",
         description=f"Service account '{new_service_account.name}' created by '{current_account.name}'",
         account=current_account,
     )

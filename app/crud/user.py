@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
@@ -19,7 +19,6 @@ from app.models import (
 )
 from app.models.school import School
 from app.models.user import UserAccountType
-from app.schemas.auth import SpecificUserDetail
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_update import UserUpdateIn
 from app.services.users import new_identifiable_username

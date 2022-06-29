@@ -130,7 +130,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         *,
         db_obj: ModelType,
         obj_in: Union[UpdateSchemaType, Dict[str, Any]],
-        merge_dicts: bool = False
+        merge_dicts: bool = False,
     ) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
