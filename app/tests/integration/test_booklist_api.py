@@ -223,7 +223,13 @@ def test_create_booklist_with_item_info(
         json={
             "name": "wizard wishes",
             "type": ListType.PERSONAL,
-            "items": [{"work_id": w.id, "info": {"edition": w.editions[0].isbn, "note": "blah"}} for w in works_list],
+            "items": [
+                {
+                    "work_id": w.id,
+                    "info": {"edition": w.editions[0].isbn, "note": "blah"},
+                }
+                for w in works_list
+            ],
         },
     )
     print(response.text)
@@ -557,7 +563,9 @@ def ensure_booklist_order_continuous(
     assert positions == list(range(len(positions)))
 
 
-def test_enriched_booklist_response(client, backend_service_account_headers, works_list):
+def test_enriched_booklist_response(
+    client, backend_service_account_headers, works_list
+):
     create_booklist_response = client.post(
         "v1/list",
         headers=backend_service_account_headers,
@@ -566,7 +574,12 @@ def test_enriched_booklist_response(client, backend_service_account_headers, wor
             "type": ListType.OTHER_LIST,
             "info": {"foo": 42},
             "items": [
-                {"work_id": w.id, "order_id": i, "info":{"edition": w.editions[0].isbn}} for i, w in enumerate(works_list[:20])
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(works_list[:20])
             ],
         },
     )
@@ -589,4 +602,4 @@ def test_enriched_booklist_response(client, backend_service_account_headers, wor
     )
     assert get_enriched_booklist_response.status_code == 200
     json = get_enriched_booklist_response.json()
-    assert 'isbn' in json["data"][0]["edition"]
+    assert "isbn" in json["data"][0]["edition"]

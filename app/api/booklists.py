@@ -226,7 +226,8 @@ async def get_booklist_detail(
                     crud.edition.get(session, i.info["edition"])
                 ),
             )
-            for i in booklist_items if i.info["edition"]
+            for i in booklist_items
+            if i.info["edition"]
         ]
 
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
