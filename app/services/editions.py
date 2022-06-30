@@ -1,3 +1,4 @@
+from random import randint
 from typing import List
 
 from sqlalchemy import and_, select
@@ -189,3 +190,8 @@ def convert_10_to_13(isbn):
 
 
 #  ---------------------------------------------------------------------------------
+
+
+def generate_random_valid_isbn13():
+    base = "978" + str(randint(0,999999999)).zfill(9)
+    return base + check_digit_13(base)

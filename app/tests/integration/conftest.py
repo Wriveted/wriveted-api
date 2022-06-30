@@ -2,6 +2,7 @@ import random
 import secrets
 from datetime import timedelta
 from pathlib import Path
+from isbnlib import editions
 
 import pytest
 from starlette.testclient import TestClient
@@ -15,11 +16,13 @@ from app.models.class_group import ClassGroup
 from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
+from app.schemas.edition import EditionCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
 from app.services.security import create_access_token
+from app.services.editions import generate_random_valid_isbn13
 from app.tests.util.random_strings import random_lower_string
 
 
@@ -201,17 +204,28 @@ def works_list(client, session, author_list):
         work_authors = [
             AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
         ]
-        works.append(
-            crud.work.get_or_create(
-                db=session,
-                work_data=WorkCreateIn(
-                    type=WorkType.BOOK,
-                    title=random_lower_string(),
-                    authors=work_authors,
-                ),
-                authors=[author],
-            )
+        work = crud.work.get_or_create(
+            db=session,
+            work_data=WorkCreateIn(
+                type=WorkType.BOOK,
+                title=random_lower_string(),
+                authors=work_authors,
+            ),
+            authors=[author]
         )
+        crud.edition.create(
+            db=session, 
+            edition_data=EditionCreateIn(
+                isbn=generate_random_valid_isbn13(), 
+                title=random_lower_string(length=random.randint(2, 12)),
+                cover_url="https://cool.site",
+                info={}
+            ),
+            work=work,
+            illustrators=[]
+        )
+
+        works.append(work)
 
     yield works
 

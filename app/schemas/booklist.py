@@ -54,7 +54,9 @@ class BookListOptionalInfo(BaseModel):
     description: Optional[str]
 
 
-class BookListCreateIn(BookListBase):
+class BookListCreateIn(BaseModel):
+    name: str
+    type: ListType
 
     school_id: Optional[str]
     user_id: Optional[str]
