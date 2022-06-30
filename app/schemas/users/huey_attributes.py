@@ -1,11 +1,12 @@
 from __future__ import annotations
-
-from typing import Any
-
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 
 
 class HueyAttributes(BaseModel):
-    birthdate: str | None
-    reading_ability: Any | None
-    last_visited: str | None
+    birthdate: constr(
+        regex=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+    ) | None
+    reading_ability: list[ReadingAbilityKey] | None
+    last_visited: constr(
+        regex=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+    ) | None

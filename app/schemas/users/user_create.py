@@ -65,10 +65,6 @@ class UserCreateIn(BaseModel):
     school_id: int | None
     class_group_id: UUID4 | None
 
-    student_info: dict | None
-    school_admin_info: dict | None
-    wriveted_admin_info: dict | None
-
     @validator("first_name", always=True)
     def extract_first_name(cls, v, values, **kwargs):
         if (

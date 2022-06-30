@@ -5,15 +5,15 @@ from app.schemas.users.parent import ParentBrief
 from app.schemas.users.reader import ReaderBrief
 from app.schemas.users.school_admin import SchoolAdminBrief
 from app.schemas.users.student import StudentBrief
-from app.schemas.wriveted_admin import WrivetedAdminBrief
+from app.schemas.users.wriveted_admin import WrivetedAdminBrief
 
 SpecificUserBrief = (
-    WrivetedAdminBrief
-    | StudentBrief
+    StudentBrief
+    | ReaderBrief
     | SchoolAdminBrief
     | EducatorBrief
     | ParentBrief
-    | ReaderBrief
+    | WrivetedAdminBrief
     | UserBrief
 )
 
