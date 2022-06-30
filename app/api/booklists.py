@@ -24,9 +24,12 @@ from app.schemas.booklist import (
     BookListBrief,
     BookListCreateIn,
     BookListDetail,
+    BookListDetailEnriched,
+    BookListItemEnriched,
     BookListsResponse,
     BookListUpdateIn,
 )
+from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
 
 logger = get_logger()
@@ -199,11 +202,13 @@ async def get_booklists(
 
 @router.get(
     "/list/{booklist_identifier}",
-    response_model=BookListDetail,
+    response_model=(BookListDetail | BookListDetailEnriched),
 )
 async def get_booklist_detail(
+    enriched: bool = False,
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     logger.debug("Getting booklist", booklist=booklist)
     # item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
@@ -213,10 +218,25 @@ async def get_booklist_detail(
         pagination.skip : pagination.limit + pagination.skip
     ]
 
+    if enriched:
+        booklist_items = [
+            BookListItemEnriched(
+                order_id=i.order_id,
+                edition=EditionDetail.from_orm(
+                    crud.edition.get(session, i.info["edition"])
+                ),
+            )
+            for i in booklist_items
+        ]
+
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
     booklist.data = booklist_items
     booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
-    return BookListDetail.from_orm(booklist)
+    return (
+        BookListDetail.from_orm(booklist)
+        if not enriched
+        else BookListDetailEnriched.from_orm(booklist)
+    )
 
 
 @router.patch(
