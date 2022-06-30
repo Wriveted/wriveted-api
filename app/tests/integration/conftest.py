@@ -211,18 +211,18 @@ def works_list(client, session, author_list):
                 title=random_lower_string(),
                 authors=work_authors,
             ),
-            authors=[author]
+            authors=[author],
         )
         crud.edition.create(
-            db=session, 
+            db=session,
             edition_data=EditionCreateIn(
-                isbn=generate_random_valid_isbn13(), 
+                isbn=generate_random_valid_isbn13(),
                 title=random_lower_string(length=random.randint(2, 12)),
                 cover_url="https://cool.site",
-                info={}
+                info={},
             ),
             work=work,
-            illustrators=[]
+            illustrators=[],
         )
 
         works.append(work)
