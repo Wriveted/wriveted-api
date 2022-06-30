@@ -223,7 +223,13 @@ def test_create_booklist_with_item_info(
         json={
             "name": "wizard wishes",
             "type": ListType.PERSONAL,
-            "items": [{"work_id": w.id, "info": {"note": "blah"}} for w in works_list],
+            "items": [
+                {
+                    "work_id": w.id,
+                    "info": {"edition": w.editions[0].isbn, "note": "blah"},
+                }
+                for w in works_list
+            ],
         },
     )
     print(response.text)
@@ -555,3 +561,45 @@ def ensure_booklist_order_continuous(
     detail = detail_booklist_response.json()
     positions = [item["order_id"] for item in detail["data"]]
     assert positions == list(range(len(positions)))
+
+
+def test_enriched_booklist_response(
+    client, backend_service_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes enriched",
+            "type": ListType.OTHER_LIST,
+            "info": {"foo": 42},
+            "items": [
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 200
+    booklist_id = create_booklist_response.json()["id"]
+
+    # GET, default
+    get_default_booklist_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+    )
+    assert get_default_booklist_response.status_code == 200
+    json = get_default_booklist_response.json()
+    assert isinstance(json["data"][0]["info"]["edition"], str)
+
+    # GET, enriched
+    get_enriched_booklist_response = client.get(
+        f"v1/list/{booklist_id}?enriched=true",
+        headers=backend_service_account_headers,
+    )
+    assert get_enriched_booklist_response.status_code == 200
+    json = get_enriched_booklist_response.json()
+    assert "isbn" in json["data"][0]["edition"]

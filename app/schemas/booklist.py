@@ -1,11 +1,10 @@
 import enum
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
-
 from pydantic import UUID4, BaseModel, Field
 
 from app.models.booklist import ListType
+from app.schemas.edition import EditionDetail
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief
 from app.schemas.users.user_identity import UserIdentity
@@ -31,6 +30,12 @@ class BookListItemDetail(BookListItemBase):
         orm_mode = True
 
 
+class BookListItemEnriched(BaseModel):
+    order_id: int
+    edition: EditionDetail
+    note: Optional[str] = Field(None, description="Note from the booklist creator")
+
+
 class BookListItemCreateIn(BookListItemBase):
     order_id: Optional[int]
 
@@ -49,7 +54,9 @@ class BookListOptionalInfo(BaseModel):
     description: Optional[str]
 
 
-class BookListCreateIn(BookListBase):
+class BookListCreateIn(BaseModel):
+    name: str
+    type: ListType
 
     school_id: Optional[str]
     user_id: Optional[str]
@@ -80,7 +87,6 @@ class BookListUpdateIn(BookListBase):
 
 class BookListBrief(BookListBase):
     created_at: datetime
-    book_count: int
     user: Optional[UserIdentity]
     school: Optional[SchoolBrief]
 
@@ -92,3 +98,7 @@ class BookListsResponse(PaginatedResponse):
 class BookListDetail(PaginatedResponse, BookListBrief):
     info: Optional[BookListOptionalInfo]
     data: list[BookListItemDetail]
+
+
+class BookListDetailEnriched(BookListDetail):
+    data: list[BookListItemEnriched]

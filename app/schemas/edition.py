@@ -50,7 +50,6 @@ class EditionBrief(BaseModel):
     cover_url: Optional[AnyHttpUrl]
     work_id: Optional[str]
     isbn: str
-    # school_count: int
 
     class Config:
         orm_mode = True
