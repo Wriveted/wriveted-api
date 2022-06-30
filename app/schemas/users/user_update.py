@@ -1,7 +1,6 @@
 from __future__ import annotations
 from uuid import UUID
-from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, ValidationError, root_validator
+from pydantic import BaseModel, EmailStr, root_validator
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user import UserInfo
@@ -76,7 +75,8 @@ class InternalUserUpdateIn(UserUpdateIn):
             difference = set(needed_attributes) - set(current_attributes)
             if difference:
                 raise ValueError(
-                    f"Not all required attributes have been provided to change from user type '{current_type.value}' to '{new_type.value}'. Missing attributes: {[a for a in needed_attributes if a not in current_attributes]}."
+                    f"Not all required attributes have been provided to change from user type '{current_type.value}' to '{new_type.value}'. "
+                    + f"Missing attributes: {[a for a in needed_attributes if a not in current_attributes]}."
                 )
 
         return values
