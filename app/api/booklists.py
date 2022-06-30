@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -205,7 +205,11 @@ async def get_booklists(
     response_model=(BookListDetail | BookListDetailEnriched),
 )
 async def get_booklist_detail(
-    enriched: bool = False,
+    enriched: bool = Query(
+        default=False,
+        title="Enrich editions in response",
+        description="If enabled, will include fully-enriched editions for each booklist item, i.e. including cover image, summary, and other metadata that may be desired for displaying each book. Otherwise, includes only ISBN.",
+    ),
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
