@@ -1,5 +1,8 @@
 from __future__ import annotations
+
 from pydantic import BaseModel, constr
+
+from app.schemas.recommendations import ReadingAbilityKey
 
 
 class HueyAttributes(BaseModel):

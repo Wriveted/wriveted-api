@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime
 from typing import Optional
+
 from pydantic import UUID4, BaseModel, Field
 
 from app.models.booklist import ListType
@@ -78,7 +79,7 @@ class BookListItemUpdateIn(BaseModel):
     info: Optional[BookListItemInfo] = None
 
 
-class BookListUpdateIn(BookListBase):
+class BookListUpdateIn(BaseModel):
     name: Optional[str]
     type: Optional[ListType]
     info: Optional[BookListOptionalInfo] = None

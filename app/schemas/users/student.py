@@ -1,10 +1,10 @@
 from typing import Literal
 
-# from app.schemas.class_group import ClassGroupBrief
-
 from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users.reader import ReaderBrief, ReaderDetail, ReaderIdentity
 from app.schemas.users.user import UsersSchool
+
+# from app.schemas.class_group import ClassGroupBrief
 
 
 class StudentIdentity(ReaderIdentity):

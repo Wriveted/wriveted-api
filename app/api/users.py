@@ -5,8 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
-from structlog import get_logger
 from starlette import status
+from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams

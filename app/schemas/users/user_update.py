@@ -1,10 +1,12 @@
 from __future__ import annotations
+
 from uuid import UUID
+
 from pydantic import BaseModel, EmailStr, root_validator
+
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user import UserInfo
-
 
 user_base_attributes = ["name"]
 reader_attributes = user_base_attributes + ["first_name", "last_name_initial"]

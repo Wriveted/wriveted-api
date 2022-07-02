@@ -2,7 +2,6 @@ import random
 import secrets
 from datetime import timedelta
 from pathlib import Path
-from isbnlib import editions
 
 import pytest
 from starlette.testclient import TestClient
@@ -21,8 +20,8 @@ from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
-from app.services.security import create_access_token
 from app.services.editions import generate_random_valid_isbn13
+from app.services.security import create_access_token
 from app.tests.util.random_strings import random_lower_string
 
 

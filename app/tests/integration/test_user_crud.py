@@ -1,4 +1,5 @@
 from datetime import date
+
 import pytest
 from sqlalchemy import select
 
@@ -167,11 +168,15 @@ def test_user_info_dict_merging(session):
     original_huey_attributes = {"last_visited": str(date.today())}
     updated_huey_attributes = {"reading_ability": ["SPOT"]}
 
+    email = "testreaderupdatemerge3@test.com"
+    if user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=user.id)
+
     reader = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
             name="Test Reader to update reading preferences",
-            email=f"testreaderupdatemerge3@test.com",
+            email=email,
             type=UserAccountType.PUBLIC,
             first_name="Test",
             last_name_initial="T",
