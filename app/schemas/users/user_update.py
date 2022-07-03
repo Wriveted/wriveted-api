@@ -43,7 +43,7 @@ class UserUpdateIn(BaseModel):
     username: str | None
 
     # students + educators
-    school_id: int | None
+    school_id: UUID | None
     class_group_id: UUID | None
 
     # changing user type
@@ -53,6 +53,7 @@ class UserUpdateIn(BaseModel):
 class InternalUserUpdateIn(UserUpdateIn):
 
     current_type: UserAccountType | None
+    school_id: int | None
 
     @root_validator
     def validate_user_type_change(cls, values):

@@ -4,14 +4,17 @@ from app import crud
 from app.schemas.users.user_update import UserUpdateIn
 
 
-def test_update_user_type(
+def test_update_public_user_to_student_type(
     session, client, backend_service_account_headers, test_school, test_class_group
 ):
+    email = "testemail@site.com"
+    if user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=user.id)
     user = crud.user.create(
         db=session,
         obj_in=UserUpdateIn(
             name="testman123",
-            email="testemail@site.com",
+            email=email,
             first_name="test",
             last_name_initial="m",
         ),
@@ -27,7 +30,7 @@ def test_update_user_type(
     user_type_update = {
         "type": "student",
         "username": "testuser123",
-        "school_id": test_school.id,
+        "school_id": str(test_school.wriveted_identifier),
     }
 
     failed_update_response = client.patch(
@@ -53,3 +56,34 @@ def test_update_user_type(
 
     session.delete(user)
     session.commit()
+
+
+def test_update_student_to_public_reader(
+    session,
+    client,
+    backend_service_account_headers,
+    test_school,
+    test_class_group,
+    test_student_user_account,
+):
+    response = client.get(
+        f"v1/user/{test_student_user_account.id}",
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["type"] == "student"
+
+    # convert to public
+    user_type_update = {
+        "type": "public",
+    }
+
+    successful_update_response = client.patch(
+        f"v1/user/{test_student_user_account.id}",
+        headers=backend_service_account_headers,
+        json=user_type_update,
+    )
+
+    assert successful_update_response.status_code == status.HTTP_200_OK
+    json = successful_update_response.json()
+    assert json["type"] == "public"

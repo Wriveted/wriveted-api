@@ -8,7 +8,7 @@ from app.models import PublicReader, SchoolAdmin, Student, WrivetedAdmin
 from app.models.reader import Reader
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
-from app.schemas.users.user_update import UserUpdateIn
+from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.tests.util.random_strings import random_lower_string
 
 
@@ -208,3 +208,62 @@ def test_user_info_dict_merging(session):
     assert updated_reader_with_merge.huey_attributes["last_visited"]
 
     session.rollback()
+
+
+def test_public_reader_to_student_update(
+    session, test_user_account, test_school, test_class_group
+):
+    assert isinstance(
+        test_user_account, PublicReader
+    ), "CRUD: User account without specified type not constructing a PublicReader object"
+
+    # Now change the user type to student
+    student = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="public",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username="thisisannoyingtoprovide",
+        ),
+        db_obj=test_user_account,
+    )
+
+    assert isinstance(
+        student, Student
+    ), "User account hasn't been changed to Student type"
+
+
+def test_student_to_public_reader_update(
+    session, test_user_account, test_school, test_class_group
+):
+    # Update the user type to student
+    student = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="public",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username="thisisannoyingtoprovide",
+        ),
+        db_obj=test_user_account,
+    )
+
+    assert isinstance(
+        student, Student
+    ), "User account hasn't been changed to Student type"
+
+    # Update the user type back to public reader
+    user = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="student",
+            type="public",
+        ),
+        db_obj=student,
+    )
+    assert isinstance(
+        user, PublicReader
+    ), "User account hasn't been changed to Public Reader type"

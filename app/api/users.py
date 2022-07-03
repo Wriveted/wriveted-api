@@ -82,6 +82,11 @@ async def update_user(
 ):
     try:
         updated_items = user_update.dict(exclude_unset=True)
+        if "school_id" in updated_items:
+            school = crud.school.get_by_wriveted_id_or_404(
+                db=session, wriveted_id=updated_items["school_id"]
+            )
+            updated_items["school_id"] = school.id
         update_data = InternalUserUpdateIn(current_type=user.type, **updated_items)
     except ValidationError as e:
         raise HTTPException(

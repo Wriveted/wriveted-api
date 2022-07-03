@@ -83,6 +83,25 @@ def test_user_account(session):
 
 
 @pytest.fixture()
+def test_student_user_account(session, test_school, test_class_group):
+    student = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="integration test account (student)",
+            email=f"{random_lower_string(6)}@test.com",
+            first_name="Test",
+            last_name_initial="A",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username=random_lower_string(6),
+        ),
+    )
+    yield student
+    session.delete(student)
+
+
+@pytest.fixture()
 def test_schooladmin_account(test_school, session):
     schooladmin = crud.user.create(
         db=session,

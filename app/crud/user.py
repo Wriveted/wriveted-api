@@ -96,9 +96,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
-
+        logger.debug("Updating a user", data=update_data)
         # if updating user type
         if update_data.get("type") and update_data["type"] != db_obj.type:
+            logger.debug("Changing user type", new_type=update_data["type"])
             # hold onto the current user data
             original_data = vars(db_obj)
 
@@ -106,6 +107,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             # (need to flush, or sqlalchemy will notice the identical
             # id's of the deleted and new user objects, and compose a
             # failing UPDATE instead of a fresh INSERT)
+            logger.debug("Deleting old typed user object from database.")
             db.delete(db_obj)
             db.flush()
 
@@ -127,7 +129,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 for k in combined_data
                 if k in dir(user_type_class_map[obj_in.type])
             }
-
+            logger.debug("Creating new user type", new_user_data=trimmed_data)
             NewUserType = user_type_class_map[obj_in.type]
             db_obj = NewUserType(**trimmed_data)
 
