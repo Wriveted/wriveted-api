@@ -45,7 +45,10 @@ async def create(
         school = crud.school.get_by_wriveted_id_or_404(
             db=session, wriveted_id=data.school_id
         )
-        if not has_permission(principals, "read", school):
+        if (
+            not has_permission(principals, "read", school)
+            and "role:kiosk" not in principals
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"The current account is not allowed to create an event associated with that school",

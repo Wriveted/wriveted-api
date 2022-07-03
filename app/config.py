@@ -75,6 +75,7 @@ class Settings(BaseSettings):
         "https://bookbot.hellohuey.com",
         "https://app.hueythebookbot.com",
         "https://api.hueythebookbot.com",
+        "https://www.hueythebookbot.com",
         # Firebase URLs
         "https://wriveted-library.web.app",
         "https://wriveted-api.web.app",
