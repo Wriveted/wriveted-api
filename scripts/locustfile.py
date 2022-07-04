@@ -85,7 +85,7 @@ class RootUser(HttpUser):
             },
         )
 
-        self.student_api_token = student_login_response.text
+        self.student_api_token = student_login_response.json()["access_token"]
 
     @task
     def get_recomendation(self):
@@ -119,6 +119,7 @@ class RootUser(HttpUser):
         users_list_response = self.client.get(
             "/v1/users",
             headers={"Authorization": f"Bearer {self.access_token}"},
+            params={"limit": 5},
         )
         users_list_response.raise_for_status()
         user_briefs = users_list_response.json()["data"]
