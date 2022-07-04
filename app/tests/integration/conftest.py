@@ -15,10 +15,12 @@ from app.models.class_group import ClassGroup
 from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
+from app.schemas.edition import EditionCreateIn
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
+from app.services.editions import generate_random_valid_isbn13
 from app.services.security import create_access_token
 from app.tests.util.random_strings import random_lower_string
 
@@ -78,6 +80,25 @@ def test_user_account(session):
     )
     yield user
     session.delete(user)
+
+
+@pytest.fixture()
+def test_student_user_account(session, test_school, test_class_group):
+    student = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="integration test account (student)",
+            email=f"{random_lower_string(6)}@test.com",
+            first_name="Test",
+            last_name_initial="A",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username=random_lower_string(6),
+        ),
+    )
+    yield student
+    session.delete(student)
 
 
 @pytest.fixture()
@@ -201,17 +222,28 @@ def works_list(client, session, author_list):
         work_authors = [
             AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
         ]
-        works.append(
-            crud.work.get_or_create(
-                db=session,
-                work_data=WorkCreateIn(
-                    type=WorkType.BOOK,
-                    title=random_lower_string(),
-                    authors=work_authors,
-                ),
-                authors=[author],
-            )
+        work = crud.work.get_or_create(
+            db=session,
+            work_data=WorkCreateIn(
+                type=WorkType.BOOK,
+                title=random_lower_string(),
+                authors=work_authors,
+            ),
+            authors=[author],
         )
+        crud.edition.create(
+            db=session,
+            edition_data=EditionCreateIn(
+                isbn=generate_random_valid_isbn13(),
+                title=random_lower_string(length=random.randint(2, 12)),
+                cover_url="https://cool.site",
+                info={},
+            ),
+            work=work,
+            illustrators=[],
+        )
+
+        works.append(work)
 
     yield works
 

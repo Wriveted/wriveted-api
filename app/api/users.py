@@ -1,8 +1,11 @@
 import datetime
+import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
+from starlette import status
 from structlog import get_logger
 
 from app import crud
@@ -11,26 +14,29 @@ from app.api.dependencies.security import (
     create_user_access_token,
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
-    get_current_user,
 )
+from app.api.dependencies.user import get_user_from_id
 from app.db.session import get_session
 from app.models.user import User, UserAccountType
+from app.permissions import Permission
+from app.schemas.auth import SpecificUserDetail
 from app.schemas.pagination import Pagination
-from app.schemas.users.user import UserDetail, UserPatchOptions
 from app.schemas.users.user_list import UserListsResponse
-from app.schemas.users.user_update import UserUpdateIn
+from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 
 logger = get_logger()
 
 router = APIRouter(
     tags=["Users"],
-    dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
+    dependencies=[Depends(get_current_active_user_or_service_account)],
 )
 
-public_router = APIRouter(tags=["Public", "Users"])
 
-
-@router.get("/users", response_model=UserListsResponse)
+@router.get(
+    "/users",
+    response_model=UserListsResponse,
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
 async def get_users(
     q: Optional[str] = Query(None, description="Filter users by name"),
     is_active: Optional[bool] = Query(
@@ -61,20 +67,38 @@ async def get_users(
     )
 
 
-@router.get("/user/{uuid}", response_model=UserDetail)
-async def get_user(uuid: str, session: Session = Depends(get_session)):
-    logger.info("Retrieving details on one user")
-    return crud.user.get(db=session, id=uuid)
+@router.get("/user/{user_id}", response_model=SpecificUserDetail)
+async def get_user(user: User = Permission("details", get_user_from_id)):
+    logger.info("Retrieving details on one user", user=user)
+    return user
 
 
-@router.put("/user/{uuid}", response_model=UserDetail)
+@router.patch("/user/{user_id}", response_model=SpecificUserDetail)
 async def update_user(
-    uuid: str, user_update: UserUpdateIn, session: Session = Depends(get_session)
+    user_update: UserUpdateIn,
+    merge_dicts: bool = False,
+    session: Session = Depends(get_session),
+    user: User = Permission("update", get_user_from_id),
 ):
-    logger.info("Updating a user")
-    user = crud.user.get(db=session, id=uuid)
+    try:
+        updated_items = user_update.dict(exclude_unset=True)
+        if "school_id" in updated_items:
+            school = crud.school.get_by_wriveted_id_or_404(
+                db=session, wriveted_id=updated_items["school_id"]
+            )
+            updated_items["school_id"] = school.id
+        update_data = InternalUserUpdateIn(current_type=user.type, **updated_items)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=json.loads(e.json()),
+        )
 
-    updated_user = crud.user.update(session, db_obj=user, obj_in=user_update)
+    logger.info("Updating a user")
+
+    updated_user = crud.user.update(
+        session, db_obj=user, obj_in=update_data, merge_dicts=merge_dicts
+    )
     return updated_user
 
 
@@ -84,6 +108,7 @@ async def update_user(
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
     },
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
 def magic_link_endpoint(
     uuid: str,
@@ -103,34 +128,11 @@ def magic_link_endpoint(
     }
 
 
-@public_router.patch("/user")
-async def patch_update_user(
-    patch: UserPatchOptions,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    """
-    Optional patch updates to less-essential parts of a User object.
-    Self-serve api that extracts the user's info from the bearer token
-    (Cannot patch another user)
-    """
-    output = {}
-
-    if patch.newsletter is not None:
-        output["old_newsletter_preference"] = user.newsletter
-        user.newsletter = patch.newsletter
-        output["new_newsletter_preference"] = user.newsletter
-
-    session.commit()
-
-    return output
-
-
 @router.delete("/user/{uuid}")
 async def deactivate_user(
     uuid: str,
     purge: bool = False,
-    account=Depends(get_current_active_user_or_service_account),
+    account=Depends(get_current_active_superuser_or_backend_service_account),
     session: Session = Depends(get_session),
 ):
     """

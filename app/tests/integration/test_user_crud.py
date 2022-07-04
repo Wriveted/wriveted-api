@@ -1,3 +1,6 @@
+from datetime import date
+
+import pytest
 from sqlalchemy import select
 
 from app import crud
@@ -5,7 +8,7 @@ from app.models import PublicReader, SchoolAdmin, Student, WrivetedAdmin
 from app.models.reader import Reader
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
-from app.schemas.users.user_update import UserUpdateIn
+from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.tests.util.random_strings import random_lower_string
 
 
@@ -159,3 +162,108 @@ def test_access_subclass_through_superclass_query(
     assert reader == student
 
     session.rollback()
+
+
+def test_user_info_dict_merging(session):
+    original_huey_attributes = {"last_visited": str(date.today())}
+    updated_huey_attributes = {"reading_ability": ["SPOT"]}
+
+    email = "testreaderupdatemerge3@test.com"
+    if user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=user.id)
+
+    reader = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="Test Reader to update reading preferences",
+            email=email,
+            type=UserAccountType.PUBLIC,
+            first_name="Test",
+            last_name_initial="T",
+            huey_attributes=original_huey_attributes,
+        ),
+        commit=False,
+    )
+    session.add(reader)
+    session.flush()
+    assert reader.id
+
+    updated_reader_without_merge = crud.user.update(
+        db=session,
+        obj_in=UserUpdateIn(huey_attributes=updated_huey_attributes),
+        db_obj=reader,
+        merge_dicts=False,
+    )
+    assert updated_reader_without_merge.huey_attributes["reading_ability"]
+    with pytest.raises(KeyError):
+        updated_reader_without_merge.huey_attributes["last_visited"]
+
+    updated_reader_with_merge = crud.user.update(
+        db=session,
+        obj_in=UserUpdateIn(huey_attributes=original_huey_attributes),
+        db_obj=reader,
+        merge_dicts=True,
+    )
+    assert updated_reader_with_merge.huey_attributes["reading_ability"]
+    assert updated_reader_with_merge.huey_attributes["last_visited"]
+
+    session.rollback()
+
+
+def test_public_reader_to_student_update(
+    session, test_user_account, test_school, test_class_group
+):
+    assert isinstance(
+        test_user_account, PublicReader
+    ), "CRUD: User account without specified type not constructing a PublicReader object"
+
+    # Now change the user type to student
+    student = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="public",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username="thisisannoyingtoprovide",
+        ),
+        db_obj=test_user_account,
+    )
+
+    assert isinstance(
+        student, Student
+    ), "User account hasn't been changed to Student type"
+
+
+def test_student_to_public_reader_update(
+    session, test_user_account, test_school, test_class_group
+):
+    # Update the user type to student
+    student = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="public",
+            type="student",
+            school_id=test_school.id,
+            class_group_id=test_class_group.id,
+            username="thisisannoyingtoprovide",
+        ),
+        db_obj=test_user_account,
+    )
+
+    assert isinstance(
+        student, Student
+    ), "User account hasn't been changed to Student type"
+
+    # Update the user type back to public reader
+    user = crud.user.update(
+        db=session,
+        obj_in=InternalUserUpdateIn(
+            current_type="student",
+            type="public",
+        ),
+        db_obj=student,
+    )
+    assert isinstance(
+        user, PublicReader
+    ), "User account hasn't been changed to Public Reader type"

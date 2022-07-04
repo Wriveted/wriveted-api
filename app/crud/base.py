@@ -130,15 +130,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         *,
         db_obj: ModelType,
         obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        merge_dicts: bool = False,
     ) -> ModelType:
-
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
         for field in update_data:
             if hasattr(db_obj, field):
-                setattr(db_obj, field, update_data[field])
+                if merge_dicts and isinstance(getattr(db_obj, field), dict):
+                    self._deep_merge_dicts(getattr(db_obj, field), update_data[field])
+                else:
+                    setattr(db_obj, field, update_data[field])
+
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -156,3 +160,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             synchronize_session="fetch"
         )
         db.commit()
+
+    def _deep_merge_dicts(self, original, incoming):
+        """
+        Thanks Vikas https://stackoverflow.com/a/50773244
+        Deep merge two dictionaries. Modifies original.
+
+        """
+        for key in incoming:
+            if key in original:
+                if isinstance(original[key], dict) and isinstance(incoming[key], dict):
+                    self._deep_merge_dicts(original[key], incoming[key])
+                else:
+                    original[key] = incoming[key]
+            else:
+                original[key] = incoming[key]
