@@ -22,7 +22,7 @@ root_access_token = os.environ.get("WRIVETED_API_TOKEN")
 class RootUser(HttpUser):
 
     # make the simulated users wait between this many seconds after each task
-    wait_time = between(0.1, 2)
+    wait_time = between(1, 5)
 
     def on_start(self):
         self.access_token = root_access_token
@@ -65,7 +65,7 @@ class RootUser(HttpUser):
             new_student_response = self.client.post(
                 f"/v1/auth/register-student",
                 json={
-                    "first_name": "Locust",
+                    "first_name": "Loki",
                     "last_name_initial": "T",
                     "school_id": self.school_wriveted_id,
                     "class_joining_code": self.class_info["join_code"],
@@ -138,7 +138,7 @@ class RootUser(HttpUser):
         list_response = self.client.get(
             "/v1/lists",
             headers={"Authorization": f"Bearer {self.access_token}"},
-            params={"list_type": "School"},
+            params={"list_type": "School", "limit": 5},
         )
         list_response.raise_for_status()
         list_briefs = list_response.json()["data"]
