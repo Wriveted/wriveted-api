@@ -143,6 +143,7 @@ class ClassCodeUserLogIn(BaseModel):
 
 @router.post(
     "/auth/class-code",
+    response_model=Token,
     responses={
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
