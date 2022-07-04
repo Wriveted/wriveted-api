@@ -137,6 +137,7 @@ class RootUser(HttpUser):
         list_response = self.client.get(
             "/v1/lists",
             headers={"Authorization": f"Bearer {self.access_token}"},
+            params={"list_type": "School"},
         )
         list_response.raise_for_status()
         list_briefs = list_response.json()["data"]

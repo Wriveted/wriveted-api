@@ -69,7 +69,7 @@ async def get_users(
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
-    logger.info("Retrieving details on one user")
+    logger.info("Retrieving details on one user", user=user)
     return user
 
 
