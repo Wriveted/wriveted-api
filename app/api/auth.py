@@ -162,14 +162,17 @@ def student_user_auth(
 
     Note this API doesn't create new users.
     """
-    logger.debug("Request student login")
+    logger.debug("Processing student login request")
 
     # Get the class by joining code or 401
     class_group = crud.class_group.get_by_class_code(session, data.class_joining_code)
     if class_group is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    logger.debug("Get the associated school")
+    logger.debug(
+        "Get the school associated with the given class group",
+        school=class_group.school,
+    )
     school = class_group.school
 
     logger.debug("Get the user by username")
