@@ -1,12 +1,14 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
+import httpx
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import get_current_active_superuser_or_backend_service_account, get_current_active_user_or_service_account
+from app.config import get_settings
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas.edition import (
@@ -25,6 +27,8 @@ logger = get_logger()
 router = APIRouter(
     tags=["Books"], dependencies=[Security(get_current_active_user_or_service_account)]
 )
+
+settings = get_settings()
 
 
 @router.get("/editions", response_model=List[EditionBrief])
@@ -84,6 +88,34 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
         raise HTTPException(422, "Invalid isbn")
 
     return crud.edition.get_or_404(db=session, id=isbn)
+
+
+@router.get("/edition/{isbn}/nielsen", response_model=str, dependencies=[Depends(get_current_active_superuser_or_backend_service_account)])
+async def query_nielsen(isbn: str):
+    try:
+        isbn = get_definitive_isbn(isbn)
+    except:
+        raise HTTPException(422, "Invalid isbn")
+
+    response: httpx.Response = httpx.get(
+            "https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest",
+            params={
+                "clientId": settings.NIELSEN_CLIENT_ID,
+                "password": settings.NIELSEN_PASSWORD,
+                "from": 0,
+                "to": 1,
+                "indexType": 0,  # 0: "Main Book Database"
+                "format": 7,     # 7: "XML"
+                "resultView": 2, # 2: "Long" Result View
+                "field0": 1,     # 1: Providing an ISBN
+                "value0": isbn,
+            },
+            timeout=30
+        )
+    
+    content = response.content
+    decoded = content.decode("UTF-8")
+    return decoded
 
 
 @router.post("/edition", response_model=EditionDetail)
