@@ -96,6 +96,8 @@ class Settings(BaseSettings):
         "https://typebot.io",
         "http://13.38.101.232",
         "http://15.188.52.37",
+        # Regex not catching this apparently
+        "https://wriveted-api--pr17-feature-reading-abil-d85yc6tp.web.app",
     ]
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
