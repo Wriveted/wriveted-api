@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import UUID4, BaseModel, EmailStr, root_validator, validator
 
 from app.models.user import UserAccountType
+from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user import UserInfo
 
 
@@ -52,19 +53,17 @@ class UserCreateIn(BaseModel):
     email: EmailStr | None
     info: UserInfo | None
     type: UserAccountType | None = UserAccountType.PUBLIC
+    newsletter: bool | None
 
     # readers
     username: str | None
     first_name: str | None
     last_name_initial: str | None
+    huey_attributes: HueyAttributes | None
 
     # students / educators
     school_id: int | None
     class_group_id: UUID4 | None
-
-    student_info: dict | None
-    school_admin_info: dict | None
-    wriveted_admin_info: dict | None
 
     @validator("first_name", always=True)
     def extract_first_name(cls, v, values, **kwargs):

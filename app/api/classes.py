@@ -136,6 +136,8 @@ async def add_class(
 ):
     logger.info("Creating a class", school=school)
 
+    if class_data.school_id is None:
+        class_data.school_id = str(school.wriveted_identifier)
     try:
         new_class_orm = crud.class_group.create(db=session, obj_in=class_data)
     except IntegrityError as e:

@@ -1,11 +1,11 @@
 import enum
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import UUID4, BaseModel, Field
 
 from app.models.booklist import ListType
+from app.schemas.edition import EditionDetail
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolBrief
 from app.schemas.users.user_identity import UserIdentity
@@ -31,21 +31,33 @@ class BookListItemDetail(BookListItemBase):
         orm_mode = True
 
 
+class BookListItemEnriched(BaseModel):
+    order_id: int
+    edition: EditionDetail
+    note: Optional[str] = Field(None, description="Note from the booklist creator")
+
+
 class BookListItemCreateIn(BookListItemBase):
     order_id: Optional[int]
 
 
 class BookListBase(BaseModel):
+    id: UUID4
     name: str
     type: ListType
     book_count: int | None
+
+    class Config:
+        orm_mode = True
 
 
 class BookListOptionalInfo(BaseModel):
     description: Optional[str]
 
 
-class BookListCreateIn(BookListBase):
+class BookListCreateIn(BaseModel):
+    name: str
+    type: ListType
 
     school_id: Optional[str]
     user_id: Optional[str]
@@ -67,7 +79,7 @@ class BookListItemUpdateIn(BaseModel):
     info: Optional[BookListItemInfo] = None
 
 
-class BookListUpdateIn(BookListBase):
+class BookListUpdateIn(BaseModel):
     name: Optional[str]
     type: Optional[ListType]
     info: Optional[BookListOptionalInfo] = None
@@ -75,14 +87,9 @@ class BookListUpdateIn(BookListBase):
 
 
 class BookListBrief(BookListBase):
-    id: UUID
     created_at: datetime
-    book_count: int
     user: Optional[UserIdentity]
     school: Optional[SchoolBrief]
-
-    class Config:
-        orm_mode = True
 
 
 class BookListsResponse(PaginatedResponse):
@@ -92,3 +99,7 @@ class BookListsResponse(PaginatedResponse):
 class BookListDetail(PaginatedResponse, BookListBrief):
     info: Optional[BookListOptionalInfo]
     data: list[BookListItemDetail]
+
+
+class BookListDetailEnriched(BookListDetail):
+    data: list[BookListItemEnriched]

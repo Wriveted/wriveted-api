@@ -1,10 +1,11 @@
 from typing import Optional
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
+from app.models import School, User
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
 from app.schemas.booklist import (
@@ -42,11 +43,22 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         self,
         db: Session,
         list_type: Optional[str] = None,
+        school: Optional[School] = None,
+        user: Optional[User] = None,
+        query_string: Optional[str] = None,
     ):
         booklists_query = self.get_all_query(db=db)
 
         if list_type is not None:
             booklists_query = booklists_query.where(BookList.type == list_type)
+        if school is not None:
+            booklists_query = booklists_query.where(BookList.school == school)
+        if user is not None:
+            booklists_query = booklists_query.where(BookList.user == user)
+        if query_string is not None:
+            booklists_query = booklists_query.where(
+                func.lower(BookList.name).contains(query_string.lower())
+            )
 
         return booklists_query
 

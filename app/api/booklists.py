@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,9 +24,12 @@ from app.schemas.booklist import (
     BookListBrief,
     BookListCreateIn,
     BookListDetail,
+    BookListDetailEnriched,
+    BookListItemEnriched,
     BookListsResponse,
     BookListUpdateIn,
 )
+from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
 
 logger = get_logger()
@@ -199,11 +202,17 @@ async def get_booklists(
 
 @router.get(
     "/list/{booklist_identifier}",
-    response_model=BookListDetail,
+    response_model=(BookListDetail | BookListDetailEnriched),
 )
 async def get_booklist_detail(
+    enriched: bool = Query(
+        default=False,
+        title="Enrich editions in response",
+        description="If enabled, will include fully-enriched editions for each booklist item, i.e. including cover image, summary, and other metadata that may be desired for displaying each book. Otherwise, includes only ISBN.",
+    ),
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
 ):
     logger.debug("Getting booklist", booklist=booklist)
     # item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
@@ -213,10 +222,26 @@ async def get_booklist_detail(
         pagination.skip : pagination.limit + pagination.skip
     ]
 
+    if enriched:
+        booklist_items = [
+            BookListItemEnriched(
+                order_id=i.order_id,
+                edition=EditionDetail.from_orm(
+                    crud.edition.get(session, i.info["edition"])
+                ),
+            )
+            for i in booklist_items
+            if i.info["edition"]
+        ]
+
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
     booklist.data = booklist_items
     booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
-    return BookListDetail.from_orm(booklist)
+    return (
+        BookListDetail.from_orm(booklist)
+        if not enriched
+        else BookListDetailEnriched.from_orm(booklist)
+    )
 
 
 @router.patch(
