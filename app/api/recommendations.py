@@ -51,7 +51,7 @@ async def get_recommendations(
     else:
         school = None
 
-    row_results, query_parameters = await get_recommendations_with_fallback(
+    recommended_books, query_parameters = await get_recommendations_with_fallback(
         session,
         account,
         school,
@@ -60,20 +60,9 @@ async def get_recommendations(
         limit=limit,
     )
     return HueyOutput(
-        count=len(row_results),
+        count=len(recommended_books),
         query=query_parameters,
-        books=[
-            HueyBook(
-                work_id=work.id,
-                isbn=edition.isbn,
-                cover_url=edition.cover_url,
-                display_title=edition.get_display_title(),
-                authors_string=work.get_authors_string(),
-                summary=labelset.huey_summary,
-                labels=LabelSetDetail.from_orm(labelset),
-            )
-            for (work, edition, labelset) in row_results
-        ],
+        books=recommended_books,
     )
 
 
@@ -84,7 +73,12 @@ async def get_recommendations_with_fallback(
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit=5,
-):
+) -> Tuple[list[HueyBook], Any]:
+    """
+    Returns a tuple containing:
+    - a list of HueyBook instances,
+    - final set of query parameters used
+    """
     school_id = school.id if school is not None else None
     query_parameters = {
         "school_id": school_id,
@@ -155,19 +149,34 @@ async def get_recommendations_with_fallback(
         )
 
     # Note the row_results are an iterable of (work, edition, labelset) orm instances
+    # Now we convert that to a list of HueyBook instances:
+    recommended_books = [
+        HueyBook(
+            work_id=work.id,
+            isbn=edition.isbn,
+            cover_url=edition.cover_url,
+            display_title=edition.get_display_title(),
+            authors_string=work.get_authors_string(),
+            summary=labelset.huey_summary,
+            labels=LabelSetDetail.from_orm(labelset),
+        )
+        for (work, edition, labelset) in row_results
+    ]
+    if len(recommended_books) > 1:
 
-    if len(row_results) > 1:
-
-        # Bit annoying to dump and load json here but we want to fully serialize the labelset which BaseModel.dict() doesn't do
+        # Bit annoying to dump and load json here but we want to fully serialize the JSON ready for
+        # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [
-            json.loads(LabelSetDetail.from_orm(b[2]).json()) for b in row_results[:10]
+            {
+                json.loads(b.json())
+            } for b in recommended_books[:10]
         ]
 
         background_tasks.add_task(
             crud.event.create,
             session,
             title=f"Made a recommendation",
-            description=f"Made a recommendation of {len(row_results)} books",
+            description=f"Made a recommendation of {len(recommended_books)} books",
             info={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
@@ -190,7 +199,7 @@ async def get_recommendations_with_fallback(
                 school=school,
                 account=account,
             )
-    return row_results, query_parameters
+    return recommended_books, query_parameters
 
 
 def get_recommended_editions_and_labelsets(
