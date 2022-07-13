@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, List
 
 from sqlalchemy import func, select
@@ -107,7 +108,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         if illustrators:
             edition.illustrators = illustrators
 
-        edition.hydrated = edition_data.hydrated
+        edition.hydrated_at = datetime.utcnow() if edition_data.hydrated else None
 
         if commit:
             db.commit()
@@ -217,7 +218,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         edition: Edition = self.get(session, clean_isbn)
         hydrate = False
         if edition:
-            if edition.hydrated:
+            if edition.hydrated_at:
                 logger.info("Edition already exists. Skipping...")
                 return
             else:

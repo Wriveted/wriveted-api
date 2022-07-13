@@ -136,7 +136,7 @@ async def get_editions(
         .where(
             and_(
                 (CollectionItem.school_id == priority_id),
-                (Edition.hydrated == False),
+                (Edition.hydrated_at == None),
             )
         )
         .order_by(func.random())
@@ -147,7 +147,7 @@ async def get_editions(
     allschool_query = (
         session.query(Edition, Edition.num_schools)
         .order_by(Edition.num_schools.desc())
-        .where(Edition.hydrated == False)
+        .where(Edition.hydrated_at == None)
         .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
     )
 
@@ -161,7 +161,7 @@ async def get_editions(
     # q = (
     #     session.query(Edition, Edition.num_schools)
     #     .order_by(Edition.num_schools.desc())
-    #     .where(Edition.hydrated == False)
+    #     .where(Edition.hydrated_at == None)
     #     .limit(pagination.limit if pagination.limit else 5000)
     # )
 

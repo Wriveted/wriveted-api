@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, func, select
+import datetime
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, func, select
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -51,7 +52,7 @@ class Edition(Base):
     # Proxy the authors from the related work
     authors = association_proxy("work", "authors")
 
-    hydrated = Column(Boolean(), default=False)
+    hydrated_at = Column(DateTime, nullable=True)
 
     illustrators = relationship(
         "Illustrator",
