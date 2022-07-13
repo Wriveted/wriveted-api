@@ -1,6 +1,9 @@
+import math
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
+import httpx
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -9,6 +12,7 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
+from app.models.collection_item import CollectionItem
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,
@@ -111,11 +115,54 @@ async def get_editions(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    q = (
+
+    # ----manual override to prioritise certain schools 07/07/22----
+
+    priority_ids = [
+        5082,  # marist
+        10274,  # willyama
+        4534,  # kurunjang
+        4001,  # international grammar
+        727,  # beauty point
+        10750,  # st gabriels
+        132,  # all hallows
+        9495,  # scots pgc
+        316,  # ascham
+    ]
+
+    priority_queries = [
+        session.query(Edition)
+        .join(CollectionItem)
+        .where(
+            and_(
+                (CollectionItem.school_id == priority_id),
+                (Edition.hydrated == False),
+            )
+        )
+        .order_by(func.random())
+        .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
+        for priority_id in priority_ids
+    ]
+
+    allschool_query = (
         session.query(Edition, Edition.num_schools)
         .order_by(Edition.num_schools.desc())
         .where(Edition.hydrated == False)
-        .limit(pagination.limit if pagination.limit else 5000)
+        .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
     )
 
-    return session.execute(q).scalars().all()
+    # query = session.query(allschool_subquery, *priority_subqueries)
+
+    results = [
+        session.execute(q).scalars().all() for q in priority_queries + [allschool_query]
+    ]
+    return [edition for result in results for edition in result]  # 🥴
+
+    # q = (
+    #     session.query(Edition, Edition.num_schools)
+    #     .order_by(Edition.num_schools.desc())
+    #     .where(Edition.hydrated == False)
+    #     .limit(pagination.limit if pagination.limit else 5000)
+    # )
+
+    # return session.execute(q).scalars().all()

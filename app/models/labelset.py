@@ -33,6 +33,11 @@ class RecommendStatus(str, enum.Enum):
 class LabelOrigin(str, enum.Enum):
     HUMAN = "HUMAN"  # Human-provided
     PREDICTED_NIELSEN = "PREDICTED_NIELSEN"  # Predicted based on metadata from Nielsen
+    NIELSEN_CBMC = "NIELSEN_CBMC"
+    NIELSEN_BIC = "NIELSEN_BIC"
+    NIELSEN_THEMA = "NIELSEN_THEMA"
+    NIELSEN_IA = "NIELSEN_IA"
+    NIELSEN_RA = "NIELSEN_RA"
     CLUSTER_RELEVANCE = "CLUSTER_RELEVANCE"  # Relevance AI cluster
     CLUSTER_ZAINAB = "CLUSTER_ZAINAB"  # Original K-Means clustering by Zainab
     OTHER = "OTHER"
