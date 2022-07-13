@@ -1,5 +1,4 @@
-import datetime
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, func, select
+from sqlalchemy import JSON, Boolean, Column, Computed, DateTime, ForeignKey, Integer, String, func, select
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -53,6 +52,11 @@ class Edition(Base):
     authors = association_proxy("work", "authors")
 
     hydrated_at = Column(DateTime, nullable=True)
+    hydrated = Column(
+        Boolean,
+        Computed("hydrated_at is not null"),
+        index=True,
+    )
 
     illustrators = relationship(
         "Illustrator",
