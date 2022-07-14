@@ -65,6 +65,15 @@ class UserCreateIn(BaseModel):
     school_id: int | None
     class_group_id: UUID4 | None
 
+    @validator("name", always=True, pre=True)
+    def populate_name(cls, v, values, **kwargs):
+        if(
+            v is None
+            and "first_name" in values
+            and "last_name_initial" in values
+        ):
+            return f"{values['first_name']} {values['last_name']}"
+
     @validator("first_name", always=True)
     def extract_first_name(cls, v, values, **kwargs):
         if (
