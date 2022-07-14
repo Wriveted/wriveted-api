@@ -45,7 +45,7 @@ class LabelSetDetail(LabelSetBrief):
     info: Optional[dict]
 
     recommend_status: Optional[RecommendStatus]
-    recommend_status_origin: Optional[RecommendStatus]
+    recommend_status_origin: Optional[LabelOrigin]
     checked: Optional[bool]
 
     created_at: datetime
