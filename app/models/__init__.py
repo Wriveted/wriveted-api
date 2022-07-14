@@ -4,7 +4,6 @@ from .booklist_work_association import BookListItem
 from .class_group import ClassGroup
 from .collection_item import CollectionItem
 from .country import Country
-from .db_job import DbJob
 from .edition import Edition
 from .educator import Educator
 from .event import Event, EventLevel
