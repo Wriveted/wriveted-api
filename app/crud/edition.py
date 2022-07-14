@@ -68,7 +68,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             info=edition_data.info.dict(),
             work=work,
             illustrators=illustrators,
-            hydrated=edition_data.hydrated,
+            hydrated_at=datetime.utcnow() if edition_data.hydrated else None,
         )
         db.add(edition)
         if commit:
@@ -218,7 +218,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         edition: Edition = self.get(session, clean_isbn)
         hydrate = False
         if edition:
-            if edition.hydrated_at:
+            if edition.hydrated:
                 logger.info("Edition already exists. Skipping...")
                 return
             else:
