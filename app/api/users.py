@@ -38,7 +38,7 @@ router = APIRouter(
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
 async def get_users(
-    q: Optional[str] = Query(None, description="Filter users by name"),
+    q: Optional[str] = Query(None, description="Filter users by name or email"),
     is_active: Optional[bool] = Query(
         None, description="Return active or inactive users. Default is all."
     ),

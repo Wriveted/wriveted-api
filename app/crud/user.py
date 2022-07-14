@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -188,7 +188,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             user_query = user_query.where(
-                func.lower(User.name).contains(query_string.lower())
+                or_(
+                    func.lower(User.name).contains(query_string.lower()),
+                    func.lower(User.email).contains(query_string.lower()),
+                )
             )
         if type is not None:
             user_query = user_query.where(User.type == type)
