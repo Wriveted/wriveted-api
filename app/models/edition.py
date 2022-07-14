@@ -1,4 +1,15 @@
-from sqlalchemy import JSON, Boolean, Column, Computed, DateTime, ForeignKey, Integer, String, func, select
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    Computed,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    func,
+    select,
+)
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
