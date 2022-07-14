@@ -110,8 +110,6 @@ class School(Base):
 
     lms_type = Column(String(50), nullable=False, server_default="none")
 
-    db_jobs = relationship("DbJob", cascade="all, delete-orphan")
-
     # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
     # association proxy of "collectionitems" collection
     # to "editions" attribute

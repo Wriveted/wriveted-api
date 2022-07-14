@@ -17,6 +17,11 @@ ORIGIN_WEIGHTS = {
     "HUMAN": 4,
     "CLUSTER_RELEVANCE": 3,
     "CLUSTER_ZAINAB": 2,
+    "NIELSEN_CBMC": 1.5,
+    "NIELSEN_BIC": 1.4,
+    "NIELSEN_THEMA": 1.3,
+    "NIELSEN_IA": 1.2,
+    "NIELSEN_RA": 1.1,
     "PREDICTED_NIELSEN": 1,
     "OTHER": 0,
 }

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, List
 
 from sqlalchemy import func, select
@@ -67,7 +68,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             info=edition_data.info.dict(),
             work=work,
             illustrators=illustrators,
-            hydrated=edition_data.hydrated,
+            hydrated_at=datetime.utcnow() if edition_data.hydrated else None,
         )
         db.add(edition)
         if commit:
@@ -107,7 +108,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         if illustrators:
             edition.illustrators = illustrators
 
-        edition.hydrated = edition_data.hydrated
+        edition.hydrated_at = datetime.utcnow() if edition_data.hydrated else None
 
         if commit:
             db.commit()

@@ -31,7 +31,9 @@ class EditionInfo(BaseModel):
     thema_qualifiers: Optional[list[str]]
     keywords: Optional[str]  # comes as a delimited string, not a list
     prodct: Optional[str]
+    prodcc: Optional[str]
     cbmctext: Optional[str]
+    cbmccode: Optional[str]
     interest_age: Optional[str]
     reading_age: Optional[str]
 
