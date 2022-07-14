@@ -167,7 +167,7 @@ async def get_recommendations_with_fallback(
         # Bit annoying to dump and load json here but we want to fully serialize the JSON ready for
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [
-            json.loads(b.json())for b in recommended_books[:10]
+            json.loads(b.json()) for b in recommended_books[:10]
         ]
 
         background_tasks.add_task(

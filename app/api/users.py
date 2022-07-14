@@ -33,6 +33,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_active_user_or_service_account)],
 )
 
+
 @router.get(
     "/users",
     response_model=UserListsResponse,
@@ -68,11 +69,12 @@ async def get_users(
     )
 
 
-@router.post("/user", response_model=SpecificUserDetail, dependencies=[Security(get_current_active_superuser_or_backend_service_account)])
-async def create_user(
-    user_data: UserCreateIn,
-    session: Session = Depends(get_session)    
-):
+@router.post(
+    "/user",
+    response_model=SpecificUserDetail,
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
+async def create_user(user_data: UserCreateIn, session: Session = Depends(get_session)):
     """
     Admin endpoint for creating new users.
     """
@@ -92,9 +94,9 @@ async def update_user(
     merge_dicts: bool = False,
     session: Session = Depends(get_session),
     user: User = Permission("update", get_user_from_id),
-    principals = Depends(get_active_principals)
+    principals=Depends(get_active_principals),
 ):
-    if user_update.type == UserAccountType.WRIVETED and 'role:admin' not in principals:
+    if user_update.type == UserAccountType.WRIVETED and "role:admin" not in principals:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Insufficient privileges to create a user with that account type.",
