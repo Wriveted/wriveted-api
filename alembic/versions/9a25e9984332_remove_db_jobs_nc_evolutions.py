@@ -87,17 +87,44 @@ def downgrade():
     op.create_index("ix_db_jobs_school_id", "db_jobs", ["school_id"], unique=False)
 
     if "nc_evolutions" not in tables:
-        op.create_table('nc_evolutions',
-        sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
-        sa.Column('title', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-        sa.Column('titleDown', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
-        sa.Column('description', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
-        sa.Column('batch', sa.INTEGER(), autoincrement=False, nullable=True),
-        sa.Column('checksum', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
-        sa.Column('status', sa.INTEGER(), autoincrement=False, nullable=True),
-        sa.Column('created', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=True),
-        sa.Column('created_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=True),
-        sa.Column('updated_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=True),
-        sa.PrimaryKeyConstraint('id', name='nc_evolutions_pkey')
+        op.create_table(
+            "nc_evolutions",
+            sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
+            sa.Column(
+                "title", sa.VARCHAR(length=255), autoincrement=False, nullable=False
+            ),
+            sa.Column(
+                "titleDown", sa.VARCHAR(length=255), autoincrement=False, nullable=True
+            ),
+            sa.Column(
+                "description",
+                sa.VARCHAR(length=255),
+                autoincrement=False,
+                nullable=True,
+            ),
+            sa.Column("batch", sa.INTEGER(), autoincrement=False, nullable=True),
+            sa.Column(
+                "checksum", sa.VARCHAR(length=255), autoincrement=False, nullable=True
+            ),
+            sa.Column("status", sa.INTEGER(), autoincrement=False, nullable=True),
+            sa.Column(
+                "created",
+                postgresql.TIMESTAMP(timezone=True),
+                autoincrement=False,
+                nullable=True,
+            ),
+            sa.Column(
+                "created_at",
+                postgresql.TIMESTAMP(timezone=True),
+                autoincrement=False,
+                nullable=True,
+            ),
+            sa.Column(
+                "updated_at",
+                postgresql.TIMESTAMP(timezone=True),
+                autoincrement=False,
+                nullable=True,
+            ),
+            sa.PrimaryKeyConstraint("id", name="nc_evolutions_pkey"),
         )
     # ### end Alembic commands ###
