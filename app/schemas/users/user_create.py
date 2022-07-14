@@ -49,11 +49,11 @@ class UserCreateAuth(BaseModel):
 
 class UserCreateIn(BaseModel):
     # all users
-    name: str | None
-    email: EmailStr | None
+    name: str
+    email: EmailStr
     info: UserInfo | None
-    type: UserAccountType | None = UserAccountType.PUBLIC
-    newsletter: bool | None
+    type: UserAccountType = UserAccountType.PUBLIC
+    newsletter: bool = False
 
     # readers
     username: str | None

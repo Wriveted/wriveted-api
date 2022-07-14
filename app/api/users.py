@@ -12,6 +12,7 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import (
     create_user_access_token,
+    get_active_principals,
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
 )
@@ -21,6 +22,7 @@ from app.models.user import User, UserAccountType
 from app.permissions import Permission
 from app.schemas.auth import SpecificUserDetail
 from app.schemas.pagination import Pagination
+from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 
@@ -30,7 +32,6 @@ router = APIRouter(
     tags=["Users"],
     dependencies=[Depends(get_current_active_user_or_service_account)],
 )
-
 
 @router.get(
     "/users",
@@ -67,6 +68,18 @@ async def get_users(
     )
 
 
+@router.post("/user", response_model=SpecificUserDetail, dependencies=[Security(get_current_active_superuser_or_backend_service_account)])
+async def create_user(
+    user_data: UserCreateIn,
+    session: Session = Depends(get_session)    
+):
+    """
+    Admin endpoint for creating new users.
+    """
+    logger.info("Creating a user")
+    return crud.user.create(session, obj_in=user_data)
+
+
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user", user=user)
@@ -79,7 +92,14 @@ async def update_user(
     merge_dicts: bool = False,
     session: Session = Depends(get_session),
     user: User = Permission("update", get_user_from_id),
+    principals = Depends(get_active_principals)
 ):
+    if user_update.type == UserAccountType.WRIVETED and 'role:admin' not in principals:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges to create a user with that account type.",
+        )
+
     try:
         updated_items = user_update.dict(exclude_unset=True)
         if "school_id" in updated_items:

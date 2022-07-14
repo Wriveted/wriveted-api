@@ -61,12 +61,6 @@ class InternalUserUpdateIn(UserUpdateIn):
         current_type: UserAccountType = values.get("current_type")
 
         if new_type:
-            if (
-                new_type == UserAccountType.WRIVETED
-                and not current_type == UserAccountType.WRIVETED
-            ):
-                raise ValueError("Nice try. Cannot change to a Wriveted admin.")
-
             # if changing types, ensure the required fields of new_type are met
             # by the union of the current_type's fields and provided UserUpdateIn fields
             update_attributes = [k for k, v in dict(values).items() if v is not None]
