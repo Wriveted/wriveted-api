@@ -4,7 +4,7 @@ from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users.reader import ReaderBrief, ReaderDetail, ReaderIdentity
 from app.schemas.users.user import UsersSchool
 
-# from app.schemas.class_group import ClassGroupBrief
+from app.schemas.class_group import ClassGroupBrief
 
 
 class StudentIdentity(ReaderIdentity):
@@ -15,7 +15,7 @@ class StudentIdentity(ReaderIdentity):
 
 class StudentBrief(StudentIdentity, ReaderBrief):
     school: UsersSchool
-    # class_group: ClassGroupBrief | None
+    class_group: ClassGroupBrief | None
 
 
 class StudentDetail(ReaderDetail, StudentBrief):
