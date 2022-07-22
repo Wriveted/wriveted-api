@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, root_validator
+from pydantic import UUID4, BaseModel, EmailStr, root_validator
 
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
@@ -53,7 +53,7 @@ class UserUpdateIn(BaseModel):
 class InternalUserUpdateIn(UserUpdateIn):
 
     current_type: UserAccountType | None
-    school_id: int | None
+    school_id: UUID4 | int | None
 
     @root_validator
     def validate_user_type_change(cls, values):
@@ -61,12 +61,6 @@ class InternalUserUpdateIn(UserUpdateIn):
         current_type: UserAccountType = values.get("current_type")
 
         if new_type:
-            if (
-                new_type == UserAccountType.WRIVETED
-                and not current_type == UserAccountType.WRIVETED
-            ):
-                raise ValueError("Nice try. Cannot change to a Wriveted admin.")
-
             # if changing types, ensure the required fields of new_type are met
             # by the union of the current_type's fields and provided UserUpdateIn fields
             update_attributes = [k for k, v in dict(values).items() if v is not None]

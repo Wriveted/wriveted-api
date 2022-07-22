@@ -1,12 +1,11 @@
 from typing import Any, Dict, Optional, Tuple, Union
-
+from uuid import UUID
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
-
 from app.crud import CRUDBase
 from app.models import (
     Educator,
@@ -59,6 +58,27 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         """An uncommitted ORM object from the input data"""
         type = obj_in.type or UserAccountType.PUBLIC
 
+        # canonise the school id and validate school
+        provided_id = obj_in.school_id
+        if provided_id:
+            if (
+                isinstance(provided_id, UUID)
+                and not (
+                    school := session.scalar(
+                        select(School).where(School.wriveted_identifier == provided_id)
+                    )
+                )
+            ) or (
+                isinstance(provided_id, int)
+                and not (
+                    school := session.scalar(
+                        select(School).where(School.id == provided_id)
+                    )
+                )
+            ):
+                raise ValueError(f"School with the id {provided_id} does not exist")
+            obj_in.school_id = school.id
+
         match type:
             case UserAccountType.PUBLIC:
                 model = PublicReader
@@ -96,6 +116,26 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
+
+        # canonise the school id and validate school
+        provided_id = update_data.get("school_id")
+        if provided_id:
+            if (
+                isinstance(provided_id, UUID)
+                and not (
+                    school := db.scalar(
+                        select(School).where(School.wriveted_identifier == provided_id)
+                    )
+                )
+            ) or (
+                isinstance(provided_id, int)
+                and not (
+                    school := db.scalar(select(School).where(School.id == provided_id))
+                )
+            ):
+                raise ValueError(f"School with the id {provided_id} does not exist")
+            update_data["school_id"] = school.id
+
         logger.debug("Updating a user", data=update_data)
         # if updating user type
         if update_data.get("type") and update_data["type"] != db_obj.type:
@@ -188,7 +228,10 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             user_query = user_query.where(
-                func.lower(User.name).contains(query_string.lower())
+                or_(
+                    func.lower(User.name).contains(query_string.lower()),
+                    func.lower(User.email).contains(query_string.lower()),
+                )
             )
         if type is not None:
             user_query = user_query.where(User.type == type)
