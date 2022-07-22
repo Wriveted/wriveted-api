@@ -79,7 +79,10 @@ async def create_user(user_data: UserCreateIn, session: Session = Depends(get_se
     Admin endpoint for creating new users.
     """
     logger.info("Creating a user")
-    return crud.user.create(session, obj_in=user_data)
+    try:
+        return crud.user.create(session, obj_in=user_data)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
@@ -104,17 +107,14 @@ async def update_user(
 
     try:
         updated_items = user_update.dict(exclude_unset=True)
-        if "school_id" in updated_items:
-            school = crud.school.get_by_wriveted_id_or_404(
-                db=session, wriveted_id=updated_items["school_id"]
-            )
-            updated_items["school_id"] = school.id
         update_data = InternalUserUpdateIn(current_type=user.type, **updated_items)
     except ValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=json.loads(e.json()),
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     logger.info("Updating a user")
 
