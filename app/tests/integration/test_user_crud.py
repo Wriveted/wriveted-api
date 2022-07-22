@@ -1,4 +1,5 @@
 from datetime import date
+from pydantic import ValidationError
 
 import pytest
 from sqlalchemy import select
@@ -111,8 +112,7 @@ def test_cross_model_updates(session, test_school, test_class_group):
             email=f"teststudentupdate5@{fake_domain}.com",
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
-            first_name="Joe Shooer",
-            last_name_initial="P",
+            name="JoeShooer P",
             class_group_id=test_class_group.id,
         ),
         commit=True,
@@ -267,3 +267,40 @@ def test_student_to_public_reader_update(
     assert isinstance(
         user, PublicReader
     ), "User account hasn't been changed to Public Reader type"
+
+
+def test_user_creation_name_validation(session):
+    fake_domain = random_lower_string(12)
+
+    # test that 'name' can be inferred from 'first_name' and 'last_name_initial'
+    nameless = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            email=f"testnameless@{fake_domain}.com",
+            first_name="Nameless",
+            last_name_initial="T",
+        ),
+        commit=True,
+    )
+    assert nameless.name == "Nameless T"
+
+    # test that 'first_name' and 'last_name_initial' can be inferred from 'name'
+    named: PublicReader = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            email=f"testnamed@{fake_domain}.com",
+            type=UserAccountType.PUBLIC,
+            name="Nameless Traveler",
+        ),
+        commit=True,
+    )
+    assert named.first_name == "Nameless"
+    assert named.last_name_initial == "T"
+
+    # but ensure that the validation is still strict
+    with pytest.raises(ValidationError):
+        fully_nameless = crud.user.create(
+            db=session,
+            obj_in=UserCreateIn(email=f"testnameless@{fake_domain}.com"),
+            commit=True,
+        )

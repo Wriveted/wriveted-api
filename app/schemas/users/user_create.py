@@ -49,7 +49,7 @@ class UserCreateAuth(BaseModel):
 
 class UserCreateIn(BaseModel):
     # all users
-    name: str
+    name: str = None
     email: EmailStr
     info: UserInfo | None
     type: UserAccountType = UserAccountType.PUBLIC
@@ -57,50 +57,41 @@ class UserCreateIn(BaseModel):
 
     # readers
     username: str | None
-    first_name: str | None
-    last_name_initial: str | None
+    first_name: str | None = None
+    last_name_initial: str | None = None
     huey_attributes: HueyAttributes | None
 
     # students / educators
     school_id: int | None
     class_group_id: UUID4 | None
 
-    @validator("name", pre=True)
-    def populate_name(cls, v, values, **kwargs):
-        if v is None and "first_name" in values and "last_name_initial" in values:
-            return f"{values['first_name']} {values['last_name']}"
-        else:
-            return v
-
-    @validator("first_name", pre=True)
-    def extract_first_name(cls, v, values, **kwargs):
-        if (
-            v is None
-            and "name" in values
-            and "type" in values
-            and values["type"] in {"public", "student"}
-        ):
-            # Extract first name from name
-            return values["name"].split()[0]
-        else:
-            return v
-
-    @validator("last_name_initial", pre=True)
-    def extract_last_name_initial(cls, v, values, **kwargs):
-        if (
-            v is None
-            and "name" in values
-            and "type" in values
-            and values["type"] in {"public", "student"}
-        ):
-            # Extract last name initial from name
-            return values["name"].split()[-1][0]
-        else:
-            return v
-
     @root_validator
     def validate_user_creation(cls, values):
+        # infer names from other fields if necessary
+        name = values["name"] if "name" in values else None
+        first_name = values["first_name"] if "first_name" in values else None
+        last_name_initial = (
+            values["last_name_initial"] if "last_name_initial" in values else None
+        )
+
+        # Extract name from first name and initial
+        if name is None and first_name and last_name_initial:
+            values["name"] = f"{first_name} {last_name_initial}"
+
+        # Extract first name and initial from name
+        if name and "type" in values and values["type"] in {"public", "student"}:
+            if not first_name:
+                values["first_name"] = name.split()[0]
+            if not last_name_initial:
+                values["last_name_initial"] = name.split()[-1][0]
+
+        # validate logic for supplied values vs. type
         match values["type"]:
+            case UserAccountType.PUBLIC:
+                if not (values["first_name"] and values["last_name_initial"]):
+                    raise ValueError(
+                        "Public Readers must provide first_name and last_name_initial"
+                    )
             case UserAccountType.STUDENT:
                 if not (
                     values["first_name"]
@@ -111,10 +102,6 @@ class UserCreateIn(BaseModel):
                     raise ValueError(
                         "Student users must provide first_name, last_name_initial, school_id, and class_group_id."
                     )
-                else:
-                    values[
-                        "name"
-                    ] = f"{values['first_name']} {values['last_name_initial']}"
             case UserAccountType.EDUCATOR:
                 if not (
                     values["first_name"]
