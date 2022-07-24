@@ -13,6 +13,8 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.models import Edition
 from app.models.collection_item import CollectionItem
+from app.models.work import Work
+from app.models.labelset import LabelSet
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,
@@ -133,6 +135,9 @@ async def get_editions(
     priority_queries = [
         session.query(Edition)
         .join(CollectionItem)
+        .join(Work, isouter=True)
+        .join(LabelSet, isouter=True)
+        .where(LabelSet.min_age == None)
         .where(
             and_(
                 (CollectionItem.school_id == priority_id),
@@ -146,8 +151,11 @@ async def get_editions(
 
     allschool_query = (
         session.query(Edition, Edition.num_schools)
+        .join(Work, isouter=True)
+        .join(LabelSet, isouter=True)
         .order_by(Edition.num_schools.desc())
         .where(Edition.hydrated == False)
+        .where(LabelSet.min_age == None)
         .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
     )
 
