@@ -16,6 +16,7 @@ from app.api.service_accounts import router as service_account_router
 from app.api.users import router as user_router
 from app.api.version import router as version_router
 from app.api.works import router as work_router
+from app.api.emails import router as email_router
 
 api_router = APIRouter()
 
@@ -35,3 +36,4 @@ api_router.include_router(recommendations_router)
 api_router.include_router(booklist_router)
 api_router.include_router(events_router)
 api_router.include_router(class_group_router)
+api_router.include_router(email_router)

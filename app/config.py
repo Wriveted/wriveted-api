@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     SQLALCHEMY_DATABASE_URI: str = None
 
+    SENDGRID_API_KEY: str
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
         cls, v: Optional[str], values: Dict[str, Any]
