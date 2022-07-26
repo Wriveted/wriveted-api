@@ -112,4 +112,5 @@ jobs:
           echo "Setup Test Environment Variables"
           export SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
+          export SENDGRID_API_KEY=unused-key-set-for-testing
           poetry run pytest app/tests/unit
