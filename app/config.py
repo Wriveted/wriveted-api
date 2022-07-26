@@ -91,6 +91,7 @@ class Settings(BaseSettings):
         "http://23.251.142.192",
         "https://chats.landbot.io",
         "https://landbot.site",
+        "https://landbot.pro",
         # TypeBot
         "https://typebot.io",
         "http://13.38.101.232",
