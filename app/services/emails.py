@@ -13,9 +13,7 @@ config = get_settings()
 
 
 def send_sendgrid_email(
-    data: EmailData,
-    session: Session,
-    account: User | ServiceAccount
+    data: EmailData, session: Session, account: User | ServiceAccount
 ):
     """Send a dynamic email to a list of email addresses
 
@@ -35,7 +33,11 @@ def send_sendgrid_email(
     try:
         sg = SendGridAPIClient(config.SENDGRID_API_KEY)
         response = sg.send(message)
-        output = {"code": str(response.status_code), "body": str(response.body), "headers": str(response.headers)}
+        output = {
+            "code": str(response.status_code),
+            "body": str(response.body),
+            "headers": str(response.headers),
+        }
 
     except Exception as e:
         error = "Error: {0}".format(e)
@@ -44,7 +46,11 @@ def send_sendgrid_email(
         session=session,
         title="SendGrid email sent",
         description="An email was sent to a user via SendGrid",
-        info={"result": "success" if not error else "error", "detail": error or output, "data": data.dict()},
+        info={
+            "result": "success" if not error else "error",
+            "detail": error or output,
+            "data": data.dict(),
+        },
         account=account,
         commit=True,
     )

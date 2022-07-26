@@ -23,7 +23,7 @@ async def send_email(
     data: EmailData,
     background_tasks: BackgroundTasks,
     account=Depends(get_current_active_superuser_or_backend_service_account),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     """
     Populate and send a dynamic SendGrid email.
