@@ -5,11 +5,47 @@ from app import crud
 from app.config import get_settings
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.email import EmailData
+from app.schemas.sendgrid import ContactData, EmailData
 from sqlalchemy.orm import Session
 
 logger = get_logger()
 config = get_settings()
+
+
+def upsert_sendgrid_contact(
+    data: ContactData, session: Session, account: User | ServiceAccount
+):
+    """
+    Upserts a Sendgrid contact with the provided data
+    """
+    try:
+        sg = SendGridAPIClient(config.SENDGRID_API_KEY)
+        response = sg.client.marketing.contacts.put(
+            request_body={"contacts": [data.dict()]}
+        )
+        output = {
+            "code": str(response.status_code),
+            "body": str(response.body),
+            "headers": str(response.headers),
+        }
+
+        error = None
+    except Exception as e:
+        error = "Error: {0}".format(e)
+
+    crud.event.create(
+        session=session,
+        title="SendGrid contact upsert requested",
+        description="A SendGrid contact was queued to be either created or updated",
+        info={
+            "result": "success" if not error else "error",
+            "detail": error or output,
+            "data": data.dict(),
+        },
+        account=account,
+        commit=True,
+        level="warning" if error else "debug",
+    )
 
 
 def send_sendgrid_email(
@@ -53,4 +89,5 @@ def send_sendgrid_email(
         },
         account=account,
         commit=True,
+        level="warning" if error else "debug",
     )
