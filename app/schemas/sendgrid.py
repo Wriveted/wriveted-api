@@ -19,9 +19,7 @@ def get_sendgrid_custom_fields() -> list[CustomField]:
     sg = SendGridAPIClient(config.SENDGRID_API_KEY)
     fields_raw = sg.client.marketing.field_definitions.get()
     fields_obj = loads(fields_raw.body)["custom_fields"]
-    current_fields: list[CustomField] = parse_obj_as(list[CustomField], fields_obj)
-
-    return current_fields
+    return parse_obj_as(list[CustomField], fields_obj)
 
 
 class ContactData(BaseModel):
