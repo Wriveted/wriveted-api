@@ -1,3 +1,5 @@
+from json import loads
+from urllib.error import HTTPError
 from structlog import get_logger
 from sendgrid.helpers.mail import Mail, From
 from sendgrid import SendGridAPIClient
@@ -5,15 +7,26 @@ from app import crud
 from app.config import get_settings
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.sendgrid import ContactData, EmailData
+from app.schemas.sendgrid import SendGridContactData, SendGridCustomField, SendGridEmailData
 from sqlalchemy.orm import Session
+from pydantic import parse_obj_as
 
 logger = get_logger()
 config = get_settings()
 
 
+def get_sendgrid_custom_fields() -> list[SendGridCustomField]:
+    """
+    Produces a list of the custom field objects currently on the SendGrid account
+    """
+    sg = SendGridAPIClient(config.SENDGRID_API_KEY)
+    fields_raw = sg.client.marketing.field_definitions.get()
+    fields_obj = loads(fields_raw.body)["custom_fields"]
+    return parse_obj_as(list[SendGridCustomField], fields_obj)
+
+
 def upsert_sendgrid_contact(
-    data: ContactData, session: Session, account: User | ServiceAccount
+    data: SendGridContactData, session: Session, account: User | ServiceAccount
 ):
     """
     Upserts a Sendgrid contact with the provided data
@@ -30,8 +43,8 @@ def upsert_sendgrid_contact(
         }
 
         error = None
-    except Exception as e:
-        error = "Error: {0}".format(e)
+    except HTTPError as e:
+        error = f"Error: {e}"
 
     crud.event.create(
         session=session,
@@ -49,7 +62,7 @@ def upsert_sendgrid_contact(
 
 
 def send_sendgrid_email(
-    data: EmailData, session: Session, account: User | ServiceAccount
+    data: SendGridEmailData, session: Session, account: User | ServiceAccount
 ):
     """Send a dynamic email to a list of email addresses
 
@@ -75,8 +88,8 @@ def send_sendgrid_email(
             "headers": str(response.headers),
         }
 
-    except Exception as e:
-        error = "Error: {0}".format(e)
+    except HTTPError as e:
+        error = f"Error: {e}"
 
     crud.event.create(
         session=session,
