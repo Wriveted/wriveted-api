@@ -7,7 +7,11 @@ from app import crud
 from app.config import get_settings
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.sendgrid import SendGridContactData, SendGridCustomField, SendGridEmailData
+from app.schemas.sendgrid import (
+    SendGridContactData,
+    SendGridCustomField,
+    SendGridEmailData,
+)
 from sqlalchemy.orm import Session
 from pydantic import parse_obj_as
 

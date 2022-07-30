@@ -16,7 +16,7 @@ from app.schemas.sendgrid import (
     SendGridCustomField,
     SendGridEmailData,
     SendGridContactData,
-    CustomSendGridContactData
+    CustomSendGridContactData,
 )
 
 router = APIRouter(
@@ -53,7 +53,11 @@ async def upsert_contact(
         current_fields = get_sendgrid_custom_fields()
         for supplied_field in supplied_fields:
             id = next(
-                (field.id for field in current_fields if field.name == supplied_field.name),
+                (
+                    field.id
+                    for field in current_fields
+                    if field.name == supplied_field.name
+                ),
                 None,
             )
             if id:
@@ -64,9 +68,11 @@ async def upsert_contact(
                     detail=f"No custom field exists with the name {supplied_field.name}.",
                 )
 
-        payload = CustomSendGridContactData(**data.dict(), custom_fields=validated_fields)
-        
-    else:        
+        payload = CustomSendGridContactData(
+            **data.dict(), custom_fields=validated_fields
+        )
+
+    else:
         payload = data
 
     # schedule the update
