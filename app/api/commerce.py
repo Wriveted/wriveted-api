@@ -10,12 +10,15 @@ from fastapi import (
 from structlog import get_logger
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
+    verify_shopify_hmac,
 )
 from app.config import get_settings
 from sqlalchemy.orm import Session
 from app.db.session import get_session
-from app.services.sendgrid import (
+from app.schemas.shopify import ShopifyEventRoot
+from app.services.commerce import (
     get_sendgrid_api,
+    process_shopify_order,
     send_sendgrid_email,
     upsert_sendgrid_contact,
     validate_sendgrid_custom_fields,
@@ -28,10 +31,7 @@ from app.schemas.sendgrid import (
 )
 from sendgrid import SendGridAPIClient
 
-router = APIRouter(
-    tags=["SendGrid"],
-    dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
-)
+router = APIRouter(tags=["Commerce"])
 
 logger = get_logger()
 config = get_settings()
@@ -91,3 +91,29 @@ async def send_email(
     background_tasks.add_task(send_sendgrid_email, data, session, account, sg)
 
     return Response(status_code=202, content="Email queued.")
+
+
+@router.post(
+    "/shopify/order-creation",
+    dependencies=[Depends(verify_shopify_hmac)],
+    include_in_schema=False,
+)
+async def create_shopify_order(
+    data: ShopifyEventRoot,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+    sg: SendGridAPIClient = Depends(get_sendgrid_api),
+):
+    """
+    Endpoint for the Webhook called by Shopify when a customer places an order.
+    Upserts equivalent SendGrid contact with basic info about the order, and logs an event with the details.
+    """
+    # background_tasks.add_task(
+    #     process_shopify_order,
+    #     data,
+    #     sg,
+    #     session
+    # )
+    process_shopify_order(data, sg, session)
+
+    return Response(status_code=200, content="Thanks Shopify")

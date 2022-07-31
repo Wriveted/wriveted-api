@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, validator
 from app.config import get_settings
 
@@ -6,7 +7,7 @@ config = get_settings()
 
 class SendGridCustomField(BaseModel):
     name: str
-    value: int | str | None
+    value: int | datetime | str | None
     id: str | None
 
 
@@ -28,7 +29,7 @@ class SendGridContactData(BaseModel):
 
 
 class CustomSendGridContactData(SendGridContactData):
-    custom_fields: dict[str, int | str] | None
+    custom_fields: dict[str, int | datetime | str] | None
 
 
 class SendGridEmailData(BaseModel):
