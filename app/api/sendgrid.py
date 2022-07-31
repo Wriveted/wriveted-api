@@ -1,5 +1,12 @@
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Response, HTTPException
-from pydantic import parse_obj_as
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    Query,
+    Response,
+    HTTPException,
+)
 from structlog import get_logger
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
@@ -8,9 +15,10 @@ from app.config import get_settings
 from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.services.sendgrid import (
-    get_sendgrid_custom_fields,
+    get_sendgrid_api,
     send_sendgrid_email,
     upsert_sendgrid_contact,
+    validate_sendgrid_custom_fields,
 )
 from app.schemas.sendgrid import (
     SendGridCustomField,
@@ -18,6 +26,7 @@ from app.schemas.sendgrid import (
     SendGridContactData,
     CustomSendGridContactData,
 )
+from sendgrid import SendGridAPIClient
 
 router = APIRouter(
     tags=["SendGrid"],
@@ -35,6 +44,8 @@ async def upsert_contact(
     custom_fields: list[SendGridCustomField] = Body(default=None),
     account=Depends(get_current_active_superuser_or_backend_service_account),
     session: Session = Depends(get_session),
+    increment_children: bool | None = Query(False),
+    sg: SendGridAPIClient = Depends(get_sendgrid_api),
 ):
     """
     Upserts a SendGrid contact with provided data
@@ -44,29 +55,10 @@ async def upsert_contact(
     )
 
     if custom_fields:
-        # enrich the 'named' custom fields with their equivalent sendgrid ids, provided they exist
-        supplied_fields: list[SendGridCustomField] = parse_obj_as(
-            list[SendGridCustomField], custom_fields
-        )
-        validated_fields: dict[str, int | str] = {}
-
-        current_fields = get_sendgrid_custom_fields()
-        for supplied_field in supplied_fields:
-            id = next(
-                (
-                    field.id
-                    for field in current_fields
-                    if field.name == supplied_field.name
-                ),
-                None,
-            )
-            if id:
-                validated_fields[id] = supplied_field.value
-            else:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"No custom field exists with the name {supplied_field.name}.",
-                )
+        try:
+            validated_fields = validate_sendgrid_custom_fields(custom_fields, sg)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
         payload = CustomSendGridContactData(
             **data.dict(), custom_fields=validated_fields
@@ -76,7 +68,9 @@ async def upsert_contact(
         payload = data
 
     # schedule the update
-    background_tasks.add_task(upsert_sendgrid_contact, payload, session, account)
+    background_tasks.add_task(
+        upsert_sendgrid_contact, payload, session, account, sg, increment_children
+    )
 
     return Response(status_code=202, content="Contact upsert queued.")
 
@@ -87,12 +81,13 @@ async def send_email(
     background_tasks: BackgroundTasks,
     account=Depends(get_current_active_superuser_or_backend_service_account),
     session: Session = Depends(get_session),
+    sg: SendGridAPIClient = Depends(get_sendgrid_api),
 ):
     """
     Populate and send a dynamic SendGrid email.
     Can dynamically fill a specified template with provided data.
     """
     logger.info("SendGrid email endpoint called", parameters=data, account=account)
-    background_tasks.add_task(send_sendgrid_email, data, session, account)
+    background_tasks.add_task(send_sendgrid_email, data, session, account, sg)
 
     return Response(status_code=202, content="Email queued.")

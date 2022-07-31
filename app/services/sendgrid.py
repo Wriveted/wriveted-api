@@ -1,4 +1,5 @@
 from json import loads
+from operator import index
 from urllib.error import HTTPError
 from structlog import get_logger
 from sendgrid.helpers.mail import Mail, From
@@ -8,35 +9,153 @@ from app.config import get_settings
 from app.models.service_account import ServiceAccount
 from app.models.user import User
 from app.schemas.sendgrid import (
-    SendGridContactData,
+    CustomSendGridContactData,
     SendGridCustomField,
     SendGridEmailData,
 )
 from sqlalchemy.orm import Session
 from pydantic import parse_obj_as
+from python_http_client.exceptions import NotFoundError
 
 logger = get_logger()
 config = get_settings()
 
 
-def get_sendgrid_custom_fields() -> list[SendGridCustomField]:
+def get_sendgrid_api() -> SendGridAPIClient:
+    return SendGridAPIClient(config.SENDGRID_API_KEY)
+
+
+def get_sendgrid_custom_fields(sg: SendGridAPIClient) -> list[SendGridCustomField]:
     """
     Produces a list of the custom field objects currently on the SendGrid account
     """
-    sg = SendGridAPIClient(config.SENDGRID_API_KEY)
     fields_raw = sg.client.marketing.field_definitions.get()
     fields_obj = loads(fields_raw.body)["custom_fields"]
     return parse_obj_as(list[SendGridCustomField], fields_obj)
 
 
+def validate_sendgrid_custom_fields(
+    custom_fields: list[SendGridCustomField], sg: SendGridAPIClient
+):
+    # enrich the 'named' custom fields with their equivalent sendgrid ids, provided they exist
+    supplied_fields: list[SendGridCustomField] = parse_obj_as(
+        list[SendGridCustomField], custom_fields
+    )
+    validated_fields: dict[str, int | str] = {}
+
+    current_fields = get_sendgrid_custom_fields(sg)
+    for supplied_field in supplied_fields:
+        id = next(
+            (field.id for field in current_fields if field.name == supplied_field.name),
+            None,
+        )
+        if id:
+            validated_fields[id] = supplied_field.value
+        else:
+            raise ValueError(
+                "No custom field exists with the name {supplied_field.name}."
+            )
+
+    return validated_fields
+
+
+def increment_children_custom_fields(
+    email, custom_fields: dict[str, int | str], sg: SendGridAPIClient
+) -> dict[str, int | str]:
+    # we may want to increment custom fields such as "child_1_age" contextually
+    # i.e. if a parent goes through a landbot chat twice for two children, each use of the landbot chat will still provide the endpoint with "child_1_x".
+    # but instead of overwriting the contact's "child_1_x" fields, we want to "increment" them to "child_2_x", etc.
+    # we can determine the need to increment based on whether or not the contact already exists, and what their current custom fields are.
+    # this method is entirely imperfect, but the arbitrary data offerings on sendgrid are very primitive, and until we have child accounts
+    # linked to parents, this is the best way to achieve mostly accurate segmentation
+    try:
+        # first, check if the contact already exists by searching for their email
+        found_contacts_raw = sg.client.marketing.contacts.search.emails.post(
+            request_body={"emails": [email]}
+        )
+    except NotFoundError:
+        # no existing contact = no need  to increment
+        return custom_fields
+
+    # at this point we're guaranteed at least one matching 'result' object holding a 'contact' object
+    # grab the first and check their custom fields to "count" their children
+    found_contact_obj = next(iter(found_contacts_raw.to_dict["result"].items()))[1][
+        "contact"
+    ]
+    contact = CustomSendGridContactData(**found_contact_obj)
+
+    num_children = 0
+    for i in range(1, 3):
+        if contact.custom_fields.get(f"child_{i}_age"):
+            num_children += 1
+        else:
+            break
+
+    if num_children > 0:
+        index_to_update = min(num_children + 1, 3)
+
+        # the custom fields need to be updated with respect to their 'id'
+        custom_fields_sendgrid = get_sendgrid_custom_fields(sg)
+
+        base_age_id = next(
+            (
+                field.id
+                for field in custom_fields_sendgrid
+                if field.name == f"child_1_age"
+            ),
+            None,
+        )
+        new_age_id = next(
+            (
+                field.id
+                for field in custom_fields_sendgrid
+                if field.name == f"child_{index_to_update}_age"
+            ),
+            None,
+        )
+        age = custom_fields.pop(base_age_id, None)
+        if age is not None and new_age_id:
+            custom_fields[new_age_id] = age
+
+        base_reading_ability_id = next(
+            (
+                field.id
+                for field in custom_fields_sendgrid
+                if field.name == f"child_1_reading_ability"
+            ),
+            None,
+        )
+        new_reading_ability_id = next(
+            (
+                field.id
+                for field in custom_fields_sendgrid
+                if field.name == f"child_{index_to_update}_reading_ability"
+            ),
+            None,
+        )
+        reading_ability = custom_fields.pop(base_reading_ability_id, None)
+        if reading_ability is not None and new_reading_ability_id:
+            custom_fields[new_reading_ability_id] = reading_ability
+
+    return custom_fields
+
+
 def upsert_sendgrid_contact(
-    data: SendGridContactData, session: Session, account: User | ServiceAccount
+    data: CustomSendGridContactData,
+    session: Session,
+    account: User | ServiceAccount,
+    sg: SendGridAPIClient,
+    increment_children: bool = False,
 ):
     """
     Upserts a Sendgrid contact with the provided data
     """
+    if data.custom_fields and increment_children:
+        data.custom_fields = increment_children_custom_fields(
+            data.email, data.custom_fields, sg
+        )
+
     try:
-        sg = SendGridAPIClient(config.SENDGRID_API_KEY)
         response = sg.client.marketing.contacts.put(
             request_body={"contacts": [data.dict()]}
         )
@@ -66,7 +185,10 @@ def upsert_sendgrid_contact(
 
 
 def send_sendgrid_email(
-    data: SendGridEmailData, session: Session, account: User | ServiceAccount
+    data: SendGridEmailData,
+    session: Session,
+    account: User | ServiceAccount,
+    sg: SendGridAPIClient,
 ):
     """Send a dynamic email to a list of email addresses
 
@@ -84,7 +206,6 @@ def send_sendgrid_email(
 
     error = None
     try:
-        sg = SendGridAPIClient(config.SENDGRID_API_KEY)
         response = sg.send(message)
         output = {
             "code": str(response.status_code),
