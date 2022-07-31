@@ -234,7 +234,7 @@ def send_sendgrid_email(
 def upsert_sendgrid_from_shopify_order(
     data: ShopifyEventRoot, sg: SendGridAPIClient, session: Session
 ):
-    existing_sendgrid_contact = get_sendgrid_contact_by_email(sg, data.email)
+    existing_sendgrid_contact = get_sendgrid_contact_by_email(sg, data.customer.email)
     # create a sendgrid contact using the overlap of the schemas (will update the sendgrid contact's name etc.)
     new_sendgrid_contact = CustomSendGridContactData(
         **data.customer.dict(), custom_fields={}

@@ -108,12 +108,6 @@ async def create_shopify_order(
     Endpoint for the Webhook called by Shopify when a customer places an order.
     Upserts equivalent SendGrid contact with basic info about the order, and logs an event with the details.
     """
-    # background_tasks.add_task(
-    #     process_shopify_order,
-    #     data,
-    #     sg,
-    #     session
-    # )
-    process_shopify_order(data, sg, session)
+    background_tasks.add_task(process_shopify_order, data, sg, session)
 
     return Response(status_code=200, content="Thanks Shopify")
