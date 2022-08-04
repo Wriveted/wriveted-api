@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import UUID4, BaseModel, EmailStr, root_validator, validator
+from pydantic import UUID4, BaseModel, EmailStr, root_validator
 
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
@@ -85,11 +85,11 @@ class UserCreateIn(BaseModel):
 
         # validate logic for supplied values vs. type
         match values["type"]:
-            case UserAccountType.PUBLIC:
-                if not (values.get("first_name") and values.get("last_name_initial")):
-                    raise ValueError(
-                        "Public Readers must provide first_name and last_name_initial"
-                    )
+            # case UserAccountType.PUBLIC:
+            #     if not (values.get("first_name") and values.get("last_name_initial")):
+            #         raise ValueError(
+            #             "Public Readers must provide first_name and last_name_initial"
+            #         )
             case UserAccountType.STUDENT:
                 if not (
                     values.get("first_name")
