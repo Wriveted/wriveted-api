@@ -7,7 +7,7 @@ from pydantic import AnyHttpUrl, BaseModel, constr, validator
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
 from app.schemas.country import CountryDetail
-from app.schemas.school_identity import SchoolIdentity
+from app.schemas.school_identity import SchoolWrivetedIdentity, SchoolIdentity
 from app.schemas.users.school_admin import SchoolAdminBrief
 
 
