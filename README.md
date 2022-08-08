@@ -2,6 +2,7 @@
 This repository implements a REST API to add, edit, and remove information about 
 Users, Books, Schools and Library Collections for Wriveted.
 
+
 The API is designed for use by multiple users:
 * Library Management Systems. In particular see the section on updating and setting Schools collections.
 * Wriveted Staff either directly via scripts or via an admin UI.
