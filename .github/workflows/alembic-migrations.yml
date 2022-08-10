@@ -21,7 +21,7 @@ jobs:
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
       with:
-        postgresql version: '14.1'  # See https://hub.docker.com/_/postgres for available versions
+        postgresql version: '14'  # See https://hub.docker.com/_/postgres for available versions
         postgresql user: postgres
         postgresql password: secret
     - name: ➕ Install poetry

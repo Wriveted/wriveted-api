@@ -9,7 +9,10 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from alembic import op
-from app.models import Hue
+from sqlalchemy.ext.automap import automap_base
+
+Base = automap_base()
+
 
 # revision identifiers, used by Alembic.
 revision = "b382aeb2f56d"
@@ -17,7 +20,7 @@ down_revision = "5fff4615d51a"
 branch_labels = None
 depends_on = None
 
-intiial_hues = [
+initial_hues = [
     {"key": "hue01_dark_suspense", "name": "Dark/Suspense"},
     {"key": "hue02_beautiful_whimsical", "name": "Beautiful/Whimsical"},
     {"key": "hue03_dark_beautiful", "name": "Dark/Beautiful"},
@@ -35,9 +38,15 @@ intiial_hues = [
 
 def upgrade():
     bind = op.get_bind()
-    session = orm.Session(bind=bind)
 
-    for data in intiial_hues:
+    # Reflect the ORM models from the database at this point in time
+    # Ref: https://stackoverflow.com/questions/13676744/using-the-sqlalchemy-orm-inside-an-alembic-migration-how-do-i/70985446#70985446
+    Base.prepare(autoload_with=bind)
+
+    Hue = Base.classes.hues  # Map table name to class
+
+    session = orm.Session(bind=bind)
+    for data in initial_hues:
         session.add(
             Hue(
                 key=data["key"],
