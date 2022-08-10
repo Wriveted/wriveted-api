@@ -76,11 +76,9 @@ class Settings(BaseSettings):
         "https://app.hueythebookbot.com",
         "https://api.hueythebookbot.com",
         "https://www.hueythebookbot.com",
-        
         # Huey Books Production URLs
         "https://hueybooks.com",
         "https://www.hueybooks.com",
-        
         # Firebase URLs
         "https://wriveted-library.web.app",
         "https://wriveted-api.web.app",
