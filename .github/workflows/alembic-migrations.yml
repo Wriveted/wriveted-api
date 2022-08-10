@@ -4,10 +4,8 @@ name: Test Alembic Migrations
 
 on:
   push:
-    branches: [ $default-branch ]
   pull_request:
-    branches: [ $default-branch ]
-
+    types: [opened]
 jobs:
   migrations:
     name: ⚗ Test Alembic Migrations
