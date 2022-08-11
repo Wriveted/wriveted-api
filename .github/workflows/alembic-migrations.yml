@@ -49,7 +49,7 @@ jobs:
         poetry run alembic upgrade head
     - name: ⚡ Run backwards migrations
       run: |
-        poetry run alembic downgrade base
+        poetry run alembic downgrade -10
     - name: ⚡ Retest forward migrations
       run: |
         poetry run alembic upgrade head
