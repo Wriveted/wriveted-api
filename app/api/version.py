@@ -44,8 +44,8 @@ async def get_version(session: Session = Depends(get_session)):
 async def get_security_policy():
     data = dedent(
         """
-    Contact: mailto:meena@wriveted.com
-    Expires: 2024-12-31T11:00:00.000Z
+    Contact: mailto:security@wriveted.com
+    Expires: 2025-12-31T11:00:00.000Z
     Preferred-Languages: en
     """
     )
