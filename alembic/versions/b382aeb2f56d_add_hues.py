@@ -62,7 +62,7 @@ def downgrade():
     bind = op.get_bind()
     Base.prepare(autoload_with=bind)
     LabelSetHue = Base.classes.labelset_hue_association
-    #LabelSets = Base.classes.labelsets
+    # LabelSets = Base.classes.labelsets
     Hue = Base.classes.hues
 
     session = orm.Session(bind=bind)
