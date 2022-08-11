@@ -2,7 +2,6 @@ import math
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-import httpx
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -13,8 +12,8 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.db.session import get_session
 from app.models import Edition
 from app.models.collection_item import CollectionItem
-from app.models.work import Work
 from app.models.labelset import LabelSet
+from app.models.work import Work
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,

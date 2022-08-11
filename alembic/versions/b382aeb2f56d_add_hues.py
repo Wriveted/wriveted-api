@@ -7,9 +7,9 @@ Create Date: 2022-03-09 14:45:18.915196
 """
 import sqlalchemy as sa
 from sqlalchemy import orm
+from sqlalchemy.ext.automap import automap_base
 
 from alembic import op
-from sqlalchemy.ext.automap import automap_base
 
 Base = automap_base()
 

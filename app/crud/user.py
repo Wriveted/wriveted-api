@@ -1,11 +1,13 @@
 from typing import Any, Dict, Optional, Tuple, Union
 from uuid import UUID
+
 from fastapi import Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app.crud import CRUDBase
 from app.models import (
     Educator,
