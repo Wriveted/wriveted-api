@@ -38,6 +38,12 @@ def get_sendgrid_custom_field_id_from_name(
         None,
     )
 
+def sendgrid_contact_response_to_obj(raw_contact_response) -> SendGridContactData:
+    obj = next(iter(raw_contact_response.to_dict["result"].items()))[1][
+        "contact"
+    ]
+    return CustomSendGridContactData(**obj)
+
 
 def get_sendgrid_custom_fields(sg: SendGridAPIClient) -> list[SendGridCustomField]:
     """
@@ -79,10 +85,7 @@ def get_sendgrid_contact_by_email(
         )  # raises NotFoundError upon no matches
 
         # at this point we're guaranteed a matching 'result' object holding a 'contact' object
-        found_contact_obj = next(iter(found_contact_raw.to_dict["result"].items()))[1][
-            "contact"
-        ]
-        return CustomSendGridContactData(**found_contact_obj)
+        return sendgrid_contact_response_to_obj(found_contact_raw)
 
     except NotFoundError:
         return None
