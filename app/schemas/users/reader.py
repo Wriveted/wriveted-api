@@ -9,8 +9,8 @@ from app.schemas.users.user_identity import UserBrief, UserIdentity
 
 
 class ReaderBase(BaseModel):
-    first_name: str
-    last_name_initial: str
+    first_name: str | None
+    last_name_initial: str | None
 
 
 class ReaderIdentity(ReaderBase, UserIdentity):

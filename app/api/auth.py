@@ -220,8 +220,8 @@ def student_user_auth(
 
 
 class RegisterUserIn(BaseModel):
-    first_name: str
-    last_name_initial: str
+    first_name: str | None
+    last_name_initial: str | None
     school_id: UUID
     class_joining_code: str
 
