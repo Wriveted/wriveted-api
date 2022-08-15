@@ -1,7 +1,8 @@
 from datetime import datetime
 from json import loads
 import json
-from operator import index
+from typing import Container, ItemsView
+from python_http_client.client import Response
 from urllib.error import HTTPError
 from structlog import get_logger
 from sendgrid.helpers.mail import Mail, From
@@ -38,11 +39,26 @@ def get_sendgrid_custom_field_id_from_name(
         None,
     )
 
-def sendgrid_contact_response_to_obj(raw_contact_response) -> SendGridContactData:
-    obj = next(iter(raw_contact_response.to_dict["result"].items()))[1][
-        "contact"
-    ]
-    return CustomSendGridContactData(**obj)
+
+def sendgrid_contact_response_to_obj(
+    raw_contact_response: Response,
+) -> SendGridContactData:
+    response_dict = raw_contact_response.to_dict
+
+    results_obj: dict = response_dict.get("result")
+    if not results_obj:
+        raise NotFoundError
+
+    results: ItemsView[str, Container] = results_obj.values()
+    first_result = next(iter(results), None)
+    if not first_result:
+        raise NotFoundError
+
+    contact_obj = first_result.get("contact")
+    if not contact_obj:
+        raise NotFoundError
+
+    return CustomSendGridContactData(**contact_obj)
 
 
 def get_sendgrid_custom_fields(sg: SendGridAPIClient) -> list[SendGridCustomField]:
