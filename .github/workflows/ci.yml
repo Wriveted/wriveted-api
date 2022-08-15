@@ -77,9 +77,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          export SENDGRID_API_KEY=unused-key-set-for-testing
-          export SHOPIFY_HMAC_SECRET=unused-key-set-for-testing
-          ./scripts/integration-tests.sh
+        export SENDGRID_API_KEY=unused-key-set-for-testing
+        export SHOPIFY_HMAC_SECRET=unused-key-set-for-testing
+        ./scripts/integration-tests.sh
 
   unit-tests:
     runs-on: ubuntu-latest
