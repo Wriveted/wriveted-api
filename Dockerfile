@@ -1,5 +1,4 @@
 FROM python:3.10-slim
-#FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9
 
 LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
 

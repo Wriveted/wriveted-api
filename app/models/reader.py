@@ -18,8 +18,8 @@ class Reader(User):
         primary_key=True,
     )
 
-    first_name = Column(String, nullable=False)
-    last_name_initial = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name_initial = Column(String, nullable=True)
 
     parent_id = Column(
         UUID,

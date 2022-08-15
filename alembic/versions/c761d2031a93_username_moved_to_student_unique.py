@@ -38,7 +38,7 @@ def downgrade():
     op.drop_column("students", "username")
     op.add_column(
         "readers",
-        sa.Column("username", sa.VARCHAR(), autoincrement=False, nullable=False),
+        sa.Column("username", sa.VARCHAR(), autoincrement=False, nullable=True),
     )
     op.create_index("ix_readers_username", "readers", ["username"], unique=False)
     # ### end Alembic commands ###

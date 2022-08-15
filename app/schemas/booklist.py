@@ -7,7 +7,7 @@ from pydantic import UUID4, BaseModel, Field
 from app.models.booklist import ListType
 from app.schemas.edition import EditionDetail
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.school import SchoolBrief
+from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkBrief
 
@@ -88,8 +88,9 @@ class BookListUpdateIn(BaseModel):
 
 class BookListBrief(BookListBase):
     created_at: datetime
+    updated_at: datetime
     user: Optional[UserIdentity]
-    school: Optional[SchoolBrief]
+    school: Optional[SchoolWrivetedIdentity]
 
 
 class BookListsResponse(PaginatedResponse):

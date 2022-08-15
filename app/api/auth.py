@@ -75,13 +75,11 @@ def secure_user_endpoint(
     logger.debug("Auth with firebase endpoint called", firebase_user=firebase_user)
     logger.debug("Raw claim data", raw_firebase_claims=raw_data)
     assert raw_data["email_verified"], "Firebase hasn't checked the email address"
-    assert (
-        len(raw_data["name"]) > 0
-    ), "Firebase credentials didn't include the users name"
+    # Note firebase credentials may not include the users name
 
     email = firebase_user.email
     picture = raw_data.get("picture")
-    name = raw_data.get("name")
+    name = raw_data.get("name", firebase_user.email)
 
     user_data = UserCreateIn(
         name=name,
@@ -222,8 +220,8 @@ def student_user_auth(
 
 
 class RegisterUserIn(BaseModel):
-    first_name: str
-    last_name_initial: str
+    first_name: str | None
+    last_name_initial: str | None
     school_id: UUID
     class_joining_code: str
 

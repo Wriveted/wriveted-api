@@ -1,7 +1,7 @@
 from datetime import date
-from pydantic import ValidationError
 
 import pytest
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from app import crud
@@ -297,10 +297,7 @@ def test_user_creation_name_validation(session):
     assert named.first_name == "Nameless"
     assert named.last_name_initial == "T"
 
-    # but ensure that the validation is still strict
-    with pytest.raises(ValidationError):
-        fully_nameless = crud.user.create(
-            db=session,
-            obj_in=UserCreateIn(email=f"testnameless@{fake_domain}.com"),
-            commit=True,
-        )
+    # but ensure that first/last names are still optional
+    named.first_name = None
+    named.last_name_initial = None
+    session.flush()
