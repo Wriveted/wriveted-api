@@ -1878,7 +1878,7 @@ python-versions = "*"
 name = "webencodings"
 version = "0.5.1"
 description = "Character encoding aliases for legacy web content"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1906,7 +1906,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "4a9b5429b508e7722092f656bb2a75bbe1d588e24245875a1ef10b1e8f0c4c84"
+content-hash = "52f635500a3ab66a416b2b3d38e523705892b1c920f88d44004886c8441f4ee3"
 
 [metadata.files]
 alembic = []
