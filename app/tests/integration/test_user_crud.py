@@ -296,3 +296,8 @@ def test_user_creation_name_validation(session):
     )
     assert named.first_name == "Nameless"
     assert named.last_name_initial == "T"
+
+    # but ensure that first/last names are still optional
+    named.first_name = None
+    named.last_name_initial = None
+    session.flush()
