@@ -8,6 +8,8 @@ services:
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
       - POSTGRES_PASSWORD=xvc8kcn
+      - SENDGRID_API_KEY=unused-key-set-for-testing
+      - SHOPIFY_HMAC_SECRET=unused-key-for-testing
     ports:
       - 5432:5432
     healthcheck:
@@ -26,6 +28,8 @@ services:
       - POSTGRESQL_PASSWORD=xvc8kcn
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
+      - SENDGRID_API_KEY=unused-key-set-for-testing
+      - SHOPIFY_HMAC_SECRET=unused-key-for-testing
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
     command: uvicorn "app.main:app" --port 8000 --host 0.0.0.0 --reload
