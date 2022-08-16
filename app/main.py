@@ -1,4 +1,5 @@
 import textwrap
+import uuid
 from importlib import metadata
 
 from fastapi import FastAPI, HTTPException
@@ -9,6 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from structlog import get_logger
+from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from app.api import api_router
 from app.config import get_settings
@@ -116,6 +118,29 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+@app.middleware("http")
+async def request_middleware(request: Request, call_next):
+    """
+    Middleware to add a UUID to each request.
+
+    Adds a header to the response `X-Request-ID` with this ID.
+    """
+    request_id = str(uuid.uuid4())
+    clear_contextvars()
+    bind_contextvars(request_id=request_id, request_path=request.url.path)
+
+    logger.debug("Request started", request_method=request.method)
+    # Create a default response
+    response = Response("No Content", status_code=status.HTTP_204_NO_CONTENT)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+    finally:
+        logger.debug("Request ended")
+        return response
+
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
