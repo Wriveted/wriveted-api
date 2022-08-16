@@ -1,7 +1,12 @@
+import base64
 from datetime import timedelta
+import hashlib
+import hmac
+import secrets
+import json
 from typing import Optional, Union
 
-from fastapi import Depends, HTTPException
+from fastapi import Body, Depends, HTTPException, Header, Request
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -265,3 +270,18 @@ def create_user_access_token(user, expires_delta=None):
     )
     logger.debug("Access token generated for user", user=user)
     return wriveted_access_token
+
+
+async def verify_shopify_hmac(
+    request: Request, x_shopify_hmac_sha256: str | None = Header(default=None)
+):
+    body = await request.body()
+    digest = hmac.new(
+        settings.SHOPIFY_HMAC_SECRET.encode("utf-8"),
+        body,
+        hashlib.sha256,
+    ).digest()
+    computed_hmac = base64.b64encode(digest)
+    valid = secrets.compare_digest(computed_hmac, x_shopify_hmac_sha256.encode("utf-8"))
+    if not valid:
+        raise HTTPException(status_code=403, detail="Invalid SHA-256 HMAC")
