@@ -24,6 +24,10 @@ class Settings(BaseSettings):
 
     SQLALCHEMY_DATABASE_URI: str = None
 
+    SENDGRID_API_KEY: str
+
+    SHOPIFY_HMAC_SECRET: str
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
         cls, v: Optional[str], values: Dict[str, Any]
@@ -92,6 +96,7 @@ class Settings(BaseSettings):
         "http://23.251.142.192",
         "https://chats.landbot.io",
         "https://landbot.site",
+        "https://landbot.pro",
         # TypeBot
         "https://typebot.io",
         "http://13.38.101.232",

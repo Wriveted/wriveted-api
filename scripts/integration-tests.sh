@@ -7,7 +7,7 @@ set -e
 docker-compose -f docker-compose.yml down -v --remove-orphans
 docker-compose build --build-arg INSTALL_DEV=true
 docker-compose -f docker-compose.yml up -d
-docker-compose logs
+docker-compose logs migration
 sleep 5
 
 # Now start the integration tests
