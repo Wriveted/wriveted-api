@@ -36,6 +36,8 @@ services:
       - POSTGRESQL_PASSWORD=xvc8kcn
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
+      - SENDGRID_API_KEY=unused-key-set-for-testing
+      - SHOPIFY_HMAC_SECRET=unused-key-for-testing
     ports:
       - "8000:8000"
     volumes:
