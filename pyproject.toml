@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "wriveted-api"
-version = "0.2.0"
-description = ""
-authors = ["Brian Thorne <brian@hardbyte.nz>"]
+version = "0.3.0"
+description = "Wriveted helps children find books they will love to read"
+authors = ["Brian Thorne <brian@wriveted.com>", "Joshua Landy <joshua@wriveted.com>"]
 packages = [
     {include = "app"}
 ]

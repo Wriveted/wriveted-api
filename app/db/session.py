@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Optional, Tuple
 
 import sqlalchemy
@@ -12,7 +11,6 @@ from app.config import Settings, get_settings
 logger = get_logger()
 
 
-@lru_cache()
 def database_connection(
     database_uri: str,
 ) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
@@ -45,7 +43,6 @@ def database_connection(
         pool_timeout=60,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    logger.debug("Returning sessionmaker", sessionmaker=sessionmaker)
     return engine, SessionLocal
 
 
@@ -55,8 +52,8 @@ def get_session(settings: Optional[Settings] = Depends(get_settings)):
 
     engine, SessionMaker = database_connection(settings.SQLALCHEMY_DATABASE_URI)
 
+    session: sqlalchemy.orm.Session = SessionMaker()
     try:
-        session: sqlalchemy.orm.Session = SessionMaker()
         yield session
     finally:
         session.close()

@@ -73,7 +73,6 @@ def secure_user_endpoint(
 
     # If we have gotten this far the user has a valid firebase token
     logger.debug("Auth with firebase endpoint called", firebase_user=firebase_user)
-    logger.debug("Raw claim data", raw_firebase_claims=raw_data)
     assert raw_data["email_verified"], "Firebase hasn't checked the email address"
     # Note firebase credentials may not include the users name
 
@@ -281,7 +280,7 @@ def create_student_user(
 
 
 @router.get("/auth/me", response_model=AuthenticatedAccountBrief)
-async def get_current_user(
+def get_current_user(
     token_data: TokenPayload = Depends(get_valid_token_data),
     current_user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
