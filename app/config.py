@@ -1,3 +1,4 @@
+import enum
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Union
 
@@ -121,10 +122,20 @@ class Settings(BaseSettings):
     # 2 years
     SERVICE_ACCOUNT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365 * 2
 
+    class LoggingLevel(str, enum.Enum):
+        DEBUG = "DEBUG"
+        INFO = "INFO"
+        WARNING = "WARNING"
+
+    LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
+    # Capture uvicorn's access log messages in our logging stack
+    LOG_UVICORN_ACCESS: bool = True
+    LOG_AS_JSON: bool = False
     DEBUG: bool = False
 
     class Config:
         case_sensitive = True
+        use_enum_values = True
 
 
 @lru_cache()

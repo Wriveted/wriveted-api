@@ -1,4 +1,5 @@
 import textwrap
+from importlib import metadata
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -11,8 +12,8 @@ from structlog import get_logger
 
 from app.api import api_router
 from app.config import get_settings
+from app.logging import init_logging
 
-logger = get_logger()
 api_docs = textwrap.dedent(
     """
 # 🤖 
@@ -52,7 +53,9 @@ to add new schools or edit collections.
 )
 
 settings = get_settings()
-
+init_logging(settings)
+logger = get_logger()
+logger.info("Starting Wriveted API")
 
 app = FastAPI(
     title="Wriveted API",
@@ -60,6 +63,7 @@ app = FastAPI(
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
     debug=settings.DEBUG,
+    version=metadata.version("wriveted-api"),
 )
 
 
