@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run:  ./scripts/integration-tests.sh
+      - run: ./scripts/integration-tests.sh
 
   unit-tests:
     runs-on: ubuntu-latest

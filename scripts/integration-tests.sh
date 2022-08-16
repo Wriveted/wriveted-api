@@ -3,11 +3,14 @@
 # Set bash to exit immediately on any command failure
 set -e
 
+# use test env
+source .test-env
+
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans
 docker-compose build --build-arg INSTALL_DEV=true
 
-docker-compose -e .test-env -f docker-compose.yml up -d
+docker-compose -f docker-compose.yml up -d
 docker-compose logs
 sleep 5
 
