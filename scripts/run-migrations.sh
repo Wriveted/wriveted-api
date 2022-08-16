@@ -4,4 +4,4 @@
 set -e
 
 python app/db/check_can_connect_to_db.py
-alembic upgrade head
+python alembic upgrade head
