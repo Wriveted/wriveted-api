@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -247,6 +248,7 @@ async def get_booklist_detail(
 @router.patch(
     "/list/{booklist_identifier}",
     response_model=BookListBrief,
+    responses={422: {"description": "Unprocessable request"}},
 )
 async def update_booklist(
     changes: BookListUpdateIn,
@@ -254,11 +256,21 @@ async def update_booklist(
     session: Session = Depends(get_session),
 ):
     """
-    Update a booklist
+    Update a booklist.
 
+    Can be used to alter the list metadat as well as to add, edit and remove items from the list.
     """
     logger.debug("Updating booklist", booklist=booklist)
-    updated_booklist = crud.booklist.update(db=session, db_obj=booklist, obj_in=changes)
+    try:
+        updated_booklist = crud.booklist.update(
+            db=session, db_obj=booklist, obj_in=changes
+        )
+    except IntegrityError as e:
+        logger.warning("Couldn't alter the booklist", exc_info=e)
+        return JSONResponse(
+            status_code=422, content={"message": "Booklist update wasn't possible"}
+        )
+
     return updated_booklist
 
 
