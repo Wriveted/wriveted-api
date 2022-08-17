@@ -1,6 +1,5 @@
 import textwrap
 import uuid
-from importlib import metadata
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -65,7 +64,7 @@ app = FastAPI(
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
     debug=settings.DEBUG,
-    version=metadata.version("wriveted-api"),
+    # version=metadata.version("wriveted-api"),
 )
 
 
