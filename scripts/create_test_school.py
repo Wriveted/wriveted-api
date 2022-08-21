@@ -11,6 +11,8 @@ def get_or_create_test_school(wriveted_api_host, admin_token, test_school_id=42)
         headers={"Authorization": f"Bearer {admin_token}"},
         timeout=30,
     )
+    if test_school_response.status_code > 500:
+        raise ValueError
     # test_school_response = httpx.get(
     #     f"{wriveted_api_host}/v1/schools",
     #     params={"country_code": "ATA", "official_identifier": 42},
@@ -81,6 +83,7 @@ def get_or_create_random_class(
         return httpx.get(
             f"{wriveted_api_host}/v1/class/{class_brief['id']}",
             headers={"Authorization": f"Bearer {access_token}"},
+            timeout=30,
         ).json()
 
 

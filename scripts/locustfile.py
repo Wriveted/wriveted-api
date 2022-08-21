@@ -1,7 +1,7 @@
 """
 Setup: Install all project deps with `poetry install`
 Set the environment variable `WRIVETED_API_TOKEN`
-Run: `poetry -m locust` in terminal.
+Run: `poetry run locust` in terminal.
 Open http://localhost:8089 and run a test setting the target to your local API: http://localhost:8000
 
 https://docs.locust.io/en/stable/writing-a-locustfile.html
@@ -135,9 +135,16 @@ class RootUser(HttpUser):
 
     @task
     def get_booklists_and_details(self):
+        if hasattr(self, "student_api_token"):
+            # Get recommendation as student
+            access_token = self.student_api_token
+        else:
+            # As root
+            access_token = self.access_token
+
         list_response = self.client.get(
             "/v1/lists",
-            headers={"Authorization": f"Bearer {self.access_token}"},
+            headers={"Authorization": f"Bearer {access_token}"},
             params={"list_type": "School", "limit": 5},
         )
         list_response.raise_for_status()
@@ -148,7 +155,7 @@ class RootUser(HttpUser):
 
                 list_detail_response = self.client.get(
                     f"/list/{list_brief['id']}",
-                    headers={"Authorization": f"Bearer {self.access_token}"},
+                    headers={"Authorization": f"Bearer {access_token}"},
                     name="/list/{id}",
                 )
                 list_detail_response.json()
