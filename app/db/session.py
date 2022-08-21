@@ -1,7 +1,7 @@
-from typing import Optional, Tuple
+from functools import lru_cache
+from typing import Tuple
 
 import sqlalchemy
-from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
@@ -46,13 +46,18 @@ def database_connection(
     return engine, SessionLocal
 
 
-def get_session(settings: Optional[Settings] = Depends(get_settings)):
+@lru_cache()
+def get_session_maker(settings: Settings = None):
     if settings is None:
         settings = get_settings()
 
-    engine, SessionMaker = database_connection(settings.SQLALCHEMY_DATABASE_URI)
+    engine, SessionLocal = database_connection(settings.SQLALCHEMY_DATABASE_URI)
+    return SessionLocal
 
-    session: sqlalchemy.orm.Session = SessionMaker()
+
+def get_session():
+    session_maker = get_session_maker()
+    session: sqlalchemy.orm.Session = session_maker()
     try:
         yield session
     finally:
