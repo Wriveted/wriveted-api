@@ -28,10 +28,10 @@ def database_connection(
         database_uri,
         # Pool size is the maximum number of permanent connections to keep.
         # defaults to 5
-        pool_size=5,
+        pool_size=10,
         # Temporarily exceeds the set pool_size if no connections are available.
         # Default is 10
-        max_overflow=5,
+        max_overflow=10,
         # 'pool_recycle' is the maximum number of seconds a connection can persist.
         # Connections that live longer than the specified amount of time will be
         # reestablished on checkout.
