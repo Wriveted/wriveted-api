@@ -63,6 +63,9 @@ async def get_works(
 
     if isbn is not None:
         works_query = works_query.where(Work.editions.any(Edition.isbn == isbn))
+    else:
+        # Ensure there is one or more editions...
+        works_query = works_query.where(Work.editions.any())
 
     works = (
         session.execute(
