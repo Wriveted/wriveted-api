@@ -89,11 +89,12 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         if data.hue_origin and (
             data.hue_primary_key or data.hue_secondary_key or data.hue_tertiary_key
         ):
-            # we only want to patch the hues if there were previously none, or if the origin of any new ones holds more authority
+            # we only want to patch the hues if there were previously none, or if the origin of any
+            # new ones holds at least as much authority
             if (
                 labelset.hue_origin is None
                 or ORIGIN_WEIGHTS[labelset.hue_origin]
-                < ORIGIN_WEIGHTS[data.hue_origin.name]
+                <= ORIGIN_WEIGHTS[data.hue_origin.name]
             ):
                 # get any hues currently assigned to this labelset, including ordinal
                 labelset_hues: list[
@@ -156,7 +157,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if (
                 labelset.age_origin is None
                 or ORIGIN_WEIGHTS[labelset.age_origin]
-                < ORIGIN_WEIGHTS[data.age_origin.name]
+                <= ORIGIN_WEIGHTS[data.age_origin.name]
             ):
                 if data.min_age:
                     labelset.min_age = data.min_age
@@ -170,7 +171,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if (
                 labelset.reading_ability_origin is None
                 or ORIGIN_WEIGHTS[labelset.reading_ability_origin]
-                < ORIGIN_WEIGHTS[data.reading_ability_origin.name]
+                <= ORIGIN_WEIGHTS[data.reading_ability_origin.name]
             ):
                 reading_abilities = [
                     self.get_reading_ability_by_key(db, key)
@@ -186,7 +187,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if (
                 labelset.recommend_status_origin is None
                 or ORIGIN_WEIGHTS[labelset.recommend_status_origin]
-                < ORIGIN_WEIGHTS[data.recommend_status_origin.name]
+                <= ORIGIN_WEIGHTS[data.recommend_status_origin.name]
             ):
                 labelset.recommend_status = data.recommend_status
                 labelset.recommend_status_origin = data.recommend_status_origin
@@ -206,7 +207,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if (
                 labelset.summary_origin is None
                 or ORIGIN_WEIGHTS[labelset.summary_origin]
-                < ORIGIN_WEIGHTS[data.summary_origin.name]
+                <= ORIGIN_WEIGHTS[data.summary_origin.name]
             ):
                 labelset.huey_summary = data.huey_summary
                 labelset.summary_origin = data.summary_origin
