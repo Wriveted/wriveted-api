@@ -63,7 +63,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
 
     def create_or_update_labelset_hue(
         self, db: Session, labelset_id: str, hue_id: str, ordinal: Ordinal
-    ) -> LabelSetHue:
+    ):
         lsh = select(LabelSetHue).where(
             and_(
                 LabelSetHue.labelset_id == labelset_id,
