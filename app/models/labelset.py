@@ -26,7 +26,7 @@ class RecommendStatus(str, enum.Enum):
     GOOD = "GOOD"  # Good to Recommend
     BAD_BORING = "BAD_BORING"  # Too boring
     BAD_REFERENCE = "BAD_REFERENCE"  # Reference/Education book
-    BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL"  # Contoversial content
+    BAD_CONTROVERSIAL = "BAD_CONTROVERSIAL"  # Controversial content
     BAD_LOW_QUALITY = "BAD_LOW_QUALITY"  # Not a great example
 
 
@@ -54,6 +54,13 @@ class LabelSet(Base):
         ForeignKey("works.id", name="fk_labelset_work"), nullable=True, index=True
     )
     work = relationship("Work", back_populates="labelset")
+
+    # Create an index used to find the most recent labelsets for a work
+    Index(
+        "index_work_labelsets",
+        work_id,
+        id.desc(),
+    )
 
     # Handle Multiple Hues via a secondary association table,
     # discerned via an 'ordinal' (primary/secondary/tertiary)
