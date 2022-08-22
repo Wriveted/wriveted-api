@@ -50,9 +50,11 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
     def get_or_create(self, db: Session, work: Work, commit=True) -> LabelSet:
 
         labelset = work.labelset
+
         if not labelset:
             labelset = LabelSet(work=work)
             db.add(labelset)
+            logger.info("Creating new labelset", labelset=labelset, work=work)
             if commit:
                 db.commit()
 
@@ -199,7 +201,8 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                 if not data.info:
                     data.info = {}
                 labelset.info["genres"] = data.info["genres"]
-            except:
+            except Exception as e:
+                logger.warning("Some error was ignored", exc_info=e)
                 pass
 
         # now summary

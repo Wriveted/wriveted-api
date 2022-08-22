@@ -43,7 +43,7 @@ def settings():
 
 @pytest.fixture(scope="session")
 def session(settings):
-    session = next(get_session(settings=settings))
+    session = next(get_session())
     return session
 
 
@@ -163,6 +163,16 @@ def test_schooladmin_account_token(test_schooladmin_account):
 
 
 @pytest.fixture()
+def test_student_user_account_token(test_student_user_account):
+    print("Generating auth token")
+    access_token = create_access_token(
+        subject=f"wriveted:user-account:{test_student_user_account.id}",
+        expires_delta=timedelta(minutes=5),
+    )
+    return access_token
+
+
+@pytest.fixture()
 def test_wrivetedadmin_account_token(test_wrivetedadmin_account):
     print("Generating auth token")
     access_token = create_access_token(
@@ -180,6 +190,11 @@ def backend_service_account_headers(backend_service_account_token):
 @pytest.fixture()
 def test_user_account_headers(test_user_account_token):
     return {"Authorization": f"bearer {test_user_account_token}"}
+
+
+@pytest.fixture()
+def test_student_user_account_headers(test_student_user_account_token):
+    return {"Authorization": f"bearer {test_student_user_account_token}"}
 
 
 @pytest.fixture()
