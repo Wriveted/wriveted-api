@@ -2,7 +2,7 @@ import logging
 
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
-from app.config import Settings, get_settings
+from app.config import get_settings
 from app.db.session import get_session
 
 logging.basicConfig(level=logging.INFO)
@@ -18,9 +18,10 @@ wait_seconds = 1
     before=before_log(logger, logging.DEBUG),
     after=after_log(logger, logging.INFO),
 )
-def check_can_connect_to_database(config: Settings) -> None:
-    session_generator = get_session(config)
+def check_can_connect_to_database() -> None:
+    session_generator = get_session()
     session = next(session_generator)
+    logger.debug(f"Session: {session}")
     try:
         logger.debug("Checking DB is awake and accepting connections")
         session.execute("SELECT 1")
@@ -32,7 +33,8 @@ def check_can_connect_to_database(config: Settings) -> None:
 
 def check_database_ready_with_retry(config):
     logger.info("Waiting for database to accept connections")
-    check_can_connect_to_database(config)
+    logger.info(config)
+    check_can_connect_to_database()
     logger.info("Database ready")
 
 
