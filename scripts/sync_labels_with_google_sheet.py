@@ -102,13 +102,13 @@ def main():
         "Age (min)",
         "Age (Max)",
         "Reading Ability",
+        "Huey Summary",
         "Pages",
         "Title",
         "Authors",
         "Illustrators",
         "Date Published",
         "Admin Link",
-        "Huey Summary",
     ]
     update_sheet_data(sheets_service, OUTPUT_HEADINGS_RANGE, [headings])
 
@@ -208,13 +208,13 @@ def main():
                     min_age,
                     max_age,
                     reading_abilities,
+                    huey_summary,
                     pages,
                     title,
                     authors,
                     illustrators,
                     published,
                     f"https://api.wriveted.com/work/{work_id}/",
-                    huey_summary,
                 ]
             ],
         )
