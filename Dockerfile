@@ -9,7 +9,8 @@ ENV PYTHONUNBUFFERED=True \
     PIP_NO_CACHE_DIR=1 \
     POETRY_NO_INTERACTION=1 \
     PYTHONPATH=/app \
-    PORT=8000
+    PORT=8000 \
+    UVICORN_PORT=8000
 
 # Install Poetry
 # hadolint ignore=DL3013
@@ -40,13 +41,11 @@ COPY app/ /app/app
 
 # Now install the application itself
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
-               poetry install --no-interaction --no-root --no-ansi; \
+               poetry install --no-interaction --no-ansi; \
              else \
-               poetry install --no-interaction --no-root --no-ansi --no-dev; \
+               poetry install --no-interaction --no-ansi --no-dev; \
              fi; \
              rm -rf ~/.cache/pypoetry/{cache,artifacts}"
 
-# If we would rather have multiple processes in our container
-# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-# hadolint ignore=DL3025
-CMD gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app.main:app --timeout 0
+# Port is set via the env var `UVICORN_PORT`
+CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0"]
