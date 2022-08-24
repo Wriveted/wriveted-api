@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
         query = None
         # Connect to Cloud SQL using unix socket instead of TCP socket
-        # https://cloud.google.com/sql/docs/postgres/connect-run?authuser=1#connecting_to
+        # https://cloud.google.com/sql/docs/postgres/connect-run#connecting_to
         socket_path = values.get("POSTGRESQL_DATABASE_SOCKET_PATH")
 
         if socket_path is not None:
@@ -65,6 +65,20 @@ class Settings(BaseSettings):
             path=db_name,
             query=query,
         )
+
+    SQLALCHEMY_CONNECT_ARGS: Dict[str, Any] = {
+        # Enable client-side TCP keep-alive messages.
+        "keepalives": 1,
+        # number of seconds of inactivity after which TCP should send a keep-alive message to the
+        # server
+        "keepalives_idle": 600,
+        # number of seconds after which a TCP keep-alive message that is not acknowledged by the
+        # server should be retransmitted
+        "keepalives_interval": 60,
+        # the number of TCP keep-alives that can be lost before the client's connection to the server
+        # is considered dead
+        "keepalives_count": 10,
+    }
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
