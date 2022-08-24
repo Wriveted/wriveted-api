@@ -67,8 +67,8 @@ class Settings(BaseSettings):
         )
 
     SQLALCHEMY_CONNECT_ARGS: Dict[str, Any] = {
-        # time interval in ms between optional checks that the client is still connected
-        "client_connection_check_interval": 30_000,
+        # https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
+
     }
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
