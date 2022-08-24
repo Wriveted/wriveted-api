@@ -1,12 +1,17 @@
+import json
 from datetime import datetime
 from json import loads
-import json
 from typing import Container, ItemsView
-from python_http_client.client import Response
 from urllib.error import HTTPError
-from structlog import get_logger
-from sendgrid.helpers.mail import Mail, From
+
+from pydantic import EmailStr, parse_obj_as
+from python_http_client.client import Response
+from python_http_client.exceptions import NotFoundError
 from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import From, Mail
+from sqlalchemy.orm import Session
+from structlog import get_logger
+
 from app import crud
 from app.config import get_settings
 from app.models.service_account import ServiceAccount
@@ -17,10 +22,6 @@ from app.schemas.sendgrid import (
     SendGridCustomField,
     SendGridEmailData,
 )
-from sqlalchemy.orm import Session
-from pydantic import EmailStr, parse_obj_as
-from python_http_client.exceptions import NotFoundError
-
 from app.schemas.shopify import ShopifyEventRoot
 
 logger = get_logger()

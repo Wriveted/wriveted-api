@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -12,8 +12,7 @@ logger = get_logger()
 
 
 def database_connection(
-    database_uri: str,
-    connect_args: Dict[str, any] = None
+    database_uri: str, connect_args: Dict[str, any] = None
 ) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
     # Ref: https://docs.sqlalchemy.org/en/14/core/pooling.html
     """
@@ -47,7 +46,6 @@ def database_connection(
         # new connection from the pool. After the specified amount of time, an
         # exception will be thrown.
         pool_timeout=60,
-
         # Finally pass any low level arguments directly to psycopg/libpq
         # https://www.psycopg.org/docs/module.html#psycopg2.connect
         # https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
@@ -62,7 +60,9 @@ def get_session_maker(settings: Settings = None):
     if settings is None:
         settings = get_settings()
 
-    engine, SessionLocal = database_connection(settings.SQLALCHEMY_DATABASE_URI, settings.SQLALCHEMY_CONNECT_ARGS)
+    engine, SessionLocal = database_connection(
+        settings.SQLALCHEMY_DATABASE_URI, settings.SQLALCHEMY_CONNECT_ARGS
+    )
     return SessionLocal
 
 

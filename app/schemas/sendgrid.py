@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, validator
+
 from app.config import get_settings
 
 config = get_settings()
