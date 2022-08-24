@@ -67,17 +67,8 @@ class Settings(BaseSettings):
         )
 
     SQLALCHEMY_CONNECT_ARGS: Dict[str, Any] = {
-        # Enable client-side TCP keep-alive messages.
-        "keepalives": 1,
-        # number of seconds of inactivity after which TCP should send a keep-alive message to the
-        # server
-        "keepalives_idle": 600,
-        # number of seconds after which a TCP keep-alive message that is not acknowledged by the
-        # server should be retransmitted
-        "keepalives_interval": 60,
-        # the number of TCP keep-alives that can be lost before the client's connection to the server
-        # is considered dead
-        "keepalives_count": 10,
+        # time interval in ms between optional checks that the client is still connected
+        "client_connection_check_interval": 30_000,
     }
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
