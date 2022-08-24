@@ -21,10 +21,15 @@ def database_connection(
     Note Cloud SQL instance has a limited number of connections:
     Currently: 25 in non-prod and 100 in prod.
 
+    Cloud Run services are limited to 100 connections to a Cloud SQL
+    database. This limit applies per service instance.
+
     The settings here need to be considered along with concurrency settings in
     Cloud Run - how many containers will be brought up, and how many requests
     can they each serve.
     """
+    if connect_args is None:
+        connect_args = {}
     engine = create_engine(
         database_uri,
         # Pool size is the maximum number of permanent connections to keep.
