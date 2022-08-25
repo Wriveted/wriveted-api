@@ -1,5 +1,6 @@
-from ...schemas.sendgrid import SendGridContactData
 from app.services.commerce import sendgrid_contact_response_to_obj
+
+from ...schemas.sendgrid import SendGridContactData
 
 
 def test_sendgrid_email_search_to_contact(sendgrid_email_search_response):

@@ -1,12 +1,11 @@
 import base64
-from datetime import timedelta
 import hashlib
 import hmac
 import secrets
-import json
+from datetime import timedelta
 from typing import Optional, Union
 
-from fastapi import Body, Depends, HTTPException, Header, Request
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,

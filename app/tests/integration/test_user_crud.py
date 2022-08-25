@@ -1,7 +1,6 @@
 from datetime import date
 
 import pytest
-from pydantic import ValidationError
 from sqlalchemy import select
 
 from app import crud

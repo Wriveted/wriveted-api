@@ -3,18 +3,26 @@ from fastapi import (
     BackgroundTasks,
     Body,
     Depends,
+    HTTPException,
     Query,
     Response,
-    HTTPException,
 )
+from sendgrid import SendGridAPIClient
+from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     verify_shopify_hmac,
 )
 from app.config import get_settings
-from sqlalchemy.orm import Session
 from app.db.session import get_session
+from app.schemas.sendgrid import (
+    CustomSendGridContactData,
+    SendGridContactData,
+    SendGridCustomField,
+    SendGridEmailData,
+)
 from app.schemas.shopify import ShopifyEventRoot
 from app.services.commerce import (
     get_sendgrid_api,
@@ -23,13 +31,6 @@ from app.services.commerce import (
     upsert_sendgrid_contact,
     validate_sendgrid_custom_fields,
 )
-from app.schemas.sendgrid import (
-    SendGridCustomField,
-    SendGridEmailData,
-    SendGridContactData,
-    CustomSendGridContactData,
-)
-from sendgrid import SendGridAPIClient
 
 router = APIRouter(tags=["Commerce"])
 
