@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
         query = None
         # Connect to Cloud SQL using unix socket instead of TCP socket
-        # https://cloud.google.com/sql/docs/postgres/connect-run#connecting_to
+        # https://cloud.google.com/sql/docs/postgres/connect-run?authuser=1#connecting_to
         socket_path = values.get("POSTGRESQL_DATABASE_SOCKET_PATH")
 
         if socket_path is not None:
@@ -65,10 +65,6 @@ class Settings(BaseSettings):
             path=db_name,
             query=query,
         )
-
-    SQLALCHEMY_CONNECT_ARGS: Dict[str, Any] = {
-        # https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
-    }
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
