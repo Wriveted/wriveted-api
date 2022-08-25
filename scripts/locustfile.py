@@ -22,7 +22,7 @@ root_access_token = os.environ.get("WRIVETED_API_TOKEN")
 class RootUser(HttpUser):
 
     # make the simulated users wait between this many seconds after each task
-    wait_time = between(1, 5)
+    wait_time = between(0.5, 3)
 
     def on_start(self):
         self.access_token = root_access_token
@@ -32,6 +32,9 @@ class RootUser(HttpUser):
             self.client.base_url, root_access_token, self.school_wriveted_id
         )
         self.class_group_id = self.class_info["id"]
+
+        if random.random() < 0.9:
+            self.register_student_and_login()
 
     @task
     def test_token(self):
@@ -59,7 +62,7 @@ class RootUser(HttpUser):
         class_group_info.raise_for_status()
         assert "student_count" in class_group_info.json()
 
-    @task
+
     def register_student_and_login(self):
         if not hasattr(self, "username"):
             new_student_response = self.client.post(
@@ -135,7 +138,8 @@ class RootUser(HttpUser):
 
     @task
     def get_booklists_and_details(self):
-        if hasattr(self, "student_api_token"):
+        is_student = hasattr(self, "student_api_token")
+        if is_student:
             # Get recommendation as student
             access_token = self.student_api_token
         else:
@@ -151,7 +155,7 @@ class RootUser(HttpUser):
         list_briefs = list_response.json()["data"]
 
         for list_brief in list_briefs:
-            if random.random() > 0.8:
+            if is_student and random.random() > 0.8:
 
                 list_detail_response = self.client.get(
                     f"/list/{list_brief['id']}",
