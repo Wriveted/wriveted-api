@@ -62,7 +62,7 @@ def get_or_create_random_class(
         f"{wriveted_api_host}/v1/classes",
         params={"school_id": school_wriveted_identifier, "limit": 10},
         headers={"Authorization": f"Bearer {access_token}"},
-        timeout=30,
+        timeout=60,
     ).json()["data"]
     if len(school_classes) < 10:
         print("Creating a new class")
@@ -73,7 +73,7 @@ def get_or_create_random_class(
                 # "school_id": school_wriveted_identifier,
             },
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=30,
+            timeout=60,
         ).json()
         print("new class", new_class)
         return new_class
@@ -83,7 +83,7 @@ def get_or_create_random_class(
         return httpx.get(
             f"{wriveted_api_host}/v1/class/{class_brief['id']}",
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=30,
+            timeout=60,
         ).json()
 
 
