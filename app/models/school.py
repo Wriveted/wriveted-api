@@ -153,9 +153,7 @@ class School(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<School '{self.name}' ({self.official_identifier} - {self.country.name})>"
-        )
+        return f"<School '{self.name}' ({self.official_identifier})>"
 
     def __acl__(self):
         """defines who can do what to the instance
