@@ -27,7 +27,9 @@ class Reader(User):
         nullable=True,
         index=True,
     )
-    parent = relationship("Parent", backref="children", foreign_keys=[parent_id])
+    parent = relationship(
+        "Parent", backref="children", foreign_keys=[parent_id], lazy="selectin"
+    )
 
     # reading_ability, age, last_visited, etc
     huey_attributes = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
