@@ -180,7 +180,7 @@ async def get_recommendations_with_fallback(
                 "query_parameters": query_parameters,
                 "fallback_level": fallback_level,
             },
-            school=school,
+            school_id=school_id,
             account=account,
         )
     else:
@@ -194,7 +194,7 @@ async def get_recommendations_with_fallback(
                     "query_parameters": query_parameters,
                     "fallback_level": fallback_level,
                 },
-                school=school,
+                school_id=school_id,
                 account=account,
             )
     return recommended_books, query_parameters

@@ -22,21 +22,26 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         info: dict = None,
         level: EventLevel = EventLevel.NORMAL,
         school: School = None,
+        school_id: int = None,
         account: Union[ServiceAccount, User] = None,
         commit: bool = True,
     ):
+        if school_id is None and school is not None:
+            school_id = school.id
+
         description = description or ""
         info = info or {}
-        user = account if isinstance(account, User) else None
-        service_account = account if isinstance(account, ServiceAccount) else None
+        user_id = account.id if isinstance(account, User) else None
+        service_account_id = account.id if isinstance(account, ServiceAccount) else None
         info["description"] = description
+
         event = Event(
             title=title,
             info=info,
             level=level,
-            school=school,
-            user=user,
-            service_account=service_account,
+            school_id=school_id,
+            user_id=user_id,
+            service_account_id=service_account_id,
         )
         session.add(event)
         if commit:
@@ -47,9 +52,9 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         logger.info(
             f"{title}\n{description}",
             level=level,
-            school=school,
-            user=user,
-            service_account=service_account,
+            school_id=school_id,
+            user_id=user_id,
+            service_account_id=service_account_id,
         )
         return event
 
