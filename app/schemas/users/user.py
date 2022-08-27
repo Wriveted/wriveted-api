@@ -3,10 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, validator
-from sqlalchemy.orm.dynamic import AppenderQuery
+from pydantic import AnyHttpUrl, BaseModel
 
-from app.schemas.event import EventBrief
 from app.schemas.users.user_identity import UserBrief
 
 
@@ -37,12 +35,7 @@ class UserDetail(UserBrief):
 
     created_at: datetime
     updated_at: datetime
-    events: list[EventBrief]
     newsletter: bool
-
-    @validator("events", pre=True)
-    def limit_events(cls, v):
-        return v[:10] if isinstance(v, AppenderQuery) else v
 
 
 class UsersSchool(BaseModel):
