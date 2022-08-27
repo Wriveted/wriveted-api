@@ -39,7 +39,9 @@ class Student(Reader):
         nullable=False,
         index=True,
     )
-    school = relationship("School", backref="students", foreign_keys=[school_id])
+    school = relationship(
+        "School", backref="students", foreign_keys=[school_id], lazy="selectin"
+    )
 
     class_group_id = Column(
         UUID(as_uuid=True),
@@ -50,7 +52,10 @@ class Student(Reader):
         index=True,
     )
     class_group = relationship(
-        "ClassGroup", back_populates="students", foreign_keys=[class_group_id]
+        "ClassGroup",
+        back_populates="students",
+        foreign_keys=[class_group_id],
+        lazy="selectin",
     )
 
     # class_history? other misc
