@@ -114,7 +114,7 @@ def new_random_username(
 
 
 def new_identifiable_username(
-    first_name: str, last_name_initial: str, session, school_id: int
+    first_name: str, last_name_initial: str, db, school_id: int
 ):
     """
     Generates a new identifiable username using Reader's first name and initial of last name,
@@ -129,14 +129,15 @@ def new_identifiable_username(
     attempts_remaining = 1000
 
     while not username_valid and attempts_remaining > 0:
-        username = username_base + str(random.randint(10, 99))
-        username_valid = (
-            username
-            and crud.user.get_student_by_username_and_school_id(
-                session, username, school_id
+        username = username_base + str(random.randint(10, 999))
+        with db as session:
+            username_valid = (
+                username
+                and crud.user.get_student_by_username_and_school_id(
+                    session, username, school_id
+                )
+                is None
             )
-            is None
-        )
         attempts_remaining -= 1
 
     if attempts_remaining == 0:
