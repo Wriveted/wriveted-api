@@ -66,47 +66,49 @@ async def get_filtered_classes(
     query: str = Query(None, description="Search for class by name"),
     pagination: PaginatedQueryParams = Depends(),
     principals: List = Depends(get_active_principals),
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """
     Retrieve a filtered list of classes.
 
     🔒 The classes returned will be filtered depending on your user account privileges.
     """
+    with db as session:
+        # We will filter the classes before returning them, but we want to avoid
+        # querying the database for all classes if the user isn't allowed to get them.
+        if school_id is None:
+            # Only admins can get classes for all schools
+            if "role:admin" not in principals:
+                logger.warning("Denying request by non admin user for all classes")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"The current account is not allowed to request all classes."
+                    f" Try filtering by your school.",
+                )
 
-    # We will filter the classes before returning them, but we want to avoid
-    # querying the database for all classes if the user isn't allowed to get them.
-    if school_id is None:
-        # Only admins can get classes for all schools
-        if "role:admin" not in principals:
-            logger.warning("Denying request by non admin user for all classes")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to request all classes."
-                f" Try filtering by your school.",
+            school = None
+        else:
+            school = crud.school.get_by_wriveted_id_or_404(
+                db=session, wriveted_id=school_id
             )
+            if not has_permission(principals, "read", school):
+                logger.warning(
+                    "Lack of read permission on school", target_school=school
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"The current account is not allowed to view classes associated with that school",
+                )
+        # At this point we know that we have either a school id, or the request is from an admin
+        # In both cases we are allowed to "read" the school.
 
-        school = None
-    else:
-        school = crud.school.get_by_wriveted_id_or_404(
-            db=session, wriveted_id=school_id
+        class_list = crud.class_group.get_all_with_optional_filters(
+            session,
+            query_string=query,
+            school=school,
+            skip=pagination.skip,
+            limit=pagination.limit,
         )
-        if not has_permission(principals, "read", school):
-            logger.warning("Lack of read permission on school", target_school=school)
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to view classes associated with that school",
-            )
-    # At this point we know that we have either a school id, or the request is from an admin
-    # In both cases we are allowed to "read" the school.
-
-    class_list = crud.class_group.get_all_with_optional_filters(
-        session,
-        query_string=query,
-        school=school,
-        skip=pagination.skip,
-        limit=pagination.limit,
-    )
 
     # # We may not need this - we could assume we have class read permission via the school
     filtered_class_list = [
