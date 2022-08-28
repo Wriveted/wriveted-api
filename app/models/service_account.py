@@ -43,6 +43,7 @@ class ServiceAccount(Base):
         "School",
         secondary=service_account_school_association_table,
         back_populates="service_accounts",
+        lazy="selectin",
     )
 
     booklists = relationship(
