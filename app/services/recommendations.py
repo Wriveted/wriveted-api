@@ -4,7 +4,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import aliased
 from structlog import get_logger
 
-from app import crud
 from app.models import (
     CollectionItem,
     Edition,
@@ -21,7 +20,6 @@ logger = get_logger()
 
 
 def get_recommended_labelset_query(
-    session,
     hues: Optional[list[str]] = None,
     school_id: Optional[int] = None,
     age: Optional[int] = None,
@@ -62,11 +60,10 @@ def get_recommended_labelset_query(
     # Now add the optional filters
     if school_id is not None:
         # Filter for works in a school collection
-        school = crud.school.get_or_404(db=session, id=school_id)
         query = (
             query.join(
                 CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-            ).where(CollectionItem.school == school)
+            ).where(CollectionItem.school_id == school_id)
             # Could order by other things, but consider indexes
             # .order_by(Work.id, CollectionItem.copies_available.desc())
         )
