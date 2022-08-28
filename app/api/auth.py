@@ -285,32 +285,32 @@ def get_current_user(
     current_user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
+    db: Session = Depends(get_session),
 ):
     """
     Test that the presented credentials are valid, returning details on the logged in user or service account.
     """
     logger.debug("Testing user token", account=current_user_or_service_account)
+
     if isinstance(current_user_or_service_account, User):
-        match current_user_or_service_account.type:
-            case UserAccountType.STUDENT:
-                user_detail = StudentDetail.from_orm(current_user_or_service_account)
-            case UserAccountType.WRIVETED:
-                user_detail = WrivetedAdminDetail.from_orm(
-                    current_user_or_service_account
-                )
-            case UserAccountType.EDUCATOR:
-                user_detail = EducatorDetail.from_orm(current_user_or_service_account)
-            case UserAccountType.SCHOOL_ADMIN:
-                user_detail = SchoolAdminDetail.from_orm(
-                    current_user_or_service_account
-                )
+        with db as session:
+            user = crud.user.get(session, id=current_user_or_service_account.id)
+            match user.type:
+                case UserAccountType.STUDENT:
+                    user_detail = StudentDetail.from_orm(user)
+                case UserAccountType.WRIVETED:
+                    user_detail = WrivetedAdminDetail.from_orm(user)
+                case UserAccountType.EDUCATOR:
+                    user_detail = EducatorDetail.from_orm(user)
+                case UserAccountType.SCHOOL_ADMIN:
+                    user_detail = SchoolAdminDetail.from_orm(user)
 
-            # case UserAccountType.PARENT:
-            #     user_detail =
-            # ...
+                # case UserAccountType.PARENT:
+                #     user_detail =
+                # ...
 
-            case _:
-                user_detail = UserDetail.from_orm(current_user_or_service_account)
+                case _:
+                    user_detail = UserDetail.from_orm(user)
 
         return AuthenticatedAccountBrief(
             account_type=AccountType.user,
@@ -319,10 +319,11 @@ def get_current_user(
         )
 
     elif isinstance(current_user_or_service_account, ServiceAccount):
-        return AuthenticatedAccountBrief(
-            account_type=AccountType.service_account,
-            service_account=current_user_or_service_account,
-            token_expiry=token_data.exp,
-        )
+        with db as session:
+            return AuthenticatedAccountBrief(
+                account_type=AccountType.service_account,
+                service_account=current_user_or_service_account,
+                token_expiry=token_data.exp,
+            )
     else:
         raise NotImplemented("Hmm")
