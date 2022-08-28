@@ -301,26 +301,29 @@ async def add_school(
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
-    try:
-        school_orm = crud.school.create(db=session, obj_in=school, commit=False)
-        school_orm.info["experiments"] = get_experiments(school=school_orm)
-        session.commit()
-        crud.event.create(
-            session=session,
-            title="New school created",
-            description=f"{account.name} created school '{school.name}'",
-            school=school_orm,
-            account=account,
-        )
-        return school_orm
-    except IntegrityError as e:
-        logger.warning("Database integrity error while adding school", exc_info=e)
-        raise HTTPException(
-            status_code=422,
-            detail="Couldn't add school to database. It might already exist? Check the country code.",
-        )
+    with db as session:
+        try:
+            school_orm = crud.school.create(db=session, obj_in=school, commit=False)
+            school_orm.info["experiments"] = get_experiments(school=school_orm)
+            session.commit()
+            session.refresh(school_orm)
+
+            crud.event.create(
+                session=session,
+                title="New school created",
+                description=f"{account.name} created school '{school.name}'",
+                school_id=school_orm.id,
+                account=account,
+            )
+            return SchoolDetail.from_orm(school_orm)
+        except IntegrityError as e:
+            logger.warning("Database integrity error while adding school", exc_info=e)
+            raise HTTPException(
+                status_code=422,
+                detail="Couldn't add school to database. It might already exist? Check the country code.",
+            )
 
 
 @router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)
