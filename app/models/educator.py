@@ -1,3 +1,4 @@
+import sqlalchemy.orm.exc
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Column, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
@@ -34,7 +35,10 @@ class Educator(User):
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
-        return f"<Educator {self.name} - {self.school} - {active}>"
+        try:
+            return f"<Educator {self.name} - {self.school} - {active}>"
+        except sqlalchemy.orm.exc.DetachedInstanceError:
+            return f"<Educator {self.id} (detached)>"
 
     def __acl__(self):
         """defines who can do what to the instance
