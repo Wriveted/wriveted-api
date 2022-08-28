@@ -1,7 +1,7 @@
 import json
 from typing import Any, Optional, Tuple
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -31,10 +31,9 @@ config = get_settings()
 @router.post("/recommend", response_model=HueyOutput)
 async def get_recommendations(
     data: HueyRecommendationFilter,
-    background_tasks: BackgroundTasks,
     limit: Optional[int] = Query(5, description="Maximum number of items to return"),
     account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """
     Fetch labeled works as recommended by Huey.
@@ -42,23 +41,22 @@ async def get_recommendations(
     Note this endpoint returns recommendations in a random order.
     """
     logger.info("Recommendation endpoint called", parameters=data)
-
-    if data.wriveted_identifier is not None:
-        school = crud.school.get_by_wriveted_id_or_404(
-            db=session, wriveted_id=data.wriveted_identifier
-        )
+    with db as session:
+        if data.wriveted_identifier is not None:
+            school = crud.school.get_by_wriveted_id_or_404(
+                db=session, wriveted_id=data.wriveted_identifier
+            )
         # TODO check account is allowed to `read` school
-    else:
-        school = None
+        else:
+            school = None
 
-    recommended_books, query_parameters = await get_recommendations_with_fallback(
-        session,
-        account,
-        school,
-        data=data,
-        background_tasks=background_tasks,
-        limit=limit,
-    )
+        recommended_books, query_parameters = await get_recommendations_with_fallback(
+            session,
+            account,
+            school,
+            data=data,
+            limit=limit,
+        )
     return HueyOutput(
         count=len(recommended_books),
         query=query_parameters,
@@ -67,11 +65,10 @@ async def get_recommendations(
 
 
 async def get_recommendations_with_fallback(
-    session,
+    session: Session,
     account,
     school: School,
     data: HueyRecommendationFilter,
-    background_tasks: BackgroundTasks,
     limit=5,
 ) -> Tuple[list[HueyBook], Any]:
     """
@@ -170,8 +167,7 @@ async def get_recommendations_with_fallback(
             json.loads(b.json()) for b in recommended_books[:10]
         ]
 
-        background_tasks.add_task(
-            crud.event.create,
+        crud.event.create(
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(recommended_books)} books",
@@ -185,8 +181,7 @@ async def get_recommendations_with_fallback(
         )
     else:
         if len(row_results) == 0:
-            background_tasks.add_task(
-                crud.event.create,
+            crud.event.create(
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
@@ -211,7 +206,6 @@ def get_recommended_editions_and_labelsets(
     limit=5,
 ):
     query = get_recommended_labelset_query(
-        session,
         hues=hues,
         school_id=school_id,
         age=age,
