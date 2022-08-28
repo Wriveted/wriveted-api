@@ -42,7 +42,10 @@ def test_list_schools_filter_by_collection(
 ):
     response = client.get(
         "v1/schools",
-        params={"connected_collection": True},
+        params={
+            "connected_collection": True,
+            "official_identifier": test_school_with_collection.official_identifier,
+        },
         headers=backend_service_account_headers,
     )
     assert response.status_code == status.HTTP_200_OK

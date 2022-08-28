@@ -366,16 +366,21 @@ def test_isbns():
 
 @pytest.fixture()
 def test_unhydrated_editions(client, session, test_isbns):
-    # Create a few editions
+    # Create a few editions - note they might already exist
+    existing_editions = crud.edition.get_multi(db=session, ids=test_isbns)
+    created_edition_isbns = set(test_isbns).difference(
+        e.isbn for e in existing_editions
+    )
     editions = [
         crud.edition.get_or_create_unhydrated(db=session, isbn=isbn)
-        for isbn in test_isbns
+        for isbn in created_edition_isbns
     ]
 
-    yield editions
+    yield editions + existing_editions
 
-    for e in editions:
-        crud.edition.remove(db=session, id=e.isbn)
+    for isbn in created_edition_isbns:
+
+        crud.edition.remove(db=session, id=isbn)
 
 
 @pytest.fixture()
