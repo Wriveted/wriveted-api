@@ -201,6 +201,7 @@ def student_user_auth(
         title="User logged in",
         description="Student logged in",
         account=user,
+        school_id=school.id,
         level=EventLevel.DEBUG,
         commit=False,
     )

@@ -107,3 +107,15 @@ def test_register_students_by_class_code_then_login(
         response = client.get("v1/auth/me", headers=headers)
         assert response.status_code == 200
         assert response.json()["user"]["username"] == new_user_data["username"]
+
+        list_classes_response = client.get(
+            "v1/classes",
+            params={
+                "school_id": str(test_class_group.school_id),
+            },
+            headers=headers,
+        )
+        assert list_classes_response.status_code == 200
+        payload = list_classes_response.json()
+        assert "data" in payload
+        assert len(payload["data"]) > 0
