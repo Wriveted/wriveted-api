@@ -1,4 +1,5 @@
 import platform
+from functools import lru_cache
 from importlib import metadata
 from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
@@ -21,14 +22,20 @@ class Version(BaseModel):
 router = APIRouter()
 
 
-@router.get("/version", response_model=Version)
-async def get_version(session: Session = Depends(get_session)):
-    database_context = MigrationContext.configure(session.connection())
-    current_db_rev = database_context.get_current_revision()
+@lru_cache()
+def get_db_revision(db: Session):
+    with db as session:
+        connection = session.connection()
+        database_context = MigrationContext.configure(connection)
+        current_db_rev = database_context.get_current_revision()
 
     if current_db_rev is None:
         current_db_rev = "development"
+    return current_db_rev
 
+
+@router.get("/version", response_model=Version)
+async def get_version(db: Session = Depends(get_session)):
     try:
         application_version = metadata.version("wriveted-api")
     except PackageNotFoundError:
@@ -36,7 +43,7 @@ async def get_version(session: Session = Depends(get_session)):
     return {
         "version": application_version,
         "python_version": platform.python_version(),
-        "database_revision": current_db_rev,
+        "database_revision": get_db_revision(db),
     }
 
 
