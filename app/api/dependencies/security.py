@@ -76,7 +76,8 @@ def get_optional_user(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "user-account":
-        user = crud.user.get(db, id=identifier)
+        with db as session:
+            user = crud.user.get(session, id=identifier)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -93,7 +94,8 @@ def get_optional_service_account(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "service-account":
-        return crud.service_account.get_or_404(db, id=identifier)
+        with db as session:
+            return crud.service_account.get_or_404(session, id=identifier)
 
 
 def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:
