@@ -48,25 +48,26 @@ async def get_users(
         None, description="Filter users by account type. Default is all."
     ),
     pagination: PaginatedQueryParams = Depends(),
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """
     List all users with optional filters.
     """
     logger.info("Listing users", type=type)
-    total_matching_query, page_of_users = crud.user.get_filtered_with_count(
-        db=session,
-        query_string=q,
-        is_active=is_active,
-        type=type,
-        skip=pagination.skip,
-        limit=pagination.limit,
-    )
+    with db as session:
+        total_matching_query, page_of_users = crud.user.get_filtered_with_count(
+            db=session,
+            query_string=q,
+            is_active=is_active,
+            type=type,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
 
-    return UserListsResponse(
-        data=page_of_users,
-        pagination=Pagination(**pagination.to_dict(), total=total_matching_query),
-    )
+        return UserListsResponse(
+            data=page_of_users,
+            pagination=Pagination(**pagination.to_dict(), total=total_matching_query),
+        )
 
 
 @router.post(
