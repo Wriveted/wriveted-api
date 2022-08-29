@@ -59,6 +59,7 @@ def init_logging(settings: Settings):
         "loggers": {
             "": {"handlers": ["default"], "level": "INFO"},
             "app": {"level": settings.LOGGING_LEVEL},
+            "app.api.auth": {"level": settings.AUTH_LOGGING_LEVEL},
             "app.services": {"level": "DEBUG"},
             "app.services.recommendations": {"level": "DEBUG"},
             "uvicorn.error": {

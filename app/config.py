@@ -130,6 +130,8 @@ class Settings(BaseSettings):
         WARNING = "WARNING"
 
     LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
+    AUTH_LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
+
     # Capture uvicorn's access log messages in our logging stack
     LOG_UVICORN_ACCESS: bool = True
     LOG_AS_JSON: bool = False

@@ -165,7 +165,7 @@ async def add_class(
 async def get_class_detail(
     class_orm: ClassGroup = Permission("read", get_class_from_id),
 ):
-    return class_orm
+    return ClassGroupDetail.from_orm(class_orm)
 
 
 @router.patch(
