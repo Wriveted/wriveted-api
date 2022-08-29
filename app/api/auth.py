@@ -24,7 +24,7 @@ from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
-from app.schemas.users.user_create import UserCreateAuth, UserCreateIn
+from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
 from app.services.users import new_identifiable_username
@@ -55,8 +55,7 @@ class Token(BaseModel):
 def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
     raw_data=Depends(get_raw_info),
-    user_data: Union[UserCreateAuth, None] = None,
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
 
@@ -90,42 +89,45 @@ def secure_user_endpoint(
         },
     )
 
-    user, was_created = crud.user.get_or_create(session, user_data)
-    if was_created:
-        crud.event.create(
-            session=session,
-            title="User account created",
-            description="",
-            account=user,
-            commit=False,
-        )
-    else:
-        crud.event.create(
-            session=session,
-            title="User logged in",
-            description="",
-            account=user,
-            level=EventLevel.DEBUG,
-            commit=False,
-        )
-    logger.info("Request to login from user", user=user)
+    with db as session:
+        user, was_created = crud.user.get_or_create(session, user_data)
+        if was_created:
+            crud.event.create(
+                session=session,
+                title="User account created",
+                description="",
+                account=user,
+                commit=False,
+            )
+        else:
+            crud.event.create(
+                session=session,
+                title="User logged in",
+                description="",
+                account=user,
+                level=EventLevel.DEBUG,
+                commit=False,
+            )
+        logger.info("Request to login from user", user=user)
 
-    if not user.is_active:
-        raise HTTPException(status_code=401, detail="Inactive user")
+        if not user.is_active:
+            raise HTTPException(status_code=401, detail="Inactive user")
 
-    # Note this replaces the user's info with the SSO data including their name and info.
-    # crud.user.update(db=session, db_obj=user, obj_in=user_data)
-    # Instead we only update the fields we want
-    if user.info is None:
-        user.info = {}
-    user.info["picture"] = picture
-    user.info["sign_in_provider"] = raw_data["firebase"].get("sign_in_provider")
+        # Note this replaces the user's info with the SSO data including their name and info.
+        # crud.user.update(db=session, db_obj=user, obj_in=user_data)
+        # Instead we only update the fields we want
+        if user.info is None:
+            user.info = {}
+        user.info["picture"] = picture
+        user.info["sign_in_provider"] = raw_data["firebase"].get("sign_in_provider")
 
-    user.last_login_at = datetime.utcnow()
-    session.add(user)
-    session.commit()
+        user.last_login_at = datetime.utcnow()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        user_id = user.id
 
-    wriveted_access_token = create_user_access_token(user)
+    wriveted_access_token = create_user_access_token(user_id)
 
     return {
         "access_token": wriveted_access_token,
@@ -148,7 +150,7 @@ class ClassCodeUserLogIn(BaseModel):
 )
 def student_user_auth(
     data: ClassCodeUserLogIn,
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """Login to Wriveted API as a student by posting a valid username and class code.
 
@@ -161,57 +163,61 @@ def student_user_auth(
     Note this API doesn't create new users.
     """
     logger.debug("Processing student login request")
-
-    # Get the class by joining code or 401
-    class_group = crud.class_group.get_by_class_code(session, data.class_joining_code)
-    if class_group is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    logger.debug(
-        "Get the school associated with the given class group",
-        school=class_group.school,
-    )
-    school = class_group.school
-
-    logger.debug("Get the user by username")
-    # if the school doesn't match -> 401
-    user = crud.user.get_student_by_username_and_school_id(
-        session, username=data.username, school_id=school.id
-    )
-    # Note the user could have been moved to another class, or removed from a class but we log them in anyway
-    if (
-        user is None
-        or user.school is not school
-        or user.type not in {UserAccountType.STUDENT, UserAccountType.PUBLIC}
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    logger.debug("Check active user and school")
-    # Check the school + user is active else 403 (difference being the server knows who you are)
-    if not user.is_active or school.state != SchoolState.ACTIVE:
-        logger.info("User active?", r=user.is_active)
-        logger.info("School active", school_state=school.state)
-        logger.warning(
-            "Login attempt to inactive user or school", user=user, school=school
+    with db as session:
+        # Get the class by joining code or 401
+        class_group = crud.class_group.get_by_class_code(
+            session, data.class_joining_code
         )
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        if class_group is None:
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    crud.event.create(
-        session=session,
-        title="User logged in",
-        description="Student logged in",
-        account=user,
-        school_id=school.id,
-        level=EventLevel.DEBUG,
-        commit=False,
-    )
+        logger.debug(
+            "Get the school associated with the given class group",
+            school=class_group.school,
+        )
+        school = class_group.school
 
-    user.last_login_at = datetime.utcnow()
-    session.add(user)
-    session.commit()
-    logger.debug("Generating access token")
+        logger.debug("Get the user by username")
+        # if the school doesn't match -> 401
+        user = crud.user.get_student_by_username_and_school_id(
+            session, username=data.username, school_id=school.id
+        )
+        # Note the user could have been moved to another class, or removed from a class but we log them in anyway
+        if (
+            user is None
+            or user.school is not school
+            or user.type not in {UserAccountType.STUDENT, UserAccountType.PUBLIC}
+        ):
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    wriveted_access_token = create_user_access_token(user)
+        logger.debug("Check active user and school")
+        # Check the school + user is active else 403 (difference being the server knows who you are)
+        if not user.is_active or school.state != SchoolState.ACTIVE:
+            logger.info("User active?", r=user.is_active)
+            logger.info("School active", school_state=school.state)
+            logger.warning(
+                "Login attempt to inactive user or school", user=user, school=school
+            )
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        crud.event.create(
+            session=session,
+            title="User logged in",
+            description="Student logged in",
+            account=user,
+            school_id=school.id,
+            level=EventLevel.DEBUG,
+            commit=False,
+        )
+
+        user.last_login_at = datetime.utcnow()
+        session.add(user)
+        session.commit()
+
+        user_id = user.id
+
+    logger.debug("Generating access token", user_id=user_id)
+    wriveted_access_token = create_user_access_token(user_id)
 
     return {
         "access_token": wriveted_access_token,
@@ -229,55 +235,55 @@ class RegisterUserIn(BaseModel):
 @router.post("/auth/register-student", response_model=StudentIdentity)
 def create_student_user(
     data: RegisterUserIn,
-    session: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     """Create a new student account associated with a school by posting a valid class code.
 
     Note this API always creates a new user, to log in to an existing account see `/auth/class-code`
     """
-
-    school = crud.school.get_by_wriveted_id_or_404(
-        db=session, wriveted_id=str(data.school_id)
-    )
-
-    # Check the class joining code belongs to this school
-    class_group = crud.class_group.get_by_class_code(
-        db=session, code=data.class_joining_code
-    )
-    if class_group.school_id != data.school_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Access is unauthorized"
+    with db as session:
+        school = crud.school.get_by_wriveted_id_or_404(
+            db=session, wriveted_id=str(data.school_id)
         )
 
-    # Note this generates a valid username based on the name
-    username = new_identifiable_username(
-        data.first_name, data.last_name_initial, session, school.id
-    )
-    new_user = Student(
-        type=UserAccountType.STUDENT,
-        is_active=True,
-        name=f"{data.first_name} {data.last_name_initial}",
-        username=username,
-        first_name=data.first_name,
-        last_name_initial=data.last_name_initial,
-        school_id=school.id,
-        class_group_id=class_group.id,
-        info={"sign_in_provider": "class-code"},
-    )
-    session.add(new_user)
+        # Check the class joining code belongs to this school
+        class_group = crud.class_group.get_by_class_code(
+            db=session, code=data.class_joining_code
+        )
+        if class_group.school_id != data.school_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Access is unauthorized",
+            )
 
-    crud.event.create(
-        session=session,
-        title="Student account created",
-        description=f"",
-        account=new_user,
-        school=school,
-        commit=False,
-    )
-    session.commit()
-    session.refresh(new_user)
+        # Note this generates a valid username based on the name
+        username = new_identifiable_username(
+            data.first_name, data.last_name_initial, session, school.id
+        )
+        new_user = Student(
+            type=UserAccountType.STUDENT,
+            is_active=True,
+            name=f"{data.first_name} {data.last_name_initial}",
+            username=username,
+            first_name=data.first_name,
+            last_name_initial=data.last_name_initial,
+            school_id=school.id,
+            class_group_id=class_group.id,
+            info={"sign_in_provider": "class-code"},
+        )
+        session.add(new_user)
 
-    return new_user
+        crud.event.create(
+            session=session,
+            title="Student account created",
+            description=f"",
+            account=new_user,
+            school=school,
+            commit=False,
+        )
+        session.commit()
+        session.refresh(new_user)
+        return StudentIdentity.from_orm(new_user)
 
 
 @router.get("/auth/me", response_model=AuthenticatedAccountBrief)

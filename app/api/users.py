@@ -140,10 +140,10 @@ def magic_link_endpoint(
     """
     Create a Wriveted API magic-link token for a user.
     """
-    user = crud.user.get(db=session, id=uuid)
-    logger.info("Generating magic link access-token for user", user=user)
+    user_id = crud.user.get_or_404(db=session, id=uuid).id
+    logger.info("Generating magic link access-token for user", user_id=user_id)
     wriveted_access_token = create_user_access_token(
-        user, expires_delta=datetime.timedelta(days=90)
+        user_id, expires_delta=datetime.timedelta(days=90)
     )
     return {
         "access_token": wriveted_access_token,

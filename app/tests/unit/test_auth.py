@@ -18,7 +18,7 @@ from app.services.security import (
 
 def test_create_token():
     test_user = User(id=0)
-    token = create_user_access_token(test_user)
+    token = create_user_access_token(test_user.id)
     payload = get_payload_from_access_token(token)
     assert payload.sub == "Wriveted:User-Account:0"
     assert isinstance(payload.exp, datetime.datetime)

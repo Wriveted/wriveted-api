@@ -414,7 +414,7 @@ def admin_of_test_school(session, test_school, test_schooladmin_account):
 
 @pytest.fixture()
 def admin_of_test_school_token(admin_of_test_school):
-    return create_user_access_token(admin_of_test_school)
+    return create_user_access_token(admin_of_test_school.id)
 
 
 @pytest.fixture()
