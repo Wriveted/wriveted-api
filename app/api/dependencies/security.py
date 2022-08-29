@@ -20,7 +20,7 @@ from structlog import get_logger
 
 from app import crud
 from app.config import get_settings
-from app.db.session import get_session
+from app.db.session import get_read_only_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
 from app.services.security import (
@@ -68,7 +68,7 @@ def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPay
 
 
 def get_optional_user(
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_read_only_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -86,7 +86,7 @@ def get_optional_user(
 
 
 def get_optional_service_account(
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_read_only_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -259,17 +259,17 @@ def get_active_principals(
     return principals
 
 
-def create_user_access_token(user, expires_delta=None):
+def create_user_access_token(user_id, expires_delta=None):
     if expires_delta is None:
         delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     else:
         delta = expires_delta
     wriveted_access_token = create_access_token(
-        subject=f"Wriveted:User-Account:{user.id}",
+        subject=f"Wriveted:User-Account:{user_id}",
         # extra_claims={},
         expires_delta=delta,
     )
-    logger.debug("Access token generated for user", user=user)
+    logger.debug("Access token generated for user", user_id=user_id)
     return wriveted_access_token
 
 

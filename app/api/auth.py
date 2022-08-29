@@ -16,7 +16,7 @@ from app.api.dependencies.security import (
     get_valid_token_data,
 )
 from app.config import get_settings
-from app.db.session import get_session
+from app.db.session import get_read_only_session, get_session
 from app.models import EventLevel, SchoolState, ServiceAccount, Student, User
 from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
@@ -148,7 +148,8 @@ class ClassCodeUserLogIn(BaseModel):
 )
 def student_user_auth(
     data: ClassCodeUserLogIn,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_read_only_session),
+    transactional_session: Session = Depends(get_session),
 ):
     """Login to Wriveted API as a student by posting a valid username and class code.
 
@@ -169,47 +170,57 @@ def student_user_auth(
 
     logger.debug(
         "Get the school associated with the given class group",
-        school=class_group.school,
+        school_wriveted_id=class_group.school_id,
     )
-    school = class_group.school
+    school_wriveted_id = class_group.school_id
+    school_id = class_group.school.id
 
-    logger.debug("Get the user by username")
-    # if the school doesn't match -> 401
-    user = crud.user.get_student_by_username_and_school_id(
-        session, username=data.username, school_id=school.id
-    )
-    # Note the user could have been moved to another class, or removed from a class but we log them in anyway
-    if (
-        user is None
-        or user.school is not school
-        or user.type not in {UserAccountType.STUDENT, UserAccountType.PUBLIC}
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    logger.debug("Get the user by username", provided_username=data.username)
 
-    logger.debug("Check active user and school")
-    # Check the school + user is active else 403 (difference being the server knows who you are)
-    if not user.is_active or school.state != SchoolState.ACTIVE:
-        logger.info("User active?", r=user.is_active)
-        logger.info("School active", school_state=school.state)
-        logger.warning(
-            "Login attempt to inactive user or school", user=user, school=school
+    with transactional_session as db:
+        user = crud.user.get_student_by_username_and_school_id(
+            db, username=data.username, school_id=school_id
         )
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        # Note the user could have been moved to another class, or removed from a class but we log them in anyway
+        if (
+            user is None
+            or user.school_id != school_id
+            or user.type not in {UserAccountType.STUDENT, UserAccountType.PUBLIC}
+        ):
+            # if the school doesn't match -> 401
 
-    crud.event.create(
-        session=session,
-        title="User logged in",
-        description="Student logged in",
-        account=user,
-        school_id=school.id,
-        level=EventLevel.DEBUG,
-        commit=False,
-    )
+            logger.warning(
+                "User trying to login to another school",
+                user_school_id=user.school_id,
+                school_id=school_id,
+            )
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        user_id = user.id
+        logger.debug("Check active user and school", user_id=user_id)
+        # Check the school + user is active else 403 (difference being the server knows who you are)
+        school = crud.school.get(db, id=school_id)
+        if not user.is_active or school.state != SchoolState.ACTIVE:
+            logger.info("User active?", r=user.is_active)
+            logger.info("School active", school_state=school.state)
+            logger.warning(
+                "Login attempt to inactive user or school", user=user, school=school
+            )
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    user.last_login_at = datetime.utcnow()
-    session.add(user)
-    session.commit()
-    logger.debug("Generating access token")
+        crud.event.create(
+            session=db,
+            title="User logged in",
+            description="Student logged in",
+            account=user,
+            school_id=school.id,
+            level=EventLevel.DEBUG,
+            commit=False,
+        )
+
+        user.last_login_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
+    logger.debug("Generating access token", user_id=user_id)
 
     wriveted_access_token = create_user_access_token(user)
 
@@ -286,7 +297,7 @@ def get_current_user(
     current_user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_read_only_session),
 ):
     """
     Test that the presented credentials are valid, returning details on the logged in user or service account.

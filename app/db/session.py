@@ -13,7 +13,9 @@ logger = get_logger()
 
 def database_connection(
     database_uri: str,
-) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
+) -> Tuple[
+    sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker, sqlalchemy.orm.sessionmaker
+]:
     # Ref: https://docs.sqlalchemy.org/en/14/core/pooling.html
     """
 
@@ -42,22 +44,41 @@ def database_connection(
         # exception will be thrown.
         pool_timeout=60,
     )
+
+    readonly_engine = engine.execution_options(isolation_level="AUTOCOMMIT")
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return engine, SessionLocal
+    ReadOnlySession = sessionmaker(bind=readonly_engine)
+
+    return engine, SessionLocal, ReadOnlySession
 
 
 @lru_cache()
-def get_session_maker(settings: Settings = None):
+def get_session_makers(
+    settings: Settings = None,
+) -> Tuple[sqlalchemy.orm.sessionmaker, sqlalchemy.orm.sessionmaker]:
     if settings is None:
         settings = get_settings()
 
-    engine, SessionLocal = database_connection(settings.SQLALCHEMY_DATABASE_URI)
-    return SessionLocal
+    engine, SessionLocal, ReadOnlySession = database_connection(
+        settings.SQLALCHEMY_DATABASE_URI
+    )
+
+    return SessionLocal, ReadOnlySession
 
 
 def get_session():
-    session_maker = get_session_maker()
-    session: sqlalchemy.orm.Session = session_maker()
+    session_maker, readonly_session_maker = get_session_makers()
+    session = session_maker()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+def get_read_only_session():
+    session_maker, readonly_session_maker = get_session_makers()
+    session = readonly_session_maker()
     try:
         yield session
     finally:

@@ -17,7 +17,7 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.api.dependencies.user import get_user_from_id
-from app.db.session import get_session
+from app.db.session import get_read_only_session, get_session
 from app.models.user import User, UserAccountType
 from app.permissions import Permission
 from app.schemas.auth import SpecificUserDetail
@@ -48,7 +48,7 @@ async def get_users(
         None, description="Filter users by account type. Default is all."
     ),
     pagination: PaginatedQueryParams = Depends(),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_read_only_session),
 ):
     """
     List all users with optional filters.
@@ -135,7 +135,7 @@ async def update_user(
 )
 def magic_link_endpoint(
     uuid: str,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_read_only_session),
 ):
     """
     Create a Wriveted API magic-link token for a user.
