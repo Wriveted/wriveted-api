@@ -13,12 +13,13 @@ logger = get_logger()
 
 def database_connection(
     database_uri: str,
+    pool_size=10,
+    max_overflow=10,
 ) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
     # Ref: https://docs.sqlalchemy.org/en/14/core/pooling.html
     """
-
     Note Cloud SQL instance has a limited number of connections:
-    Currently: 25 in non-prod and 100 in prod.
+    Currently: 50 in non-prod and 100 in prod.
 
     The settings here need to be considered along with concurrency settings in
     Cloud Run - how many containers will be brought up, and how many requests
@@ -28,10 +29,10 @@ def database_connection(
         database_uri,
         # Pool size is the maximum number of permanent connections to keep.
         # defaults to 5
-        pool_size=10,
+        pool_size=pool_size,
         # Temporarily exceeds the set pool_size if no connections are available.
         # Default is 10
-        max_overflow=10,
+        max_overflow=max_overflow,
         # 'pool_recycle' is the maximum number of seconds a connection can persist.
         # Connections that live longer than the specified amount of time will be
         # reestablished on checkout.
@@ -40,7 +41,7 @@ def database_connection(
         # 'pool_timeout' is the maximum number of seconds to wait when retrieving a
         # new connection from the pool. After the specified amount of time, an
         # exception will be thrown.
-        pool_timeout=60,
+        pool_timeout=120,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return engine, SessionLocal
@@ -51,7 +52,11 @@ def get_session_maker(settings: Settings = None):
     if settings is None:
         settings = get_settings()
 
-    engine, SessionLocal = database_connection(settings.SQLALCHEMY_DATABASE_URI)
+    engine, SessionLocal = database_connection(
+        settings.SQLALCHEMY_DATABASE_URI,
+        pool_size=settings.DATABASE_POOL_SIZE,
+        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    )
     return SessionLocal
 
 
