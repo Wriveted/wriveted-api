@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     POSTGRESQL_PASSWORD: str
 
     SQLALCHEMY_DATABASE_URI: str = None
+    DATABASE_POOL_SIZE: int = 10
+    DATABASE_MAX_OVERFLOW: int = 10
 
     SENDGRID_API_KEY: str
 
