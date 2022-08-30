@@ -125,4 +125,8 @@ class BookList(Base):
             # Allow anyone Authenticated to view this "Public" book list
             policies.append((Allow, Authenticated, "read"))
 
+        if self.type == ListType.SCHOOL:
+            # Allow students to view all School lists
+            policies.append(((Allow, f"student:{self.school_id}", "read")))
+
         return policies
