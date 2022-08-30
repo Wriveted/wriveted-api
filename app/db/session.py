@@ -66,4 +66,7 @@ def get_session():
     try:
         yield session
     finally:
-        session.close()
+        try:
+            session.close()
+        except sqlalchemy.exc.InterfaceError:
+            pass
