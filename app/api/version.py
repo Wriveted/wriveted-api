@@ -4,7 +4,7 @@ from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, BaseSettings
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
@@ -12,11 +12,20 @@ from alembic.runtime.migration import MigrationContext
 from app.db.session import get_session
 
 
+class CloudRunEnvironment(BaseSettings):
+    K_SERVICE: str = None
+    K_REVISION: str = None
+    K_CONFIGURATION: str = None
+
+
 class Version(BaseModel):
     version: str
     python_version: str
     database_revision: str
+    cloud_run_revision: str
 
+
+cloud_run_config = CloudRunEnvironment()
 
 router = APIRouter()
 
@@ -33,10 +42,14 @@ async def get_version(session: Session = Depends(get_session)):
         application_version = metadata.version("wriveted-api")
     except PackageNotFoundError:
         application_version = "unknown"
+
+    cloud_run_revision = cloud_run_config.K_REVISION or "Unknown"
+
     return {
         "version": application_version,
         "python_version": platform.python_version(),
         "database_revision": current_db_rev,
+        "cloud_run_revision": cloud_run_revision,
     }
 
 
