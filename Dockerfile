@@ -45,7 +45,7 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
              else \
                poetry install --no-interaction --no-ansi --no-dev; \
              fi; \
-             rm -rf ~/.cache/pypoetry/{cache,artifacts}"; \
+             rm -rf ~/.cache/pypoetry/{cache,artifacts}";
 
 # Port is set via the env var `UVICORN_PORT`
 #CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0"]
