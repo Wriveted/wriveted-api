@@ -89,6 +89,6 @@ class ClassGroup(Base):
             (Allow, f"teacher:{self.id}", All),
             (Allow, f"student:{self.id}", "read"),
             (Allow, f"class:{self.id}", "read"),
-            (Allow, f"school:{self.school_id}", "read"),
+            (Allow, f"school:{self.school.id}", "read"),
             (Allow, Authenticated, "bind"),
         ]
