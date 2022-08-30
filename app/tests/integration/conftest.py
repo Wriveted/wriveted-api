@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
-from app.db.session import database_connection, get_session
+from app.db.session import database_connection, get_session_maker
 from app.main import app, get_settings
 from app.models import School, SchoolState, ServiceAccountType, Student
 from app.models.class_group import ClassGroup
@@ -43,7 +43,8 @@ def settings():
 
 @pytest.fixture(scope="session")
 def session(settings):
-    session = next(get_session())
+    session_maker = get_session_maker()
+    session = session_maker()
     return session
 
 

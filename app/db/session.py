@@ -3,7 +3,8 @@ from typing import Tuple
 
 import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
+from starlette.background import BackgroundTasks
 from structlog import get_logger
 
 from app.config import Settings, get_settings
@@ -60,13 +61,28 @@ def get_session_maker(settings: Settings = None):
     return SessionLocal
 
 
-def get_session():
-    session_maker = get_session_maker()
-    session: sqlalchemy.orm.Session = session_maker()
-    try:
-        yield session
-    finally:
+# Solution to db pool deadlock issue from https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/104#issuecomment-775858005
+class SessionManager:
+    def __init__(self, session_maker: sessionmaker):
+        self.session: Session = session_maker()
+
+    def __enter__(self):
+        return self.session
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.session.close()
+
+
+def close_session(session: Session):
+    session.close()
+
+
+def get_session(
+    background_tasks: BackgroundTasks,
+):
+    with SessionManager(get_session_maker()) as session:
+        background_tasks.add_task(close_session, session)
         try:
+            yield session
+        finally:
             session.close()
-        except sqlalchemy.exc.InterfaceError:
-            pass
