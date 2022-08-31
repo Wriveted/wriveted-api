@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from starlette import status
 from structlog import get_logger
 
@@ -83,6 +84,8 @@ async def create_user(user_data: UserCreateIn, session: Session = Depends(get_se
         return crud.user.create(session, obj_in=user_data)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    except IntegrityError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
