@@ -43,6 +43,9 @@ def database_connection(
         # new connection from the pool. After the specified amount of time, an
         # exception will be thrown.
         pool_timeout=120,
+
+        # Pessimistic check that the database connection is still open
+        pool_pre_ping=True,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return engine, SessionLocal
