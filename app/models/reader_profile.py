@@ -6,6 +6,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 from app.db import Base
 
+
 class ReaderProfile(Base):
     """
     A profile for a reader belonging to a parent account (not a user entity of its own).
