@@ -2,6 +2,7 @@ from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import relationship
 
 from app.models.user import User, UserAccountType
 
@@ -21,6 +22,12 @@ class Parent(User):
 
     # backref:
     # children = relationship("Reader")
+
+    reader_profiles = relationship(
+        "ReaderProfile",
+        cascade="all, delete-orphan",
+        order_by="asc(ReaderProfile.created_at)",
+    )
 
     # misc
     parent_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
