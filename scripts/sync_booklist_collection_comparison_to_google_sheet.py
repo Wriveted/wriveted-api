@@ -17,6 +17,10 @@ https://developers.google.com/workspace/guides/create-credentials
 
 (ensure there is a `credentials.json` in the current working directory)
 
+The Google sheet (not in xlxs format) will need to be shared with the
+IAM account <spreadsheet-user@wriveted-api.iam.gserviceaccount.com>
+
+
 """
 import os.path
 
@@ -27,6 +31,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from app.services.editions import get_definitive_isbn
 from examples.config import settings
 
 api_token = settings.WRIVETED_API_TOKEN
@@ -38,14 +43,21 @@ wriveted_api_response = httpx.get(
 )
 wriveted_api_response.raise_for_status()
 print(f"Connected to wriveted api: {settings.WRIVETED_API}")
-
+wriveted_api_response = httpx.get(
+    f"{settings.WRIVETED_API}/v1/auth/me",
+    headers={"Authorization": f"Bearer {api_token}"},
+    timeout=20,
+)
+wriveted_api_response.raise_for_status()
 # If modifying these scopes, delete the file token.json.
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
-# The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = "1-ePJhgwX9CkFUMOdVgHdrZxp9YmfnqU9sl_gVLslUbw"
+# The ID and range of the spreadsheet to sync with
+SPREADSHEET_ID = "1NsgNos_hubNEhhfvyJphl_M7xsfl8YzkqX0gjmachXs"
+
+# SPREADSHEET_ID = "1-ePJhgwX9CkFUMOdVgHdrZxp9YmfnqU9sl_gVLslUbw"
 ISBN_RANGE_NAME = "Books!A4:C104"
 
 
@@ -93,12 +105,18 @@ def main():
             # Row is a list of strings where the cells are filled in - could be len 2 if ISBN missing
             if len(row) > 2:
                 id, title, isbn = row
+                isbn = get_definitive_isbn(isbn)
                 wriveted_api_response = httpx.get(
                     f"{settings.WRIVETED_API}/v1/edition/{isbn}",
                     headers={"Authorization": f"Bearer {api_token}"},
                     timeout=10,
                 )
-                wriveted_api_response.raise_for_status()
+                try:
+                    wriveted_api_response.raise_for_status()
+                except httpx.HTTPStatusError as e:
+                    print(f"Skipping {isbn} (couldn't locate in Wriveted DB)")
+                    continue
+
                 edition_info = wriveted_api_response.json()
                 if (
                     edition_info["work_id"] is not None
@@ -234,7 +252,7 @@ def main():
             work_in_collection[item["work_id"]] = item
 
         # Update the sheet an entire column at a time
-        values = ["" for _ in range(100)]
+        values = ["" for _ in range(256)]
 
         for isbn in isbn_to_wriveted_edition_info:
             edition_info = isbn_to_wriveted_edition_info[isbn]
