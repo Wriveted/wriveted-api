@@ -57,6 +57,14 @@ class SchoolBookbotInfo(BaseModel):
         orm_mode = True
 
 
+class BookListID(BaseModel):
+    id: UUID
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
@@ -70,6 +78,8 @@ class SchoolDetail(SchoolBrief):
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
+
+    booklists: list[BookListID]
 
 
 class SchoolCreateIn(BaseModel):
