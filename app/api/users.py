@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security, BackgroundTasks
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -26,6 +26,7 @@ from app.schemas.pagination import Pagination
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
+from app.services.booklists import generate_reading_pathway_lists
 
 logger = get_logger()
 
@@ -75,13 +76,36 @@ async def get_users(
     response_model=SpecificUserDetail,
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
-async def create_user(user_data: UserCreateIn, session: Session = Depends(get_session)):
+async def create_user(
+    user_data: UserCreateIn,
+    background_tasks: BackgroundTasks,
+    generate_pathway_lists: bool = False,
+    session: Session = Depends(get_session),
+):
     """
     Admin endpoint for creating new users.
+    If the provided user is a `reader` type and `generate_pathway_lists` is true, will also create booklists
+    `Books to read now` and `Books to read next`, populating each with 10 appropriate books based on the `huey_attributes`
+    blob in `user_data`.
     """
     logger.info("Creating a user")
     try:
-        return crud.user.create(session, obj_in=user_data)
+        user = crud.user.create(session, obj_in=user_data)
+
+        if generate_pathway_lists and user_data.type in [
+            UserAccountType.STUDENT,
+            UserAccountType.PUBLIC,
+        ]:
+            # generate the booklists for the user
+            background_tasks.add_task(
+                generate_reading_pathway_lists,
+                session,
+                user.id,
+                user_data.huey_attributes,
+            )
+
+        return user
+
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except IntegrityError as e:
