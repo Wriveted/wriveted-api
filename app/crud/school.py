@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, subqueryload
 
 from app.crud import CRUDBase
 from app.models import ClassGroup, CollectionItem, Event, School, Student
@@ -99,7 +99,13 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
             )
 
     def get_by_wriveted_id_or_404(self, db: Session, wriveted_id: str):
-        query = select(School).where(School.wriveted_identifier == wriveted_id)
+        query = (
+            select(School)
+            .where(School.wriveted_identifier == wriveted_id)
+            .options(subqueryload(School.country))
+            .options(subqueryload(School.admins))
+            .options(subqueryload(School.booklists))
+        )
         try:
             return db.execute(query).scalar_one()
         except NoResultFound:
