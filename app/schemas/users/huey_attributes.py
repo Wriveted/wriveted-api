@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, constr
 
-from app.schemas.recommendations import ReadingAbilityKey, HueKeys
+from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
 class HueyAttributes(BaseModel):
