@@ -50,7 +50,7 @@ class UserCreateAuth(BaseModel):
 class UserCreateIn(BaseModel):
     # all users
     name: str = None
-    email: EmailStr
+    email: EmailStr | None
     info: UserInfo | None
     type: UserAccountType = UserAccountType.PUBLIC
     newsletter: bool = False
@@ -60,6 +60,7 @@ class UserCreateIn(BaseModel):
     first_name: str | None = None
     last_name_initial: str | None = None
     huey_attributes: HueyAttributes | None
+    parent_id: UUID4 | None
 
     # students / educators
     school_id: UUID4 | int | None
