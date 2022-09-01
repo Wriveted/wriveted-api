@@ -16,7 +16,8 @@ ENV PYTHONUNBUFFERED=True \
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
     && pip install poetry --no-cache-dir \
-    && poetry config virtualenvs.create false
+    && poetry config virtualenvs.create false \
+    && poetry config virtualenvs.in-project false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
 COPY \
