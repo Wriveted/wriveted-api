@@ -68,8 +68,7 @@ async def create(
     # Add a background task to process the created event
     background_tasks.add_task(
         process_events,
-        session,
-        event=event,
+        event_id=event.id,
     )
     return event
 

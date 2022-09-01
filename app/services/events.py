@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.db.session import get_session_maker, SessionManager
 from app.models import Event, School
 from app.models.booklist import ListType
 from app.models.user import User, UserAccountType
@@ -18,13 +19,21 @@ from app.schemas.booklist import (
 logger = get_logger()
 
 
-def process_events(session: Session, event: Event):
-    logger.warning("Background processing event", type=event.title, event_id=event.id)
-    match event.title:
-        case "Huey: Book reviewed":
-            return process_book_review_event(session, event)
-        case _:
-            return
+def process_events(event_id):
+    with SessionManager(get_session_maker()) as session:
+        event = crud.event.get(session, id=event_id)
+        logger.warning("Background processing event", type=event.title, event_id=event.id)
+        match event.title:
+            case "Huey: Book reviewed":
+                return process_book_review_event(session, event)
+            case "Test":
+                logger.info("Changing event",  e=event)
+                event.info["description"] = "MODIFIED"
+                session.commit()
+                session.refresh(event)
+                logger.info("Changed", e=event)
+            case _:
+                return
 
 
 def process_book_review_event(session: Session, event: Event):
