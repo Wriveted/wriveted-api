@@ -29,7 +29,12 @@ COPY \
 ARG INSTALL_DEV=false
 # We install the dependencies in a separate step from installing the app to take advantage of docker caching
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
-               poetry install --no-root --no-interaction --no-ansi -vvv ; \
+               apt-get update -y \
+               && apt-get install --no-install-recommends -y gcc libpq-dev linux-libc-dev \
+               && apt-get autoremove -y \
+               && apt-get clean -y \
+               && rm -rf /var/lib/apt/lists/* \
+               && poetry install --no-root --no-interaction --no-ansi -vvv ; \
              else \
                poetry install --no-root --no-dev --no-interaction --no-ansi -vvv ; \
                rm -rf ~/.cache/pypoetry/{cache,artifacts} ; \
