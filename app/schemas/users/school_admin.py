@@ -1,11 +1,10 @@
 from typing import Literal
 
-from app.schemas.users import UserBrief
-from app.schemas.users.educator import EducatorDetail
+from app.schemas.users.educator import EducatorBrief, EducatorDetail
 from app.schemas.users.user import UserDetail
 
 
-class SchoolAdminBrief(UserBrief):
+class SchoolAdminBrief(EducatorBrief):
     type: Literal["school_admin"]
 
 
