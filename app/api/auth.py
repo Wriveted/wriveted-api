@@ -22,6 +22,7 @@ from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
+from app.schemas.users.parent import ParentDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
 from app.schemas.users.user_create import UserCreateAuth, UserCreateIn
@@ -304,10 +305,8 @@ def get_current_user(
                 user_detail = SchoolAdminDetail.from_orm(
                     current_user_or_service_account
                 )
-
-            # case UserAccountType.PARENT:
-            #     user_detail =
-            # ...
+            case UserAccountType.PARENT:
+                user_detail = ParentDetail.from_orm(current_user_or_service_account)
 
             case _:
                 user_detail = UserDetail.from_orm(current_user_or_service_account)
