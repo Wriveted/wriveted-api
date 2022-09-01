@@ -4,8 +4,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 

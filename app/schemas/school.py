@@ -10,6 +10,7 @@ from app.schemas.country import CountryDetail
 
 # pylint: disable=unused-import
 from app.schemas.school_identity import SchoolIdentity, SchoolWrivetedIdentity
+from app.schemas.users import UserBrief
 from app.schemas.users.school_admin import SchoolAdminBrief
 
 
@@ -44,7 +45,7 @@ class SchoolBrief(SchoolIdentity):
 
 class SchoolSelectorOption(SchoolBrief):
     info: SchoolInfo
-    admins: list[SchoolAdminBrief]
+    admins: list[UserBrief]
 
 
 class SchoolBookbotInfo(BaseModel):
@@ -57,11 +58,19 @@ class SchoolBookbotInfo(BaseModel):
         orm_mode = True
 
 
+class BookListID(BaseModel):
+    id: UUID
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
 class SchoolDetail(SchoolBrief):
     country: CountryDetail
     info: Optional[SchoolInfo]
 
-    admins: list[SchoolAdminBrief]
+    admins: list[UserBrief]
     lms_type: str
     bookbot_type: SchoolBookbotType
 
@@ -70,6 +79,8 @@ class SchoolDetail(SchoolBrief):
 
     student_domain: Optional[AnyHttpUrl]
     teacher_domain: Optional[AnyHttpUrl]
+
+    booklists: list[BookListID]
 
 
 class SchoolCreateIn(BaseModel):
