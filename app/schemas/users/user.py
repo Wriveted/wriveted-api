@@ -26,6 +26,7 @@ class UserInfo(BaseModel):
     educator_info: dict | None
     school_admin_info: dict | None
     wriveted_admin_info: dict | None
+    parent_info: dict | None
 
     other: dict | None
 
