@@ -23,8 +23,8 @@ SpecificUserDetail = (
     | ReaderDetail
     | SchoolAdminDetail
     | EducatorDetail
-    | WrivetedAdminDetail
     | ParentDetail
+    | WrivetedAdminDetail
     | UserDetail
 )
 
