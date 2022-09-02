@@ -16,8 +16,7 @@ ENV PYTHONUNBUFFERED=True \
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
     && pip install poetry --no-cache-dir \
-    && poetry config virtualenvs.create false \
-    && poetry config virtualenvs.in-project false
+    && poetry config virtualenvs.create false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
 COPY \
@@ -30,11 +29,7 @@ COPY \
 ARG INSTALL_DEV=false
 # We install the dependencies in a separate step from installing the app to take advantage of docker caching
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
-               apt-get update -y \
-               && apt-get install --no-install-recommends -y gcc libpq-dev linux-libc-dev \
-               && apt-get autoremove -y \
-               && apt-get clean -y \
-               && rm -rf /var/lib/apt/lists/* \
+               poetry env use system \
                && poetry install --no-root --no-interaction --no-ansi -vvv ; \
              else \
                poetry install --no-root --no-dev --no-interaction --no-ansi -vvv ; \
