@@ -10,13 +10,15 @@ ENV PYTHONUNBUFFERED=True \
     POETRY_NO_INTERACTION=1 \
     PYTHONPATH=/app \
     PORT=8000 \
-    UVICORN_PORT=8000
+    POETRY_HOME=/opt/poetry \
+    VIRTUAL_ENV=/poetry-env \
+    PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
 
 # Install Poetry
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
-    && pip install poetry --no-cache-dir \
-    && poetry config virtualenvs.create false
+    && python3 -m venv "${POETRY_HOME}" \
+    && "${POETRY_HOME}/bin/pip" install poetry
 
 # Copy poetry.lock* in case it doesn't exist in the repo
 COPY \
@@ -28,7 +30,8 @@ COPY \
 # Allow installing dev dependencies to run tests
 ARG INSTALL_DEV=false
 # We install the dependencies in a separate step from installing the app to take advantage of docker caching
-RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
+RUN bash -c "python3 -m venv ${VIRTUAL_ENV}; \
+             if [ $INSTALL_DEV == 'true' ] ; then \
                poetry install --no-root --no-interaction --no-ansi -vvv ; \
              else \
                poetry install --no-root --no-dev --no-interaction --no-ansi -vvv ; \
@@ -40,7 +43,8 @@ COPY alembic/ /app/alembic
 COPY app/ /app/app
 
 # Now install the application itself
-RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then \
+RUN bash -c "python3 -m venv ${VIRTUAL_ENV}; \
+             if [ $INSTALL_DEV == 'true' ] ; then \
                poetry install --no-interaction --no-ansi; \
              else \
                poetry install --no-interaction --no-ansi --no-dev; \
