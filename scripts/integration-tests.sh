@@ -5,7 +5,12 @@ set -e
 
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
-export TAG="PR-${PR_NUMBER}"
+
+if [[ -n "${PR_NUMBER}" ]]; then
+  export TAG="PR-${PR_NUMBER}"
+else
+  export TAG="latest"
+fi
 
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans

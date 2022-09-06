@@ -19,7 +19,7 @@ services:
       retries: 5
 
   migration:
-    image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
     command: /app/scripts/run-migrations.sh
     depends_on:
       - db
@@ -31,7 +31,7 @@ services:
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
   api:
-    image: "gcr.io/wriveted-api/wriveted-api:${TAG-main}"
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
     command: uvicorn "app.main:app" --host 0.0.0.0 --reload
     depends_on:
       - db
@@ -52,8 +52,8 @@ services:
       context: ./
       dockerfile: Dockerfile
       cache_from:
-        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
         - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api-development:${TAG-latest}"
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
