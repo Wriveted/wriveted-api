@@ -3,6 +3,7 @@ FROM python:3.10-slim
 LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
 
 WORKDIR /app/
+SHELL ["/bin/bash", "-c"]
 
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED=True \
@@ -14,9 +15,19 @@ ENV PYTHONUNBUFFERED=True \
     VIRTUAL_ENV=/poetry-env \
     PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
 
+# Allow installing dev dependencies to run tests
+ARG INSTALL_DEV=false
+
 # Install Poetry
 # hadolint ignore=DL3013
-RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
+RUN if [ $INSTALL_DEV == 'true' ] ; then \
+      apt-get update -y \
+      && apt-get install --no-install-recommends -y gcc libpq-dev linux-libc-dev \
+      && apt-get autoremove -y \
+      && apt-get clean -y \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi; \
+    /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
     && python3 -m venv "${POETRY_HOME}" \
     && "${POETRY_HOME}/bin/pip" install poetry
 
@@ -27,17 +38,10 @@ COPY \
      alembic.ini  \
      /app/
 
-# Allow installing dev dependencies to run tests
-ARG INSTALL_DEV=false
 # We install the dependencies in a separate step from installing the app to take advantage of docker caching
 RUN bash -c "python3 -m venv ${VIRTUAL_ENV}; \
              if [ $INSTALL_DEV == 'true' ] ; then \
-               apt-get update -y \
-               && apt-get install --no-install-recommends -y gcc libpq-dev linux-libc-dev \
-               && apt-get autoremove -y \
-               && apt-get clean -y \
-               && rm -rf /var/lib/apt/lists/* \
-               && poetry install --no-root --no-interaction --no-ansi -vvv ; \
+               poetry install --no-root --no-interaction --no-ansi -vvv ; \
              else \
                poetry install --no-root --no-dev --no-interaction --no-ansi -vvv ; \
                rm -rf ~/.cache/pypoetry/{cache,artifacts} ; \
