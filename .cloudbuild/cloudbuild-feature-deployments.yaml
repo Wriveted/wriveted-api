@@ -5,7 +5,7 @@ steps:
   - name: gcr.io/cloud-builders/docker
     args:
       - build
-			- '--build-arg BUILDKIT_INLINE_CACHE=1'
+      - '--build-arg BUILDKIT_INLINE_CACHE=1'
       - '--cache-from'
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:pr-$_PR_NUMBER'
       - '--cache-from'
@@ -18,8 +18,8 @@ steps:
       - '-f'
       - Dockerfile
     id: Build
-		env:
-			- 'DOCKER_BUILDKIT=1'
+    env:
+      - 'DOCKER_BUILDKIT=1'
   - name: gcr.io/cloud-builders/docker
     args:
       - push
