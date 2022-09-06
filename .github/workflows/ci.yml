@@ -76,7 +76,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: ./scripts/integration-tests.sh
+      - run: |
+        echo -n ${{ secrets.GCR_ACCESS_BASE64 }} | base64 -d | docker login -u _json_key --password-stdin https://asia.gcr.io
+        ./scripts/integration-tests.sh
+        env:
+          PR_NUMBER: ${{ github.event.number }}
 
   unit-tests:
     runs-on: ubuntu-latest

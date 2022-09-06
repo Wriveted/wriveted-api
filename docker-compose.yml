@@ -51,6 +51,9 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+      cache_from:
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api-development:${TAG-latest}"
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
