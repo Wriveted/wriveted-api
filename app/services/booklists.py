@@ -39,11 +39,7 @@ def generate_reading_pathway_lists(
 
     # since ReadingAbilityKey is a 3.7+ enum.Enum type, it remembers natural definition order
     # we can treat this as defacto indexing (allowing us to increment or decrement a reading ability)
-    reading_ability_key_list = [
-        v.name
-        for v in ReadingAbilityKey.__dict__.values()
-        if isinstance(v, ReadingAbilityKey)
-    ]
+    reading_ability_key_list = [v.value for v in ReadingAbilityKey]
     current_reading_ability_index = reading_ability_key_list.index(
         current_reading_ability_key
     )
