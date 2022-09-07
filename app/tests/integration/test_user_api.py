@@ -94,19 +94,13 @@ def test_get_parent_user(
     session,
     client,
     backend_service_account_headers,
-
-
 ):
     email = "testemail@site.com"
     if user := crud.user.get_by_account_email(db=session, email=email):
         crud.user.remove(db=session, id=user.id)
     user = crud.user.create(
         db=session,
-        obj_in=UserUpdateIn(
-            name="A Parent",
-            email=email,
-            type='parent'
-        ),
+        obj_in=UserUpdateIn(name="A Parent", email=email, type="parent"),
     )
 
     response = client.get(f"v1/user/{user.id}", headers=backend_service_account_headers)
@@ -127,58 +121,55 @@ def test_parent_user_can_login(
 
     user = crud.user.create(
         db=session,
-        obj_in=UserUpdateIn(
-            name="A Parent",
-            email=email,
-            type='parent'
-        ),
+        obj_in=UserUpdateIn(name="A Parent", email=email, type="parent"),
     )
 
     parent_access_token = create_user_access_token(user)
 
-    response = client.get(f"v1/auth/me",
-                          headers={"Authorization": f"bearer {parent_access_token}"})
+    response = client.get(
+        f"v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
+    )
     assert response.status_code == status.HTTP_200_OK
 
     json = response.json()
     assert json["account_type"] == "user"
     user_data = json["user"]
-    assert user_data['id'] == str(user.id)
-    assert user_data['type'] == "parent"
-    assert user_data['is_active']
+    assert user_data["id"] == str(user.id)
+    assert user_data["type"] == "parent"
+    assert user_data["is_active"]
 
 
-def test_parent_create_via_api(
-    session,
-    client,
-    backend_service_account_headers
-):
+def test_parent_create_via_api(session, client, backend_service_account_headers):
     email = "testemail@site.com"
 
     if existing_user := crud.user.get_by_account_email(db=session, email=email):
         crud.user.remove(db=session, id=existing_user.id)
 
-    response = client.post(f"v1/user",
-                           json={
-                               "name": "A Parent",
-                               "email": email,
-                               "type": "parent",
-                           },
-                           headers=backend_service_account_headers)
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "A Parent",
+            "email": email,
+            "type": "parent",
+        },
+        headers=backend_service_account_headers,
+    )
     assert response.status_code == status.HTTP_200_OK
-    user_id = response.json()['id']
-    response = client.post(f"v1/user/{user_id}/auth-token",
-                           headers=backend_service_account_headers)
+    user_id = response.json()["id"]
+    response = client.post(
+        f"v1/user/{user_id}/auth-token", headers=backend_service_account_headers
+    )
     assert response.status_code == status.HTTP_200_OK
-    parent_access_token = response.json()['access_token']
+    parent_access_token = response.json()["access_token"]
 
-    response = client.get(f"v1/auth/me",
-                          headers={"Authorization": f"bearer {parent_access_token}"})
+    response = client.get(
+        f"v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
+    )
     assert response.status_code == status.HTTP_200_OK
 
     json = response.json()
     assert json["account_type"] == "user"
     user_data = json["user"]
-    assert user_data['id'] == str(user_id)
-    assert user_data['type'] == "parent"
-    assert user_data['is_active']
+    assert user_data["id"] == str(user_id)
+    assert user_data["type"] == "parent"
+    assert user_data["is_active"]

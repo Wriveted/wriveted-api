@@ -22,12 +22,14 @@ logger = get_logger()
 def process_events(event_id):
     with SessionManager(get_session_maker()) as session:
         event = crud.event.get(session, id=event_id)
-        logger.warning("Background processing event", type=event.title, event_id=event.id)
+        logger.warning(
+            "Background processing event", type=event.title, event_id=event.id
+        )
         match event.title:
             case "Huey: Book reviewed":
                 return process_book_review_event(session, event)
             case "Test":
-                logger.info("Changing event",  e=event)
+                logger.info("Changing event", e=event)
                 event.info["description"] = "MODIFIED"
                 session.commit()
                 session.refresh(event)

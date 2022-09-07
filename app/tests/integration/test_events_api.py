@@ -94,7 +94,11 @@ def test_post_events_api(
 ):
     create_event_response = client.post(
         f"/v1/events",
-        json={"title": "TEST EVENT", "description": "test description", 'level': 'normal'},
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+        },
         headers=backend_service_account_headers,
     )
     create_event_response.raise_for_status()
@@ -109,7 +113,11 @@ def test_post_events_api_background_process(
 ):
     create_event_response = client.post(
         f"/v1/events",
-        json={"title": "Test", "description": "original description", 'level': 'warning'},
+        json={
+            "title": "Test",
+            "description": "original description",
+            "level": "warning",
+        },
         headers=backend_service_account_headers,
     )
     create_event_response.raise_for_status()
@@ -118,14 +126,17 @@ def test_post_events_api_background_process(
     # Wait a tick, then see if the event was modified
     time.sleep(0.01)
     with session_factory() as session:
-        events = [e for e in
-                  crud.event.get_all_with_optional_filters(
-                      db=session,
-                      service_account=backend_service_account,
-                      level='warning',
-                      query_string='Test')
-                  if e.title == 'Test']
+        events = [
+            e
+            for e in crud.event.get_all_with_optional_filters(
+                db=session,
+                service_account=backend_service_account,
+                level="warning",
+                query_string="Test",
+            )
+            if e.title == "Test"
+        ]
 
         assert len(events) == 1
         event = events[0]
-        assert event.description == 'MODIFIED'
+        assert event.description == "MODIFIED"
