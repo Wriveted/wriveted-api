@@ -79,9 +79,11 @@ async def create_user(user_data: UserCreateIn, session: Session = Depends(get_se
     """
     Admin endpoint for creating new users.
     """
-    logger.info("Creating a user")
+    logger.debug("Creating a user")
     try:
-        return crud.user.create(session, obj_in=user_data)
+        new_user = crud.user.create(session, obj_in=user_data)
+        logger.info("Created a new user", user_id=new_user.id)
+        return new_user
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except IntegrityError as e:
