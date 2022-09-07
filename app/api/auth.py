@@ -21,8 +21,8 @@ from app.models import EventLevel, SchoolState, ServiceAccount, Student, User
 from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.users.educator import EducatorDetail
-from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.parent import ParentDetail
+from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
 from app.schemas.users.user_create import UserCreateAuth, UserCreateIn

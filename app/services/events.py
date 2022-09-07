@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
-from app.db.session import get_session_maker, SessionManager
+from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
 from app.models.user import User, UserAccountType
@@ -20,7 +20,8 @@ logger = get_logger()
 
 
 def process_events(event_id):
-    with SessionManager(get_session_maker()) as session:
+    Session = get_session_maker()
+    with Session() as session:
         event = crud.event.get(session, id=event_id)
         logger.warning(
             "Background processing event", type=event.title, event_id=event.id
