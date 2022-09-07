@@ -90,7 +90,9 @@ class BookList(Base):
         ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
         nullable=True,
     )
-    user = relationship("User", back_populates="booklists", foreign_keys=[user_id])
+    user = relationship(
+        "User", back_populates="booklists", foreign_keys=[user_id], lazy="joined"
+    )
 
     service_account_id = Column(
         ForeignKey(

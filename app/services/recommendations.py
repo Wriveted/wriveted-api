@@ -16,6 +16,7 @@ from app.models import (
     Work,
 )
 from app.models.labelset import RecommendStatus
+from app.schemas.recommendations import ReadingAbilityKey
 
 logger = get_logger()
 
@@ -111,3 +112,24 @@ def get_recommended_labelset_query(
     return select(aliased_work, aliased_edition, aliased_labelset_end).order_by(
         func.random()
     )
+
+
+def increment_reading_ability(input: ReadingAbilityKey, decrement: bool = False):
+    """
+    Increments a Reading Ability key by 1 level. Optionally decrements by 1.
+    """
+    # since ReadingAbilityKey is a 3.7+ enum.Enum type, it remembers natural definition order
+    # we can treat this as defacto indexing (allowing us to increment or decrement a reading ability)
+    reading_ability_key_list = [v.value for v in ReadingAbilityKey]
+    current_reading_ability_index = reading_ability_key_list.index(input)
+
+    if not decrement:
+        # don't increment more than the highest level. harry_potter + 1 = harry_potter
+        next_reading_ability_index = min(
+            len(reading_ability_key_list) - 1, current_reading_ability_index + 1
+        )
+    else:
+        # don't decrement below than the lowest level. spot - 1 = spot
+        next_reading_ability_index = max(0, current_reading_ability_index - 1)
+
+    return ReadingAbilityKey(reading_ability_key_list[next_reading_ability_index])

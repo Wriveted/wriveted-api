@@ -16,7 +16,9 @@ from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
 from app.schemas.edition import EditionCreateIn
+from app.schemas.recommendations import ReadingAbilityKey, HueKeys
 from app.schemas.service_account import ServiceAccountCreateIn
+from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
 from app.services.collections import reset_school_collection
@@ -458,3 +460,17 @@ def lms_service_account_token_for_school(settings, lms_service_account_for_test_
 @pytest.fixture()
 def lms_service_account_headers_for_school(lms_service_account_token_for_school):
     return {"Authorization": f"bearer {lms_service_account_token_for_school}"}
+
+
+@pytest.fixture()
+def test_huey_attributes():
+    return HueyAttributes(
+        birthdate="2015-01-01 00:00:00",
+        last_visited="2022-05-05 00:00:00",
+        age=7,
+        reading_ability=[ReadingAbilityKey.CAT_HAT],
+        hues=[HueKeys.hue01_dark_suspense, HueKeys.hue03_dark_beautiful],
+        goals=["Maintain a thoroughly-tested codebase"],
+        genres=["Dark", "Realistic"],
+        characters=["Robot", "Unicorn"],
+    )
