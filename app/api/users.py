@@ -4,8 +4,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security, BackgroundTasks
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
@@ -88,9 +88,10 @@ async def create_user(
     `Books to read now` and `Books to read next`, populating each with 10 appropriate books based on the `huey_attributes`
     blob in `user_data`.
     """
-    logger.info("Creating a user")
+    logger.debug("Creating a user")
     try:
-        user = crud.user.create(session, obj_in=user_data)
+        new_user = crud.user.create(session, obj_in=user_data)
+        logger.info("Created a new user", user_id=new_user.id)
 
         if generate_pathway_lists and user_data.type in [
             UserAccountType.STUDENT,
@@ -100,11 +101,11 @@ async def create_user(
             background_tasks.add_task(
                 generate_reading_pathway_lists,
                 session,
-                user.id,
+                new_user.id,
                 user_data.huey_attributes,
             )
 
-        return user
+        return new_user
 
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
