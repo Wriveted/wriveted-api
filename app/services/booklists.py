@@ -56,7 +56,7 @@ def generate_reading_pathway_lists(
             reading_abilities=[next_reading_ability_key],
         )
 
-        now_results = session.scalars(read_now_query.limit(limit)).all()
+        now_results = session.execute(read_now_query.limit(limit)).all()
         items_to_read_now = [
             BookListItemCreateIn(
                 work_id=work.id,
