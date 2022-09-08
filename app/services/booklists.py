@@ -25,7 +25,8 @@ def generate_reading_pathway_lists(
     populating each with `limit` appropriate books based on the provided `huey_attributes`
     """
 
-    with SessionManager(get_session_maker()) as session:
+    Session = get_session_maker()
+    with Session() as session:
         try:
             current_reading_ability = attributes.reading_ability[0]
         except (ValueError, TypeError, IndexError):
@@ -55,7 +56,7 @@ def generate_reading_pathway_lists(
             reading_abilities=[next_reading_ability_key],
         )
 
-        now_results = session.execute(read_now_query.limit(limit)).all()
+        now_results = session.scalars(read_now_query.limit(limit)).all()
         items_to_read_now = [
             BookListItemCreateIn(
                 work_id=work.id,
