@@ -1,19 +1,11 @@
-from cProfile import label
-import pytest
 from sqlalchemy import select, and_
-
 from app.models.booklist import BookList
-from app.models.labelset import LabelSet, RecommendStatus
+from app.models.labelset import RecommendStatus
 from app.models.labelset_hue_association import LabelSetHue, Ordinal
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
-from app.models.work import Work
-from app.models.reading_ability import ReadingAbility
-from app.models.hue import Hue
 from app import crud
-from app.schemas.labelset import LabelSetCreateIn
 from app.services.booklists import generate_reading_pathway_lists
-from app.services.recommendations import increment_reading_ability
-from app.schemas.recommendations import ReadingAbilityKey
+from app.services.recommendations import gen_next_reading_ability
 
 
 def test_read_now_read_next_generation(
@@ -146,7 +138,7 @@ def test_read_now_read_next_generation(
         )
 
     # ensure the books in 'read next' match the next reading ability (and hues)
-    next_reading_ability = increment_reading_ability(
+    next_reading_ability = gen_next_reading_ability(
         test_huey_attributes.reading_ability[0]
     )
     read_next_items = read_next.items.all()

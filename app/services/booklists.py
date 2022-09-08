@@ -9,7 +9,7 @@ from app.schemas.booklist import (
 from app.models.booklist import ListType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.recommendations import (
-    increment_reading_ability,
+    gen_next_reading_ability,
     get_recommended_labelset_query,
 )
 from structlog import get_logger
@@ -18,7 +18,7 @@ logger = get_logger()
 
 
 def generate_reading_pathway_lists(
-    user_id: UUID, attributes: HueyAttributes, limit: int = 10, commit: bool = True
+    user_id: str, attributes: HueyAttributes, limit: int = 10, commit: bool = True
 ):
     """
     Generate booklists `Books to read now` and `Books to read next` for the provided user,
@@ -45,7 +45,7 @@ def generate_reading_pathway_lists(
         )
 
         # Get the read next list by incrementing the reading ability and doing the same
-        next_reading_ability_key = increment_reading_ability(
+        next_reading_ability_key = gen_next_reading_ability(
             current_reading_ability
         ).name
         read_next_query = get_recommended_labelset_query(
@@ -106,6 +106,10 @@ def generate_reading_pathway_lists(
             description="Created Books To Read Now and Books To Read Later",
             account=crud.user.get(session, user_id),
             commit=commit,
+            info={
+                "read_now_count": len(list(read_now_orm.items)),
+                "read_next_count": len(list(read_next_orm.items)),
+            },
         )
 
         return read_now_orm, read_next_orm

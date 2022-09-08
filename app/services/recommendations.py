@@ -114,9 +114,9 @@ def get_recommended_labelset_query(
     )
 
 
-def increment_reading_ability(input: ReadingAbilityKey, decrement: bool = False):
+def gen_next_reading_ability(input: ReadingAbilityKey, decrement: bool = False):
     """
-    Increments a Reading Ability key by 1 level. Optionally decrements by 1.
+    Generates a reading ability level equivalent to 1 increment up (optionally down).
     """
     # since ReadingAbilityKey is a 3.7+ enum.Enum type, it remembers natural definition order
     # we can treat this as defacto indexing (allowing us to increment or decrement a reading ability)
