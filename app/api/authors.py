@@ -25,6 +25,6 @@ async def get_authors(
 
 @router.get("/authors/{author_id}", response_model=AuthorDetail)
 async def get_author_detail_by_id(
-    work_id: str, session: Session = Depends(get_session)
+    author_id: str, session: Session = Depends(get_session)
 ):
-    return crud.author.get_or_404(db=session, id=work_id)
+    return crud.author.get_or_404(db=session, id=author_id)
