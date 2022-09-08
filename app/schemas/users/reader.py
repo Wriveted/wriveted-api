@@ -34,7 +34,7 @@ class ReaderDetail(ReaderBrief, UserDetail):
 
     @validator("reading_path", pre=True, always=True)
     def grab_pathway_lists(cls, v, values):
-        lists = values["booklists"]
+        lists = values.get("booklists", None)
         output = {"read_now": None, "read_next": None}
         # get the first booklist matching each required name (with null safeties)
         output["read_now"] = next(

@@ -12,6 +12,9 @@ from app.services.recommendations import (
     increment_reading_ability,
     get_recommended_labelset_query,
 )
+from structlog import get_logger
+
+logger = get_logger()
 
 
 def generate_reading_pathway_lists(
@@ -26,6 +29,10 @@ def generate_reading_pathway_lists(
         try:
             current_reading_ability = attributes.reading_ability[0]
         except (ValueError, TypeError, IndexError):
+            logger.warning(
+                "Attempt to create reading pathway when no Huey attributes were provided",
+                user_id=user_id,
+            )
             return
 
         # Get the read now list by generating 10 books via standard recommendation
