@@ -50,7 +50,3 @@ class ReaderDetail(ReaderBrief, UserDetail):
     @validator("booklists", pre=True)
     def limit_booklists(cls, v):
         return v[:5] if isinstance(v, (AppenderQuery, list)) else v
-
-
-class ReadersResponse(BaseModel):
-    readers: list[ReaderDetail]
