@@ -56,7 +56,6 @@ class Token(BaseModel):
 def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
     raw_data=Depends(get_raw_info),
-    user_data: Union[UserCreateAuth, None] = None,
     session: Session = Depends(get_session),
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
