@@ -112,6 +112,7 @@ async def get_work_by_id(work: Work = Depends(get_work)):
 async def update_work(
     changes: WorkUpdateIn,
     work_orm: Work = Depends(get_work),
+    account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
 ):
     logger.info("Updating work", target_work=work_orm, changes=changes)
@@ -120,7 +121,18 @@ async def update_work(
         logger.info("Updating labels", label_updates=labelset_update)
         labelset = crud.labelset.get_or_create(session, work_orm, False)
         labelset = crud.labelset.patch(session, labelset, labelset_update, False)
-
+        crud.event.create(
+            session,
+            title=f"Label edited",
+            description=f"Made a change to {work_orm.title} labels",
+            info={
+                "changes": labelset_update.dict(
+                    exclude_unset=True, exclude_defaults=True
+                ),
+                "work_id": work_orm.id,
+            },
+            account=account,
+        )
         del changes.labelset
     updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
     logger.info("Updated work", updated=updated)

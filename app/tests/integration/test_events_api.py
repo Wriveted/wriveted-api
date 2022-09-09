@@ -1,3 +1,5 @@
+import time
+
 from starlette import status
 
 from app import crud
@@ -84,3 +86,57 @@ def test_cant_get_school_events_as_public(
     )
 
     assert get_events_response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_post_events_api(
+    client,
+    backend_service_account_headers,
+):
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response.raise_for_status()
+    assert create_event_response.json()["level"] == "normal"
+
+
+def test_post_events_api_background_process(
+    client,
+    session_factory,
+    backend_service_account,
+    backend_service_account_headers,
+):
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "Test",
+            "description": "original description",
+            "level": "warning",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response.raise_for_status()
+    assert create_event_response.json()["level"] == "warning"
+
+    # Wait a tick, then see if the event was modified
+    time.sleep(0.01)
+    with session_factory() as session:
+        events = [
+            e
+            for e in crud.event.get_all_with_optional_filters(
+                db=session,
+                service_account=backend_service_account,
+                level="warning",
+                query_string="Test",
+            )
+            if e.title == "Test"
+        ]
+
+        assert len(events) == 1
+        event = events[0]
+        assert event.description == "MODIFIED"

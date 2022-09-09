@@ -25,7 +25,7 @@ async def get_illustrators(
     )
 
 
-@router.get("/illustrators/{illustrator-id}", response_model=IllustratorBrief)
+@router.get("/illustrators/{illustrator_id}", response_model=IllustratorBrief)
 async def get_illustrator_by_id(
     illustrator_id: str, session: Session = Depends(get_session)
 ):

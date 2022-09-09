@@ -1,4 +1,8 @@
+import time
+
 from starlette import status
+
+from app import crud
 
 
 def test_backend_service_account_can_list_works(
@@ -34,7 +38,11 @@ def test_backend_service_account_can_get_edit_detail_on_specific_work(
 
 
 def test_backend_service_account_can_label_work(
-    client, backend_service_account_headers, works_list
+    client,
+    backend_service_account,
+    backend_service_account_headers,
+    works_list,
+    session_factory,
 ):
     work = works_list[0]
     response = client.patch(
@@ -49,6 +57,27 @@ def test_backend_service_account_can_label_work(
     )
     work_data = response.json()
     assert work_data["labelset"]["huey_summary"] == "Blarg!"
+
+    # Wait a tick, then see if an event was created
+    time.sleep(0.01)
+    with session_factory() as session:
+        events = [
+            e
+            for e in crud.event.get_all_with_optional_filters(
+                db=session,
+                service_account=backend_service_account,
+                level="normal",
+                query_string="Label edited",
+            )
+            if e.info.get("work_id") == work.id
+        ]
+
+        assert len(events) == 1
+        event = events[0]
+        assert event.info.get("changes") == {
+            "huey_summary": "Blarg!",
+            "summary_origin": "HUMAN",
+        }
 
 
 def test_public_account_not_allowed_to_edit_work(

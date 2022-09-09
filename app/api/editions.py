@@ -112,7 +112,7 @@ async def bulk_add_editions(
 
 
 @router.get("/editions/to_hydrate", response_model=List[EditionBrief])
-async def get_editions(
+async def get_editions_to_hydrate(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
