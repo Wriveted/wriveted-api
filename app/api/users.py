@@ -100,7 +100,6 @@ async def create_user(
             # generate the booklists for the user
             background_tasks.add_task(
                 generate_reading_pathway_lists,
-                session,
                 new_user.id,
                 user_data.huey_attributes,
             )

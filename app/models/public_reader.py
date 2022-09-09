@@ -42,4 +42,5 @@ class PublicReader(Reader):
         return [
             (Allow, f"user:{self.id}", All),
             (Allow, "role:admin", All),
+            (Allow, f"parent:{self.id}", All),
         ]
