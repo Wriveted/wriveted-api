@@ -116,8 +116,9 @@ class BookList(Base):
 
         policies = [
             (Allow, "role:admin", All),
-            # Allow users to manage their own lists
+            # Allow users (or their parents) to manage their own lists
             (Allow, f"user:{self.user_id}", All),
+            (Allow, f"parent:{self.user_id}", All),
             # Educators can manage school lists
             (Allow, f"educator:{self.school_id}", All),
             (Allow, f"school:{self.school_id}", All),
