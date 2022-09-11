@@ -24,6 +24,7 @@ def generate_reading_pathway_lists(
     Generate booklists `Books to read now` and `Books to read next` for the provided user,
     populating each with `limit` appropriate books based on the provided `huey_attributes`
     """
+    logger.debug("Creating reading pathway booklists for user", user_id, attributes)
 
     Session = get_session_maker()
     with Session() as session:
