@@ -1,6 +1,5 @@
-from uuid import UUID
 from app import crud
-from app.db.session import get_session_maker, SessionManager
+from app.db.session import get_session_maker
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListItemCreateIn,
@@ -24,7 +23,7 @@ def generate_reading_pathway_lists(
     Generate booklists `Books to read now` and `Books to read next` for the provided user,
     populating each with `limit` appropriate books based on the provided `huey_attributes`
     """
-    logger.debug(
+    logger.info(
         "Creating reading pathway booklists for user",
         user_id=user_id,
         attributes=attributes,
