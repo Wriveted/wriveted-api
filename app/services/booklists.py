@@ -27,6 +27,7 @@ def generate_reading_pathway_lists(
         "Creating reading pathway booklists for user",
         user_id=user_id,
         attributes=attributes,
+        limit=limit,
     )
 
     Session = get_session_maker()
