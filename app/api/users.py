@@ -97,7 +97,7 @@ async def create_user(
             UserAccountType.STUDENT,
             UserAccountType.PUBLIC,
         ]:
-            logger.debug("User opts to create pathway booklists")
+            logger.info("User opts to create pathway booklists")
             # generate the booklists for the user
             background_tasks.add_task(
                 generate_reading_pathway_lists,
