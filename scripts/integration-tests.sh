@@ -3,9 +3,18 @@
 # Set bash to exit immediately on any command failure
 set -e
 
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+if [[ -n "${PR_NUMBER}" ]]; then
+  export TAG="PR-${PR_NUMBER}"
+else
+  export TAG="latest"
+fi
+
 # Remove possibly previous broken stacks left hanging after an error
 docker-compose -f docker-compose.yml down -v --remove-orphans
-docker-compose build --build-arg INSTALL_DEV=true
+docker-compose build --build-arg INSTALL_DEV=true --build-arg BUILDKIT_INLINE_CACHE=1
 docker-compose -f docker-compose.yml up -d db migration
 docker-compose logs migration
 sleep 5
