@@ -20,3 +20,5 @@ class HueyAttributes(BaseModel):
     goals: list[str] | None
     genres: list[str] | None
     characters: list[str] | None
+
+    parent_nickname: str | None
