@@ -99,11 +99,17 @@ async def create_user(
         ]:
             logger.info("User opts to create pathway booklists")
             # generate the booklists for the user
-            background_tasks.add_task(
-                generate_reading_pathway_lists,
-                new_user.id,
-                user_data.huey_attributes,
-            )
+
+            # --temp fix for backgroundtask issue--
+
+            # background_tasks.add_task(
+            #     generate_reading_pathway_lists,
+            #     new_user.id,
+            #     user_data.huey_attributes,
+            # )
+            generate_reading_pathway_lists(new_user.id, user_data.huey_attributes)
+
+            #  ----
 
         return new_user
 
