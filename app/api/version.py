@@ -37,7 +37,7 @@ logger = get_logger()
 
 def test_background_task(session: Session):
     logger.info("=== BACKGROUND: RUNNING ===")
-    sleep(1)
+    sleep(2)
     crud.event.create(session, title="BACKGROUND: CREATED AN EVENT")
     logger.info("=== BACKGROUND: COMPLETE ===")
 
