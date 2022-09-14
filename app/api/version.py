@@ -3,13 +3,17 @@ from importlib import metadata
 from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from pydantic import BaseModel, BaseSettings
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
 from alembic.runtime.migration import MigrationContext
 from app.db.session import get_session
+
+from structlog import get_logger
+from app import crud
+from time import sleep
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -28,6 +32,24 @@ class Version(BaseModel):
 cloud_run_config = CloudRunEnvironment()
 
 router = APIRouter()
+logger = get_logger()
+
+
+def test_background_task(session: Session):
+    logger.info("=== BACKGROUND: RUNNING ===")
+    sleep(1)
+    crud.event.create(session, title="BACKGROUND: CREATED AN EVENT")
+    logger.info("=== BACKGROUND: COMPLETE ===")
+
+
+@router.get("/testbg")
+async def test_bg_task(
+    background_tasks: BackgroundTasks, session: Session = Depends(get_session)
+):
+    logger.info("About to trigger a background task...")
+    background_tasks.add_task(test_background_task, session)
+
+    return "Good luck"
 
 
 @router.get("/version", response_model=Version)
