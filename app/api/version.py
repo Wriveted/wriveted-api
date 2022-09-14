@@ -52,7 +52,7 @@ async def test_bg_task(
     return {
         "msg": "Good luck",
         "events": "https://wriveted-api--pr24-test-bg-m407wge8.web.app/events",
-        "logs": 'https://console.cloud.google.com/logs/query;query=resource.type%3D"cloud_run_revision"%0Aresource.labels.revision_name%3D"wriveted-api-development-00416-zez"%0Aresource.labels.service_name%3D"wriveted-api-development";?project=wriveted-api',
+        "logs": "https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22wriveted-api-development%22;timeRange=2022-09-14T01:00:40.735Z%2F;cursorTimestamp=2022-09-14T01:08:00.821883Z?referrer=search&project=wriveted-api",
     }
 
 
