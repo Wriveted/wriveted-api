@@ -49,7 +49,11 @@ async def test_bg_task(
     logger.info("About to trigger a background task...")
     background_tasks.add_task(test_background_task, session)
 
-    return "Good luck"
+    return {
+        "msg": "Good luck",
+        "events": "https://wriveted-api--pr24-test-bg-m407wge8.web.app/events",
+        "logs": 'https://console.cloud.google.com/logs/query;query=resource.type%3D"cloud_run_revision"%0Aresource.labels.revision_name%3D"wriveted-api-development-00416-zez"%0Aresource.labels.service_name%3D"wriveted-api-development";?project=wriveted-api',
+    }
 
 
 @router.get("/version", response_model=Version)
