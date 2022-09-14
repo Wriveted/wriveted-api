@@ -14,6 +14,7 @@ from app.db.session import get_session
 from structlog import get_logger
 from app import crud
 from time import sleep
+from app.db.session import get_session_maker
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -35,19 +36,20 @@ router = APIRouter()
 logger = get_logger()
 
 
-def test_background_task(session: Session):
-    logger.info("=== BACKGROUND: RUNNING ===")
-    sleep(10)
-    crud.event.create(session, title="BACKGROUND: CREATED AN EVENT")
-    logger.info("=== BACKGROUND: COMPLETE ===")
+def test_background_task():
+    logger.info("BACKGROUND: about to create session")
+    Session = get_session_maker()
+    with Session() as session:
+        logger.info("=== BACKGROUND: RUNNING (with session) ===")
+        sleep(10)
+        crud.event.create(session, title="BACKGROUND: CREATED AN EVENT")
+        logger.info("=== BACKGROUND: COMPLETE ===")
 
 
 @router.get("/testbg")
-async def test_bg_task(
-    background_tasks: BackgroundTasks, session: Session = Depends(get_session)
-):
+async def test_bg_task(background_tasks: BackgroundTasks):
     logger.info("About to trigger a background task...")
-    background_tasks.add_task(test_background_task, session)
+    background_tasks.add_task(test_background_task)
 
     return {
         "msg": "Good luck",
