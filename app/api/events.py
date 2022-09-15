@@ -21,7 +21,8 @@ from app.models.user import User
 from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
-from app.services.events import process_events
+from app.services.background_tasks import queue_background_task
+
 
 logger = get_logger()
 
@@ -65,11 +66,12 @@ async def create(
         school=school,
         account=account,
     )
-    # Add a background task to process the created event
-    background_tasks.add_task(
-        process_events,
-        event_id=event.id,
+    # Queue a background task to process the created event
+    queue_background_task(
+        'process-events',
+        {'event_id': event.id},
     )
+
     return event
 
 
