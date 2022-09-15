@@ -13,7 +13,7 @@ logger = get_logger()
 
 
 def queue_background_task(endpoint: str, payload: Any = None):
-    url = f'{settings.WRIVETED_INTERNAL_API}/{endpoint}'
+    url = f'{settings.WRIVETED_INTERNAL_API}/v1/{endpoint}'
 
     if settings.GCP_CLOUD_TASKS_NAME is None:
         logger.warning("Calling internal API directly")
@@ -49,5 +49,5 @@ def queue_background_task(endpoint: str, payload: Any = None):
 
         response = client.create_task(request={"parent": parent, "task": task})
 
-        logger.info("Created task {}".format(response.name))
+        logger.info("Queued background task {}".format(response.name))
         return response

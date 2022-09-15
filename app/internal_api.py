@@ -20,8 +20,8 @@ Use this API to process long running tasks and react to non-time critical events
 
 ## 🔐 Authentication
 
-Same as Wriveted's public API just send an access token in the `Authorization`
-header.
+Currently PUBLIC. Will be only available on 
+our private GCP network.
 
 ## ⏰ Task Queue
 
