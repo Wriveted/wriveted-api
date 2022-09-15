@@ -18,7 +18,7 @@ class WorkInfo(BaseModel):
 
 
 class WorkBrief(BaseModel):
-    id: str
+    id: int
     type: Optional[WorkType]
 
     leading_article: str | None
