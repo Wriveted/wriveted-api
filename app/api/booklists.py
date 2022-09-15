@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy import select, and_
 from starlette import status
 from structlog import get_logger
 
@@ -16,8 +17,9 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import BookList, ServiceAccount, User
+from app.models import BookList, ServiceAccount, User, BookListItem
 from app.models.booklist import ListType
+from app.models.edition import Edition
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
@@ -203,13 +205,17 @@ async def get_booklists(
 
 @router.get(
     "/list/{booklist_identifier}",
-    response_model=(BookListDetail | BookListDetailEnriched),
+    response_model=(BookListDetailEnriched | BookListDetail),
 )
 async def get_booklist_detail(
     enriched: bool = Query(
         default=False,
-        title="Enrich editions in response",
-        description="If enabled, will include fully-enriched editions for each booklist item, i.e. including cover image, summary, and other metadata that may be desired for displaying each book. Otherwise, includes only ISBN.",
+        title="Enrich items in response",
+        description="""
+            If enabled, will include fully-enriched editions and labels for each booklist item
+            i.e. including cover image, summary, and other metadata that may be desired for displaying each book. 
+            Will grab a suitable edition if none is specified in the booklist item.
+        """,
     ),
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
@@ -219,20 +225,34 @@ async def get_booklist_detail(
     # item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
     # logger.debug("Item query", query=str(item_query))
     # booklist_items = session.scalars(item_query).all()
-    booklist_items = list(booklist.items)[
+    booklist_items: list[BookListItem] = list(booklist.items)[
         pagination.skip : pagination.limit + pagination.skip
     ]
 
     if enriched:
         booklist_items = [
             BookListItemEnriched(
-                order_id=i.order_id,
-                edition=EditionDetail.from_orm(
-                    crud.edition.get(session, i.info["edition"])
+                **i.__dict__,
+                edition=EditionDetail.from_orm(edition_result)
+                if (
+                    edition_result := crud.edition.get(
+                        session, i.info["edition"] or None
+                    )
+                )
+                else EditionDetail.from_orm(
+                    session.execute(
+                        select(Edition)
+                        .where(
+                            and_(
+                                Edition.work_id == i.work_id,
+                                Edition.cover_url is not None,
+                            )
+                        )
+                        .scalar_one()
+                    )
                 ),
             )
             for i in booklist_items
-            if i.info["edition"]
         ]
 
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
