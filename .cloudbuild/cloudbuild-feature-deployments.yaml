@@ -54,7 +54,6 @@ steps:
       - '--tag=pr-$_PR_NUMBER'
       - '--concurrency=25'
       - '--max-instances=3'
-      - '--quiet'
     id: Deploy
     entrypoint: gcloud
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
