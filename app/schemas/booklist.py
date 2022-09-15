@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import UUID4, BaseModel, Field
 
 from app.models.booklist import ListType
-from app.schemas.edition import EditionDetail
+from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
@@ -19,7 +19,7 @@ class BookListItemInfo(BaseModel):
 
 class BookListItemBase(BaseModel):
     order_id: int
-    work_id: str
+    work_id: int
     info: Optional[BookListItemInfo] = None
 
 
@@ -31,10 +31,8 @@ class BookListItemDetail(BookListItemBase):
         orm_mode = True
 
 
-class BookListItemEnriched(BaseModel):
-    order_id: int
-    edition: EditionDetail
-    note: Optional[str] = Field(None, description="Note from the booklist creator")
+class BookListItemEnriched(BookListItemDetail):
+    edition: EditionBrief
 
 
 class BookListItemCreateIn(BookListItemBase):
