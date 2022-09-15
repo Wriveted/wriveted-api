@@ -43,6 +43,7 @@ services:
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - UVICORN_PORT=8000
+      - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
       - "8000:8000"
     volumes:
@@ -59,7 +60,7 @@ services:
 
   internal:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
-    command: uvicorn "app.internal_api:internal_app" --host 0.0.0.0 --reload
+    command: gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker --threads=1 --timeout=0 app.internal_api:internal_app
     depends_on:
       - db
     environment:
@@ -69,9 +70,9 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
-      - UVICORN_PORT=8000
+      - PORT=8888
     ports:
-      - "8888:8000"
+      - "8888:8888"
     volumes:
       - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro
