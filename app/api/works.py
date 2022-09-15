@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import func
+from sqlalchemy import func, select, and_
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -15,7 +15,7 @@ from app.models import Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
-from app.schemas.work import WorkBrief, WorkDetail, WorkUpdateIn
+from app.schemas.work import WorkBrief, WorkDetail, WorkEnriched, WorkUpdateIn
 
 """
 Access control rules applying to all Works endpoints.
@@ -99,9 +99,31 @@ async def get_works(
     # return crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)
 
 
-@router.get("/work/{work_id}", response_model=WorkDetail)
-async def get_work_by_id(work: Work = Depends(get_work)):
-    return work
+@router.get("/work/{work_id}", response_model=WorkDetail | WorkEnriched)
+async def get_work_by_id(
+    work: Work = Depends(get_work),
+    full_detail: bool = Query(
+        default=True,
+        title="Full recursive detail",
+        description="If enabled, will include information for each of the work's editions.",
+    ),
+    session: Session = Depends(get_session),
+):
+    if full_detail:
+        return WorkDetail.from_orm(work)
+
+    else:
+        output = WorkEnriched.from_orm(work)
+        first_edition_with_cover = session.scalar(
+            select(Edition).where(
+                and_(Edition.cover_url.isnot(None), Edition.work_id == work.id)
+            )
+        )
+        output.cover_url = (
+            first_edition_with_cover.cover_url if first_edition_with_cover else None
+        )
+
+        return output
 
 
 @router.patch(

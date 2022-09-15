@@ -26,6 +26,14 @@ class LabelSetBrief(BaseModel):
         orm_mode = True
 
 
+class LabelSetBasic(LabelSetBrief):
+    hues: list[Hue]
+    min_age: Optional[int]
+    max_age: Optional[int]
+    reading_abilities: list[ReadingAbility]
+    huey_summary: Optional[str]
+
+
 class LabelSetDetail(LabelSetBrief):
     hues: list[Hue]
     hue_origin: Optional[LabelOrigin]
