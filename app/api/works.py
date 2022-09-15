@@ -82,7 +82,9 @@ async def get_works(
         brief = {}
         brief["id"] = work.id
         brief["type"] = work.type
+        brief["leading_article"] = work.leading_article
         brief["title"] = work.title
+        brief["subtitle"] = work.subtitle
         brief["authors"] = [
             {
                 "id": author.id,
