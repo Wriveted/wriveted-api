@@ -236,19 +236,18 @@ async def get_booklist_detail(
                 edition=EditionDetail.from_orm(edition_result)
                 if (
                     edition_result := crud.edition.get(
-                        session, i.info["edition"] or None
+                        session,
+                        i.info["edition"] if i.info and i.info["edition"] else None,
                     )
                 )
                 else EditionDetail.from_orm(
-                    session.execute(
-                        select(Edition)
-                        .where(
+                    session.scalar(
+                        select(Edition).where(
                             and_(
+                                Edition.cover_url.isnot(None),
                                 Edition.work_id == i.work_id,
-                                Edition.cover_url is not None,
                             )
                         )
-                        .scalar_one()
                     )
                 ),
             )

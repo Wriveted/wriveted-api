@@ -5,7 +5,7 @@ from pydantic import BaseModel, validator
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
-from app.schemas.labelset import LabelSetCreateIn, LabelSetDetail
+from app.schemas.labelset import LabelSetCreateIn, LabelSetDetail, LabelSetBasic
 
 
 class WorkInfo(BaseModel):
@@ -29,6 +29,11 @@ class WorkBrief(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class WorkEnriched(WorkBrief):
+    labelset: LabelSetBasic
+    cover_url: str | None
 
 
 class WorkDetail(WorkBrief):
