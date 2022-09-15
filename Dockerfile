@@ -36,7 +36,7 @@ RUN python3 -m venv ${VIRTUAL_ENV} \
       && if [ $INSTALL_DEV == 'true' ] ; then \
            poetry install --no-root --no-interaction --no-ansi -vvv; \
          else \
-           poetry install --no-root --no-dev --no-interaction --no-ansi -vvv; \
+           poetry install --no-root --only main --no-interaction --no-ansi -vvv; \
          fi \
       && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
@@ -48,7 +48,7 @@ RUN python3 -m venv ${VIRTUAL_ENV} \
       && if [ $INSTALL_DEV == 'true' ] ; then \
            poetry install --no-interaction --no-ansi; \
          else \
-           poetry install --no-interaction --no-ansi --no-dev; \
+           poetry install --no-interaction --no-ansi --only main; \
          fi \
       && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
