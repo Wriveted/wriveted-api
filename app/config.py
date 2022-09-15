@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     GCP_CLOUD_TASKS_NAME: Optional[str] = None # 'background-tasks'
     GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = 'background-tasks@wriveted-api.iam.gserviceaccount.com'
-    WRIVETED_INTERNAL_API: AnyHttpUrl = 'https://wriveted-internal-api-dev-lg5ntws4da-ts.a.run.app'
+    WRIVETED_INTERNAL_API: AnyHttpUrl = 'https://wriveted-internal-api-lg5ntws4da-ts.a.run.app'
 
     POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]  # e.g. /cloudsql
 
