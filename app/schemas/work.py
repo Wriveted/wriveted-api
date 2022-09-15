@@ -56,5 +56,8 @@ class WorkCreateIn(BaseModel):
 
 
 class WorkUpdateIn(BaseModel):
+    leading_article: str | None
     title: str | None
+    subtitle: str | None
+
     labelset: LabelSetCreateIn | None
