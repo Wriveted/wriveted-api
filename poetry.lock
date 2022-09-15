@@ -649,21 +649,21 @@ grpcio = ">=1.0.0,<2.0.0dev"
 
 [[package]]
 name = "grpcio"
-version = "1.48.1"
+version = "1.49.0"
 description = "HTTP/2-based RPC framework"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 six = ">=1.5.2"
 
 [package.extras]
-protobuf = ["grpcio-tools (>=1.48.1)"]
+protobuf = ["grpcio-tools (>=1.49.0)"]
 
 [[package]]
 name = "grpcio-status"
-version = "1.48.1"
+version = "1.49.0"
 description = "Status proto mapping for gRPC"
 category = "main"
 optional = false
@@ -671,8 +671,8 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 googleapis-common-protos = ">=1.5.5"
-grpcio = ">=1.48.1"
-protobuf = ">=3.12.0"
+grpcio = ">=1.49.0"
+protobuf = ">=4.21.3"
 
 [[package]]
 name = "gunicorn"
@@ -1692,7 +1692,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "pyzmq"
-version = "23.2.1"
+version = "24.0.0"
 description = "Python bindings for 0MQ"
 category = "dev"
 optional = false

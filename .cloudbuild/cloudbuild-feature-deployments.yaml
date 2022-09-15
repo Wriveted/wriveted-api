@@ -43,7 +43,7 @@ steps:
       - $_SERVICE_NAME
       - '--platform=managed'
       - >-
-        --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development,LOG_AS_JSON=True
+        --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development,LOG_AS_JSON=True,GCP_CLOUD_TASKS_NAME=background-tasks
       - '--port=8000'
       - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - >-
