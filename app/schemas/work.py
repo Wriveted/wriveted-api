@@ -21,7 +21,10 @@ class WorkBrief(BaseModel):
     id: str
     type: Optional[WorkType]
 
+    leading_article: str | None
     title: str
+    subtitle: str | None
+
     authors: List[AuthorBrief]
 
     class Config:
