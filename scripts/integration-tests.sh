@@ -19,7 +19,7 @@ docker-compose -f docker-compose.yml up -d db migration
 docker-compose logs migration
 sleep 5
 
-docker-compose -f docker-compose.yml up -d api
+docker-compose -f docker-compose.yml up -d api internal
 
 # Now start the integration tests
 docker-compose exec -T api python app/db/check_can_connect_to_db.py

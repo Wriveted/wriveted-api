@@ -57,5 +57,32 @@ services:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
+  internal:
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
+    command: uvicorn "app.internal_api:internal_app" --host 0.0.0.0 --reload
+    depends_on:
+      - db
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
+      - POSTGRESQL_PASSWORD=xvc8kcn
+      - POSTGRESQL_SERVER=db/
+      - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
+      - SENDGRID_API_KEY=unused-key-set-for-testing
+      - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - UVICORN_PORT=8000
+    ports:
+      - "8888:8000"
+    volumes:
+      - ./app:/app/app:rw
+      - /etc/localtime:/etc/localtime:ro
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      cache_from:
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api-development:${TAG-latest}"
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
 volumes:
   app-db-data:
