@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Security
-from pydantic import BaseSettings
+from pydantic import BaseSettings, BaseModel
 from structlog import get_logger
 
 from app.api.dependencies.security import get_current_active_user_or_service_account
@@ -17,9 +17,6 @@ cloud_run_config = CloudRunEnvironment()
 logger = get_logger()
 
 router = APIRouter()
-secure_router = APIRouter(dependencies=[
-    Security(get_current_active_user_or_service_account)
-])
 
 
 @router.get("/version")
@@ -31,10 +28,13 @@ async def get_version():
     }
 
 
-@secure_router.post("/process-event")
-async def process_event(event_id: str):
+class ProcessEventPayload(BaseModel):
+    event_id: str
+
+
+@router.post("/process-event")
+async def process_event(data: ProcessEventPayload):
     return process_events(
-        event_id=event_id,
+        event_id=data.event_id,
     )
 
-router.include_router(secure_router)
