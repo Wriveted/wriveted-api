@@ -12,9 +12,17 @@ from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkBrief
 
 
+class BookFeedbackChoice(str, enum.Enum):
+    GOOD = "GOOD"
+    BAD = "BAD"
+    READ_GOOD = "READ_GOOD"
+    READ_BAD = "READ_BAD"
+
+
 class BookListItemInfo(BaseModel):
     edition: Optional[str] = Field(None, description="ISBN")
     note: Optional[str] = Field(None, description="Note from the booklist creator")
+    feedback: BookFeedbackChoice
 
 
 class BookListItemBase(BaseModel):
