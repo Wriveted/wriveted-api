@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
+from app.crud.base import deep_merge_dicts
 from app.models import (
     Educator,
     Parent,
@@ -155,7 +156,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
             # combine existing and update data to create instantiation data for the new obj
             combined_data = original_data.copy()
-            self._deep_merge_dicts(combined_data, update_data)
+            deep_merge_dicts(combined_data, update_data)
 
             # trim the instantiation data to just the fields belonging to the target class
             user_type_class_map = {
@@ -179,9 +180,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             for field in update_data:
                 if hasattr(db_obj, field):
                     if merge_dicts and isinstance(getattr(db_obj, field), dict):
-                        self._deep_merge_dicts(
-                            getattr(db_obj, field), update_data[field]
-                        )
+                        deep_merge_dicts(getattr(db_obj, field), update_data[field])
                     else:
                         setattr(db_obj, field, update_data[field])
 
