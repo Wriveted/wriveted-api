@@ -140,7 +140,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         for field in update_data:
             if hasattr(db_obj, field):
                 if merge_dicts and isinstance(getattr(db_obj, field), dict):
-                    self._deep_merge_dicts(getattr(db_obj, field), update_data[field])
+                    deep_merge_dicts(getattr(db_obj, field), update_data[field])
                 else:
                     setattr(db_obj, field, update_data[field])
 
@@ -163,17 +163,17 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         )
         db.commit()
 
-    def _deep_merge_dicts(self, original, incoming):
-        """
-        Thanks Vikas https://stackoverflow.com/a/50773244
-        Deep merge two dictionaries. Modifies original.
 
-        """
-        for key in incoming:
-            if key in original:
-                if isinstance(original[key], dict) and isinstance(incoming[key], dict):
-                    self._deep_merge_dicts(original[key], incoming[key])
-                else:
-                    original[key] = incoming[key]
+def deep_merge_dicts(original, incoming):
+    """
+    Thanks Vikas https://stackoverflow.com/a/50773244
+    Deep merge two dictionaries. Modifies original.
+    """
+    for key in incoming:
+        if key in original:
+            if isinstance(original[key], dict) and isinstance(incoming[key], dict):
+                deep_merge_dicts(original[key], incoming[key])
             else:
                 original[key] = incoming[key]
+        else:
+            original[key] = incoming[key]
