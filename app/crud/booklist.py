@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
+from app.crud.base import deep_merge_dicts
 from app.models import School, User
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
@@ -140,7 +141,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             db.execute(stmt)
             item_orm_object.order_id = item_update.order_id
             if item_update.info is not None:
-                item_orm_object.info = item_update.info
+                deep_merge_dicts(item_orm_object.info, item_update.info)
             db.add(item_orm_object)
             db.commit()
             db.refresh(item_orm_object)
