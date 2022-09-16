@@ -140,11 +140,16 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                 )
             db.execute(stmt)
             item_orm_object.order_id = item_update.order_id
-            if item_update.info is not None:
-                deep_merge_dicts(item_orm_object.info, item_update.info)
-            db.add(item_orm_object)
-            db.commit()
-            db.refresh(item_orm_object)
+
+        if item_update.info is not None:
+            info_dict = dict(item_orm_object.info)
+            update_dict = dict(item_update.info)
+            deep_merge_dicts(info_dict, update_dict)
+            item_orm_object.info = info_dict
+
+        db.add(item_orm_object)
+        db.commit()
+        db.refresh(item_orm_object)
 
     def _remove_item_from_booklist(
         self,
