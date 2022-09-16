@@ -18,6 +18,7 @@ class BookListItemInfo(BaseModel):
 
 
 class BookListItemBase(BaseModel):
+    id: UUID4
     order_id: int
     work_id: int
     info: Optional[BookListItemInfo] = None
