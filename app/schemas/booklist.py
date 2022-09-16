@@ -80,7 +80,7 @@ class ItemUpdateType(str, enum.Enum):
 
 class BookListItemUpdateIn(BaseModel):
     action: ItemUpdateType
-    work_id: str
+    work_id: int
     order_id: Optional[int]
     info: Optional[BookListItemInfo] = None
 
