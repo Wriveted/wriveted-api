@@ -22,11 +22,10 @@ class BookFeedbackChoice(str, enum.Enum):
 class BookListItemInfo(BaseModel):
     edition: Optional[str] = Field(None, description="ISBN")
     note: Optional[str] = Field(None, description="Note from the booklist creator")
-    feedback: BookFeedbackChoice
+    feedback: BookFeedbackChoice | None
 
 
 class BookListItemBase(BaseModel):
-    id: UUID4
     order_id: int
     work_id: int
     info: Optional[BookListItemInfo] = None
