@@ -40,7 +40,7 @@ internal_app = FastAPI(
     title="Wriveted Internal API",
     description=api_docs,
     docs_url="/v1/docs",
-    redoc_url="/v1/redoc"
+    redoc_url="/v1/redoc",
 )
 
 
@@ -62,4 +62,3 @@ async def root():
     Redirects to the OpenAPI documentation for the current version
     """
     return RedirectResponse("/v1/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
-

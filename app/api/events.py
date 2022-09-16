@@ -67,8 +67,8 @@ async def create(
 
     # Queue a background task to process the created event
     queue_background_task(
-        'process-event',
-        {'event_id': str(event.id)},
+        "process-event",
+        {"event_id": str(event.id)},
     )
 
     return event

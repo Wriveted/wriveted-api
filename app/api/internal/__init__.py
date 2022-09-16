@@ -22,10 +22,7 @@ router = APIRouter()
 @router.get("/version")
 async def get_version():
     cloud_run_revision = cloud_run_config.K_REVISION or "Unknown"
-    return {
-        'cloud_run_revision': cloud_run_revision,
-        "version": "internal"
-    }
+    return {"cloud_run_revision": cloud_run_revision, "version": "internal"}
 
 
 class ProcessEventPayload(BaseModel):
@@ -37,4 +34,3 @@ async def process_event(data: ProcessEventPayload):
     return process_events(
         event_id=data.event_id,
     )
-
