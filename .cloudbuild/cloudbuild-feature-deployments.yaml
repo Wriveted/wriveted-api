@@ -57,6 +57,28 @@ steps:
     id: Deploy
     entrypoint: gcloud
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - "$_SERVICE_NAME-internal"
+      - '--platform=managed'
+      - >-
+        --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development,LOG_AS_JSON=True
+      - '--port=8000'
+      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - >-
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+      - '--region=$_DEPLOY_REGION'
+      - '--tag=pr-$_PR_NUMBER'
+      - '--concurrency=25'
+      - '--max-instances=3'
+      - '--args=app.internal_api:internal_app'
+    id: Deploy-internal-api
+    entrypoint: gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
     args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER']
     secretEnv: ['SLACK_WEBHOOK']

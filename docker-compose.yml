@@ -32,7 +32,7 @@ services:
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
-    command: uvicorn "app.main:app" --host 0.0.0.0 --reload
+    entrypoint: uvicorn "app.main:app" --host 0.0.0.0 --reload
     depends_on:
       - db
     environment:
@@ -60,7 +60,7 @@ services:
 
   internal:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
-    command: gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker --threads=1 --timeout=0 app.internal_api:internal_app
+    entrypoint: gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker --threads=1 --timeout=0 app.internal_api:internal_app
     depends_on:
       - db
     environment:

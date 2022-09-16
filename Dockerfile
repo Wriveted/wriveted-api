@@ -60,7 +60,8 @@ RUN python3 -m venv ${VIRTUAL_ENV} \
 # If we would rather have multiple processes in our container
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
 # When the PORT environment variable is defined, the default bind is ['0.0.0.0:$PORT']
-CMD ["gunicorn", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--threads", "1", "--timeout", "0", "app.main:app"]
+ENTRYPOINT ["gunicorn", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--threads", "1", "--timeout", "0"]
+CMD ["app.main:app"]
 
 # To run internal api use the following command:
 #CMD ["gunicorn", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--threads", "1", "--timeout", "0", "app.internal_api:internal_app"]
