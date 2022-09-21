@@ -35,6 +35,7 @@ def process_events(event_id):
                 session.commit()
                 session.refresh(event)
                 logger.info("Changed", e=event)
+                return {"msg": "ok"}
             case _:
                 return
 

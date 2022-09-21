@@ -124,7 +124,7 @@ def test_post_events_api_background_process(
     assert create_event_response.json()["level"] == "warning"
 
     # Wait a tick, then see if the event was modified
-    time.sleep(0.01)
+    time.sleep(0.5)
     with session_factory() as session:
         events = [
             e

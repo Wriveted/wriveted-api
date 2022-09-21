@@ -20,6 +20,7 @@ services:
 
   migration:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
+    entrypoint: /bin/sh
     command: /app/scripts/run-migrations.sh
     depends_on:
       - db
@@ -30,9 +31,10 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - WRIVETED_INTERNAL_API=http://internal:8888
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
-    command: uvicorn "app.main:app" --host 0.0.0.0 --reload
+    entrypoint: uvicorn "app.main:app" --host 0.0.0.0 --reload
     depends_on:
       - db
     environment:
@@ -43,8 +45,37 @@ services:
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - UVICORN_PORT=8000
+      - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/app/app:rw
+      - /etc/localtime:/etc/localtime:ro
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      cache_from:
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api-development:${TAG-latest}"
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
+  internal:
+    image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
+    entrypoint: gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker --threads=1 --timeout=0 app.internal_api:internal_app
+    depends_on:
+      - db
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
+      - POSTGRESQL_PASSWORD=xvc8kcn
+      - POSTGRESQL_SERVER=db/
+      - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
+      - SENDGRID_API_KEY=unused-key-set-for-testing
+      - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - PORT=8888
+      - WRIVETED_INTERNAL_API=http://internal:8888
+    ports:
+      - "8888:8888"
     volumes:
       - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro

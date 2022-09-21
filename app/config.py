@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     GCP_CLOUD_SQL_INSTANCE_ID: str = "wriveted"
     GCP_LOCATION: str = "australia-southeast1"
 
+    GCP_CLOUD_TASKS_NAME: Optional[str] = None  # 'background-tasks'
+    GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = (
+        "background-tasks@wriveted-api.iam.gserviceaccount.com"
+    )
+    WRIVETED_INTERNAL_API: Optional[AnyHttpUrl] = None
+
     POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]  # e.g. /cloudsql
 
     POSTGRESQL_SERVER: str = "/"

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 from starlette import status
-from starlette.background import BackgroundTasks
 from structlog import get_logger
 
 from app import crud
@@ -21,7 +20,8 @@ from app.models.user import User
 from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
-from app.services.events import process_events
+from app.services.background_tasks import queue_background_task
+
 
 logger = get_logger()
 
@@ -34,7 +34,6 @@ router = APIRouter(
 @router.post("/events", response_model=EventDetail)
 async def create(
     data: EventCreateIn,
-    background_tasks: BackgroundTasks,
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
@@ -65,11 +64,13 @@ async def create(
         school=school,
         account=account,
     )
-    # Add a background task to process the created event
-    background_tasks.add_task(
-        process_events,
-        event_id=event.id,
+
+    # Queue a background task to process the created event
+    queue_background_task(
+        "process-event",
+        {"event_id": str(event.id)},
     )
+
     return event
 
 
