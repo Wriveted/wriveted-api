@@ -20,6 +20,7 @@ services:
 
   migration:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
+    entrypoint: /bin/sh
     command: /app/scripts/run-migrations.sh
     depends_on:
       - db
@@ -30,6 +31,7 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - WRIVETED_INTERNAL_API=http://internal:8888
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
     entrypoint: uvicorn "app.main:app" --host 0.0.0.0 --reload
@@ -71,6 +73,7 @@ services:
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - PORT=8888
+      - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
       - "8888:8888"
     volumes:
