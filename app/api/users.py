@@ -26,6 +26,7 @@ from app.schemas.pagination import Pagination
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
+from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists
 
 logger = get_logger()
@@ -102,6 +103,15 @@ async def create_user(
                 generate_reading_pathway_lists,
                 new_user.id,
                 user_data.huey_attributes,
+            )
+
+            # For testing also queue a background task to do the same
+            queue_background_task(
+                'generate-reading-pathways',
+                {
+                    'user_id': new_user.id,
+                    'attributes': user_data.huey_attributes.dict(),
+                }
             )
 
         return new_user
