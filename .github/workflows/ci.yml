@@ -48,29 +48,21 @@ jobs:
         run: poetry install --no-interaction --no-root
 
       - name: Check formatting
-        run: |
-          if ! poetry run black --check --diff --target-version py310 . ; then
-              msg="file formatting does not match $(black --version); fix using \`black .\`"
-              # convert the black output to syntax understood by GitHub Actions
-              poetry run black --check . 2>&1 | sed "s/would reformat \(.*\)/::error file=\1::$msg/"
-              exit 1
-          fi
+        uses: psf/black@stable
 
-  flake8:
-    name: "flake8"
+  lint:
+    name: Code Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install flake8
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install flake8
-      - name: Setup flake8 annotations
-        uses: rbialon/flake8-annotations@v1
-      - name: Lint with flake8
-        run: |
-          flake8 . --count --exit-zero --select F
-
+      - uses: dciborow/action-pylint@0.0.7
+        with:
+          github_token: ${{ secrets.github_token }}
+          # GitHub Status Check won't become failure with warning.
+          level: warning
+          filter_mode: diff_context
+          glob_pattern: "**/*.py"
+          pylint_args: "--disable=all, --enable=unused-import"
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -118,4 +110,5 @@ jobs:
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           export SENDGRID_API_KEY=unused-key-set-for-testing
           export SHOPIFY_HMAC_SECRET=unused-key-set-for-testing
+          export WRIVETED_INTERNAL_API=unused
           poetry run pytest app/tests/unit
