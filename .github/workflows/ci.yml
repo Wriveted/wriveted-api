@@ -110,5 +110,4 @@ jobs:
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           export SENDGRID_API_KEY=unused-key-set-for-testing
           export SHOPIFY_HMAC_SECRET=unused-key-set-for-testing
-          export WRIVETED_INTERNAL_API=unused
           poetry run pytest app/tests/unit
