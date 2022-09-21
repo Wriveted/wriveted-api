@@ -29,6 +29,7 @@ from app.schemas.pagination import Pagination
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
+from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import send_sendgrid_email
 
@@ -126,6 +127,15 @@ async def create_user(
             }
             send_sendgrid_email(data=email_data, session=session, sg=sg)
             # TODO: make a sendgrid endpoint for internal API and call it here
+
+            # For testing also queue a background task to do the same
+            queue_background_task(
+                'generate-reading-pathways',
+                {
+                    'user_id': new_user.id,
+                    'attributes': user_data.huey_attributes.dict(),
+                }
+            )
 
         return new_user
 

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Security
+from fastapi import APIRouter
 from pydantic import BaseSettings, BaseModel
 from structlog import get_logger
 
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.schemas.users.huey_attributes import HueyAttributes
+from app.services.booklists import generate_reading_pathway_lists
 from app.services.events import process_events
 
 
@@ -34,3 +35,24 @@ async def process_event(data: ProcessEventPayload):
     return process_events(
         event_id=data.event_id,
     )
+
+
+class GenerateReadingPathwaysPayload(BaseModel):
+    user_id: str
+    attributes: HueyAttributes
+    limit: int = 10
+
+
+@router.post("/generate-reading-pathways")
+def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
+    logger.info("Internal API starting generating reading pathways", user_id=data.user_id)
+    generate_reading_pathway_lists(
+        user_id=data.user_id,
+        attributes=data.attributes,
+        limit=data.limit,
+        commit=False # NOTE commit disabled for testing
+    )
+
+    logger.info("Finished generating reading pathways", user_id=data.user_id)
+
+    return {"msg": "ok"}
