@@ -83,10 +83,8 @@ async def get_users(
 )
 async def create_user(
     user_data: UserCreateIn,
-    background_tasks: BackgroundTasks,
     generate_pathway_lists: bool = False,
     session: Session = Depends(get_session),
-    sg: SendGridAPIClient = Depends(get_sendgrid_api),
 ):
     """
     Admin endpoint for creating new users.
@@ -107,34 +105,29 @@ async def create_user(
             # generate the booklists for the user
 
             # --temp fix for backgroundtask issue--
-
-            # background_tasks.add_task(
-            #     generate_reading_pathway_lists,
-            #     new_user.id,
-            #     user_data.huey_attributes,
-            # )
             generate_reading_pathway_lists(new_user.id, user_data.huey_attributes)
-
             #  ----
 
-        if user_data.type == UserAccountType.PARENT and user_data.email:
-            email_data = {
-                "from_email": "hello@hueybooks.com",
-                "from_name": "Huey Books",
-                "to_emails": [user_data.email],
-                "subject": "Welcome to Huey Books",
-                "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9s",
-            }
-            send_sendgrid_email(data=email_data, session=session, sg=sg)
-            # TODO: make a sendgrid endpoint for internal API and call it here
-
-            # For testing also queue a background task to do the same
+            # Queue a background task to generate reading pathways
             queue_background_task(
                 'generate-reading-pathways',
                 {
                     'user_id': new_user.id,
                     'attributes': user_data.huey_attributes.dict(),
                 }
+            )
+
+
+        if user_data.type == UserAccountType.PARENT and user_data.email:
+            queue_background_task(
+                'send-email',
+                {
+                    "from_email": "hello@hueybooks.com",
+                    "from_name": "Huey Books",
+                    "to_emails": [user_data.email],
+                    "subject": "Welcome to Huey Books",
+                    "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9s",
+                },
             )
 
         return new_user
