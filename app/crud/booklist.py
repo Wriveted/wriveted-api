@@ -194,6 +194,16 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         booklist_orm_object: BookList,
         item_update: BookListItemUpdateIn,
     ):
+        # If an item is already in the booklist, we just ignore it.
+        existing_item_position = db.scalar(
+            select(BookListItem.order_id)
+            .where(BookListItem.booklist_id == booklist_orm_object.id)
+            .where(BookListItem.work_id == item_update.work_id)
+        )
+        if existing_item_position is not None:
+            logger.debug("Got asked to add an item that is already present")
+            return
+
         # The slightly tricky bit here is to deal with the order_id
         if item_update.order_id is None:
             # Insert at the end of the booklist

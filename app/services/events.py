@@ -99,7 +99,7 @@ def process_book_review_event(session: Session, event: Event):
 
 def update_or_create_liked_books(
     session: Session,
-    liked_items: list,
+    liked_items: list[BookListItemUpdateIn],
     booklist_type: str,
     school: Optional[School],
     user: Optional[User],
@@ -115,7 +115,7 @@ def update_or_create_liked_books(
     )
     booklist = session.scalars(liked_booklist_query).first()
     if booklist is None:
-        logger.info("Creating a new booklist")
+        logger.info("Creating a new booklist", type=booklist_type)
         booklist = crud.booklist.create(
             db=session,
             obj_in=BookListCreateIn(
@@ -128,6 +128,7 @@ def update_or_create_liked_books(
             ),
         )
     else:
+        # Update with any newly liked items. Existing likes will be skipped
         logger.info("Updating existing booklist", booklist_id=booklist.id)
         booklist = crud.booklist.update(
             db=session, db_obj=booklist, obj_in=BookListUpdateIn(items=liked_items)
