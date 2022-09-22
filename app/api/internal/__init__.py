@@ -56,3 +56,13 @@ def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     logger.info("Finished generating reading pathways", user_id=data.user_id)
 
     return {"msg": "ok"}
+
+
+@router.post("/send-email")
+def handle_send_email(
+    data: SendGridEmailData,
+    session: Session = Depends(get_session),
+    sg: SendGridAPIClient = Depends(get_sendgrid_api),
+):
+    logger.info("Internal API sending emails")
+    send_sendgrid_email(data, session, sg)
