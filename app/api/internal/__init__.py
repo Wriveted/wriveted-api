@@ -1,9 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseSettings, BaseModel
+from sendgrid import SendGridAPIClient
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
+from app import crud
+from app.db.session import get_session
+from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
+from app.services.commerce import get_sendgrid_api, send_sendgrid_email
 from app.services.events import process_events
 
 
@@ -45,12 +51,14 @@ class GenerateReadingPathwaysPayload(BaseModel):
 
 @router.post("/generate-reading-pathways")
 def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
-    logger.info("Internal API starting generating reading pathways", user_id=data.user_id)
+    logger.info(
+        "Internal API starting generating reading pathways", user_id=data.user_id
+    )
     generate_reading_pathway_lists(
         user_id=data.user_id,
         attributes=data.attributes,
         limit=data.limit,
-        commit=False # NOTE commit disabled for testing
+        commit=False,  # NOTE commit disabled for testing
     )
 
     logger.info("Finished generating reading pathways", user_id=data.user_id)
@@ -58,11 +66,20 @@ def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     return {"msg": "ok"}
 
 
+class SendEmailPayload(BaseModel):
+    email_data: SendGridEmailData
+    user_id: str | None
+    service_account_id: str | None
+
+
 @router.post("/send-email")
 def handle_send_email(
-    data: SendGridEmailData,
+    data: SendEmailPayload,
     session: Session = Depends(get_session),
     sg: SendGridAPIClient = Depends(get_sendgrid_api),
 ):
     logger.info("Internal API sending emails")
-    send_sendgrid_email(data, session, sg)
+    user_account = crud.user.get(db=session, id=data.user_id)
+    svc_account = crud.service_account.get(db=session, id=data.service_account_id)
+    account = user_account or svc_account
+    send_sendgrid_email(data.email_data, session, sg, account=account)

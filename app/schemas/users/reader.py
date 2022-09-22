@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, validator, root_validator
+from pydantic import BaseModel, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.schemas.booklist import BookListBase

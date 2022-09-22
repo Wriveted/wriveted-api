@@ -1,11 +1,9 @@
 import datetime
-import email
 import json
 from typing import Optional
-from app.services.commerce import get_sendgrid_api
-from sendgrid import SendGridAPIClient
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security, BackgroundTasks
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -31,7 +29,6 @@ from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists
-from app.services.commerce import send_sendgrid_email
 
 logger = get_logger()
 
@@ -110,23 +107,25 @@ async def create_user(
 
             # Queue a background task to generate reading pathways
             queue_background_task(
-                'generate-reading-pathways',
+                "generate-reading-pathways",
                 {
-                    'user_id': new_user.id,
-                    'attributes': user_data.huey_attributes.dict(),
-                }
+                    "user_id": new_user.id,
+                    "attributes": user_data.huey_attributes.dict(),
+                },
             )
-
 
         if user_data.type == UserAccountType.PARENT and user_data.email:
             queue_background_task(
-                'send-email',
+                "send-email",
                 {
-                    "from_email": "hello@hueybooks.com",
-                    "from_name": "Huey Books",
-                    "to_emails": [user_data.email],
-                    "subject": "Welcome to Huey Books",
-                    "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9s",
+                    "email_data": {
+                        "from_email": "hello@hueybooks.com",
+                        "from_name": "Huey Books",
+                        "to_emails": [user_data.email],
+                        "subject": "Welcome to Huey Books",
+                        "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9s",
+                    },
+                    "user_id": str(new_user.id),
                 },
             )
 

@@ -24,10 +24,10 @@ from app.schemas.sendgrid import (
     SendGridEmailData,
 )
 from app.schemas.shopify import ShopifyEventRoot
+from app.services.background_tasks import queue_background_task
 from app.services.commerce import (
     get_sendgrid_api,
     process_shopify_order,
-    send_sendgrid_email,
     upsert_sendgrid_contact,
     validate_sendgrid_custom_fields,
 )
@@ -88,9 +88,10 @@ async def send_email(
     Populate and send a dynamic SendGrid email.
     Can dynamically fill a specified template with provided data.
     """
-    logger.info("SendGrid email endpoint called", parameters=data, account=account)
-    background_tasks.add_task(send_sendgrid_email, data, session, account, sg)
-
+    logger.info("Public email endpoint called", parameters=data, account=account)
+    queue_background_task(
+        "send-email", {"email_data": data, "service_account_id": str(account.id)}
+    )
     return Response(status_code=202, content="Email queued.")
 
 
