@@ -427,6 +427,37 @@ def test_add_items_without_position_to_booklist(
     )
 
 
+
+def test_add_existing_items_to_booklist(
+    client, backend_service_account_headers, works_list
+):
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.OTHER_LIST,
+            "info": {"foo": 42},
+            "items": [{"work_id": w.id} for w in works_list[:20]],
+        },
+    )
+    booklist_id = create_booklist_response.json()["id"]
+
+    # Now patch it to add some new and some existing items
+    edit_booklist_response = client.patch(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        json={
+            "items": [
+                {"action": "add", "work_id": w.id}
+                for i, w in enumerate(works_list[10:30])
+            ]
+        },
+    )
+    assert edit_booklist_response.status_code == 200
+    assert edit_booklist_response.json()["book_count"] == 30
+
+
 def test_remove_missing_items_from_booklist(
     client, backend_service_account_headers, works_list
 ):
