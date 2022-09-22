@@ -649,7 +649,7 @@ grpcio = ">=1.0.0,<2.0.0dev"
 
 [[package]]
 name = "grpcio"
-version = "1.49.0"
+version = "1.49.1"
 description = "HTTP/2-based RPC framework"
 category = "main"
 optional = false
@@ -659,11 +659,11 @@ python-versions = ">=3.7"
 six = ">=1.5.2"
 
 [package.extras]
-protobuf = ["grpcio-tools (>=1.49.0)"]
+protobuf = ["grpcio-tools (>=1.49.1)"]
 
 [[package]]
 name = "grpcio-status"
-version = "1.49.0"
+version = "1.49.1"
 description = "Status proto mapping for gRPC"
 category = "main"
 optional = false
@@ -671,7 +671,7 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 googleapis-common-protos = ">=1.5.5"
-grpcio = ">=1.49.0"
+grpcio = ">=1.49.1"
 protobuf = ">=4.21.3"
 
 [[package]]
