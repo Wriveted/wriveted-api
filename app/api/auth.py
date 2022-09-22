@@ -25,7 +25,7 @@ from app.schemas.users.parent import ParentDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
-from app.schemas.users.user_create import UserCreateAuth, UserCreateIn
+from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
 from app.services.users import new_identifiable_username

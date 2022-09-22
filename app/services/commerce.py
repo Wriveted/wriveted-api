@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from json import loads
-from typing import Container, ItemsView
+from typing import Container, ItemsView, Union
 from urllib.error import HTTPError
 
 from pydantic import EmailStr, parse_obj_as
@@ -209,8 +209,8 @@ def upsert_sendgrid_contact(
 def send_sendgrid_email(
     data: SendGridEmailData,
     session: Session,
-    account: User | ServiceAccount,
     sg: SendGridAPIClient,
+    account: Union[ServiceAccount, User] = None,
 ):
     """
     Send a dynamic email to a list of email addresses, logging an event
