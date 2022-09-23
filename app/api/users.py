@@ -109,7 +109,7 @@ async def create_user(
             queue_background_task(
                 "generate-reading-pathways",
                 {
-                    "user_id": new_user.id,
+                    "user_id": str(new_user.id),
                     "attributes": user_data.huey_attributes.dict(),
                 },
             )
