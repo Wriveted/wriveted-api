@@ -57,6 +57,7 @@ def secure_user_endpoint(
     firebase_user: FirebaseClaims = Depends(get_current_firebase_user),
     raw_data=Depends(get_raw_info),
     session: Session = Depends(get_session),
+    create: bool = True,
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
 
@@ -67,7 +68,9 @@ def secure_user_endpoint(
     identifier so Wriveted can recognize the user when that access token is provided as part of
     an API call.
 
-    Note this API creates a new user if required, updates existing users with the latest SSO data
+    Note: this API creates a new user by default. If opting out of creation, will throw a 401 if user is nonexisting.
+
+    Updates existing users with the latest SSO data.
     (e.g. their profile picture).
     """
 
@@ -80,17 +83,22 @@ def secure_user_endpoint(
     picture = raw_data.get("picture")
     name = raw_data.get("name", firebase_user.email)
 
-    user_data = UserCreateIn(
-        name=name,
-        email=email,
-        # NOW ADD THE USER_DATA STUFF
-        info={
-            "sign_in_provider": raw_data["firebase"].get("sign_in_provider"),
-            "picture": picture,
-        },
-    )
+    if create:
+        user_data = UserCreateIn(
+            name=name,
+            email=email,
+            # NOW ADD THE USER_DATA STUFF
+            info={
+                "sign_in_provider": raw_data["firebase"].get("sign_in_provider"),
+                "picture": picture,
+            },
+        )
+        user, was_created = crud.user.get_or_create(session, user_data)
+    else:
+        user = crud.user.get_by_account_email(session, email)
+        if not user:
+            raise HTTPException(status_code=401, detail="No account")
 
-    user, was_created = crud.user.get_or_create(session, user_data)
     if was_created:
         crud.event.create(
             session=session,
