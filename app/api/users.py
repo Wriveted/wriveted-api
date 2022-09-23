@@ -123,7 +123,7 @@ async def create_user(
                         "from_name": "Huey Books",
                         "to_emails": [user_data.email],
                         "subject": "Welcome to Huey Books",
-                        "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9s",
+                        "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
                     },
                     "user_id": str(new_user.id),
                 },
