@@ -427,7 +427,6 @@ def test_add_items_without_position_to_booklist(
     )
 
 
-
 def test_add_existing_items_to_booklist(
     client, backend_service_account_headers, works_list
 ):
