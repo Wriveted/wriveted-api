@@ -83,6 +83,8 @@ def secure_user_endpoint(
     picture = raw_data.get("picture")
     name = raw_data.get("name", firebase_user.email)
 
+    was_created = False
+
     if create:
         user_data = UserCreateIn(
             name=name,
