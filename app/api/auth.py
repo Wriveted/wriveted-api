@@ -97,7 +97,7 @@ def secure_user_endpoint(
     else:
         user = crud.user.get_by_account_email(session, email)
         if not user:
-            raise HTTPException(status_code=401, detail="No account")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No account")
 
     if was_created:
         crud.event.create(
