@@ -32,13 +32,13 @@ from app.services.commerce import (
     validate_sendgrid_custom_fields,
 )
 
-router = APIRouter(tags=["Commerce"])
+router = APIRouter(tags=["Commerce"], include_in_schema=False)
 
 logger = get_logger()
 config = get_settings()
 
 
-@router.put("/sendgrid/contact", include_in_schema=False)
+@router.put("/sendgrid/contact")
 async def upsert_contact(
     data: SendGridContactData,
     background_tasks: BackgroundTasks,
@@ -76,7 +76,7 @@ async def upsert_contact(
     return Response(status_code=202, content="Contact upsert queued.")
 
 
-@router.post("/sendgrid/email", include_in_schema=False)
+@router.post("/sendgrid/email")
 async def send_email(
     data: SendGridEmailData,
     background_tasks: BackgroundTasks,
@@ -98,7 +98,6 @@ async def send_email(
 @router.post(
     "/shopify/order-creation",
     dependencies=[Depends(verify_shopify_hmac)],
-    include_in_schema=False,
 )
 async def create_shopify_order(
     data: ShopifyEventRoot,
