@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import func, select, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 

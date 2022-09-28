@@ -6,7 +6,7 @@ def test_kpi_dash_requires_auth(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_kpi_dash_requires_admin_auth(client, test_student_user_account_headers):
+def test_kpi_dash_denied_for_student(client, test_student_user_account_headers):
     response = client.get("v1/dashboard/5", headers=test_student_user_account_headers)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseSettings, BaseModel
+from pydantic import BaseModel, BaseSettings
 from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger

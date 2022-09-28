@@ -1,9 +1,10 @@
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
+
+from app import crud
 from app.models.booklist import BookList
 from app.models.labelset import RecommendStatus
 from app.models.labelset_hue_association import LabelSetHue, Ordinal
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
-from app import crud
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.recommendations import gen_next_reading_ability
 

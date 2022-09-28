@@ -16,7 +16,7 @@ from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
 from app.schemas.edition import EditionCreateIn
-from app.schemas.recommendations import ReadingAbilityKey, HueKeys
+from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn

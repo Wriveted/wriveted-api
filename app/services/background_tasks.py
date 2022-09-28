@@ -2,11 +2,10 @@ import json
 from typing import Any
 
 import httpx
-from structlog import get_logger
 from google.cloud import tasks_v2
+from structlog import get_logger
 
 from app.config import get_settings
-
 
 settings = get_settings()
 logger = get_logger()
