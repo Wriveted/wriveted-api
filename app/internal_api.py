@@ -7,10 +7,9 @@ from starlette import status
 from starlette.responses import RedirectResponse
 from structlog import get_logger
 
+from app.api.internal import router as internal_api_router
 from app.config import get_settings
 from app.logging import init_logging
-from app.api.internal import router as internal_api_router
-
 
 api_docs = textwrap.dedent(
     """

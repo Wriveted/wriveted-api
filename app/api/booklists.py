@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
+from sqlalchemy import and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
 from starlette import status
 from structlog import get_logger
 
@@ -17,7 +17,7 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import BookList, ServiceAccount, User, BookListItem
+from app.models import BookList, BookListItem, ServiceAccount, User
 from app.models.booklist import ListType
 from app.models.edition import Edition
 from app.models.educator import Educator

@@ -22,7 +22,6 @@ from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
 
-
 logger = get_logger()
 
 router = APIRouter(

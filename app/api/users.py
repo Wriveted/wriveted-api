@@ -2,7 +2,6 @@ import datetime
 import json
 from typing import Optional
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError

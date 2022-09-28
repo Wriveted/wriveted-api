@@ -5,7 +5,7 @@ from pydantic import BaseModel, validator
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
-from app.schemas.labelset import LabelSetCreateIn, LabelSetDetail, LabelSetBasic
+from app.schemas.labelset import LabelSetBasic, LabelSetCreateIn, LabelSetDetail
 
 
 class WorkInfo(BaseModel):

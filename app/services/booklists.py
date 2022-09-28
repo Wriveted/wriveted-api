@@ -1,17 +1,18 @@
+from structlog import get_logger
+
 from app import crud
 from app.db.session import get_session_maker
+from app.models.booklist import ListType
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListItemCreateIn,
     BookListItemInfo,
 )
-from app.models.booklist import ListType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.recommendations import (
     gen_next_reading_ability,
     get_recommended_labelset_query,
 )
-from structlog import get_logger
 
 logger = get_logger()
 
