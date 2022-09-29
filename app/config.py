@@ -140,7 +140,7 @@ class Settings(BaseSettings):
     AUTH_LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
 
     METABASE_SITE_URL: HttpUrl = "https://metabase-lg5ntws4da-ts.a.run.app"
-    METABASE_SECRET_KEY: str = None
+    METABASE_SECRET_KEY: str = ""
 
     # Capture uvicorn's access log messages in our logging stack
     LOG_UVICORN_ACCESS: bool = True
