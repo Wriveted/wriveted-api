@@ -33,7 +33,7 @@ steps:
       - '--port=8000'
       - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
       - '--region=$_DEPLOY_REGION'
@@ -75,7 +75,7 @@ steps:
         --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,LOG_AS_JSON=True,GCP_CLOUD_TASKS_NAME=background-tasks,WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app
       - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
       - '--region=$_DEPLOY_REGION'
