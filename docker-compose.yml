@@ -44,6 +44,7 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - METABASE_SECRET_KEY=unused-key-for-testing
       - UVICORN_PORT=8000
       - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
