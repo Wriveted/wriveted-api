@@ -120,7 +120,6 @@ async def get_editions_to_hydrate(
     # ----manual override to prioritise certain schools 07/07/22----
 
     priority_ids = [
-        10795,  # Oak Grove Middle School (USA)
         5082,  # marist
         10274,  # willyama
         4534,  # kurunjang
