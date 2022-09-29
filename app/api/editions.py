@@ -116,60 +116,11 @@ async def get_editions_to_hydrate(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-
-    # ----manual override to prioritise certain schools 07/07/22----
-
-    priority_ids = [
-        5082,  # marist
-        10274,  # willyama
-        4534,  # kurunjang
-        4001,  # international grammar
-        727,  # beauty point
-        10750,  # st gabriels
-        132,  # all hallows
-        9495,  # scots pgc
-        316,  # ascham
-    ]
-
-    priority_queries = [
-        session.query(Edition)
-        .join(CollectionItem)
-        .join(Work, isouter=True)
-        .join(LabelSet, isouter=True)
-        .where(LabelSet.min_age == None)
-        .where(
-            and_(
-                (CollectionItem.school_id == priority_id),
-                (Edition.hydrated == False),
-            )
-        )
-        .order_by(func.random())
-        .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
-        for priority_id in priority_ids
-    ]
-
-    allschool_query = (
+    q = (
         session.query(Edition, Edition.num_schools)
-        .join(Work, isouter=True)
-        .join(LabelSet, isouter=True)
         .order_by(Edition.num_schools.desc())
         .where(Edition.hydrated == False)
-        .where(LabelSet.min_age == None)
-        .limit(math.ceil(pagination.limit / 10) if pagination.limit else 500)
+        .limit(pagination.limit if pagination.limit else 5000)
     )
 
-    # query = session.query(allschool_subquery, *priority_subqueries)
-
-    results = [
-        session.execute(q).scalars().all() for q in priority_queries + [allschool_query]
-    ]
-    return [edition for result in results for edition in result]  # 🥴
-
-    # q = (
-    #     session.query(Edition, Edition.num_schools)
-    #     .order_by(Edition.num_schools.desc())
-    #     .where(Edition.hydrated == False)
-    #     .limit(pagination.limit if pagination.limit else 5000)
-    # )
-
-    # return session.execute(q).scalars().all()
+    return session.execute(q).scalars().all()
