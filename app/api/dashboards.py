@@ -1,4 +1,5 @@
 import datetime
+import time
 
 from fastapi import APIRouter, Depends
 from jose import jwt
@@ -21,7 +22,7 @@ class DashboardLink(BaseModel):
 
 
 @router.get("/dashboard/{dashboard_id}", response_model=DashboardLink)
-def get_kpi_dashboard(dashboard_id):
+def get_kpi_dashboard(dashboard_id: int):
     """
     Get a metabase url embed link valid for 10 minutes.
 
@@ -33,10 +34,14 @@ def get_kpi_dashboard(dashboard_id):
 
 
 def get_metabase_dashboard_embed_link(dashboard_id):
+    expiry_unix_timestamp = int(
+        time.time() + datetime.timedelta(minutes=10).total_seconds()
+    )
+
     payload = {
         "resource": {"dashboard": dashboard_id},
         "params": {},
-        "exp": datetime.timedelta(minutes=10).total_seconds(),
+        "exp": expiry_unix_timestamp,
     }
     token = jwt.encode(payload, config.METABASE_SECRET_KEY)
     url = (
