@@ -173,8 +173,8 @@ async def get_booklists(
 
     ### Access Control
 
-    Admin accounts can see all book lists.
-    Library users can see Library lists.
+    Admin accounts can see and edit all book lists.
+    School staff can see and edit all School lists.
     Everyone can see Huey and Regional lists.
     Authenticated users can see their own personal lists.
     """

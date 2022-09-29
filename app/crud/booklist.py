@@ -48,7 +48,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         user: Optional[User] = None,
         query_string: Optional[str] = None,
     ):
-        booklists_query = self.get_all_query(db=db)
+        booklists_query = self.get_all_query(db=db, order_by=BookList.created_at.desc())
 
         if list_type is not None:
             booklists_query = booklists_query.where(BookList.type == list_type)
