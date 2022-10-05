@@ -90,7 +90,7 @@ async def send_email(
     """
     logger.info("Public email endpoint called", parameters=data, account=account)
     queue_background_task(
-        "send-email", {"email_data": data, "service_account_id": str(account.id)}
+        "send-email", {"email_data": dict(data), "service_account_id": str(account.id)}
     )
     return Response(status_code=202, content="Email queued.")
 
