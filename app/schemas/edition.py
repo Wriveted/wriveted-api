@@ -101,7 +101,7 @@ class EditionUpdateIn(BaseModel):
     edition_title: str | None
     edition_subtitle: str | None
 
-    date_published: int | None
+    date_published: str | None
 
     illustrators: list[ContributorBase | int] | None
 
