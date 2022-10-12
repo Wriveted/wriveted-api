@@ -19,7 +19,7 @@ def test_update_edition_work(client, backend_service_account_headers, works_list
         headers=backend_service_account_headers,
     )
     update_response.raise_for_status()
-    assert update_response.json()["work_id"] == test_other_work.id
+    assert update_response.json()["work_id"] == str(test_other_work.id)
 
     edition_update_with_og_work = EditionUpdateIn(
         work_id=test_work.id,
@@ -31,7 +31,7 @@ def test_update_edition_work(client, backend_service_account_headers, works_list
         headers=backend_service_account_headers,
     )
     revert_response.raise_for_status()
-    assert revert_response.json()["work_id"] == test_work.id
+    assert revert_response.json()["work_id"] == str(test_work.id)
 
     response = client.get("v1/lists", headers=backend_service_account_headers)
 
