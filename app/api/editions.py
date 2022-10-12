@@ -109,7 +109,7 @@ async def update_edition(
         description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
     ),
 ):
-    update_data = edition_data.dict()
+    update_data = edition_data.dict(exclude_unset=True)
 
     # get/create any provided illustrators
     new_illustrators = []
