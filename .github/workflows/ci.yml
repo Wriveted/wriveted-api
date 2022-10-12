@@ -71,7 +71,7 @@ jobs:
       - name: Login to GCR
         uses: docker/login-action@v2
         with:
-          registry: gcr.io
+          registry: asia.gcr.io
           username: _json_key_base64
           password: ${{ secrets.GCR_ACCESS_BASE64 }}
       - run: |
