@@ -2,8 +2,9 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import AnyHttpUrl, BaseModel, validator
+from app.models.illustrator import Illustrator
 
-from app.schemas.author import AuthorBrief, AuthorCreateIn
+from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
 
@@ -93,6 +94,20 @@ class EditionCreateIn(BaseModel):
     info: Optional[EditionInfo]
 
     hydrated: bool = False
+
+
+class EditionUpdateIn(BaseModel):
+    leading_article: str | None
+    edition_title: str | None
+    edition_subtitle: str | None
+
+    date_published: int | None
+
+    illustrators: list[ContributorBase | int] | None
+
+    work_id: int | None
+
+    info: EditionInfo | None
 
 
 class KnownAndTaggedEditionCounts(BaseModel):

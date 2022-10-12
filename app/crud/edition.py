@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Any, List
+from typing import Any, Dict, List
+from fastapi import Depends
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query, Session
 from structlog import get_logger
+from app.crud.base import UpdateSchemaType
 
 import app.services.editions as editions_service
 from app import crud
@@ -15,7 +17,7 @@ from app.crud.illustrator import illustrator as crud_illustrator
 from app.crud.work import work as crud_work
 from app.models import Edition, Illustrator, Work
 from app.models.work import WorkType
-from app.schemas.edition import EditionCreateIn
+from app.schemas.edition import EditionCreateIn, EditionDetail, EditionUpdateIn
 from app.schemas.work import WorkCreateIn
 
 logger = get_logger()
@@ -74,46 +76,6 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         if commit:
             db.commit()
             db.refresh(edition)
-        return edition
-
-    def update(
-        self,
-        db: Session,
-        edition_data: EditionCreateIn,
-        work: Work,
-        illustrators: List[Illustrator],
-        commit=True,
-    ) -> Edition:
-        """
-        Update an edition row in the table assuming the related objects exist.
-        """
-        edition: Edition = self.get(
-            db, editions_service.get_definitive_isbn(edition_data.isbn)
-        )
-
-        if edition_data.date_published:
-            edition.date_published = edition_data.date_published
-        if edition_data.leading_article:
-            edition.leading_article = edition_data.leading_article
-        if edition_data.title:
-            edition.edition_title = edition_data.title
-        if edition_data.subtitle:
-            edition.edition_subtitle = edition_data.subtitle
-        if edition_data.cover_url:
-            edition.cover_url = edition_data.cover_url
-        if edition_data.info:
-            edition.info = edition_data.info.dict()
-        if work:
-            edition.work = work
-        if illustrators:
-            edition.illustrators = illustrators
-
-        edition.hydrated_at = datetime.utcnow() if edition_data.hydrated else None
-
-        if commit:
-            db.commit()
-            db.refresh(edition)
-
         return edition
 
     def create_in_bulk(self, session, bulk_edition_data: List[EditionCreateIn]):
