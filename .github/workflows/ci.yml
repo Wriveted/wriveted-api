@@ -72,8 +72,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: asia.gcr.io
-          username: _json_key_base64
-          password: ${{ secrets.GCR_ACCESS_BASE64 }}
+          username: _json_key
+          password: ${{ secrets.GCR_ACCESS }}
       - run: |
           ./scripts/integration-tests.sh
         env:
