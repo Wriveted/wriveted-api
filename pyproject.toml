@@ -25,7 +25,7 @@ tenacity = "^8.1"
 sendgrid = "^6.9.7"
 mock = "^4.0.3"
 webencodings = "^0.5.1"
-google-cloud-tasks = "^2.10.2"
+google-cloud-tasks = "^2.10.4"
 
 
 [tool.poetry.dev-dependencies]
