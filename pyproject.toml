@@ -32,7 +32,7 @@ google-cloud-tasks = "^2.10.4"
 pytest = "^7.1"
 jupyterlab = "^3.4"
 black = {extras = ["jupyter"], version = "^22.8"}
-google-api-python-client = "^2.62.0"
+google-api-python-client = "^2.64.0"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.5.1"
 pre-commit = "^2.19.0"
