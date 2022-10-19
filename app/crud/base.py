@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
 
 from app.db import Base
@@ -139,10 +140,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             update_data = obj_in.dict(exclude_unset=True)
         for field in update_data:
             if hasattr(db_obj, field):
-                if merge_dicts and isinstance(getattr(db_obj, field), dict):
-                    deep_merge_dicts(getattr(db_obj, field), update_data[field])
+                attr = getattr(db_obj, field)
+                if merge_dicts and isinstance(attr, dict):
+                    deep_merge_dicts(attr, update_data[field])
                 else:
                     setattr(db_obj, field, update_data[field])
+                if isinstance(attr, MutableDict):
+                    # If only a nested field has been altered, SQLAlchemy won't know about it!
+                    attr.changed()
 
         db.add(db_obj)
         if commit:

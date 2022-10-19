@@ -62,11 +62,16 @@ def test_update_edition_details(client, backend_service_account_headers, works_l
     info_to_merge = {"other": {"baz": "qux"}}
     edition_update_with_info_to_merge = EditionUpdateIn(info=info_to_merge)
 
+    to_merge_payload = edition_update_with_info_to_merge.dict(exclude_unset=True)
+
     merge_response = client.patch(
         f"v1/edition/{test_edition.isbn}?merge_dicts=true",
-        json=edition_update_with_info_to_merge.dict(exclude_unset=True),
+        json=to_merge_payload,
         headers=backend_service_account_headers,
     )
     merge_response.raise_for_status()
-    assert merge_response.json()["info"]["other"]["foo"] == "bar"
-    assert merge_response.json()["info"]["other"]["baz"] == "qux"
+    merged_info = merge_response.json()["info"]
+    # check the original data is still there
+    assert merged_info["other"]["foo"] == "bar"
+    # check the new data is added
+    assert merged_info["other"]["baz"] == "qux"
