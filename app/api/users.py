@@ -146,7 +146,10 @@ async def get_user(user: User = Permission("details", get_user_from_id)):
 @router.patch("/user/{user_id}", response_model=SpecificUserDetail)
 async def update_user(
     user_update: UserUpdateIn,
-    merge_dicts: bool = False,
+    merge_dicts: bool = Query(
+        default=False,
+        description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
+    ),
     session: Session = Depends(get_session),
     user: User = Permission("update", get_user_from_id),
     principals=Depends(get_active_principals),

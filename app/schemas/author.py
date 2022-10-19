@@ -3,10 +3,13 @@ from typing import Any, Optional
 from pydantic import BaseModel
 
 
-class AuthorBrief(BaseModel):
-    id: str
-    first_name: Optional[str]
+class ContributorBase(BaseModel):
+    first_name: str | None
     last_name: str
+
+
+class AuthorBrief(ContributorBase):
+    id: int
 
     class Config:
         orm_mode = True
@@ -17,8 +20,5 @@ class AuthorDetail(AuthorBrief):
     book_count: int
 
 
-class AuthorCreateIn(BaseModel):
-    first_name: Optional[str]
-    last_name: str
-
+class AuthorCreateIn(ContributorBase):
     info: Optional[Any]

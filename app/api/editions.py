@@ -1,25 +1,25 @@
-import math
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from structlog import get_logger
 
+from starlette import status
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.editions import get_edition_from_isbn
 from app.db.session import get_session
 from app.models import Edition
-from app.models.collection_item import CollectionItem
-from app.models.labelset import LabelSet
-from app.models.work import Work
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,
     EditionDetail,
+    EditionUpdateIn,
     KnownAndTaggedEditionCounts,
 )
+from app.schemas.illustrator import IllustratorCreateIn
 from app.services.editions import (
     compare_known_editions,
     create_missing_editions,
@@ -86,16 +86,56 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     try:
         isbn = get_definitive_isbn(isbn)
     except:
-        raise HTTPException(422, "Invalid isbn")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid isbn")
 
     return crud.edition.get_or_404(db=session, id=isbn)
 
 
 @router.post("/edition", response_model=EditionDetail)
 async def add_edition(
-    edition_data: EditionCreateIn, session: Session = Depends(get_session)
+    edition_data: EditionCreateIn,
+    session: Session = Depends(get_session),
 ):
     return crud.edition.create_new_edition(session, edition_data)
+
+
+@router.patch("/edition/{isbn}", response_model=EditionDetail)
+async def update_edition(
+    edition_data: EditionUpdateIn,
+    session: Session = Depends(get_session),
+    edition=Depends(get_edition_from_isbn),
+    merge_dicts: bool = Query(
+        default=False,
+        description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
+    ),
+):
+    update_data = edition_data.dict(exclude_unset=True)
+
+    # get/create any provided illustrators
+    new_illustrators = []
+    for illustrator_data in edition_data.illustrators or []:
+        if isinstance(illustrator_data, int):
+            new_illustrators.append(
+                crud.illustrator.get_or_404(session, illustrator_data)
+            )
+        else:
+            try:
+                new_illustrators.append(
+                    crud.illustrator.create(
+                        session,
+                        obj_in=IllustratorCreateIn(**dict(illustrator_data)),
+                    )
+                )
+            except IntegrityError:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Illustrator {illustrator_data.first_name} {illustrator_data.last_name} already exists",
+                )
+    update_data["illustrators"] = new_illustrators
+
+    return crud.edition.update(
+        db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
+    )
 
 
 @router.post("/editions")

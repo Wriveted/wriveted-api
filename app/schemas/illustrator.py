@@ -2,17 +2,15 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.schemas.author import ContributorBase
 
-class IllustratorCreateIn(BaseModel):
-    first_name: str | None
-    last_name: str
+
+class IllustratorCreateIn(ContributorBase):
     info: Any | None
 
 
-class IllustratorBrief(BaseModel):
-    id: str
-    first_name: str | None
-    last_name: str
+class IllustratorBrief(ContributorBase):
+    id: int
     info: Any | None
 
     class Config:
