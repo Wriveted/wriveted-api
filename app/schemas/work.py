@@ -18,7 +18,7 @@ class WorkInfo(BaseModel):
 
 
 class WorkBrief(BaseModel):
-    id: int
+    id: str
     type: Optional[WorkType]
 
     leading_article: str | None
@@ -57,6 +57,16 @@ class WorkCreateIn(BaseModel):
     series_name: Optional[str]
     series_number: Optional[int]
 
+    info: Optional[dict]
+
+
+class WorkCreateWithEditionsIn(BaseModel):
+    type: WorkType = WorkType.BOOK
+    leading_article: Optional[str]
+    title: str
+    subtitle: Optional[str]
+    authors: List[AuthorCreateIn | int]
+    editions: list[str]
     info: Optional[dict]
 
 

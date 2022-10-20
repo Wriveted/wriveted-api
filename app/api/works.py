@@ -15,7 +15,14 @@ from app.models import Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
-from app.schemas.work import WorkBrief, WorkDetail, WorkEnriched, WorkUpdateIn
+from app.schemas.work import (
+    WorkBrief,
+    WorkCreateWithEditionsIn,
+    WorkDetail,
+    WorkEnriched,
+    WorkUpdateIn,
+)
+from app.services.editions import get_definitive_isbn
 
 """
 Access control rules applying to all Works endpoints.
@@ -124,6 +131,58 @@ async def get_work_by_id(
         )
 
         return output
+
+
+@router.post(
+    "/work",
+    response_model=WorkDetail,
+    dependencies=[
+        Permission("create", bulk_work_access_control_list),
+    ],
+)
+async def create_work_with_editions(
+    work_data: WorkCreateWithEditionsIn,
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
+):
+    """
+    Create a new Work and optionally associate editions.
+
+    Note if the editions already exist, they will be unlinked from any current Work.
+    """
+    logger.debug("Creating new work", data=work_data)
+    edition_ids = work_data.editions
+    del work_data.editions
+
+    authors = [
+        # Authors could be int or AuthorCreateIn objects
+        crud.author.get(db=session, id=author_data)
+        if isinstance(author_data, int)
+        else crud.author.get_or_create(db=session, author_data=author_data)
+        for author_data in work_data.authors
+    ]
+    logger.debug("Processed authors for new work", authors=authors)
+    del work_data.authors
+    work = crud.work.create(db=session, obj_in=work_data)
+    work.authors = authors
+    logger.debug("Created new work", work=work)
+
+    for unsanitized_isbn in edition_ids:
+        isbn = get_definitive_isbn(unsanitized_isbn)
+        edition = crud.edition.get_or_create_unhydrated(db=session, isbn=isbn)
+        edition.work = work
+        session.add(edition)
+
+    crud.event.create(
+        session,
+        title=f"Work created",
+        description=f"Added a new work '{work.title}' with {len(edition_ids)} editions",
+        info={
+            "work_id": work.id,
+        },
+        account=account,
+    )
+    return work
 
 
 @router.patch(
