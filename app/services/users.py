@@ -5,30 +5,9 @@ import random
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from app import crud
-
 from app.models import Student
-from app.models.user import UserAccountType
-from app.schemas.users.user_create import UserCreateIn
-from app.services.booklists import generate_reading_pathway_lists
 
 logger = get_logger()
-
-
-def create_new_user(
-    session: Session, user_data: UserCreateIn, generate_pathway_lists: bool = False
-):
-    new_user = crud.user.create(session, obj_in=user_data)
-    logger.info("Created a new user", user_id=new_user.id)
-
-    if generate_pathway_lists and user_data.type in [
-        UserAccountType.STUDENT,
-        UserAccountType.PUBLIC,
-    ]:
-        logger.info("User opts to create pathway booklists")
-        generate_reading_pathway_lists(new_user.id, user_data.huey_attributes)
-
-    return new_user
 
 
 def generate_random_users(session: Session, num_users: int, school_id: int, **kwargs):

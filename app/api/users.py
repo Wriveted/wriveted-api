@@ -28,7 +28,6 @@ from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.services.background_tasks import queue_background_task
-from app.services.users import create_new_user
 from app.services.util import oxford_comma_join
 
 logger = get_logger()
@@ -96,14 +95,18 @@ async def create_user(
             children_to_create = user_data.children_to_create
             delattr(user_data, "children_to_create")
 
-            new_user = create_new_user(session, user_data, generate_pathway_lists)
+            new_user = crud.user.create_new_user(
+                session, user_data, generate_pathway_lists
+            )
 
             if children_to_create:
                 children = []
                 for child_data in children_to_create:
                     child_data.parent_id = new_user.id
                     children.append(
-                        create_new_user(session, child_data, generate_pathway_lists)
+                        crud.user.create_new_user(
+                            session, child_data, generate_pathway_lists
+                        )
                     )
 
             if user_data.email:
@@ -128,7 +131,9 @@ async def create_user(
                 )
 
         else:
-            new_user = create_new_user(session, user_data, generate_pathway_lists)
+            new_user = crud.user.create_new_user(
+                session, user_data, generate_pathway_lists
+            )
 
         return new_user
 
