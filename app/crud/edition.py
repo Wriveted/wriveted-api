@@ -253,7 +253,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
         if hydrate:
             update_data = EditionUpdateIn(**edition_data.dict())
             update_data.work_id = work.id if work else None
-            update_data.illustrators = [illustrator.id for illustrator in illustrators]
+            update_data.illustrators = illustrators
             update_data.hydrated_at = datetime.utcnow()
             edition = self.update(
                 db=session,
