@@ -173,3 +173,32 @@ def test_parent_create_via_api(session, client, backend_service_account_headers)
     assert user_data["id"] == str(user_id)
     assert user_data["type"] == "parent"
     assert user_data["is_active"]
+
+
+def test_parent_create_with_child_via_api(
+    session, client, backend_service_account_headers
+):
+    email = "testemail@site.com"
+
+    if existing_user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=existing_user.id)
+
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "Parent N. Child",
+            "email": email,
+            "type": "parent",
+            "children_to_create": [
+                {
+                    "name": "Junior",
+                    "type": "public",
+                    "huey_attributes": {"age": "10", "reading_ability": ["SPOT"]},
+                }
+            ],
+        },
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+    json = response.json()
+    assert json["children"][0]["name"] == "Junior"
