@@ -1,6 +1,5 @@
 import datetime
 import json
-import traceback
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
@@ -141,9 +140,6 @@ async def create_user(
         raise HTTPException(status_code=422, detail=str(e))
     except IntegrityError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    except:
-        tb = traceback.format_stack()
-        traceback.print_exc()
 
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
