@@ -152,7 +152,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 session,
                 bulk_series_data=bulk_series_titles,
             )
-        logger.info("Series created")
+            logger.info("Series created")
 
         # TODO keep bulkifying this...
         # Work next
@@ -194,12 +194,13 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
                 work = master_work
                 break
 
-        # Get or create the authors and illustrators (some data lists the same contributor multiple times, catch them too)
+        # Get or create the authors and illustrators
         if edition_data.authors is None:
             edition_data.authors = []
         if edition_data.illustrators is None:
             edition_data.illustrators = []
 
+        # some data lists the same contributor multiple times, catch them too (by using dictionary magic)
         authors = [
             crud_author.get_or_create(session, author_data, commit=False)
             for author_data in edition_data.authors
@@ -215,7 +216,8 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         # if this is the first time we've encountered this master work, create it
         # (or get it, in the case the other_isbns list wasn't comprehensive enough to detect it earlier)
-        if not work:
+        # note: hydration doesn't guarantee data. if no title is provided, don't create a work.
+        if edition_data.title and not work:
             work_create_data = WorkCreateIn(
                 type=WorkType.BOOK,
                 leading_article=edition_data.leading_article,
@@ -229,31 +231,34 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
             work = crud_work.get_or_create(
                 session, work_data=work_create_data, authors=authors, commit=False
             )
-        # from now on, the master work exists.
+            # from now on, the master work exists.
 
-        # create labelset if needed
-        if edition_data.labelset and not edition_data.labelset.empty():
-            labelset = crud.labelset.get_or_create(session, work)
-            labelset = crud.labelset.patch(
-                session, labelset, edition_data.labelset, commit=False
-            )
+            # create labelset if needed
+            if edition_data.labelset and not edition_data.labelset.empty():
+                labelset = crud.labelset.get_or_create(session, work)
+                labelset = crud.labelset.patch(
+                    session, labelset, edition_data.labelset, commit=False
+                )
 
-        # now is a good time to link the work with any other_isbns that came along
-        # with this EditionCreateIn
-        if other_isbns:
-            logger.info(
-                f"Associating {len(other_isbns)} other found editions under the same work for isbn {clean_isbn}"
-            )
-        for isbn in other_isbns:
-            other_edition = self.get_or_create_unhydrated(session, isbn)
-            work.editions.append(other_edition)
+            # now is a good time to link the work with any other_isbns that came along
+            # with this EditionCreateIn
+            if other_isbns:
+                logger.info(
+                    f"Associating {len(other_isbns)} other found editions under the same work for isbn {clean_isbn}"
+                )
+            for isbn in other_isbns:
+                other_edition = self.get_or_create_unhydrated(session, isbn)
+                work.editions.append(other_edition)
 
         if hydrate:
+            update_data = EditionUpdateIn(**edition_data.dict())
+            update_data.work_id = work.id if work else None
+            update_data.illustrators = [illustrator.id for illustrator in illustrators]
+            update_data.hydrated_at = datetime.utcnow()
             edition = self.update(
                 db=session,
-                edition_data=edition_data,
-                work=work,
-                illustrators=illustrators,
+                db_obj=edition,
+                obj_in=update_data,
                 commit=commit,
             )
         else:

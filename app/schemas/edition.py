@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -108,6 +109,8 @@ class EditionUpdateIn(BaseModel):
     work_id: int | None
 
     info: EditionInfo | None
+
+    hydrated_at: datetime | None
 
 
 class KnownAndTaggedEditionCounts(BaseModel):
