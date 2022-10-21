@@ -9,7 +9,7 @@ from app.models import Student
 from app.models.user import User, UserAccountType
 from app.schemas.users.user_create import UserCreateIn
 from app.services.background_tasks import queue_background_task
-from app.services.booklists import generate_reading_pathway_lists
+import app.services.booklists as booklists_service
 from app.services.util import oxford_comma_join
 
 logger = get_logger()
@@ -32,7 +32,9 @@ def handle_user_creation(
                 child_data.parent_id = new_user.id
                 child = crud.user.create(session, child_data)
                 if generate_pathway_lists:
-                    generate_reading_pathway_lists(child.id, child.huey_attributes)
+                    booklists_service.generate_reading_pathway_lists(
+                        child.id, child.huey_attributes
+                    )
                 children.append(child)
 
         if user_data.email:
