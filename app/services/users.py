@@ -23,14 +23,14 @@ def handle_user_creation(
 
     from app import crud
 
-    new_user = crud.user.create(session, user_data)
+    new_user = crud.user.create(db=session, obj_in=user_data, commit=True)
 
     if user_data.type == UserAccountType.PARENT:
         if children_to_create:
             children = []
             for child_data in children_to_create:
                 child_data.parent_id = new_user.id
-                child = crud.user.create(session, child_data)
+                child = crud.user.create(db=session, obj_in=child_data, commit=True)
                 if generate_pathway_lists:
                     booklists_service.generate_reading_pathway_lists(
                         child.id, child.huey_attributes
