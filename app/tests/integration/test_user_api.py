@@ -189,7 +189,7 @@ def test_parent_create_with_child_via_api(
             "name": "Parent N. Child",
             "email": email,
             "type": "parent",
-            "children_to_create": [
+            "children": [
                 {
                     "name": "Junior",
                     "type": "public",
@@ -202,3 +202,13 @@ def test_parent_create_with_child_via_api(
     assert response.status_code == status.HTTP_200_OK
     json = response.json()
     assert json["children"][0]["name"] == "Junior"
+
+    child_id = json["children"][0]["id"]
+    child_response = client.get(
+        f"v1/user/{child_id}", headers=backend_service_account_headers
+    )
+
+    assert child_response.status_code == status.HTTP_200_OK
+    child_json = child_response.json()
+    assert child_json["huey_attributes"]["age"] == 10
+    assert child_json["huey_attributes"]["reading_ability"] == ["SPOT"]

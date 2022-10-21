@@ -27,7 +27,9 @@ from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
 from app.services.background_tasks import queue_background_task
+from app.services.users import handle_user_creation
 from app.services.util import oxford_comma_join
+from app.services.booklists import generate_reading_pathway_lists
 
 logger = get_logger()
 
@@ -84,56 +86,14 @@ async def create_user(
 ):
     """
     Admin endpoint for creating new users.
-    If the provided user is a `reader` type and `generate_pathway_lists` is true, will also create booklists
+    If a provided user is a `reader` type and `generate_pathway_lists` is true, will also create booklists
     `Books to read now` and `Books to read next`, populating each with 10 appropriate books based on the `huey_attributes`
     blob in `user_data`.
+    Will create `reader` users as children for any `parent` types, if provided.
     """
     logger.debug("Creating a user")
     try:
-        if user_data.type == UserAccountType.PARENT:
-            children_to_create = user_data.children_to_create
-            delattr(user_data, "children_to_create")
-
-            new_user = crud.user.create_new_user(
-                session, user_data, generate_pathway_lists
-            )
-
-            if children_to_create:
-                children = []
-                for child_data in children_to_create:
-                    child_data.parent_id = new_user.id
-                    children.append(
-                        crud.user.create_new_user(
-                            session, child_data, generate_pathway_lists
-                        )
-                    )
-
-            if user_data.email:
-                queue_background_task(
-                    "send-email",
-                    {
-                        "email_data": {
-                            "from_email": "hello@hueybooks.com",
-                            "from_name": "Huey Books",
-                            "to_emails": [user_data.email],
-                            "subject": "Welcome to Huey Books",
-                            "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
-                            "template_data": {"name": new_user.name},
-                            "children_string": oxford_comma_join(
-                                [child.name for child in children_to_create]
-                            )
-                            if children_to_create
-                            else "your child",
-                        },
-                        "user_id": str(new_user.id),
-                    },
-                )
-
-        else:
-            new_user = crud.user.create_new_user(
-                session, user_data, generate_pathway_lists
-            )
-
+        new_user = handle_user_creation(session, user_data, generate_pathway_lists)
         return new_user
 
     except ValueError as e:

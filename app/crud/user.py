@@ -191,24 +191,6 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
     # ---------------------
 
-    def create_new_user(
-        self,
-        session: Session,
-        user_data: UserCreateIn,
-        generate_pathway_lists: bool = False,
-    ):
-        new_user = self.create(session, obj_in=user_data)
-        logger.info("Created a new user", user_id=new_user.id)
-
-        if generate_pathway_lists and user_data.type in [
-            UserAccountType.STUDENT,
-            UserAccountType.PUBLIC,
-        ]:
-            logger.info("User opts to create pathway booklists")
-            # generate_reading_pathway_lists(new_user.id, user_data.huey_attributes)
-
-        return new_user
-
     def _generate_username_if_missing(self, session, obj_in: UserCreateIn):
         if obj_in.username is None:
             obj_in.username = new_identifiable_username(

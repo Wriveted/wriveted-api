@@ -67,7 +67,7 @@ class UserCreateIn(BaseModel):
     class_group_id: UUID4 | None
 
     # parents
-    children_to_create: list[UserCreateIn] | None
+    children: list[UserCreateIn] | None
 
     @root_validator
     def validate_user_creation(cls, values):
