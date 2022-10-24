@@ -29,7 +29,7 @@ def handle_user_creation(
     if user_data.type == UserAccountType.PARENT:
         if children_to_create:
             children = []
-            for child_data in children_to_create:
+            for child_data in children_to_create or []:
                 child_data.parent_id = new_user.id
                 child = crud.user.create(db=session, obj_in=child_data, commit=True)
                 if generate_pathway_lists:
