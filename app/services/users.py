@@ -39,6 +39,9 @@ def handle_user_creation(
                 children.append(child)
 
         if user_data.email:
+            children_string = oxford_comma_join(
+                [child.name for child in children_to_create]
+            )
             queue_background_task(
                 "send-email",
                 {
@@ -48,12 +51,12 @@ def handle_user_creation(
                         "to_emails": [user_data.email],
                         "subject": "Welcome to Huey Books",
                         "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
-                        "template_data": {"name": new_user.name},
-                        "children_string": oxford_comma_join(
-                            [child.name for child in children_to_create]
-                        )
-                        if children_to_create
-                        else "your child",
+                        "template_data": {
+                            "name": new_user.name,
+                            "children_string": children_string
+                            if children_to_create
+                            else "your child",
+                        },
                     },
                     "user_id": str(new_user.id),
                 },
