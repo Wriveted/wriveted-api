@@ -1,12 +1,10 @@
 from datetime import datetime
-from typing import Any, Dict, List
-from fastapi import Depends
+from typing import Any, List
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query, Session
 from structlog import get_logger
-from app.crud.base import UpdateSchemaType
 
 import app.services.editions as editions_service
 from app import crud
@@ -17,7 +15,7 @@ from app.crud.illustrator import illustrator as crud_illustrator
 from app.crud.work import work as crud_work
 from app.models import Edition, Illustrator, Work
 from app.models.work import WorkType
-from app.schemas.edition import EditionCreateIn, EditionDetail, EditionUpdateIn
+from app.schemas.edition import EditionCreateIn, EditionUpdateIn
 from app.schemas.work import WorkCreateIn
 
 logger = get_logger()

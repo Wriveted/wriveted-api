@@ -1,4 +1,5 @@
 from starlette import status
+
 from app.models.edition import Edition
 from app.schemas.edition import EditionUpdateIn
 

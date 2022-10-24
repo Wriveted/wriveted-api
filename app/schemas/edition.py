@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import AnyHttpUrl, BaseModel, validator
-from app.models.illustrator import Illustrator
 
 from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn

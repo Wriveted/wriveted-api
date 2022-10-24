@@ -16,7 +16,7 @@ class ContributorBase(BaseModel):
 
 
 class AuthorBrief(ContributorBase):
-    id: int
+    id: str
 
     class Config:
         orm_mode = True
