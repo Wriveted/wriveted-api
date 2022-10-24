@@ -1,6 +1,5 @@
 from structlog import get_logger
 
-from app import crud
 from app.db.session import get_session_maker
 from app.models.booklist import ListType
 from app.schemas.booklist import (
@@ -9,10 +8,7 @@ from app.schemas.booklist import (
     BookListItemInfo,
 )
 from app.schemas.users.huey_attributes import HueyAttributes
-from app.services.recommendations import (
-    gen_next_reading_ability,
-    get_recommended_labelset_query,
-)
+import app.services as services
 
 logger = get_logger()
 
@@ -24,6 +20,9 @@ def generate_reading_pathway_lists(
     Generate booklists `Books to read now` and `Books to read next` for the provided user,
     populating each with `limit` appropriate books based on the provided `huey_attributes`
     """
+
+    from app import crud
+
     logger.info(
         "Creating reading pathway booklists for user",
         user_id=user_id,
@@ -44,7 +43,7 @@ def generate_reading_pathway_lists(
 
         # Get the read now list by generating 10 books via standard recommendation
         current_reading_ability_key = current_reading_ability.name
-        read_now_query = get_recommended_labelset_query(
+        read_now_query = services.recommendations.get_recommended_labelset_query(
             session,
             hues=attributes.hues,
             age=attributes.age,
@@ -52,10 +51,10 @@ def generate_reading_pathway_lists(
         )
 
         # Get the read next list by incrementing the reading ability and doing the same
-        next_reading_ability_key = gen_next_reading_ability(
+        next_reading_ability_key = services.recommendations.gen_next_reading_ability(
             current_reading_ability
         ).name
-        read_next_query = get_recommended_labelset_query(
+        read_next_query = services.recommendations.get_recommended_labelset_query(
             session,
             hues=attributes.hues,
             age=attributes.age,

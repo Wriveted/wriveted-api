@@ -66,6 +66,9 @@ class UserCreateIn(BaseModel):
     school_id: UUID4 | int | None
     class_group_id: UUID4 | None
 
+    # parents
+    children: list[UserCreateIn] | None
+
     @root_validator
     def validate_user_creation(cls, values):
         # infer names from other fields if necessary

@@ -5,10 +5,58 @@ import random
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
-
 from app.models import Student
+from app.models.user import User, UserAccountType
+from app.schemas.users.user_create import UserCreateIn
+from app.services.background_tasks import queue_background_task
+from app.services.booklists import generate_reading_pathway_lists
+from app.services.util import oxford_comma_join
 
 logger = get_logger()
+
+
+def handle_user_creation(
+    session: Session, user_data: UserCreateIn, generate_pathway_lists: bool = False
+) -> User:
+    children_to_create = user_data.children
+    del user_data.children
+
+    from app import crud
+
+    new_user = crud.user.create(db=session, obj_in=user_data, commit=True)
+
+    if user_data.type == UserAccountType.PARENT:
+        if children_to_create:
+            children = []
+            for child_data in children_to_create:
+                child_data.parent_id = new_user.id
+                child = crud.user.create(db=session, obj_in=child_data, commit=True)
+                if generate_pathway_lists:
+                    generate_reading_pathway_lists(child.id, child.huey_attributes)
+                children.append(child)
+
+        if user_data.email:
+            queue_background_task(
+                "send-email",
+                {
+                    "email_data": {
+                        "from_email": "hello@hueybooks.com",
+                        "from_name": "Huey Books",
+                        "to_emails": [user_data.email],
+                        "subject": "Welcome to Huey Books",
+                        "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
+                        "template_data": {"name": new_user.name},
+                        "children_string": oxford_comma_join(
+                            [child.name for child in children_to_create]
+                        )
+                        if children_to_create
+                        else "your child",
+                    },
+                    "user_id": str(new_user.id),
+                },
+            )
+
+    return new_user
 
 
 def generate_random_users(session: Session, num_users: int, school_id: int, **kwargs):
