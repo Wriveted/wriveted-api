@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 from app.models import Student
 from app.models.user import User, UserAccountType
+from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists
@@ -32,7 +33,9 @@ def handle_user_creation(
                 child_data.parent_id = new_user.id
                 child = crud.user.create(db=session, obj_in=child_data, commit=True)
                 if generate_pathway_lists:
-                    generate_reading_pathway_lists(child.id, child.huey_attributes)
+                    generate_reading_pathway_lists(
+                        child.id, HueyAttributes.parse_obj(child.huey_attributes)
+                    )
                 children.append(child)
 
         if user_data.email:

@@ -99,7 +99,7 @@ async def create_user(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except IntegrityError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail="Email already exists")
 
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
