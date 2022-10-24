@@ -40,7 +40,7 @@ def handle_user_creation(
 
         if user_data.email:
             children_string = oxford_comma_join(
-                [child.name for child in children_to_create]
+                [child.name for child in children_to_create or []]
             )
             queue_background_task(
                 "send-email",
