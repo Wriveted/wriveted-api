@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SQLALCHEMY_DATABASE_URI: postgresql://postgres:secret@localhost:5432
+      POSTGRESQL_PASSWORD: secret
+      SENDGRID_API_KEY: unused
+      SHOPIFY_HMAC_SECRET: unused
+      SECRET_KEY: unused
     steps:
     - uses: actions/checkout@v3
     - name: 🐍 Set up Python 3.10
