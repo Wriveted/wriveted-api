@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11
 
 LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
 
