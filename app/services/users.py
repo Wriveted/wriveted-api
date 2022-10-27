@@ -5,6 +5,7 @@ import random
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app.models import Student
 from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes

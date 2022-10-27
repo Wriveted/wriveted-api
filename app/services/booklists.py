@@ -1,5 +1,6 @@
 from structlog import get_logger
 
+import app.services as services
 from app.db.session import get_session_maker
 from app.models.booklist import ListType
 from app.schemas.booklist import (
@@ -8,7 +9,6 @@ from app.schemas.booklist import (
     BookListItemInfo,
 )
 from app.schemas.users.huey_attributes import HueyAttributes
-import app.services as services
 
 logger = get_logger()
 
