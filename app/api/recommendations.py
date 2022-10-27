@@ -73,6 +73,7 @@ async def get_recommendations_with_fallback(
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit=5,
+    remove_duplicate_authors=True
 ) -> Tuple[list[HueyBook], Any]:
     """
     Returns a tuple containing:
@@ -87,7 +88,7 @@ async def get_recommendations_with_fallback(
         "age": data.age,
         "recommendable_only": data.recommendable_only,
         "exclude_isbns": data.exclude_isbns,
-        "limit": limit,
+        "limit": limit + 5,
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
@@ -116,7 +117,6 @@ async def get_recommendations_with_fallback(
             session, **query_parameters
         )
     if len(row_results) < 3:
-
         fallback_level += 1
         # Widen the reading ability
         if len(query_parameters["reading_abilities"]) == 1:
@@ -163,18 +163,30 @@ async def get_recommendations_with_fallback(
         for (work, edition, labelset) in row_results
     ]
     if len(recommended_books) > 1:
+        if remove_duplicate_authors:
+            # While we have more than the desired number of books, remove any works from the same author
+            current_authors = set()
+            filtered_books = []
+            for book in recommended_books:
+                if book.authors_string not in current_authors:
+                    current_authors.add(book.authors_string)
+                    filtered_books.append(book)
+                else:
+                    logger.info("Removing book recommendation by author that is already being recommended", author=book.authors_string)
+                if len(filtered_books) >= limit:
+                    break
 
         # Bit annoying to dump and load json here but we want to fully serialize the JSON ready for
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [
-            json.loads(b.json()) for b in recommended_books[:10]
+            json.loads(b.json()) for b in filtered_books[:10]
         ]
 
         background_tasks.add_task(
             crud.event.create,
             session,
             title=f"Made a recommendation",
-            description=f"Made a recommendation of {len(recommended_books)} books",
+            description=f"Made a recommendation of {len(filtered_books)} books",
             info={
                 "recommended": event_recommendation_data,
                 "query_parameters": query_parameters,
@@ -197,7 +209,7 @@ async def get_recommendations_with_fallback(
                 school=school,
                 account=account,
             )
-    return recommended_books, query_parameters
+    return filtered_books, query_parameters
 
 
 def get_recommended_editions_and_labelsets(

@@ -42,6 +42,7 @@ class HueyRecommendationFilterBase(BaseModel):
 
 class HueyRecommendationFilter(HueyRecommendationFilterBase):
     wriveted_identifier: Optional[uuid.UUID] = None
+    dedupe_authors: bool = True
 
 
 class HueyRecommendationFilterUsed(HueyRecommendationFilterBase):
