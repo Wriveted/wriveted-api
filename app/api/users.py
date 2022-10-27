@@ -26,10 +26,7 @@ from app.schemas.pagination import Pagination
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_list import UserListsResponse
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
-from app.services.background_tasks import queue_background_task
 from app.services.users import handle_user_creation
-from app.services.util import oxford_comma_join
-from app.services.booklists import generate_reading_pathway_lists
 
 logger = get_logger()
 

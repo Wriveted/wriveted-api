@@ -73,7 +73,7 @@ async def get_recommendations_with_fallback(
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit=5,
-    remove_duplicate_authors=True
+    remove_duplicate_authors=True,
 ) -> Tuple[list[HueyBook], Any]:
     """
     Returns a tuple containing:
@@ -172,15 +172,16 @@ async def get_recommendations_with_fallback(
                     current_authors.add(book.authors_string)
                     filtered_books.append(book)
                 else:
-                    logger.info("Removing book recommendation by author that is already being recommended", author=book.authors_string)
+                    logger.info(
+                        "Removing book recommendation by author that is already being recommended",
+                        author=book.authors_string,
+                    )
                 if len(filtered_books) >= limit:
                     break
 
         # Bit annoying to dump and load json here but we want to fully serialize the JSON ready for
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
-        event_recommendation_data = [
-            json.loads(b.json()) for b in filtered_books[:10]
-        ]
+        event_recommendation_data = [json.loads(b.json()) for b in filtered_books[:10]]
 
         background_tasks.add_task(
             crud.event.create,
