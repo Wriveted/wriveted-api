@@ -14,6 +14,11 @@ class ReadingPath(BaseModel):
     read_next: BookListBase | None
 
 
+class SpecialLists(BaseModel):
+    read_books: BookListBase | None
+    favorite_books: BookListBase | None
+
+
 class ReaderBase(BaseModel):
     first_name: str | None
     last_name_initial: str | None
@@ -31,6 +36,7 @@ class ReaderBrief(ReaderBase, UserBrief):
 class ReaderDetail(ReaderBrief, UserDetail):
     booklists: list[BookListBase]
     reading_path: ReadingPath = None
+    special_lists: SpecialLists = None
 
     @validator("reading_path", pre=True, always=True)
     def grab_pathway_lists(cls, v, values):
@@ -43,6 +49,21 @@ class ReaderDetail(ReaderBrief, UserDetail):
         )
         output["read_next"] = next(
             iter(filter(lambda list: list.name == "Books To Read Next", lists) or []),
+            None,
+        )
+        return output
+
+    @validator("special_lists", pre=True, always=True)
+    def grab_special_lists(cls, v, values):
+        lists = values.get("booklists", None)
+        output = {"read_books": None, "favourite_books": None}
+        # get the first booklist matching each required name (with null safeties)
+        output["read_books"] = next(
+            iter(filter(lambda list: list.name == "Books I've Read", lists) or []),
+            None,
+        )
+        output["favourite_books"] = next(
+            iter(filter(lambda list: list.name == "My Favourite Books", lists) or []),
             None,
         )
         return output
