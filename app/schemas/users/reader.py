@@ -41,30 +41,26 @@ class ReaderDetail(ReaderBrief, UserDetail):
     @validator("reading_path", pre=True, always=True)
     def grab_pathway_lists(cls, v, values):
         lists = values.get("booklists", None)
-        output = {"read_now": None, "read_next": None}
+        output = {}
         # get the first booklist matching each required name (with null safeties)
         output["read_now"] = next(
-            iter(filter(lambda list: list.name == "Books To Read Now", lists) or []),
-            None,
+            [list for list in lists if list.name == "Books To Read Now"] or [], None
         )
         output["read_next"] = next(
-            iter(filter(lambda list: list.name == "Books To Read Next", lists) or []),
-            None,
+            [list for list in lists if list.name == "Books To Read Next"] or [], None
         )
         return output
 
     @validator("special_lists", pre=True, always=True)
     def grab_special_lists(cls, v, values):
         lists = values.get("booklists", None)
-        output = {"read_books": None, "favourite_books": None}
+        output = {}
         # get the first booklist matching each required name (with null safeties)
         output["read_books"] = next(
-            iter(filter(lambda list: list.name == "Books I've Read", lists) or []),
-            None,
+            [list for list in lists if list.name == "Books I've Read"] or [], None
         )
         output["favourite_books"] = next(
-            iter(filter(lambda list: list.name == "My Favourite Books", lists) or []),
-            None,
+            [list for list in lists if list.name == "My Favourite Books"] or [], None
         )
         return output
 
