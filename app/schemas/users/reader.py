@@ -44,10 +44,12 @@ class ReaderDetail(ReaderBrief, UserDetail):
         output = {}
         # get the first booklist matching each required name (with null safeties)
         output["read_now"] = next(
-            [list for list in lists if list.name == "Books To Read Now"] or [], None
+            iter([list for list in lists if list.name == "Books To Read Now"] or []),
+            None,
         )
         output["read_next"] = next(
-            [list for list in lists if list.name == "Books To Read Next"] or [], None
+            iter([list for list in lists if list.name == "Books To Read Next"] or []),
+            None,
         )
         return output
 
@@ -57,10 +59,11 @@ class ReaderDetail(ReaderBrief, UserDetail):
         output = {}
         # get the first booklist matching each required name (with null safeties)
         output["read_books"] = next(
-            [list for list in lists if list.name == "Books I've Read"] or [], None
+            iter([list for list in lists if list.name == "Books I've Read"] or []), None
         )
         output["favourite_books"] = next(
-            [list for list in lists if list.name == "My Favourite Books"] or [], None
+            iter([list for list in lists if list.name == "My Favourite Books"] or []),
+            None,
         )
         return output
 
