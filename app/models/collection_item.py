@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Column, ForeignKey, Index, Integer
+from datetime import datetime
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -32,13 +33,24 @@ class CollectionItem(Base):
     copies_total = Column(Integer, default=1, nullable=False)
     copies_available = Column(Integer, default=0, nullable=False)
 
+    created_at = Column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
+    updated_at = Column(
+        DateTime,
+        server_default=func.current_timestamp(),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
     # For potential future feature of "starring" certain books.
     # (say if a school gets an influx of a particular author
     # and want to encourage the group to pick one, Huey could
     # help pick from the starred subset... or something.
     # starred_pick = Column(Boolean(), default=False)
 
-    school = relationship("School", back_populates="collection")
+    collection = relationship("Collection", back_populates="items")
 
     # Proxy the work from the edition
     work = association_proxy("edition", "work")

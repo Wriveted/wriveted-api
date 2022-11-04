@@ -92,6 +92,11 @@ class School(Base):
 
     country = relationship("Country")
 
+    collection_id = Column(
+        ForeignKey("collections.id", name="fk_school_collection"), nullable=True, index=True
+    )
+    collection = relationship("Collection", back_populates="school")
+
     collection = relationship("CollectionItem", lazy="dynamic", cascade="all, delete")
 
     # https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#mapper-column-property-sql-expressions

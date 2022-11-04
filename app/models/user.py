@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -60,6 +60,13 @@ class User(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
     last_login_at = Column(DateTime, nullable=True)
+
+    collection_id = Column(
+        ForeignKey("collections.id", name="fk_user_collection"),
+        nullable=True,
+        index=True,
+    )
+    collection = relationship("Collection", back_populates="user")
 
     booklists = relationship(
         "BookList",
