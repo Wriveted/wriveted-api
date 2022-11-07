@@ -24,3 +24,4 @@ from .student import Student
 from .user import User
 from .work import Work
 from .wriveted_admin import WrivetedAdmin
+from .collection import Collection

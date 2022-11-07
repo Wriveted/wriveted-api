@@ -76,14 +76,13 @@ class Edition(Base):
         lazy="subquery",
     )
 
-    # schools = relationship(
-    #     'School',
-    #     secondary=CollectionItem.__table__,
-    #     back_populates="editions",
-    #     overlaps="edition"
-    # )
-
-    school_count = column_property(
+    collections = relationship(
+        "Collection",
+        secondary=CollectionItem.__table__,
+        back_populates="items",
+        lazy="selectin",
+    )
+    collection_count = column_property(
         select(func.count(CollectionItem.id))
         .where(CollectionItem.edition_isbn == isbn)
         .correlate_except(CollectionItem)
@@ -97,26 +96,26 @@ class Edition(Base):
             else self.title
         )
 
-    # ---------these are used for the hybrid attribute used in querying by number of schools in GET:editions/to_hydrate---------
+    # ---------these are used for the hybrid attribute used in querying by number of collections in GET:editions/to_hydrate---------
     # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior
 
     # this method and its equivalent expression need the same method name to work
     @hybrid_property
-    def num_schools(self):
-        return self.schools.count()
+    def num_collections(self):
+        return self.collections.count()
 
-    @num_schools.expression
-    def num_schools(self):
+    @num_collections.expression
+    def num_collections(self):
         return (
             select(
                 [
                     func.count(CollectionItem.__table__.c.edition_isbn).label(
-                        "num_schools"
+                        "num_collections"
                     )
                 ]
             )
             .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
-            .label("total_schools")
+            .label("total_collections")
         )
 
     # -------------------------------------------------------------------------------------------------------------------------

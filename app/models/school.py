@@ -92,15 +92,18 @@ class School(Base):
 
     country = relationship("Country")
 
-    collection = relationship("CollectionItem", lazy="dynamic", cascade="all, delete")
-
-    # https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#mapper-column-property-sql-expressions
-    collection_count = column_property(
-        select(func.count(CollectionItem.id))
-        .where(CollectionItem.school_id == id)
-        .correlate_except(CollectionItem)
-        .scalar_subquery()
+    collection = relationship(
+        "Collection",
+        back_populates="school",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
+
+    # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
+    # association proxy of "collectionitems" collection
+    # to "editions" attribute
+    editions = association_proxy("collection", "edition")
+    works = association_proxy("editions", "work")
 
     bookbot_type = Column(
         Enum(SchoolBookbotType),
@@ -110,19 +113,6 @@ class School(Base):
 
     lms_type = Column(String(50), nullable=False, server_default="none")
 
-    # https://docs.sqlalchemy.org/en/14/orm/extensions/associationproxy.html#simplifying-association-objects
-    # association proxy of "collectionitems" collection
-    # to "editions" attribute
-    works = association_proxy("collection_items", "work")
-    editions = association_proxy("collection", "edition")
-
-    # editions = relationship(
-    #     "Edition",
-    #     secondary=CollectionItem.__table__,
-    #     back_populates="schools",
-    #     overlaps="school"
-    # )
-
     # students  = list[Student]  (backref)
     # educators = list[Educator] (backref)
     admins = relationship(SchoolAdmin, overlaps="educators,school")
@@ -130,6 +120,7 @@ class School(Base):
     booklists = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
     )
+
     events = relationship("Event", back_populates="school", lazy="dynamic")
 
     service_accounts = relationship(
