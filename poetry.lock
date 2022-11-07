@@ -1054,7 +1054,7 @@ test = ["codecov", "ipykernel", "jupyter-server[test]", "openapi-core (>=0.14.2,
 
 [[package]]
 name = "locust"
-version = "2.12.2"
+version = "2.13.0"
 description = "Developer friendly load testing framework"
 category = "dev"
 optional = false
@@ -2186,7 +2186,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "8369ce748a5dcc2e518f86776f163ff270eafc832757553ca941c8b085473d23"
+content-hash = "daa2244274fff0ace925f3dd57d97c659cf8f6aa12f5bbef05e836372b6c746b"
 
 [metadata.files]
 alembic = [
@@ -2951,8 +2951,8 @@ jupyterlab-server = [
     {file = "jupyterlab_server-2.16.1.tar.gz", hash = "sha256:fe0de558ff3bb447a32e24099aa7e17444fdbc8c08f6dbc0171cb1a0ae382d3f"},
 ]
 locust = [
-    {file = "locust-2.12.2-py3-none-any.whl", hash = "sha256:fc5262e41e085cd7bc56e48a460f117d9e366123ad43e67d95cb32a08d6dc867"},
-    {file = "locust-2.12.2.tar.gz", hash = "sha256:22cc509b4c03032a30e58a7267d5b051771ddb747e85e06c0fbda374b2837bfa"},
+    {file = "locust-2.13.0-py3-none-any.whl", hash = "sha256:d747fb1be59d9e3f19e11fb90b8a50ad92b9615243ead67fc14e1e7421e5794e"},
+    {file = "locust-2.13.0.tar.gz", hash = "sha256:f603752ab9d4f7d6034c5896c71e6069be49060a5868d6eb4d6c7d32b1c031ae"},
 ]
 mako = [
     {file = "Mako-1.2.3-py3-none-any.whl", hash = "sha256:c413a086e38cd885088d5e165305ee8eed04e8b3f8f62df343480da0a385735f"},
