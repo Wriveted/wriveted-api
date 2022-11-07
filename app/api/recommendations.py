@@ -162,11 +162,11 @@ async def get_recommendations_with_fallback(
         )
         for (work, edition, labelset) in row_results
     ]
+    filtered_books = []
     if len(recommended_books) > 1:
         if remove_duplicate_authors:
             # While we have more than the desired number of books, remove any works from the same author
             current_authors = set()
-            filtered_books = []
             for book in recommended_books:
                 if book.authors_string not in current_authors:
                     current_authors.add(book.authors_string)
