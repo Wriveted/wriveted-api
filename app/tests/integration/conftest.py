@@ -415,7 +415,7 @@ def test_school_with_collection(
 
     yield test_school
 
-    reset_collection(session=session, school=test_school)
+    reset_collection(session=session, collection=collection)
 
 
 @pytest.fixture()
