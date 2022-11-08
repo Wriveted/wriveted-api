@@ -1,5 +1,6 @@
 import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import delete, select
@@ -10,6 +11,7 @@ from structlog import get_logger
 
 from app import crud
 from app.models import BookListItem, CollectionItem
+from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.school import School
@@ -103,15 +105,14 @@ async def add_editions_to_collection_by_isbn(
 
 
 def get_collection_info_with_criteria(
-    session,
-    school_id: int,
+    collection_id: UUID,
     is_hydrated: bool = False,
     is_labelled: bool = False,
     is_recommendable: bool = False,
 ):
     """
     Return a (complicated) select query for labelsets, editions, and works filtering by
-    school, hydration status, labelling status, and recommendability.
+    collection, hydration status, labelling status, and recommendability.
 
     Can raise sqlalchemy.exc.NoResultFound if for example an invalid reading_ability key
     is passed.
@@ -134,11 +135,10 @@ def get_collection_info_with_criteria(
         # .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
     )
 
-    # Filter for works in a school collection
-    school = crud.school.get_or_404(db=session, id=school_id)
+    # Filter for works in a given collection
     query = query.join(
         CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-    ).where(CollectionItem.school == school)
+    ).join(Collection, CollectionItem.collection_id == Collection.id)
 
     if is_hydrated:
         query = query.where(Edition.title.is_not(None))
@@ -179,5 +179,5 @@ async def get_collection_items_also_in_booklist(
 
 
 def reset_school_collection(session, school):
-    session.execute(delete(CollectionItem).where(CollectionItem.school == school))
+    session.execute(delete(Collection).where(Collection.school == school))
     session.commit()

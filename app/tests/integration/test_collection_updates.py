@@ -33,18 +33,28 @@ def test_collection_management(
     test_school_id = test_school.wriveted_identifier
 
     print("Resetting school collection")
-    reset_collection_response = client.post(
-        f"/v1/school/{test_school_id}/collection",
+    collection_id = test_school.collection.id if test_school.collection else None
+    if collection_id:
+        collection_reset_response = client.delete(
+            f"/v1/collection/{collection_id}",
+            headers=lms_service_account_headers_for_school,
+        )
+        collection_reset_response.raise_for_status()
+
+    print("Creating new collection")
+    collection_create_response = client.post(
+        "/v1/collection",
         headers=lms_service_account_headers_for_school,
-        json=[],
+        json={"name": "Test collection", "school_id": test_school.id},
     )
-    reset_collection_response.raise_for_status()
+    collection_create_response.raise_for_status()
+
     get_collection_response = client.get(
         f"/v1/school/{test_school_id}/collection",
         headers=lms_service_account_headers_for_school,
     )
-
     get_collection_response.raise_for_status()
+
     collection = get_collection_response.json()
     assert len(collection) == 0
     print("Collection after reset:", collection)

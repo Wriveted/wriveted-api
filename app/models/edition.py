@@ -79,7 +79,6 @@ class Edition(Base):
     collections = relationship(
         "Collection",
         secondary=CollectionItem.__table__,
-        back_populates="items",
         lazy="selectin",
     )
     collection_count = column_property(

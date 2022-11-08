@@ -25,7 +25,7 @@ class CollectionItem(Base):
     collection_id = Column(
         ForeignKey("collections.id", name="fk_collection_items_collection_id"),
         index=True,
-        nullable=True,
+        nullable=False,
     )
     collection = relationship(
         "Collection", back_populates="items", foreign_keys=[collection_id]

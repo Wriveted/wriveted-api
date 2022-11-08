@@ -1,13 +1,25 @@
 import enum
 from typing import Any, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field, conint
+from pydantic import BaseModel, Field, conint, root_validator, validator
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
 
 
-class CollectionInfo(BaseModel):
+class CollectionBrief(BaseModel):
+    id: UUID
+    name: str
+    book_count: int
+    school_id: int | None
+    user_id: UUID | None
+
+    class Config:
+        orm_mode = True
+
+
+class CollectionInfo(CollectionBrief):
     """
     Count editions in each state in a collection.
 
@@ -17,6 +29,11 @@ class CollectionInfo(BaseModel):
     total_editions: int = Field(
         ..., description="Count of unique editions in this collection"
     )
+
+    @validator("total_editions", pre=True)
+    def _validate_total_editions(cls, v, values: dict):
+        return values.get("book_count", 0)
+
     hydrated: int = Field(
         ...,
         description="Count of unique editions for which Wriveted has basic metadata",
@@ -29,8 +46,35 @@ class CollectionInfo(BaseModel):
     )
 
 
+class CollectionItemCreateIn(BaseModel):
+    edition_isbn: str
+    collection_id: UUID
+    info: dict[str, Any] | None = None
+
+
+class CollectionCreateIn(BaseModel):
+    name: str
+
+    school_id: int | None
+    user_id: UUID | None
+
+    info: dict[str, Any] | None
+    items: list[CollectionItemCreateIn] | None
+
+    @root_validator(pre=True)
+    def _validate_relationships(cls, values: dict):
+        school_id = values.get("school_id")
+        user_id = values.get("user_id")
+        if not school_id and not user_id:
+            raise ValueError("Must provide either school_id or user_id")
+        if school_id and user_id:
+            raise ValueError("Must provide only one of school_id or user_id")
+        return values
+
+
 class CollectionItemBase(BaseModel):
-    isbn: str
+    edition_isbn: str
+    info: dict[str, Any] | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
@@ -59,11 +103,17 @@ class CollectionUpdateType(str, enum.Enum):
     UPDATE = "update"
 
 
-class CollectionUpdate(CollectionItemBase):
+class CollectionItemUpdate(CollectionItemBase):
     action: CollectionUpdateType
 
     class Config:
         orm_mode = True
+
+
+class CollectionUpdateIn(BaseModel):
+    name: str | None
+    info: CollectionInfo | None = None
+    items: list[CollectionItemUpdate] | None
 
 
 class CollectionUpdateSummaryResponse(BaseModel):

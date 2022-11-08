@@ -10,11 +10,17 @@ from app import crud
 from app.api.dependencies.security import create_user_access_token
 from app.db.session import database_connection, get_session_maker
 from app.main import app, get_settings
-from app.models import School, SchoolState, ServiceAccountType, Student
+from app.models import School, SchoolState, ServiceAccountType, Student, Collection
 from app.models.class_group import ClassGroup
 from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
+from app.schemas.collection import (
+    CollectionCreateIn,
+    CollectionItemUpdate,
+    CollectionUpdateIn,
+    CollectionUpdateType,
+)
 from app.schemas.edition import EditionCreateIn
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 from app.schemas.service_account import ServiceAccountCreateIn
@@ -382,19 +388,30 @@ def test_unhydrated_editions(client, session, test_isbns):
 
 @pytest.fixture()
 def test_school_with_collection(
-    client, session, test_school, test_unhydrated_editions
+    client, session, test_school: School, test_unhydrated_editions
 ) -> School:
 
-    for e in test_unhydrated_editions:
-        crud.collection_item.create(
-            db=session,
-            obj_in={"school_id": test_school.id, "edition_isbn": e.isbn},
-            commit=False,
-        )
+    collection = crud.collection.get_or_create(
+        db=session,
+        collection_data=CollectionCreateIn(
+            name=f"Books at {test_school.name}",
+            school_id=test_school.id,
+            info={"msg": "Created for test purposes"},
+        ),
+    )
 
+    items = [
+        CollectionItemUpdate(edition_isbn=e.isbn, action=CollectionUpdateType.ADD)
+        for e in test_unhydrated_editions
+    ]
+
+    crud.collection.update(
+        db=session, db_obj=collection[0], obj_in=CollectionUpdateIn(items=items)
+    )
     session.commit()
 
-    assert test_school.collection_count == len(test_unhydrated_editions)
+    collection: Collection = test_school.collection
+    assert collection.book_count == len(test_unhydrated_editions)
 
     yield test_school
 

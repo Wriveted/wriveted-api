@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow, Deny
 from sqlalchemy import (
     JSON,
     Column,
@@ -34,11 +34,9 @@ class Collection(Base):
     name = Column(String(200), nullable=False, index=True)
 
     items = relationship(
-        "Edition",
-        secondary=CollectionItem.__table__,
-        back_populates="collections",
-        lazy="selectin",
+        "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
+    editions = association_proxy("items", "edition")
     works = association_proxy("items", "work")
 
     book_count = column_property(
@@ -97,6 +95,7 @@ class Collection(Base):
             (Allow, f"parent:{self.user_id}", All),
             # School Admins can manage school collections
             (Allow, f"schooladmin:{self.school_id}", All),
+            (Allow, "role:lms", "update"),
         ]
 
         return policies

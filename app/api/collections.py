@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Security
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Security
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -8,21 +8,30 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
-from app.api.dependencies.school import get_school_from_wriveted_id
+from app.api.dependencies.school import (
+    get_school_from_wriveted_id,
+)
+from app.api.dependencies.collection import (
+    validate_collection_creation,
+    get_collection_from_id,
+)
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition, School
+from app.models.collection import Collection
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
     CollectionBookListIntersection,
 )
 from app.schemas.collection import (
+    CollectionBrief,
+    CollectionCreateIn,
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
     CollectionItemIn,
-    CollectionUpdate,
+    CollectionItemUpdate,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
 )
@@ -37,7 +46,7 @@ from app.services.collections import (
 logger = get_logger()
 
 router = APIRouter(
-    tags=["Library Collection"],
+    tags=["Book Collection"],
     dependencies=[
         # Shouldn't be necessary
         Security(get_current_active_user_or_service_account)
@@ -63,11 +72,11 @@ async def get_school_collection(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection/info",
+    "/collection/{id}/info",
     response_model=CollectionInfo,
 )
-async def get_school_collection_info(
-    school: School = Permission("read", get_school_from_wriveted_id),
+async def get_collection_info(
+    collection: Collection = Permission("read", get_collection_from_id),
     session: Session = Depends(get_session),
 ):
     """
@@ -76,17 +85,12 @@ async def get_school_collection_info(
     logger.debug("Getting collection info")
     output = {}
 
-    editions_query = select(func.count(CollectionItem.id)).where(
-        CollectionItem.school_id == school.id
-    )
-    hydrated_query = get_collection_info_with_criteria(
-        session, school.id, is_hydrated=True
-    )
+    hydrated_query = get_collection_info_with_criteria(collection.id, is_hydrated=True)
     labelled_query = get_collection_info_with_criteria(
-        session, school.id, is_hydrated=True, is_labelled=True
+        collection.id, is_hydrated=True, is_labelled=True
     )
     recommend_query = get_collection_info_with_criteria(
-        session, school.id, is_hydrated=True, is_labelled=True, is_recommendable=True
+        collection.id, is_hydrated=True, is_labelled=True, is_recommendable=True
     )
 
     # explain_results = session.execute(explain(recommend_query, analyze=True)).scalars().all()
@@ -94,7 +98,7 @@ async def get_school_collection_info(
     # for entry in explain_results:
     #     logger.info(entry)
 
-    output["total_editions"] = session.execute(editions_query).scalar_one()
+    output["total_editions"] = collection.book_count
     output["hydrated"] = session.execute(
         select(func.count()).select_from(hydrated_query)
     ).scalar_one()
@@ -106,6 +110,36 @@ async def get_school_collection_info(
     ).scalar_one()
 
     return output
+
+
+@router.post(
+    "/collection",
+    response_model=CollectionBrief,
+    dependencies=[Depends(validate_collection_creation)],
+)
+async def create_collection(
+    collection_data: CollectionCreateIn = Body(..., embed=False),
+    session: Session = Depends(get_session),
+):
+    """
+    Endpoint for creating a new collection.
+    """
+    logger.debug("Creating collection")
+    return crud.collection.create(session, obj_in=collection_data)
+
+
+@router.delete("/collection/{id}")
+async def delete_collection(
+    collection: Collection = Permission("delete", get_collection_from_id),
+    session: Session = Depends(get_session),
+):
+    """
+    Endpoint to delete a collection.
+    """
+    logger.debug("Deleting collection")
+    session.execute(delete(Collection).where(Collection.id == collection.id))
+    session.commit()
+    return {"message": "Collection deleted"}
 
 
 @router.get(
@@ -218,7 +252,7 @@ async def set_school_collection(
     response_model=CollectionUpdateSummaryResponse,
 )
 async def update_school_collection(
-    collection_update_data: List[CollectionUpdate],
+    collection_update_data: List[CollectionItemUpdate],
     school: School = Permission("update", get_school_from_wriveted_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
