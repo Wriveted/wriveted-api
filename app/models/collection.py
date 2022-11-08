@@ -96,6 +96,8 @@ class Collection(Base):
             # School Admins can manage school collections
             (Allow, f"schooladmin:{self.school_id}", All),
             (Allow, "role:lms", "update"),
+            (Allow, "role:lms", "read"),
+            (Allow, "school:{self.school_id}", "read"),
         ]
 
         return policies

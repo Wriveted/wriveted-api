@@ -11,6 +11,7 @@ from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
 from app.schemas.collection import (
     CollectionCreateIn,
+    CollectionItemBase,
     CollectionItemUpdate,
     CollectionUpdateIn,
     CollectionUpdateType,
@@ -31,13 +32,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             collection_id=collection_orm_object.id,
         )
 
+        logger.debug(
+            f"Adding {len(items)} collection items to collection",
+            collection_id=collection_orm_object.id,
+        )
         for item in items:
             self._add_item_to_collection(
-                db=db,
-                collection_item=collection_orm_object,
-                item_update=CollectionItemUpdate(
-                    action=CollectionUpdateType.ADD, **item.dict()
-                ),
+                db=db, collection_orm_object=collection_orm_object, item=item
             )
 
         return collection_orm_object
@@ -75,7 +76,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             match change.action:
                 case CollectionUpdateType.ADD:
                     self._add_item_to_collection(
-                        db=db, collection_orm_object=db_obj, item_update=change
+                        db=db, collection_orm_object=db_obj, item=change
                     )
                 case CollectionUpdateType.UPDATE:
                     self._update_item_in_collection(
@@ -90,8 +91,20 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db.refresh(collection_orm_object)
         return collection_orm_object
 
+    def delete_all_items(self, db: Session, *, db_obj: Collection) -> Collection:
+        db.execute(
+            delete(CollectionItem).where(CollectionItem.collection_id == db_obj.id)
+        )
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
     def _update_item_in_collection(
-        self, db: Session, *, collection_id: int, item_update: CollectionItemUpdate
+        self,
+        db: Session,
+        *,
+        collection_id: int,
+        item_update: CollectionItemUpdate | CollectionItemBase,
     ):
         item_orm_object = db.scalar(
             select(CollectionItem)
@@ -108,29 +121,29 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             deep_merge_dicts(info_dict, update_dict)
             item_orm_object.info = info_dict
 
+        if item_update.copies_available:
+            item_orm_object.copies_available = item_update.copies_available
+
+        if item_update.copies_total:
+            item_orm_object.copies_total = item_update.copies_total
+
         db.add(item_orm_object)
         db.commit()
         db.refresh(item_orm_object)
+        return item_orm_object
 
     def _remove_item_from_collection(
         self,
         db: Session,
         *,
         collection_orm_object: Collection,
-        item_to_remove: CollectionItemUpdate,
+        item_to_remove: CollectionItemUpdate | CollectionItemBase,
     ):
         db.execute(
             delete(CollectionItem)
             .where(CollectionItem.collection_id == collection_orm_object.id)
             .where(CollectionItem.edition_isbn == item_to_remove.edition_isbn)
         )
-        db.commit()
-        logger.debug(
-            "Removing item from collection",
-            edition_isbn=item_to_remove.edition_isbn,
-            collection_id=collection_orm_object.id,
-        )
-
         db.commit()
         db.refresh(collection_orm_object)
 
@@ -139,20 +152,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         collection_orm_object: Collection,
-        item_update: CollectionItemUpdate,
+        item: CollectionItemUpdate | CollectionItemBase,
     ):
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
-            edition_isbn=item_update.edition_isbn,
-            info=item_update.info.dict() if item_update.info is not None else None,
+            edition_isbn=item.edition_isbn,
+            copies_available=item.copies_available,
+            copies_total=item.copies_total,
         )
         db.add(new_orm_item)
         db.commit()
-        logger.debug(
-            "Removing item from collection",
-            edition_isbn=item_update.edition_isbn,
-            collection_id=collection_orm_object.id,
-        )
         db.refresh(collection_orm_object)
         return new_orm_item
 

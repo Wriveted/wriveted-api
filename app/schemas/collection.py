@@ -46,10 +46,14 @@ class CollectionInfo(CollectionBrief):
     )
 
 
-class CollectionItemCreateIn(BaseModel):
+class CollectionItemBase(BaseModel):
     edition_isbn: str
-    collection_id: UUID
-    info: dict[str, Any] | None = None
+    info: dict[str, Any] | None
+    copies_total: Optional[conint(ge=0)] = None
+    copies_available: Optional[conint(ge=0)] = None
+
+    class Config:
+        orm_mode = True
 
 
 class CollectionCreateIn(BaseModel):
@@ -59,7 +63,7 @@ class CollectionCreateIn(BaseModel):
     user_id: UUID | None
 
     info: dict[str, Any] | None
-    items: list[CollectionItemCreateIn] | None
+    items: list[CollectionItemBase] | None
 
     @root_validator(pre=True)
     def _validate_relationships(cls, values: dict):
@@ -70,18 +74,6 @@ class CollectionCreateIn(BaseModel):
         if school_id and user_id:
             raise ValueError("Must provide only one of school_id or user_id")
         return values
-
-
-class CollectionItemBase(BaseModel):
-    edition_isbn: str
-    info: dict[str, Any] | None
-    copies_total: Optional[conint(ge=0)] = None
-    copies_available: Optional[conint(ge=0)] = None
-
-
-class CollectionItemIn(CollectionItemBase):
-    class Config:
-        orm_mode = True
 
 
 class CollectionItemDetail(BaseModel):

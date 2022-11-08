@@ -14,12 +14,12 @@ from app.schemas.collection import CollectionCreateIn
 
 
 def get_collection_from_id(
-    collection_identifier: uuid.UUID = Path(
+    collection_id: uuid.UUID = Path(
         ..., description="UUID representing a unique collection of books"
     ),
     session: Session = Depends(get_session),
 ):
-    return crud.collection.get_or_404(db=session, id=collection_identifier)
+    return crud.collection.get_or_404(db=session, id=collection_id)
 
 
 async def validate_collection_creation(

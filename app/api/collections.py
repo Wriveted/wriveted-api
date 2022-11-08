@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -8,16 +8,13 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
-from app.api.dependencies.school import (
-    get_school_from_wriveted_id,
-)
 from app.api.dependencies.collection import (
     validate_collection_creation,
     get_collection_from_id,
 )
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
-from app.models import BookList, CollectionItem, Edition, School
+from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
@@ -30,7 +27,6 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
-    CollectionItemIn,
     CollectionItemUpdate,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
@@ -40,7 +36,7 @@ from app.services.collections import (
     add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
     get_collection_items_also_in_booklist,
-    reset_school_collection,
+    reset_collection,
 )
 
 logger = get_logger()
@@ -55,18 +51,33 @@ router = APIRouter(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection",
+    "/collection/{collection_id}",
+    response_model=CollectionBrief,
+)
+async def get_collection_details(
+    collection: Collection = Permission("read", get_collection_from_id),
+):
+    return collection
+
+
+@router.get(
+    "/collection/{collection_id}/items",
     response_model=List[CollectionItemDetail],
 )
-async def get_school_collection(
-    school: School = Permission("read", get_school_from_wriveted_id),
+async def get_collection_items(
+    collection: Collection = Permission("read", get_collection_from_id),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    logger.debug("Getting collection", pagination=pagination)
+    logger.debug("Getting collection items", pagination=pagination)
+
     collection_items = session.scalars(
-        school.collection.statement.offset(pagination.skip).limit(pagination.limit)
+        select(CollectionItem)
+        .where(CollectionItem.collection_id == collection.id)
+        .offset(pagination.skip)
+        .limit(pagination.limit)
     ).all()
+
     logger.debug("Loading collection", collection_size=len(collection_items))
     return collection_items
 
@@ -118,7 +129,7 @@ async def get_collection_info(
     dependencies=[Depends(validate_collection_creation)],
 )
 async def create_collection(
-    collection_data: CollectionCreateIn = Body(..., embed=False),
+    collection_data: CollectionCreateIn,
     session: Session = Depends(get_session),
 ):
     """
@@ -128,7 +139,7 @@ async def create_collection(
     return crud.collection.create(session, obj_in=collection_data)
 
 
-@router.delete("/collection/{id}")
+@router.delete("/collection/{collection_id}")
 async def delete_collection(
     collection: Collection = Permission("delete", get_collection_from_id),
     session: Session = Depends(get_session),
@@ -143,12 +154,12 @@ async def delete_collection(
 
 
 @router.get(
-    "/school/{wriveted_identifier}/collection/compare-with-booklist/{booklist_identifier}",
+    "/collection/{collection_id}/compare-with-booklist/{booklist_identifier}",
     response_model=CollectionBookListIntersection,
 )
 async def get_school_collection_booklist_intersection(
     background_tasks: BackgroundTasks,
-    school: School = Permission("read", get_school_from_wriveted_id),
+    collection: Collection = Permission("read", get_collection_from_id),
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
@@ -160,7 +171,9 @@ async def get_school_collection_booklist_intersection(
     Pagination applies to the booklist
     """
     logger.debug(
-        "Computing booklist collection intersection", school=school, booklist=booklist
+        "Computing booklist collection intersection",
+        collection=collection,
+        booklist=booklist,
     )
 
     paginated_booklist_item_query = booklist.items.statement.offset(
@@ -169,7 +182,7 @@ async def get_school_collection_booklist_intersection(
 
     common_collection_items = await get_collection_items_also_in_booklist(
         session,
-        school,
+        collection,
         paginated_booklist_item_query,
     )
     common_work_ids = {item.work_id for item in common_collection_items}
@@ -180,10 +193,10 @@ async def get_school_collection_booklist_intersection(
         title="Compared booklist and collection",
         info={
             "items_in_common": len(common_collection_items),
-            "school_wriveted_id": str(school.wriveted_identifier),
+            "collection_id": str(collection.id),
             "booklist_id": str(booklist.id),
         },
-        school=school,
+        collection=collection,
         account=account,
     )
 
@@ -206,39 +219,43 @@ async def get_school_collection_booklist_intersection(
 
 
 @router.post(
-    "/school/{wriveted_identifier}/collection",
+    "/collection/{collection_id}",
     response_model=CollectionUpdateSummaryResponse,
 )
-async def set_school_collection(
-    collection_data: List[CollectionItemIn],
-    school: School = Permission("update", get_school_from_wriveted_id),
+async def set_collection(
+    collection_data: List[CollectionItemBase],
+    collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
 ):
     """
-    Set the contents of a school library collection.
+    Set the contents of a collection.
 
     Requires only an ISBN to identify each Edition, other attributes are optional. Note all editions will be stored as
     part of the collection, but as additional data is fetched from partner APIs it can take up to a few days before
     the editions are fully "hydrated".
     """
     logger.info(
-        "Resetting the entire collection for school", school=school, account=account
+        "Resetting the entire collection for school",
+        collection=collection,
+        account=account,
     )
-    reset_school_collection(session, school)
+    reset_collection(session, collection, account)
 
     logger.info(
-        f"Adding/syncing {len(collection_data)} ISBNs with school collection",
-        school=school,
+        f"Adding/syncing {len(collection_data)} ISBNs with collection",
+        collection=collection,
         account=account,
     )
     if len(collection_data) > 0:
         await add_editions_to_collection_by_isbn(
-            session, collection_data, school, account
+            session, collection_data, collection, account
         )
 
     count = session.execute(
-        select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
+        select(func.count(CollectionItem.id)).where(
+            CollectionItem.collection == collection
+        )
     ).scalar_one()
 
     return {
@@ -248,21 +265,21 @@ async def set_school_collection(
 
 
 @router.patch(
-    "/school/{wriveted_identifier}/collection",
+    "/collection/{collection_id}",
     response_model=CollectionUpdateSummaryResponse,
 )
-async def update_school_collection(
+async def update_collection(
     collection_update_data: List[CollectionItemUpdate],
-    school: School = Permission("update", get_school_from_wriveted_id),
+    collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
 ):
     """
-    Update a school library collection with a list of changes.
+    Update a collection with a list of changes.
 
     Changes can be to add, remove, or update editions of books. Many
     changes of different types can be added in a single call to this
-    API, they must however all refer to one school.
+    API, they must however all refer to one collection.
 
     If the edition are already in the Wriveted database only the ISBN
     and `"action"` is required. For example adding known editions to a
@@ -282,14 +299,16 @@ async def update_school_collection(
     - `update` - change the `copies_total` and `copies_available`
 
     """
-    logger.info("Updating collection for school", school=school, account=account)
+    logger.info(
+        "Updating collection for school", collection=collection, account=account
+    )
 
     isbns_to_remove: List[str] = []
     items_to_add: List[CollectionItemBase] = []
 
     for update_info in collection_update_data:
         if update_info.action == CollectionUpdateType.REMOVE:
-            isbns_to_remove.append(update_info.isbn)
+            isbns_to_remove.append(update_info.edition_isbn)
         elif update_info.action == CollectionUpdateType.ADD:
             items_to_add.append(update_info)
         elif update_info.action == CollectionUpdateType.UPDATE:
@@ -297,12 +316,12 @@ async def update_school_collection(
             # TODO consider a bulk update version of this
             stmt = (
                 update(CollectionItem)
-                .where(CollectionItem.school_id == school.id)
+                .where(CollectionItem.collection_id == collection.id)
                 .where(
                     # Note execution_options(synchronize_session="fetch") must be set
                     # for this subquery where clause to work.
                     # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
-                    CollectionItem.edition.has(Edition.isbn == update_info.isbn)
+                    CollectionItem.edition.has(Edition.isbn == update_info.edition_isbn)
                 )
                 .values(
                     copies_total=update_info.copies_total,
@@ -317,7 +336,7 @@ async def update_school_collection(
         logger.info(f"Removing {len(isbns_to_remove)} items from collection")
         stmt = (
             delete(CollectionItem)
-            .where(CollectionItem.school_id == school.id)
+            .where(CollectionItem.collection_id == collection.id)
             .where(
                 CollectionItem.edition_isbn.in_(
                     select(Edition.isbn).where(Edition.isbn.in_(isbns_to_remove))
@@ -330,12 +349,16 @@ async def update_school_collection(
 
     if len(items_to_add) > 0:
         logger.info(f"Adding {len(items_to_add)} editions to collection")
-        await add_editions_to_collection_by_isbn(session, items_to_add, school, account)
+        await add_editions_to_collection_by_isbn(
+            session, items_to_add, collection, account
+        )
 
     logger.debug(f"Committing transaction")
     session.commit()
     count = session.execute(
-        select(func.count(CollectionItem.id)).where(CollectionItem.school == school)
+        select(func.count(CollectionItem.id)).where(
+            CollectionItem.collection_id == collection.id
+        )
     ).scalar_one()
 
     return {"msg": "updated", "collection_size": count}

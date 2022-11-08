@@ -27,7 +27,7 @@ from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
-from app.services.collections import reset_school_collection
+from app.services.collections import reset_collection
 from app.services.editions import generate_random_valid_isbn13
 from app.services.security import create_access_token
 from app.tests.util.random_strings import random_lower_string
@@ -415,7 +415,7 @@ def test_school_with_collection(
 
     yield test_school
 
-    reset_school_collection(session=session, school=test_school)
+    reset_collection(session=session, school=test_school)
 
 
 @pytest.fixture()

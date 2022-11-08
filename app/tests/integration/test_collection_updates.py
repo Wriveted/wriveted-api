@@ -48,15 +48,16 @@ def test_collection_management(
         json={"name": "Test collection", "school_id": test_school.id},
     )
     collection_create_response.raise_for_status()
+    collection_create_response_data = collection_create_response.json()
 
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection_create_response_data['id']}",
         headers=lms_service_account_headers_for_school,
     )
     get_collection_response.raise_for_status()
 
     collection = get_collection_response.json()
-    assert len(collection) == 0
+    assert collection["book_count"] == 0
     print("Collection after reset:", collection)
 
     print("Loading books from CSV file")
@@ -188,17 +189,17 @@ def test_collection_management(
     original_collection = [
         randomize_loan_status(
             {
-                "isbn": b["isbn"],
+                "edition_isbn": b["isbn"],
             }
         )
         for b in original_books
     ]
 
     print(
-        f"Updating school by setting new collection of {len(original_collection)} hydrated + unhydrated books"
+        f"Setting new collection of {len(original_collection)} hydrated + unhydrated books"
     )
     set_collection_response = client.post(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}",
         json=original_collection,
         timeout=30,
         headers=lms_service_account_headers_for_school,
@@ -206,24 +207,24 @@ def test_collection_management(
     set_collection_response.raise_for_status()
     print(set_collection_response.json())
 
-    print("Checking the collection")
+    print("Checking the collection items")
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}/items",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=30,
     )
 
     get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
-    for item in collection:
+    collection_items = get_collection_response.json()
+    for item in collection_items:
         assert item["copies_total"] > 1
-    print("Collection after adding (first 3):\n", collection[:3])
+    print("Collection after adding (first 3):\n", collection_items[:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
-        len(collection)
+        len(collection_items)
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
-    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection)}"
+    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection_items)}"
 
     # Update the collection by changing the loan status of a subset of the books.
     books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
@@ -232,7 +233,7 @@ def test_collection_management(
     collection_changes = [
         {
             "action": "update",
-            "isbn": b["isbn"],
+            "edition_isbn": b["edition_isbn"],
             "copies_total": 99,
             "copies_available": 99,
         }
@@ -241,7 +242,7 @@ def test_collection_management(
 
     print(f"Sending through {len(collection_changes)} updates")
     updates_response = client.patch(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}",
         json=collection_changes,
         timeout=120,
         headers=lms_service_account_headers_for_school,
@@ -252,16 +253,16 @@ def test_collection_management(
     print("Updated loan status")
 
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}/items",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
     )
     get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
+    collection_items = get_collection_response.json()
 
     number_items_with_updated_loan_status = 0
-    for item in collection:
+    for item in collection_items:
         if item["copies_total"] == 99 and item["copies_available"] == 99:
             number_items_with_updated_loan_status += 1
 
@@ -275,7 +276,7 @@ def test_collection_management(
     collection_changes = [
         {
             "action": "remove",
-            "isbn": b["isbn"],
+            "edition_isbn": b["edition_isbn"],
         }
         for b in books_to_remove
     ]
@@ -289,7 +290,7 @@ def test_collection_management(
             randomize_loan_status(
                 {
                     "action": "add",
-                    "isbn": b["isbn"],
+                    "edition_isbn": b["isbn"],
                     "edition_info": b,
                 }
             )
@@ -298,7 +299,7 @@ def test_collection_management(
     )
 
     updates_response = client.patch(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}",
         json=collection_changes,
         timeout=120,
         headers=lms_service_account_headers_for_school,
@@ -308,7 +309,7 @@ def test_collection_management(
 
     print("Added and removed books from collection")
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{collection['id']}",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
@@ -317,7 +318,7 @@ def test_collection_management(
     collection = get_collection_response.json()
     print(
         "Current collection size:",
-        len(collection),
+        collection["book_count"],
         "expected: ",
         INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
@@ -325,7 +326,7 @@ def test_collection_management(
         - REMOVED_NUMBER_OF_BOOKS,
     )
     assert (
-        len(collection)
+        collection["book_count"]
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         + ADDED_NUMBER_OF_BOOKS

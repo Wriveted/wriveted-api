@@ -135,7 +135,7 @@ async def get_schools(
 
     if not has_collection_permission:
         for school in schools:
-            school.collection_count = None
+            school.collection = None
     return schools
 
 
