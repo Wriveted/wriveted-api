@@ -388,7 +388,11 @@ def test_unhydrated_editions(client, session, test_isbns):
 
 @pytest.fixture()
 def test_school_with_collection(
-    client, session, test_school: School, test_unhydrated_editions
+    client,
+    session,
+    test_school: School,
+    test_unhydrated_editions,
+    backend_service_account,
 ) -> School:
 
     collection = crud.collection.get_or_create(
@@ -415,7 +419,9 @@ def test_school_with_collection(
 
     yield test_school
 
-    reset_collection(session=session, collection=collection)
+    reset_collection(
+        session=session, collection=collection, account=backend_service_account
+    )
 
 
 @pytest.fixture()
