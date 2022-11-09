@@ -80,6 +80,7 @@ class Edition(Base):
         "Collection",
         secondary=CollectionItem.__table__,
         lazy="selectin",
+        viewonly=True,
     )
     collection_count = column_property(
         select(func.count(CollectionItem.id))
