@@ -16,6 +16,7 @@ from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
 from app.schemas.collection import (
+    CollectionAndItemsUpdate,
     CollectionCreateIn,
     CollectionItemUpdate,
     CollectionUpdateIn,
@@ -410,7 +411,7 @@ def test_school_with_collection(
     ]
 
     crud.collection.update(
-        db=session, db_obj=collection[0], obj_in=CollectionUpdateIn(items=items)
+        db=session, db_obj=collection[0], obj_in=CollectionAndItemsUpdate(items=items)
     )
     session.commit()
 
