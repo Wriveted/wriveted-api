@@ -199,7 +199,7 @@ def test_collection_management(
         f"Setting new collection of {len(original_collection)} hydrated + unhydrated books"
     )
     set_collection_response = client.post(
-        f"/v1/collection/{collection['id']}",
+        f"/v1/collection/{collection['id']}/items",
         json=original_collection,
         timeout=30,
         headers=lms_service_account_headers_for_school,
@@ -228,7 +228,7 @@ def test_collection_management(
 
     # Update the collection by changing the loan status of a subset of the books.
     books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
-    print("Bulk updating loan status via `PATCH .../collection` API")
+    print("Bulk updating loan status via `PATCH .../collection/{id}/items` API")
     time.sleep(0.5)
     collection_changes = [
         {
@@ -242,7 +242,7 @@ def test_collection_management(
 
     print(f"Sending through {len(collection_changes)} updates")
     updates_response = client.patch(
-        f"/v1/collection/{collection['id']}",
+        f"/v1/collection/{collection['id']}/items",
         json=collection_changes,
         timeout=120,
         headers=lms_service_account_headers_for_school,
@@ -299,7 +299,7 @@ def test_collection_management(
     )
 
     updates_response = client.patch(
-        f"/v1/collection/{collection['id']}",
+        f"/v1/collection/{collection['id']}/items",
         json=collection_changes,
         timeout=120,
         headers=lms_service_account_headers_for_school,

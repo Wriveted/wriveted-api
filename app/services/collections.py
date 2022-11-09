@@ -16,6 +16,7 @@ from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
 from app.schemas.collection import (
+    CollectionAndItemsUpdate,
     CollectionItemBase,
     CollectionItemUpdate,
     CollectionUpdateIn,
@@ -82,7 +83,9 @@ async def add_editions_to_collection_by_isbn(
         collection_items.append(CollectionItemUpdate(**data))
 
     updated = crud.collection.update(
-        db=session, db_obj=collection, obj_in=CollectionUpdateIn(items=collection_items)
+        db=session,
+        db_obj=collection,
+        obj_in=CollectionAndItemsUpdate(items=collection_items),
     )
     num_collection_items_created = len(updated.items)
 

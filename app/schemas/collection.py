@@ -46,9 +46,17 @@ class CollectionInfo(CollectionBrief):
     )
 
 
+class CollectionItemInfo(BaseModel):
+    cover_image: str | None
+    emoji: str | None
+    title: str | None
+    author: str | None
+    other: dict[str, Any] | None
+
+
 class CollectionItemBase(BaseModel):
     edition_isbn: str
-    info: dict[str, Any] | None
+    info: CollectionItemInfo | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
@@ -105,6 +113,9 @@ class CollectionItemUpdate(CollectionItemBase):
 class CollectionUpdateIn(BaseModel):
     name: str | None
     info: CollectionInfo | None = None
+
+
+class CollectionAndItemsUpdate(CollectionUpdateIn):
     items: list[CollectionItemUpdate] | None
 
 

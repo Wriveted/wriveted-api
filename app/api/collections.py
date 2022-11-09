@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Security
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -28,6 +28,7 @@ from app.schemas.collection import (
     CollectionItemBase,
     CollectionItemDetail,
     CollectionItemUpdate,
+    CollectionUpdateIn,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
 )
@@ -157,7 +158,7 @@ async def delete_collection(
     "/collection/{collection_id}/compare-with-booklist/{booklist_identifier}",
     response_model=CollectionBookListIntersection,
 )
-async def get_school_collection_booklist_intersection(
+async def get_collection_booklist_intersection(
     background_tasks: BackgroundTasks,
     collection: Collection = Permission("read", get_collection_from_id),
     booklist: BookList = Permission("read", get_booklist_from_wriveted_id),
@@ -219,7 +220,7 @@ async def get_school_collection_booklist_intersection(
 
 
 @router.post(
-    "/collection/{collection_id}",
+    "/collection/{collection_id}/items",
     response_model=CollectionUpdateSummaryResponse,
 )
 async def set_collection(
@@ -236,7 +237,7 @@ async def set_collection(
     the editions are fully "hydrated".
     """
     logger.info(
-        "Resetting the entire collection for school",
+        "Resetting an entire collection",
         collection=collection,
         account=account,
     )
@@ -266,16 +267,48 @@ async def set_collection(
 
 @router.patch(
     "/collection/{collection_id}",
-    response_model=CollectionUpdateSummaryResponse,
+    response_model=CollectionBrief,
 )
 async def update_collection(
-    collection_update_data: List[CollectionItemUpdate],
+    collection_update_data: CollectionUpdateIn,
     collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
+    merge_dicts: bool = Query(
+        default=False,
+        description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
+    ),
 ):
     """
-    Update a collection with a list of changes.
+    Update details of a collection (the object itself).
+    Note: to update the items in a collection, use the `POST /collection/{collection_id}/items` endpoint.
+    """
+    logger.info("Updating collection", collection=collection, account=account)
+
+    return crud.collection.update(
+        db=session,
+        db_obj=collection,
+        obj_in=collection_update_data,
+        merge_dicts=merge_dicts,
+    )
+
+
+@router.patch(
+    "/collection/{collection_id}/items",
+    response_model=CollectionUpdateSummaryResponse,
+)
+async def update_collection(
+    collection_update_data: list[CollectionItemUpdate],
+    collection: Collection = Permission("update", get_collection_from_id),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
+    merge_dicts: bool = Query(
+        default=False,
+        description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
+    ),
+):
+    """
+    Update a collection's items with a list of changes.
 
     Changes can be to add, remove, or update editions of books. Many
     changes of different types can be added in a single call to this
@@ -299,10 +332,9 @@ async def update_collection(
     - `update` - change the `copies_total` and `copies_available`
 
     """
-    logger.info(
-        "Updating collection for school", collection=collection, account=account
-    )
+    logger.info("Updating collection", collection=collection, account=account)
 
+    # update the collection items
     isbns_to_remove: List[str] = []
     items_to_add: List[CollectionItemBase] = []
 

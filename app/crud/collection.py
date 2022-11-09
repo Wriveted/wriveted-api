@@ -10,6 +10,7 @@ from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
 from app.schemas.collection import (
+    CollectionAndItemsUpdate,
     CollectionCreateIn,
     CollectionItemBase,
     CollectionItemUpdate,
@@ -64,14 +65,19 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             return collection, True
 
     def update(
-        self, db: Session, *, db_obj: Collection, obj_in: CollectionUpdateIn
+        self,
+        db: Session,
+        *,
+        db_obj: Collection,
+        obj_in: CollectionAndItemsUpdate | CollectionItemUpdate,
     ) -> Collection:
-        item_changes = obj_in.items if obj_in.items is not None else []
-        del obj_in.items
+        if item_changes := getattr(obj_in, "items", []):
+            del obj_in.items
+
         # Update the collection object
         collection_orm_object = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
-        # Now update the items one by one
+        # If provided, update the items one by one
         for change in item_changes:
             match change.action:
                 case CollectionUpdateType.ADD:
