@@ -297,7 +297,7 @@ async def update_collection(
     "/collection/{collection_id}/items",
     response_model=CollectionUpdateSummaryResponse,
 )
-async def update_collection(
+async def update_collection_items(
     collection_update_data: list[CollectionItemUpdate],
     collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
