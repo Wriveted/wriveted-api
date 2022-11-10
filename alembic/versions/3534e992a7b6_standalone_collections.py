@@ -170,7 +170,7 @@ def downgrade():
         "collection_items",
         "schools",
         ["school_id"],
-        ["wriveted_identifier"],
+        ["id"],
     )
     op.drop_index(
         op.f("ix_collection_items_collection_id"), table_name="collection_items"
@@ -189,8 +189,9 @@ def downgrade():
     op.execute(
         """
         UPDATE collection_items
-        SET school_id = collections.school_id
+        SET school_id = schools.id
         FROM collections
+        JOIN schools ON collections.school_id = schools.wriveted_identifier
         WHERE collections.id = collection_items.collection_id;
         """
     )
