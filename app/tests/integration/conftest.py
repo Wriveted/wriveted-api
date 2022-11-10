@@ -399,7 +399,7 @@ def test_school_with_collection(
         db=session,
         collection_data=CollectionCreateIn(
             name=f"Books at {test_school.name}",
-            school_id=test_school.id,
+            school_id=test_school.wriveted_identifier,
             info={"msg": "Created for test purposes"},
         ),
     )
