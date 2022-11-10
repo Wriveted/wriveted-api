@@ -71,7 +71,6 @@ async def add_editions_to_collection_by_isbn(
     for isbn in final_primary_keys:
         data = {
             "edition_isbn": isbn,
-            "info": {"Updated": str(datetime.datetime.utcnow())},
             "copies_total": collection_counts[isbn]["copies_total"]
             if isbn in collection_counts.keys()
             else 1,
