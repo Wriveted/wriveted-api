@@ -28,7 +28,7 @@ def upgrade():
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
-        sa.Column("school_id", sa.Integer(), nullable=True),
+        sa.Column("school_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("info", sa.JSON(), nullable=True),
@@ -55,7 +55,7 @@ def upgrade():
     op.execute(
         """
         INSERT INTO collections (school_id, name)
-        (SELECT DISTINCT school_id, CONCAT('Books at ', schools.name)
+        (SELECT DISTINCT schools.wriveted_identifier, CONCAT('Books at ', schools.name)
         FROM collection_items join schools on collection_items.school_id = schools.id);
         """
     )
@@ -77,7 +77,8 @@ def upgrade():
         UPDATE collection_items
         SET collection_id = collections.id
         FROM collections
-        WHERE collections.school_id = collection_items.school_id;
+        JOIN schools ON collections.school_id = schools.wriveted_identifier
+        WHERE schools.id = collection_items.school_id;
         """
     )
 
@@ -134,7 +135,7 @@ def upgrade():
         "collections",
         "schools",
         ["school_id"],
-        ["id"],
+        ["wriveted_identifier"],
         ondelete="CASCADE",
     )
     op.create_foreign_key(
@@ -169,7 +170,7 @@ def downgrade():
         "collection_items",
         "schools",
         ["school_id"],
-        ["id"],
+        ["wriveted_identifier"],
     )
     op.drop_index(
         op.f("ix_collection_items_collection_id"), table_name="collection_items"

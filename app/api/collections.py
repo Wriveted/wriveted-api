@@ -22,13 +22,12 @@ from app.schemas.booklist_collection_intersection import (
     CollectionBookListIntersection,
 )
 from app.schemas.collection import (
+    CollectionAndItemsUpdateIn,
     CollectionBrief,
     CollectionCreateIn,
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
-    CollectionItemUpdate,
-    CollectionUpdateIn,
     CollectionUpdateSummaryResponse,
     CollectionUpdateType,
 )
@@ -58,6 +57,9 @@ router = APIRouter(
 async def get_collection_details(
     collection: Collection = Permission("read", get_collection_from_id),
 ):
+    """
+    Get a summary of an existing collection.
+    """
     return collection
 
 
@@ -70,6 +72,9 @@ async def get_collection_items(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
+    """
+    Paginate the items in an existing collection.
+    """
     logger.debug("Getting collection items", pagination=pagination)
 
     collection_items = session.scalars(
@@ -134,7 +139,7 @@ async def create_collection(
     session: Session = Depends(get_session),
 ):
     """
-    Endpoint for creating a new collection.
+    Endpoint for creating a new collection, provided a collection isn't already assigned to the target user or school
     """
     logger.debug("Creating collection")
     return crud.collection.create(session, obj_in=collection_data)
@@ -152,6 +157,24 @@ async def delete_collection(
     session.execute(delete(Collection).where(Collection.id == collection.id))
     session.commit()
     return {"message": "Collection deleted"}
+
+
+@router.put(
+    "/collection/{collection_id}",
+    response_model=CollectionBrief,
+)
+async def set_collection(
+    collection_data: CollectionCreateIn,
+    collection: Collection = Permission("delete", get_collection_from_id),
+    session: Session = Depends(get_session),
+):
+    """
+    Endpoint for replacing an existing collection and its items.
+    """
+    logger.debug("Deleting collection")
+    session.execute(delete(Collection).where(Collection.id == collection.id))
+    logger.debug("Replacing deleted collection")
+    return crud.collection.create(session, obj_in=collection_data)
 
 
 @router.get(
@@ -219,11 +242,11 @@ async def get_collection_booklist_intersection(
     )
 
 
-@router.post(
+@router.put(
     "/collection/{collection_id}/items",
     response_model=CollectionUpdateSummaryResponse,
 )
-async def set_collection(
+async def set_collection_items(
     collection_data: List[CollectionItemBase],
     collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
@@ -267,38 +290,10 @@ async def set_collection(
 
 @router.patch(
     "/collection/{collection_id}",
-    response_model=CollectionBrief,
-)
-async def update_collection(
-    collection_update_data: CollectionUpdateIn,
-    collection: Collection = Permission("update", get_collection_from_id),
-    account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
-    merge_dicts: bool = Query(
-        default=False,
-        description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
-    ),
-):
-    """
-    Update details of a collection (the object itself).
-    Note: to update the items in a collection, use the `POST /collection/{collection_id}/items` endpoint.
-    """
-    logger.info("Updating collection", collection=collection, account=account)
-
-    return crud.collection.update(
-        db=session,
-        db_obj=collection,
-        obj_in=collection_update_data,
-        merge_dicts=merge_dicts,
-    )
-
-
-@router.patch(
-    "/collection/{collection_id}/items",
     response_model=CollectionUpdateSummaryResponse,
 )
-async def update_collection_items(
-    collection_update_data: list[CollectionItemUpdate],
+async def update_collection(
+    collection_update_data: CollectionAndItemsUpdateIn,
     collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
@@ -308,7 +303,7 @@ async def update_collection_items(
     ),
 ):
     """
-    Update a collection's items with a list of changes.
+    Update a collection itself, and/or its items with a list of changes.
 
     Changes can be to add, remove, or update editions of books. Many
     changes of different types can be added in a single call to this
@@ -334,11 +329,21 @@ async def update_collection_items(
     """
     logger.info("Updating collection", collection=collection, account=account)
 
+    item_changes = collection_update_data.items
+    del collection_update_data.items
+
+    crud.collection.update(
+        db=session,
+        db_obj=collection,
+        obj_in=collection_update_data,
+        merge_dicts=merge_dicts,
+    )
+
     # update the collection items
     isbns_to_remove: List[str] = []
     items_to_add: List[CollectionItemBase] = []
 
-    for update_info in collection_update_data:
+    for update_info in item_changes:
         if update_info.action == CollectionUpdateType.REMOVE:
             isbns_to_remove.append(update_info.edition_isbn)
         elif update_info.action == CollectionUpdateType.ADD:
@@ -385,7 +390,7 @@ async def update_collection_items(
             session, items_to_add, collection, account
         )
 
-    logger.debug(f"Committing transaction")
+    logger.debug("Committing transaction")
     session.commit()
     count = session.execute(
         select(func.count(CollectionItem.id)).where(

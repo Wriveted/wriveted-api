@@ -47,7 +47,11 @@ class Collection(Base):
     )
 
     school_id = Column(
-        ForeignKey("schools.id", name="fk_school_collection", ondelete="CASCADE"),
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_school_collection",
+            ondelete="CASCADE",
+        ),
         nullable=True,
         index=True,
     )
@@ -90,14 +94,15 @@ class Collection(Base):
 
         policies = [
             (Allow, "role:admin", All),
-            # Allow users (or their parents) to manage their own lists
-            (Allow, f"user:{self.user_id}", All),
-            (Allow, f"parent:{self.user_id}", All),
-            # School Admins can manage school collections
-            (Allow, f"schooladmin:{self.school_id}", All),
-            (Allow, "role:lms", "update"),
-            (Allow, "role:lms", "read"),
-            (Allow, "school:{self.school_id}", "read"),
+            (Allow, "role:lms", All),
         ]
+
+        if self.school:
+            policies.append((Allow, f"school:{self.school_id}", "read"))
+            policies.append((Allow, f"schooladmin:{self.school_id}", All))
+
+        if self.user:
+            policies.append((Allow, f"user:{self.user_id}", All))
+            policies.append((Allow, f"parent:{self.user_id}", All))
 
         return policies

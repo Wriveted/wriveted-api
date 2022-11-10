@@ -30,21 +30,33 @@ async def validate_collection_creation(
     body = await request.json()
 
     if school_id := body.get("school_id"):
-        if not has_permission(
-            principals,
-            "update",
-            crud.school.get_or_404(db=session, id=school_id),
-        ):
+        school = crud.school.get_by_wriveted_id_or_404(
+            db=session, wriveted_id=school_id
+        )
+        if not has_permission(principals, "update", school):
             raise HTTPException(
                 status_code=401, detail="Unauthorized to create collection for school"
             )
+        if school.collection is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "msg": "School already has a collection. If intending to replace it, please use the PUT /collection/{collection_id} endpoint.",
+                    "collection_id": school.collection.id,
+                },
+            )
 
     elif user_id := body.get("user_id"):
-        if not has_permission(
-            principals,
-            "update",
-            crud.user.get_or_404(db=session, id=user_id),
-        ):
+        user = crud.user.get_or_404(db=session, id=user_id)
+        if not has_permission(principals, "update", user):
             raise HTTPException(
                 status_code=401, detail="Unauthorized to create collection for user"
+            )
+        if user.collection is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "msg": "User already has a collection. If intending to replace it, please use the PUT /collection/{collection_id} endpoint.",
+                    "collection_id": user.collection.id,
+                },
             )

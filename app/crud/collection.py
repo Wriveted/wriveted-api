@@ -1,4 +1,5 @@
 from typing import Any, Tuple
+from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -10,11 +11,10 @@ from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
 from app.schemas.collection import (
-    CollectionAndItemsUpdate,
+    CollectionAndItemsUpdateIn,
     CollectionCreateIn,
     CollectionItemBase,
     CollectionItemUpdate,
-    CollectionUpdateIn,
     CollectionUpdateType,
 )
 
@@ -39,8 +39,14 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         )
         for item in items:
             self._add_item_to_collection(
-                db=db, collection_orm_object=collection_orm_object, item=item
+                db=db,
+                collection_orm_object=collection_orm_object,
+                item=item,
+                commit=commit,
             )
+
+        if commit:
+            db.commit()
 
         return collection_orm_object
 
@@ -69,39 +75,57 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         db_obj: Collection,
-        obj_in: CollectionAndItemsUpdate | CollectionItemUpdate,
+        obj_in: CollectionAndItemsUpdateIn | CollectionItemUpdate,
+        merge_dicts: bool = True,
+        commit: bool = True,
     ) -> Collection:
         if item_changes := getattr(obj_in, "items", []):
             del obj_in.items
 
         # Update the collection object
-        collection_orm_object = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
+        collection_orm_object = super().update(
+            db=db, db_obj=db_obj, obj_in=obj_in, merge_dicts=merge_dicts
+        )
 
         # If provided, update the items one by one
         for change in item_changes:
             match change.action:
                 case CollectionUpdateType.ADD:
                     self._add_item_to_collection(
-                        db=db, collection_orm_object=db_obj, item=change
+                        db=db, collection_orm_object=db_obj, item=change, commit=False
                     )
                 case CollectionUpdateType.UPDATE:
                     self._update_item_in_collection(
-                        db=db, collection_id=db_obj.id, item_update=change
+                        db=db, collection_id=db_obj.id, item_update=change, commit=False
                     )
                 case CollectionUpdateType.REMOVE:
                     self._remove_item_from_collection(
-                        db=db, collection_orm_object=db_obj, item_to_remove=change
+                        db=db,
+                        collection_orm_object=db_obj,
+                        item_to_remove=change,
+                        commit=False,
                     )
 
-        db.commit()
+        if commit:
+            db.commit()
+
         db.refresh(collection_orm_object)
         return collection_orm_object
 
-    def delete_all_items(self, db: Session, *, db_obj: Collection) -> Collection:
+    def delete_all_items(
+        self,
+        db: Session,
+        *,
+        db_obj: Collection,
+        commit: bool = True,
+    ) -> Collection:
         db.execute(
             delete(CollectionItem).where(CollectionItem.collection_id == db_obj.id)
         )
-        db.commit()
+
+        if commit:
+            db.commit()
+
         db.refresh(db_obj)
         return db_obj
 
@@ -111,11 +135,12 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         *,
         collection_id: int,
         item_update: CollectionItemUpdate | CollectionItemBase,
+        commit: bool = True,
     ):
         item_orm_object = db.scalar(
             select(CollectionItem)
             .where(CollectionItem.collection_id == collection_id)
-            .where(CollectionItem.work_id == item_update.work_id)
+            .where(CollectionItem.edition_isbn == item_update.edition_isbn)
         )
         if item_orm_object is None:
             logger.warning("Skipping update of missing item in collection")
@@ -134,7 +159,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             item_orm_object.copies_total = item_update.copies_total
 
         db.add(item_orm_object)
-        db.commit()
+
+        if commit:
+            db.commit()
+
         db.refresh(item_orm_object)
         return item_orm_object
 
@@ -144,13 +172,17 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         *,
         collection_orm_object: Collection,
         item_to_remove: CollectionItemUpdate | CollectionItemBase,
+        commit: bool = True,
     ):
         db.execute(
             delete(CollectionItem)
             .where(CollectionItem.collection_id == collection_orm_object.id)
             .where(CollectionItem.edition_isbn == item_to_remove.edition_isbn)
         )
-        db.commit()
+
+        if commit:
+            db.commit()
+
         db.refresh(collection_orm_object)
 
     def _add_item_to_collection(
@@ -159,6 +191,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         *,
         collection_orm_object: Collection,
         item: CollectionItemUpdate | CollectionItemBase,
+        commit: bool = True,
     ):
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
@@ -167,9 +200,25 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             copies_total=item.copies_total,
         )
         db.add(new_orm_item)
-        db.commit()
+
+        if commit:
+            db.commit()
+
         db.refresh(collection_orm_object)
         return new_orm_item
+
+    def get_collection_items_by_collection_id(
+        self, db: Session, *, collection_id: UUID
+    ):
+        return (
+            db.execute(
+                select(CollectionItem).where(
+                    CollectionItem.collection_id == collection_id
+                )
+            )
+            .scalars()
+            .all()
+        )
 
 
 collection = CRUDCollection(Collection)

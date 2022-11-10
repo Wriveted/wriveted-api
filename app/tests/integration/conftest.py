@@ -16,10 +16,9 @@ from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
 from app.schemas.collection import (
-    CollectionAndItemsUpdate,
+    CollectionAndItemsUpdateIn,
     CollectionCreateIn,
     CollectionItemUpdate,
-    CollectionUpdateIn,
     CollectionUpdateType,
 )
 from app.schemas.edition import EditionCreateIn
@@ -326,7 +325,7 @@ def test_class_group(
     new_test_class_response = client.post(
         f"/v1/school/{test_school.wriveted_identifier}/class",
         headers=backend_service_account_headers,
-        json={"name": f"Test Class", "school_id": str(test_school.wriveted_identifier)},
+        json={"name": "Test Class", "school_id": str(test_school.wriveted_identifier)},
         timeout=120,
     )
     new_test_class_response.raise_for_status()
@@ -411,7 +410,7 @@ def test_school_with_collection(
     ]
 
     crud.collection.update(
-        db=session, db_obj=collection[0], obj_in=CollectionAndItemsUpdate(items=items)
+        db=session, db_obj=collection[0], obj_in=CollectionAndItemsUpdateIn(items=items)
     )
     session.commit()
 

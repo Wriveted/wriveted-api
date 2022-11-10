@@ -158,7 +158,7 @@ async def get_editions_to_hydrate(
 ):
     q = (
         session.query(Edition, Edition.num_schools)
-        .order_by(Edition.num_schools.desc())
+        .order_by(Edition.num_collections.desc())
         .where(Edition.hydrated == False)
         .limit(pagination.limit if pagination.limit else 5000)
     )

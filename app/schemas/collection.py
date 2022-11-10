@@ -12,7 +12,7 @@ class CollectionBrief(BaseModel):
     id: UUID
     name: str
     book_count: int
-    school_id: int | None
+    school_id: UUID | None
     user_id: UUID | None
 
     class Config:
@@ -67,7 +67,7 @@ class CollectionItemBase(BaseModel):
 class CollectionCreateIn(BaseModel):
     name: str
 
-    school_id: int | None
+    school_id: UUID | None
     user_id: UUID | None
 
     info: dict[str, Any] | None
@@ -115,7 +115,7 @@ class CollectionUpdateIn(BaseModel):
     info: CollectionInfo | None = None
 
 
-class CollectionAndItemsUpdate(CollectionUpdateIn):
+class CollectionAndItemsUpdateIn(CollectionUpdateIn):
     items: list[CollectionItemUpdate] | None
 
 

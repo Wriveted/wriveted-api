@@ -23,7 +23,11 @@ class CollectionItem(Base):
     work_id = association_proxy("edition", "work_id")
 
     collection_id = Column(
-        ForeignKey("collections.id", name="fk_collection_items_collection_id"),
+        ForeignKey(
+            "collections.id",
+            name="fk_collection_items_collection_id",
+            ondelete="CASCADE",
+        ),
         index=True,
         nullable=False,
     )

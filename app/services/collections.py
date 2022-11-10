@@ -16,10 +16,9 @@ from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
 from app.schemas.collection import (
-    CollectionAndItemsUpdate,
+    CollectionAndItemsUpdateIn,
     CollectionItemBase,
     CollectionItemUpdate,
-    CollectionUpdateIn,
     CollectionUpdateType,
 )
 from app.services.editions import get_definitive_isbn
@@ -32,6 +31,8 @@ logger = get_logger()
 async def add_editions_to_collection_by_isbn(
     session, collection_data: List[CollectionItemBase], collection: Collection, account
 ):
+    existing_collection_count = collection.book_count
+
     logger.info(
         "Adding editions to collection by ISBN", account=account, collection=collection
     )
@@ -73,10 +74,10 @@ async def add_editions_to_collection_by_isbn(
             "edition_isbn": isbn,
             "info": {"Updated": str(datetime.datetime.utcnow())},
             "copies_total": collection_counts[isbn]["copies_total"]
-            if isbn in collection_counts.keys()
+            if isbn in collection_counts
             else 1,
             "copies_available": collection_counts[isbn]["copies_available"]
-            if isbn in collection_counts.keys()
+            if isbn in collection_counts
             else 1,
             "action": CollectionUpdateType.ADD,
         }
@@ -85,11 +86,12 @@ async def add_editions_to_collection_by_isbn(
     updated = crud.collection.update(
         db=session,
         db_obj=collection,
-        obj_in=CollectionAndItemsUpdate(items=collection_items),
+        obj_in=CollectionAndItemsUpdateIn(items=collection_items),
     )
-    num_collection_items_created = len(updated.items)
 
-    num_existing_editions = num_collection_items_created - num_editions_created
+    num_collection_items_created = len(updated.items) - existing_collection_count
+    num_existing_editions = len(final_primary_keys) - num_editions_created
+
     crud.event.create(
         session=session,
         title="Collection Update",
@@ -196,8 +198,8 @@ def reset_collection(session, collection: Collection, account):
     crud.event.create(
         session=session,
         title="Collection Reset",
-        description=f"Reset collection #{collection.id}, deleting all items",
-        info={},
+        description=f"Reset collection #{str(collection.id)}, deleting all items",
+        info={"collection_id": str(collection.id)},
         account=account,
         commit=True,
     )

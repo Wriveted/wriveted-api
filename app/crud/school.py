@@ -113,7 +113,9 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
 
     def remove(self, db: Session, *, obj_in: School):
         # To help the database out let's delete the collection first
-        stmt = delete(Collection).where(Collection.school_id == obj_in.id)
+        stmt = delete(Collection).where(
+            Collection.school_id == obj_in.wriveted_identifier
+        )
         db.execute(stmt)
 
         # Convert any students from this school to PublicReader,
