@@ -137,7 +137,7 @@ def main():
     cur.execute("DELETE FROM batch where status != 'completed'")
     con.commit()
 
-    batch_size = 100
+    batch_size = 1000
 
     # Get the last completed batch to see where we should start from (assuming this has been running before)
     cur.execute("SELECT startIndex FROM batch where status='completed' order by ts DESC limit 1")
@@ -147,26 +147,34 @@ def main():
     else:
         start_index = 1
 
-    for iteration in range(1, 10):
+    for iteration in range(1, 1_000):
         print(f"Iteration {iteration}. Current offset: {start_index}. Batch size {batch_size}")
 
-        # Add an entry for the current batch job
-        cur.execute("INSERT INTO batch VALUES (?, ?, ?, ?)",
-                (dt.datetime.now(), start_index, batch_size, 'queued'),
-        )
-        current_batch_id = cur.lastrowid
+        try:
+            # Add an entry for the current batch job
+            cur.execute("INSERT INTO batch VALUES (?, ?, ?, ?)",
+                    (dt.datetime.now(), start_index, batch_size, 'queued'),
+            )
+            current_batch_id = cur.lastrowid
 
-        manifestations = get_manifestation_ids(config, count=batch_size, startIndex=start_index)
-        logger.info(f"Received {len(manifestations)} manifestation ids")
+            manifestations = get_manifestation_ids(config, count=batch_size, startIndex=start_index)
+            logger.info(f"Received {len(manifestations)} manifestation ids")
 
-        cur.executemany("INSERT INTO manifestations VALUES (?)", [(m,) for m in manifestations])
+            cur.executemany("INSERT INTO manifestations VALUES (?)", [(m,) for m in manifestations])
 
-        cur.execute(f"UPDATE batch SET status=? where rowid={current_batch_id}",
-                    ('completed',),
-        )
-        con.commit()
+            cur.execute(f"UPDATE batch SET status=? where rowid={current_batch_id}",
+                        ('completed',),
+            )
+            con.commit()
+            start_index += batch_size
 
-        start_index += batch_size
+        except Exception as e:
+            print("Something went wrong", e)
+            con.rollback()
+            logger.warning("Having a sleep then will try to keep going")
+            time.sleep(30)
+
+        time.sleep(0.05)
 
     # See how many manifestations we've already recorded
     cur.execute("SELECT count(*) FROM manifestations")
