@@ -4,6 +4,7 @@ from pydantic import BaseModel, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.schemas.booklist import BookListBase
+from app.schemas.collection import CollectionBrief
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user import UserDetail
 from app.schemas.users.user_identity import UserBrief, UserIdentity
@@ -37,6 +38,7 @@ class ReaderDetail(ReaderBrief, UserDetail):
     booklists: list[BookListBase]
     reading_path: ReadingPath = None
     special_lists: SpecialLists = None
+    collection: CollectionBrief | None
 
     @validator("reading_path", pre=True, always=True)
     def grab_pathway_lists(cls, v, values):
