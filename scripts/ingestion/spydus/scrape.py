@@ -65,8 +65,17 @@ def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120)
         },
         timeout=timeout
     )
+    logger.debug(f"Response status code: {response.status_code}")
+    if response.status_code == 401:
+        logger.info("Getting new token")
+        config.spydus_api_token = get_access_token(config)
+        raise ValueError("Auth expired - retry again")
 
-    data = response.json()
+    try:
+        data = response.json()
+    except Exception as e:
+        logger.warning(response.status_code)
+        logger.warning(f"JSON didn't parse.\n{response.text}")
     end_time = time.time()
     #logger.debug(f"Raw result: {data}")
     logger.info(f"Total manifestations: {data['totalResults']}. Received {len(data['entity'])} in {humanize.naturaldelta(dt.timedelta(seconds=end_time-start_time))}")
@@ -155,12 +164,13 @@ def main():
             cur.execute("INSERT INTO batch VALUES (?, ?, ?, ?)",
                     (dt.datetime.now(), start_index, batch_size, 'queued'),
             )
+            con.commit()
             current_batch_id = cur.lastrowid
 
             manifestations = get_manifestation_ids(config, count=batch_size, startIndex=start_index)
             logger.info(f"Received {len(manifestations)} manifestation ids")
 
-            cur.executemany("INSERT INTO manifestations VALUES (?)", [(m,) for m in manifestations])
+            cur.executemany("INSERT INTO manifestations VALUES (?) ON CONFLICT(id) DO NOTHING", [(m,) for m in manifestations])
 
             cur.execute(f"UPDATE batch SET status=? where rowid={current_batch_id}",
                         ('completed',),
@@ -172,9 +182,9 @@ def main():
             print("Something went wrong", e)
             con.rollback()
             logger.warning("Having a sleep then will try to keep going")
-            time.sleep(30)
+            time.sleep(60)
 
-        time.sleep(0.05)
+        time.sleep(0.5)
 
     # See how many manifestations we've already recorded
     cur.execute("SELECT count(*) FROM manifestations")
