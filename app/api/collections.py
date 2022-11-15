@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -12,6 +12,7 @@ from app.api.dependencies.collection import (
     validate_collection_creation,
     get_collection_from_id,
 )
+from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
@@ -86,6 +87,37 @@ async def get_collection_items(
 
     logger.debug("Loading collection", collection_size=len(collection_items))
     return collection_items
+
+
+@router.get(
+    "/collection/{collection_id}/{edition_isbn}",
+    response_model=List[CollectionItemDetail],
+)
+async def get_collection_item(
+    collection: Collection = Permission("read", get_collection_from_id),
+    edition: Edition = Depends(get_edition_from_isbn),
+    session: Session = Depends(get_session),
+):
+    """
+    Returns a selected item from a collection, raising a 404 if it doesn't exist (either in the collection or at all).
+    """
+    logger.debug(
+        f"Searching collection {collection.id} for edition {edition.isbn}",
+    )
+
+    collection_item = session.execute(
+        select(CollectionItem)
+        .where(CollectionItem.collection_id == collection.id)
+        .where(CollectionItem.edition_id == edition.id)
+    ).scalar_one_or_none()
+
+    if collection_item is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collection {collection.id} does not contain edition {edition.isbn}",
+        )
+
+    return collection_item
 
 
 @router.get(
