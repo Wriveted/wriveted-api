@@ -50,7 +50,7 @@ class CollectionItemInfo(BaseModel):
     cover_image: str | None
     title: str | None
     author: str | None
-    
+
     emojis: list[str] | None
     descriptor: str | None
 
