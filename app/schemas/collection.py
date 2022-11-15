@@ -46,13 +46,31 @@ class CollectionInfo(CollectionBrief):
     )
 
 
+class CollectionItemSentiment(BaseModel):
+    # Thanks to text-processing.com
+    pos: float
+    neg: float
+    neutral: float
+    primary: str
+
+
+class CollectionItemFeedback(BaseModel):
+    """
+    Feedback about a collection item.
+    This is also used to update the feedback for a collection item.
+    """
+
+    emojis: list[str] | None
+    descriptor: str | None
+    sentiment: CollectionItemSentiment | None
+
+
 class CollectionItemInfo(BaseModel):
     cover_image: str | None
     title: str | None
     author: str | None
 
-    emojis: list[str] | None
-    descriptor: str | None
+    feedback: CollectionItemFeedback | None
 
     other: dict[str, Any] | None
 
