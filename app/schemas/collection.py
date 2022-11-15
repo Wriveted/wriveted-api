@@ -48,9 +48,12 @@ class CollectionInfo(CollectionBrief):
 
 class CollectionItemInfo(BaseModel):
     cover_image: str | None
-    emoji: str | None
     title: str | None
     author: str | None
+    
+    emojis: list[str] | None
+    descriptor: str | None
+
     other: dict[str, Any] | None
 
 
