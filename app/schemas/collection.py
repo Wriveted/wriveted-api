@@ -51,7 +51,7 @@ class CollectionItemSentiment(BaseModel):
     pos: float
     neg: float
     neutral: float
-    primary: str
+    polar: float
 
 
 class CollectionItemFeedback(BaseModel):
