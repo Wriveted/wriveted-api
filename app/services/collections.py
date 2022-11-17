@@ -1,8 +1,9 @@
 import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from starlette import status
@@ -10,11 +11,16 @@ from structlog import get_logger
 
 from app import crud
 from app.models import BookListItem, CollectionItem
+from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
-from app.models.school import School
 from app.models.work import Work
-from app.schemas.collection import CollectionItemBase
+from app.schemas.collection import (
+    CollectionAndItemsUpdateIn,
+    CollectionItemBase,
+    CollectionItemUpdate,
+    CollectionUpdateType,
+)
 from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
@@ -23,13 +29,17 @@ logger = get_logger()
 # Mostly the same as add_editions_to_collection, but only processes a list of isbns.
 # Due to the lack of EditionCreateIns, any created editions will be unhydrated
 async def add_editions_to_collection_by_isbn(
-    session, collection_data: List[CollectionItemBase], school: School, account
+    session, collection_data: List[CollectionItemBase], collection: Collection, account
 ):
-    logger.info("Adding editions to collection by ISBN", account=account, school=school)
+    existing_collection_count = collection.book_count
+
+    logger.info(
+        "Adding editions to collection by ISBN", account=account, collection=collection
+    )
     collection_counts = {}
     for item in collection_data:
         try:
-            isbn = get_definitive_isbn(item.isbn)
+            isbn = get_definitive_isbn(item.edition_isbn)
         except AssertionError:
             # Invalid isbn, just skip
             continue
@@ -60,25 +70,27 @@ async def add_editions_to_collection_by_isbn(
 
     collection_items = []
     for isbn in final_primary_keys:
-        collection_items.append(
-            {
-                "school_id": school.id,
-                "edition_isbn": isbn,
-                "info": {"Updated": str(datetime.datetime.utcnow())},
-                "copies_total": collection_counts[isbn]["copies_total"]
-                if isbn in collection_counts
-                else 1,
-                "copies_available": collection_counts[isbn]["copies_available"]
-                if isbn in collection_counts
-                else 1,
-            }
-        )
+        data = {
+            "edition_isbn": isbn,
+            "copies_total": collection_counts[isbn]["copies_total"]
+            if isbn in collection_counts
+            else 1,
+            "copies_available": collection_counts[isbn]["copies_available"]
+            if isbn in collection_counts
+            else 1,
+            "action": CollectionUpdateType.ADD,
+        }
+        collection_items.append(CollectionItemUpdate(**data))
 
-    num_collection_items_created = await crud.collection_item.create_in_bulk(
-        session, school.id, collection_items
+    updated = crud.collection.update(
+        db=session,
+        db_obj=collection,
+        obj_in=CollectionAndItemsUpdateIn(items=collection_items),
     )
 
-    num_existing_editions = num_collection_items_created - num_editions_created
+    num_collection_items_created = len(updated.items) - existing_collection_count
+    num_existing_editions = len(final_primary_keys) - num_editions_created
+
     crud.event.create(
         session=session,
         title="Collection Update",
@@ -87,8 +99,8 @@ async def add_editions_to_collection_by_isbn(
             "collection_items_created_count": num_collection_items_created,
             "existing_edition_count": num_existing_editions,
             "unhydrated_edition_count": num_editions_created,
+            "collection_id": str(collection.id),
         },
-        school=school,
         account=account,
         commit=False,
     )
@@ -103,15 +115,14 @@ async def add_editions_to_collection_by_isbn(
 
 
 def get_collection_info_with_criteria(
-    session,
-    school_id: int,
+    collection_id: UUID,
     is_hydrated: bool = False,
     is_labelled: bool = False,
     is_recommendable: bool = False,
 ):
     """
     Return a (complicated) select query for labelsets, editions, and works filtering by
-    school, hydration status, labelling status, and recommendability.
+    collection, hydration status, labelling status, and recommendability.
 
     Can raise sqlalchemy.exc.NoResultFound if for example an invalid reading_ability key
     is passed.
@@ -134,11 +145,10 @@ def get_collection_info_with_criteria(
         # .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
     )
 
-    # Filter for works in a school collection
-    school = crud.school.get_or_404(db=session, id=school_id)
+    # Filter for works in a given collection
     query = query.join(
         CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-    ).where(CollectionItem.school == school)
+    ).where(CollectionItem.collection_id == collection_id)
 
     if is_hydrated:
         query = query.where(Edition.title.is_not(None))
@@ -160,7 +170,7 @@ def get_collection_info_with_criteria(
 
 
 async def get_collection_items_also_in_booklist(
-    session, school, paginated_booklist_item_query
+    session, collection, paginated_booklist_item_query
 ) -> list[CollectionItem]:
 
     paginated_booklist_cte = paginated_booklist_item_query.cte(
@@ -170,7 +180,7 @@ async def get_collection_items_also_in_booklist(
     aliased_booklist_item = aliased(BookListItem, paginated_booklist_cte)
     booklist_item_work_id_query = select(aliased_booklist_item.work_id)
     common_collection_items = session.scalars(
-        school.collection.statement.where(
+        collection.items.statement.where(
             CollectionItem.work_id.in_(booklist_item_work_id_query)
         )
     ).all()
@@ -178,6 +188,17 @@ async def get_collection_items_also_in_booklist(
     return common_collection_items
 
 
-def reset_school_collection(session, school):
-    session.execute(delete(CollectionItem).where(CollectionItem.school == school))
-    session.commit()
+def reset_collection(session, collection: Collection, account):
+    """
+    Reset a collection to its initial state, removing all items
+    """
+    crud.collection.delete_all_items(db=session, db_obj=collection)
+
+    crud.event.create(
+        session=session,
+        title="Collection Reset",
+        description=f"Reset collection #{str(collection.id)}, deleting all items",
+        info={"collection_id": str(collection.id)},
+        account=account,
+        commit=True,
+    )

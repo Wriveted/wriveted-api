@@ -51,7 +51,7 @@ def test_list_schools_filter_by_collection(
     assert data[0]["wriveted_identifier"] == str(
         test_school_with_collection.wriveted_identifier
     )
-    assert data[0]["collection_count"] > 0
+    assert data[0]["collection"]["book_count"] > 0
 
 
 def test_school_exists_bad_uuid(client, backend_service_account_headers):

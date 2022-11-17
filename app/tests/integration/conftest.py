@@ -10,18 +10,24 @@ from app import crud
 from app.api.dependencies.security import create_user_access_token
 from app.db.session import database_connection, get_session_maker
 from app.main import app, get_settings
-from app.models import School, SchoolState, ServiceAccountType, Student
+from app.models import School, SchoolState, ServiceAccountType, Student, Collection
 from app.models.class_group import ClassGroup
 from app.models.user import UserAccountType
 from app.models.work import WorkType
 from app.schemas.author import AuthorCreateIn
+from app.schemas.collection import (
+    CollectionAndItemsUpdateIn,
+    CollectionCreateIn,
+    CollectionItemUpdate,
+    CollectionUpdateType,
+)
 from app.schemas.edition import EditionCreateIn
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.work import WorkCreateIn
-from app.services.collections import reset_school_collection
+from app.services.collections import reset_collection
 from app.services.editions import generate_random_valid_isbn13
 from app.services.security import create_access_token
 from app.tests.util.random_strings import random_lower_string
@@ -319,7 +325,7 @@ def test_class_group(
     new_test_class_response = client.post(
         f"/v1/school/{test_school.wriveted_identifier}/class",
         headers=backend_service_account_headers,
-        json={"name": f"Test Class", "school_id": str(test_school.wriveted_identifier)},
+        json={"name": "Test Class", "school_id": str(test_school.wriveted_identifier)},
         timeout=120,
     )
     new_test_class_response.raise_for_status()
@@ -382,23 +388,40 @@ def test_unhydrated_editions(client, session, test_isbns):
 
 @pytest.fixture()
 def test_school_with_collection(
-    client, session, test_school, test_unhydrated_editions
+    client,
+    session,
+    test_school: School,
+    test_unhydrated_editions,
+    backend_service_account,
 ) -> School:
 
-    for e in test_unhydrated_editions:
-        crud.collection_item.create(
-            db=session,
-            obj_in={"school_id": test_school.id, "edition_isbn": e.isbn},
-            commit=False,
-        )
+    collection = crud.collection.get_or_create(
+        db=session,
+        collection_data=CollectionCreateIn(
+            name=f"Books at {test_school.name}",
+            school_id=test_school.wriveted_identifier,
+            info={"msg": "Created for test purposes"},
+        ),
+    )
 
+    items = [
+        CollectionItemUpdate(edition_isbn=e.isbn, action=CollectionUpdateType.ADD)
+        for e in test_unhydrated_editions
+    ]
+
+    crud.collection.update(
+        db=session, db_obj=collection[0], obj_in=CollectionAndItemsUpdateIn(items=items)
+    )
     session.commit()
 
-    assert test_school.collection_count == len(test_unhydrated_editions)
+    collection: Collection = test_school.collection
+    assert collection.book_count == len(test_unhydrated_editions)
 
     yield test_school
 
-    reset_school_collection(session=session, school=test_school)
+    reset_collection(
+        session=session, collection=collection, account=backend_service_account
+    )
 
 
 @pytest.fixture()

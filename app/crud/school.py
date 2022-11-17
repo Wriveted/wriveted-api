@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
 from app.models import ClassGroup, CollectionItem, Event, School, Student
+from app.models.collection import Collection
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.models.user import User, UserAccountType
@@ -46,7 +47,9 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
                 School.state == ("active" if is_active else "inactive")
             )
         if is_collection_connected is not None:
-            school_query = school_query.where(School.collection_count > 0)
+            school_query = school_query.join(Collection).where(
+                Collection.book_count > 0
+            )
         if official_identifier is not None:
             school_query = school_query.where(
                 School.official_identifier == official_identifier
@@ -110,7 +113,9 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
 
     def remove(self, db: Session, *, obj_in: School):
         # To help the database out let's delete the collection first
-        stmt = delete(CollectionItem).where(CollectionItem.school_id == obj_in.id)
+        stmt = delete(Collection).where(
+            Collection.school_id == obj_in.wriveted_identifier
+        )
         db.execute(stmt)
 
         # Convert any students from this school to PublicReader,

@@ -1,14 +1,18 @@
 import csv
 import random
 import time
+from app import crud
 
 from app.services.editions import check_digit_13
 
 
 def test_collection_management(
     client,
+    session,
     test_school,
+    test_user_account,
     lms_service_account_headers_for_school,
+    test_user_account_headers,
     test_data_path,
 ):
     """
@@ -17,11 +21,14 @@ def test_collection_management(
     """
     start_time = time.time()
     print("Checking authorization")
-    account_details_response = client.get(
+    school_lms_account_details_response = client.get(
         "/v1/auth/me", headers=lms_service_account_headers_for_school
     )
-    account_details_response.raise_for_status()
-    account_details = account_details_response.json()
+    school_lms_account_details_response.raise_for_status()
+    user_account_details_response = client.get(
+        "/v1/auth/me", headers=test_user_account_headers
+    )
+    user_account_details_response.raise_for_status()
 
     INITIAL_NUMBER_OF_HYDRATED_BOOKS = 10
     INITIAL_NUMBER_OF_UNHYDRATED_BOOKS = 10
@@ -30,24 +37,88 @@ def test_collection_management(
     ADDED_NUMBER_OF_BOOKS = 10
     REMOVED_NUMBER_OF_BOOKS = 10
 
-    test_school_id = test_school.wriveted_identifier
+    test_school_id = str(test_school.wriveted_identifier)
+    test_user_id = str(test_user_account.id)
+
+    # ----------------- RESET COLLECTION(s) -----------------
+
+    # school
 
     print("Resetting school collection")
-    reset_collection_response = client.post(
-        f"/v1/school/{test_school_id}/collection",
-        headers=lms_service_account_headers_for_school,
-        json=[],
-    )
-    reset_collection_response.raise_for_status()
-    get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
-        headers=lms_service_account_headers_for_school,
-    )
+    school_collection_id = test_school.collection.id if test_school.collection else None
+    if school_collection_id:
+        school_collection_reset_response = client.delete(
+            f"/v1/collection/{school_collection_id}",
+            headers=lms_service_account_headers_for_school,
+        )
+        school_collection_reset_response.raise_for_status()
 
-    get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
-    assert len(collection) == 0
-    print("Collection after reset:", collection)
+    # user
+
+    print("Resetting user collection")
+    user_collection_id = (
+        test_user_account.collection.id if test_user_account.collection else None
+    )
+    if user_collection_id:
+        user_collection_reset_response = client.delete(
+            f"/v1/collection/{user_collection_id}",
+            headers=test_user_account_headers,
+        )
+        user_collection_reset_response.raise_for_status()
+
+    # ----------------- CREATE COLLECTION(s) -----------------
+
+    # school
+
+    print("Creating new school collection")
+    school_collection_create_response = client.post(
+        "/v1/collection",
+        headers=lms_service_account_headers_for_school,
+        json={
+            "name": "Test collection",
+            "school_id": test_school_id,
+        },
+    )
+    school_collection_create_response.raise_for_status()
+    school_collection_create_response_data = school_collection_create_response.json()
+    school_collection_id = school_collection_create_response_data["id"]
+
+    school_get_collection_response = client.get(
+        f"/v1/collection/{school_collection_id}",
+        headers=lms_service_account_headers_for_school,
+    )
+    school_get_collection_response.raise_for_status()
+
+    school_collection = school_get_collection_response.json()
+    assert school_collection["book_count"] == 0
+    print("Collection after creating blank:", school_collection)
+
+    # user
+
+    print("Creating new user collection")
+    user_collection_create_response = client.post(
+        "/v1/collection",
+        headers=test_user_account_headers,
+        json={
+            "name": "Test collection",
+            "user_id": test_user_id,
+        },
+    )
+    user_collection_create_response.raise_for_status()
+    user_collection_create_response_data = user_collection_create_response.json()
+    user_collection_id = user_collection_create_response_data["id"]
+
+    user_get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+    )
+    user_get_collection_response.raise_for_status()
+
+    user_collection = user_get_collection_response.json()
+    assert user_collection["book_count"] == 0
+    print("Collection after creating blank:", user_collection)
+
+    # ----------------- PROCESS BOOKS -----------------
 
     print("Loading books from CSV file")
 
@@ -154,10 +225,6 @@ def test_collection_management(
     )
 
     print(
-        f"{len(book_data)} Books loaded. Setting the collection to the first {len(original_hydrated)} unhydrated books + {len(original_unhydrated)} hydrated books"
-    )
-
-    print(
         f"Adding the initial {len(original_hydrated)} hydrated books to db as Editions, Works, Authors etc."
     )
     add_books_response = client.post(
@@ -178,17 +245,25 @@ def test_collection_management(
     original_collection = [
         randomize_loan_status(
             {
-                "isbn": b["isbn"],
+                "edition_isbn": b["isbn"],
             }
         )
         for b in original_books
     ]
 
     print(
-        f"Updating school by setting new collection of {len(original_collection)} hydrated + unhydrated books"
+        f"{len(book_data)} Books loaded. Setting the collection(s) to the first {len(original_hydrated)} unhydrated books + {len(original_unhydrated)} hydrated books"
     )
-    set_collection_response = client.post(
-        f"/v1/school/{test_school_id}/collection",
+
+    # ----------------- SET COLLECTION(s) -----------------
+
+    # school
+
+    print(
+        f"Setting new collection of {len(original_collection)} hydrated + unhydrated books"
+    )
+    set_collection_response = client.put(
+        f"/v1/collection/{school_collection_id}/items",
         json=original_collection,
         timeout=30,
         headers=lms_service_account_headers_for_school,
@@ -196,43 +271,80 @@ def test_collection_management(
     set_collection_response.raise_for_status()
     print(set_collection_response.json())
 
-    print("Checking the collection")
+    print("Checking the collection items")
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{school_collection_id}/items",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=30,
     )
 
     get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
-    for item in collection:
+    collection_items = get_collection_response.json()
+    for item in collection_items:
         assert item["copies_total"] > 1
-    print("Collection after adding (first 3):\n", collection[:3])
+    print("Collection after adding (first 3):\n", collection_items[:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
-        len(collection)
+        len(collection_items)
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
-    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection)}"
+    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection_items)}"
+
+    # user
+
+    print(
+        f"Setting new collection of {len(original_collection)} hydrated + unhydrated books"
+    )
+    set_collection_response = client.put(
+        f"/v1/collection/{user_collection_id}/items",
+        json=original_collection,
+        timeout=30,
+        headers=test_user_account_headers,
+    )
+    set_collection_response.raise_for_status()
+    print(set_collection_response.json())
+
+    print("Checking the collection items")
+    get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}/items",
+        headers=test_user_account_headers,
+        params={"skip": 0, "limit": 2000},
+        timeout=30,
+    )
+
+    get_collection_response.raise_for_status()
+    collection_items = get_collection_response.json()
+    for item in collection_items:
+        assert item["copies_total"] > 1
+    print("Collection after adding (first 3):\n", collection_items[:3])
+    # check that the number of books exactly matches the number of -valid- isbns provided
+    assert (
+        len(collection_items)
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+    ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection_items)}"
+
+    # ----------------- UPDATE COLLECTION LOAN STATUSES -----------------
 
     # Update the collection by changing the loan status of a subset of the books.
     books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
-    print("Bulk updating loan status via `PATCH .../collection` API")
+    print("Bulk updating loan status via `PATCH .../collection/{id}/items` API")
     time.sleep(0.5)
     collection_changes = [
         {
             "action": "update",
-            "isbn": b["isbn"],
+            "edition_isbn": b["edition_isbn"],
             "copies_total": 99,
             "copies_available": 99,
         }
         for b in books_to_update
     ]
 
+    # school
+
     print(f"Sending through {len(collection_changes)} updates")
     updates_response = client.patch(
-        f"/v1/school/{test_school_id}/collection",
-        json=collection_changes,
+        f"/v1/collection/{school_collection_id}",
+        json={"items": collection_changes},
         timeout=120,
         headers=lms_service_account_headers_for_school,
     )
@@ -242,16 +354,16 @@ def test_collection_management(
     print("Updated loan status")
 
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{school_collection_id}/items",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
     )
     get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
+    collection_items = get_collection_response.json()
 
     number_items_with_updated_loan_status = 0
-    for item in collection:
+    for item in collection_items:
         if item["copies_total"] == 99 and item["copies_available"] == 99:
             number_items_with_updated_loan_status += 1
 
@@ -260,12 +372,47 @@ def test_collection_management(
     ), f"Expected {UPDATED_NUMBER_OF_BOOKS} to have different loan statuses - but found {number_items_with_updated_loan_status}"
     print("Collection loan status has changed")
 
+    # user
+
+    print(f"Sending through {len(collection_changes)} updates")
+    updates_response = client.patch(
+        f"/v1/collection/{user_collection_id}",
+        json={"items": collection_changes},
+        timeout=120,
+        headers=test_user_account_headers,
+    )
+    updates_response.raise_for_status()
+    print(updates_response.status_code)
+    print(updates_response.json())
+    print("Updated loan status")
+
+    get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}/items",
+        headers=test_user_account_headers,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    collection_items = get_collection_response.json()
+
+    number_items_with_updated_loan_status = 0
+    for item in collection_items:
+        if item["copies_total"] == 99 and item["copies_available"] == 99:
+            number_items_with_updated_loan_status += 1
+
+    assert (
+        number_items_with_updated_loan_status == UPDATED_NUMBER_OF_BOOKS
+    ), f"Expected {UPDATED_NUMBER_OF_BOOKS} to have different loan statuses - but found {number_items_with_updated_loan_status}"
+    print("Collection loan status has changed")
+
+    # ----------------- ADD AND REMOVE FROM COLLECTION -----------------
+
     books_to_remove = original_collection[:REMOVED_NUMBER_OF_BOOKS]
-    print("Adding and removing books from collection via `PUT .../collection` API")
+    print("Adding and removing books from collection via `PATCH .../collection` API")
     collection_changes = [
         {
             "action": "remove",
-            "isbn": b["isbn"],
+            "edition_isbn": b["edition_isbn"],
         }
         for b in books_to_remove
     ]
@@ -279,7 +426,7 @@ def test_collection_management(
             randomize_loan_status(
                 {
                     "action": "add",
-                    "isbn": b["isbn"],
+                    "edition_isbn": b["isbn"],
                     "edition_info": b,
                 }
             )
@@ -287,9 +434,11 @@ def test_collection_management(
         ]
     )
 
+    # school
+
     updates_response = client.patch(
-        f"/v1/school/{test_school_id}/collection",
-        json=collection_changes,
+        f"/v1/collection/{school_collection_id}",
+        json={"items": collection_changes},
         timeout=120,
         headers=lms_service_account_headers_for_school,
     )
@@ -298,16 +447,16 @@ def test_collection_management(
 
     print("Added and removed books from collection")
     get_collection_response = client.get(
-        f"/v1/school/{test_school_id}/collection",
+        f"/v1/collection/{school_collection_id}",
         headers=lms_service_account_headers_for_school,
         params={"skip": 0, "limit": 2000},
         timeout=120,
     )
     get_collection_response.raise_for_status()
-    collection = get_collection_response.json()
+    new_school_collection = get_collection_response.json()
     print(
         "Current collection size:",
-        len(collection),
+        new_school_collection["book_count"],
         "expected: ",
         INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
@@ -315,11 +464,90 @@ def test_collection_management(
         - REMOVED_NUMBER_OF_BOOKS,
     )
     assert (
-        len(collection)
+        new_school_collection["book_count"]
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         + ADDED_NUMBER_OF_BOOKS
         - REMOVED_NUMBER_OF_BOOKS
     )
+
+    # user
+
+    updates_response = client.patch(
+        f"/v1/collection/{user_collection_id}",
+        json={"items": collection_changes},
+        timeout=120,
+        headers=test_user_account_headers,
+    )
+    updates_response.raise_for_status()
+    print(updates_response.json())
+
+    print("Added and removed books from collection")
+    get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    new_user_collection = get_collection_response.json()
+    print(
+        "Current collection size:",
+        new_user_collection["book_count"],
+        "expected: ",
+        INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + ADDED_NUMBER_OF_BOOKS
+        - REMOVED_NUMBER_OF_BOOKS,
+    )
+    assert (
+        new_user_collection["book_count"]
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS
+        + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+        + ADDED_NUMBER_OF_BOOKS
+        - REMOVED_NUMBER_OF_BOOKS
+    )
+
+    # ----------------- DELETE COLLECTION -----------------
+
+    print("Deleting collection via `DELETE .../collection` API")
+
+    # school
+
+    remove_collection_response = client.delete(
+        f"/v1/collection/{school_collection_id}",
+        headers=lms_service_account_headers_for_school,
+        timeout=120,
+    )
+    remove_collection_response.raise_for_status()
+    print("Removed collection")
+    assert (
+        len(
+            crud.collection.get_collection_items_by_collection_id(
+                db=session, collection_id=school_collection["id"]
+            )
+        )
+        == 0
+    )
+    print("And the deletion cascaded down to collection items")
+
+    # user
+
+    remove_collection_response = client.delete(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+        timeout=120,
+    )
+    remove_collection_response.raise_for_status()
+    print("Removed collection")
+    assert (
+        len(
+            crud.collection.get_collection_items_by_collection_id(
+                db=session, collection_id=user_collection["id"]
+            )
+        )
+        == 0
+    )
+    print("And the deletion cascaded down to collection items")
 
     print(f"Processing took: {time.time() - start_time:.2f} seconds")

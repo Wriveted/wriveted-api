@@ -1,16 +1,13 @@
-
-This repository implements a REST API to add, edit, and remove information about 
+This repository implements a REST API to add, edit, and remove information about
 Users, Books, Schools and Library Collections for Wriveted.
 
-
 The API is designed for use by multiple users:
-* Library Management Systems. In particular see the section on updating and setting Schools collections.
-* Wriveted Staff either directly via scripts or via an admin UI.
-* End users via Huey chatbot or other Wriveted applications.
 
+- Library Management Systems. In particular see the section on updating and setting Schools collections.
+- Wriveted Staff either directly via scripts or via an admin UI.
+- End users via Huey the Bookbot, Huey Books, or other Wriveted applications.
 
 # Development
-
 
 ## Python Dependencies are managed with Poetry
 
@@ -32,7 +29,6 @@ Update the lock file and install the latest compatible versions of our dependenc
 poetry update
 ```
 
-
 ## Database Migrations
 
 Modify or add an SQLAlchemy ORM model in the `app.models` package.  
@@ -40,6 +36,7 @@ Add an import for any new models to `app.models.__init__.py`.
 Set the environment variable `SQLALCHEMY_DATABASE_URI` with the appropriate database path:
 
 For example to connect to the docker-compose database:
+
 ```
 // Terminal
 export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
@@ -63,7 +60,6 @@ Apply all migrations:
 poetry run alembic upgrade head
 ```
 
-
 ## Running locally
 
 Can use `docker-compose` to bring up an API and postgresql database locally.
@@ -71,13 +67,12 @@ You can also run your own database, or proxy to a cloud SQL instance.
 
 Note, you will have to manually apply the migrations.
 
-Running the app using `uvicorn` directly (without docker) is particularly handy for 
+Running the app using `uvicorn` directly (without docker) is particularly handy for
 [debugging](https://fastapi.tiangolo.com/tutorial/debugging/).
 
-In `scripts` there are Python scripts that will connect directly to the 
+In `scripts` there are Python scripts that will connect directly to the
 database outside of the FastAPI application. For example `get_auth_token.py`
 can be run to generate an auth token for any user.
-
 
 # Deployment
 
@@ -98,19 +93,19 @@ gcloud run deploy wriveted-api \
   --platform managed \
   --set-env-vars="POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql" \
   --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest
-  
+
 ```
 
 This will probably fail the first few times for a new GCP project - you'll have
 to follow the clues to add appropriate permissions.
 At a minimum you'll have to add the secrets to Secret Manager, then attach
-the `roles/secretmanager.secretAccessor` role to the service account used by 
+the `roles/secretmanager.secretAccessor` role to the service account used by
 Cloud Run for those secrets.
 
-You will be prompted to allow unauthenticated invocations: respond `y`. We 
+You will be prompted to allow unauthenticated invocations: respond `y`. We
 implement our own authentication in the FastAPI app.
 
-Note you will have to configure the Cloud SQL database manually 
+Note you will have to configure the Cloud SQL database manually
 (orchestrating with Terraform is left as an exercise for the reader 👋).
 
 Use a public IP address for the Cloud SQL instance (don't worry about the
@@ -178,9 +173,9 @@ from fastapi_permissions import Allow, Deny
 
 class School:
     id = ...
-    
+
     ...
-    
+
     def __acl__(self):
         return [
             (Allow, "role:admin", "create"),
@@ -188,25 +183,23 @@ class School:
             (Allow, "role:admin", "update"),
             (Allow, "role:admin", "delete"),
             (Allow, "role:admin", "batch"),
-        
+
             (Allow, "role:lms", "batch"),
             (Allow, "role:lms", "update"),
-        
+
             (Deny, "role:student", "update"),
             (Deny, "role:student", "delete"),
-        
+
             (Allow, f"school:{self.id}", "read"),
             (Allow, f"school:{self.id}", "update"),
         ]
 ```
-
 
 # Logs
 
 Available in Cloud Run:
 
 https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
-
 
 # Limitations
 
@@ -224,5 +217,5 @@ poetry run pre-commit install
 Or run manually with:
 
 ```shell
-poetry run pre-commit run --all-files 
+poetry run pre-commit run --all-files
 ```

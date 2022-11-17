@@ -2,16 +2,16 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, constr, validator
+from pydantic import AnyHttpUrl, BaseModel, constr
 
 from app.models import SchoolState
 from app.models.school import SchoolBookbotType
+from app.schemas.collection import CollectionBrief
 from app.schemas.country import CountryDetail
 
 # pylint: disable=unused-import
 from app.schemas.school_identity import SchoolIdentity, SchoolWrivetedIdentity
 from app.schemas.users import UserBrief
-from app.schemas.users.school_admin import SchoolAdminBrief
 
 
 class SchoolLocation(BaseModel):
@@ -36,11 +36,7 @@ class SchoolInfo(BaseModel):
 class SchoolBrief(SchoolIdentity):
     name: str
     state: SchoolState | None
-    collection_count: int
-
-    @validator("collection_count", pre=True)
-    def set_collection_count(cls, v):
-        return v or 0
+    collection: CollectionBrief | None
 
 
 class SchoolSelectorOption(SchoolBrief):

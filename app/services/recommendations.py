@@ -24,7 +24,7 @@ logger = get_logger()
 def get_recommended_labelset_query(
     session,
     hues: Optional[list[str]] = None,
-    school_id: Optional[int] = None,
+    collection_id: Optional[int] = None,
     age: Optional[int] = None,
     reading_abilities: Optional[list[str]] = None,
     recommendable_only: Optional[bool] = True,
@@ -61,13 +61,13 @@ def get_recommended_labelset_query(
     )
 
     # Now add the optional filters
-    if school_id is not None:
-        # Filter for works in a school collection
-        school = crud.school.get_or_404(db=session, id=school_id)
+    if collection_id is not None:
+        # Filter for works in a collection
+        collection = crud.collection.get_or_404(db=session, id=collection_id)
         query = (
             query.join(
                 CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-            ).where(CollectionItem.school == school)
+            ).where(CollectionItem.collection == collection)
             # Could order by other things, but consider indexes
             # .order_by(Work.id, CollectionItem.copies_available.desc())
         )
