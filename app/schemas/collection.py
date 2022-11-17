@@ -2,7 +2,7 @@ import enum
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, conint, root_validator, validator
+from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
@@ -66,13 +66,17 @@ class CollectionItemFeedback(BaseModel):
 
 
 class CollectionItemInfo(BaseModel):
-    cover_image: str | None
+    cover_image: AnyHttpUrl | None
     title: str | None
     author: str | None
 
     feedback: CollectionItemFeedback | None
 
     other: dict[str, Any] | None
+
+
+class CollectionItemInfoCreateIn(CollectionItemInfo):
+    cover_image: AnyHttpUrl | str | None
 
 
 class CollectionItemBase(BaseModel):
