@@ -223,7 +223,7 @@ def get_recommended_editions_and_labelsets(
     exclude_isbns,
     limit=5,
 ):
-    school = crud.school.get_by_wriveted_id_or_404(session, wriveted_id=school_id)
+    school = crud.school.get(session, id=school_id)
     collection_id = school.collection.id
 
     query = get_recommended_labelset_query(
