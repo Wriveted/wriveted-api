@@ -90,8 +90,8 @@ async def get_collection_items(
 
 
 @router.get(
-    "/collection/{collection_id}/{edition_isbn}",
-    response_model=List[CollectionItemDetail],
+    "/collection/{collection_id}/{isbn}",
+    response_model=CollectionItemDetail,
 )
 async def get_collection_item(
     collection: Collection = Permission("read", get_collection_from_id),
@@ -108,7 +108,7 @@ async def get_collection_item(
     collection_item = session.execute(
         select(CollectionItem)
         .where(CollectionItem.collection_id == collection.id)
-        .where(CollectionItem.edition_id == edition.id)
+        .where(CollectionItem.edition_isbn == edition.isbn)
     ).scalar_one_or_none()
 
     if collection_item is None:
