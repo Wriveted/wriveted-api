@@ -230,7 +230,6 @@ def get_recommended_editions_and_labelsets(
     else:
         collection_id = None
 
-
     query = get_recommended_labelset_query(
         session,
         hues=hues,
