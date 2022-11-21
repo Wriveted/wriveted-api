@@ -36,22 +36,21 @@ async def add_editions_to_collection_by_isbn(
     logger.info(
         "Adding editions to collection by ISBN", account=account, collection=collection
     )
-    collection_counts = {}
+
+    items = {}
     for item in collection_data:
         try:
-            isbn = get_definitive_isbn(item.edition_isbn)
+            item.edition_isbn = get_definitive_isbn(item.edition_isbn)
         except AssertionError:
             # Invalid isbn, just skip
             continue
 
-        collection_counts[isbn] = {
-            "copies_total": item.copies_total if item.copies_total is not None else 1,
-            "copies_available": item.copies_available
-            if item.copies_available is not None
-            else 1,
-        }
+        item.copies_total = item.copies_total or 1
+        item.copies_available = item.copies_available or item.copies_total
 
-    isbn_list = list(collection_counts.keys())
+        items[item.edition_isbn] = item
+
+    isbn_list = list(items.keys())
     # Insert the entire list of isbns, ignoring conflicts, returning a list of the pk's for the CollectionItem binding
     (
         final_primary_keys,
@@ -70,17 +69,7 @@ async def add_editions_to_collection_by_isbn(
 
     collection_items = []
     for isbn in final_primary_keys:
-        data = {
-            "edition_isbn": isbn,
-            "copies_total": collection_counts[isbn]["copies_total"]
-            if isbn in collection_counts
-            else 1,
-            "copies_available": collection_counts[isbn]["copies_available"]
-            if isbn in collection_counts
-            else 1,
-            "action": CollectionUpdateType.ADD,
-        }
-        collection_items.append(CollectionItemUpdate(**data))
+        collection_items.append(items[isbn])
 
     updated = crud.collection.update(
         db=session,

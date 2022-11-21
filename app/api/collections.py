@@ -1,8 +1,9 @@
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from structlog import get_logger
 
 from app import crud
@@ -30,7 +31,6 @@ from app.schemas.collection import (
     CollectionItemBase,
     CollectionItemDetail,
     CollectionUpdateSummaryResponse,
-    CollectionUpdateType,
 )
 from app.schemas.pagination import Pagination
 from app.services.collections import (
@@ -169,12 +169,25 @@ async def get_collection_info(
 async def create_collection(
     collection_data: CollectionCreateIn,
     session: Session = Depends(get_session),
+    ignore_conflicts: bool = Query(
+        default=False,
+        description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
+        this parameter simply controls whether or not an error is raised if a duplicate is found""",
+    ),
 ):
     """
     Endpoint for creating a new collection, provided a collection isn't already assigned to the target user or school
     """
     logger.debug("Creating collection")
-    return crud.collection.create(session, obj_in=collection_data)
+    try:
+        return crud.collection.create(
+            session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
+        )
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=e,
+        )
 
 
 @router.delete("/collection/{collection_id}")
@@ -199,6 +212,11 @@ async def set_collection(
     collection_data: CollectionCreateIn,
     collection: Collection = Permission("delete", get_collection_from_id),
     session: Session = Depends(get_session),
+    ignore_conflicts: bool = Query(
+        default=False,
+        description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
+        this parameter simply controls whether or not an error is raised if a duplicate is found""",
+    ),
 ):
     """
     Endpoint for replacing an existing collection and its items.
@@ -206,7 +224,15 @@ async def set_collection(
     logger.debug("Deleting collection")
     session.execute(delete(Collection).where(Collection.id == collection.id))
     logger.debug("Replacing deleted collection")
-    return crud.collection.create(session, obj_in=collection_data)
+    try:
+        return crud.collection.create(
+            session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
+        )
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=e,
+        )
 
 
 @router.get(
@@ -333,6 +359,11 @@ async def update_collection(
         default=False,
         description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
     ),
+    ignore_conflicts: bool = Query(
+        default=False,
+        description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
+        this parameter simply controls whether or not an error is raised if a duplicate is found""",
+    ),
 ):
     """
     Update a collection itself, and/or its items with a list of changes.
@@ -361,65 +392,18 @@ async def update_collection(
     """
     logger.info("Updating collection", collection=collection, account=account)
 
-    item_changes = collection_update_data.items
-    del collection_update_data.items
-
-    crud.collection.update(
-        db=session,
-        db_obj=collection,
-        obj_in=collection_update_data,
-        merge_dicts=merge_dicts,
-    )
-
-    # update the collection items
-    isbns_to_remove: List[str] = []
-    items_to_add: List[CollectionItemBase] = []
-
-    for update_info in item_changes:
-        if update_info.action == CollectionUpdateType.REMOVE:
-            isbns_to_remove.append(update_info.edition_isbn)
-        elif update_info.action == CollectionUpdateType.ADD:
-            items_to_add.append(update_info)
-        elif update_info.action == CollectionUpdateType.UPDATE:
-            # Update the "copies_total and "copies_available"
-            # TODO consider a bulk update version of this
-            stmt = (
-                update(CollectionItem)
-                .where(CollectionItem.collection_id == collection.id)
-                .where(
-                    # Note execution_options(synchronize_session="fetch") must be set
-                    # for this subquery where clause to work.
-                    # Ref https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
-                    CollectionItem.edition.has(Edition.isbn == update_info.edition_isbn)
-                )
-                .values(
-                    copies_total=update_info.copies_total,
-                    copies_available=update_info.copies_available,
-                )
-                .execution_options(synchronize_session="fetch")
-            )
-
-            session.execute(stmt)
-
-    if len(isbns_to_remove) > 0:
-        logger.info(f"Removing {len(isbns_to_remove)} items from collection")
-        stmt = (
-            delete(CollectionItem)
-            .where(CollectionItem.collection_id == collection.id)
-            .where(
-                CollectionItem.edition_isbn.in_(
-                    select(Edition.isbn).where(Edition.isbn.in_(isbns_to_remove))
-                )
-            )
-            .execution_options(synchronize_session="fetch")
+    try:
+        crud.collection.update(
+            db=session,
+            db_obj=collection,
+            obj_in=collection_update_data,
+            merge_dicts=merge_dicts,
+            ignore_conflicts=ignore_conflicts,
         )
-        logger.info("Delete stmt", stmts=str(stmt))
-        session.execute(stmt)
-
-    if len(items_to_add) > 0:
-        logger.info(f"Adding {len(items_to_add)} editions to collection")
-        await add_editions_to_collection_by_isbn(
-            session, items_to_add, collection, account
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=e.statement,
         )
 
     logger.debug("Committing transaction")

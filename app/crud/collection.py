@@ -2,8 +2,9 @@ from typing import Any, Tuple
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, IntegrityError
 from structlog import get_logger
 
 from app.crud import CRUDBase
@@ -14,6 +15,7 @@ from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
     CollectionItemBase,
+    CollectionItemInnerCreateIn,
     CollectionItemUpdate,
     CollectionUpdateType,
 )
@@ -23,7 +25,12 @@ logger = get_logger()
 
 class CRUDCollection(CRUDBase[Collection, Any, Any]):
     def create(
-        self, db: Session, *, obj_in: CollectionCreateIn, commit=True
+        self,
+        db: Session,
+        *,
+        obj_in: CollectionCreateIn,
+        commit=True,
+        ignore_conflicts=False,
     ) -> Collection:
         items = obj_in.items or []
         obj_in.items = []
@@ -43,6 +50,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 collection_orm_object=collection_orm_object,
                 item=item,
                 commit=commit,
+                ignore_conflicts=ignore_conflicts,
             )
 
         if commit:
@@ -78,6 +86,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         obj_in: CollectionAndItemsUpdateIn | CollectionItemUpdate,
         merge_dicts: bool = True,
         commit: bool = True,
+        ignore_conflicts: bool = False,
     ) -> Collection:
         if item_changes := getattr(obj_in, "items", []):
             del obj_in.items
@@ -91,9 +100,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         for change in item_changes:
             match change.action:
                 case CollectionUpdateType.ADD:
-                    self._add_item_to_collection(
-                        db=db, collection_orm_object=db_obj, item=change, commit=False
-                    )
+                    try:
+                        self._add_item_to_collection(
+                            db=db,
+                            collection_orm_object=db_obj,
+                            item=change,
+                            commit=False,
+                            ignore_conflicts=ignore_conflicts,
+                        )
+                    except IntegrityError as e:
+                        raise e
                 case CollectionUpdateType.UPDATE:
                     self._update_item_in_collection(
                         db=db, collection_id=db_obj.id, item_update=change, commit=False
@@ -192,14 +208,30 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         collection_orm_object: Collection,
         item: CollectionItemUpdate | CollectionItemBase,
         commit: bool = True,
+        ignore_conflicts: bool = False,
     ):
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
             edition_isbn=item.edition_isbn,
-            copies_available=item.copies_available,
-            copies_total=item.copies_total,
+            copies_available=item.copies_available or 1,
+            copies_total=item.copies_total or 1,
+            info=dict(item.info),
         )
-        db.add(new_orm_item)
+
+        stmt = (
+            insert(CollectionItem).on_conflict_do_nothing()
+            if ignore_conflicts
+            else insert(CollectionItem)
+        )
+
+        try:
+            db.execute(stmt, CollectionItemInnerCreateIn.from_orm(new_orm_item).dict())
+        except IntegrityError as e:
+            raise IntegrityError(
+                statement=f"Isbn {new_orm_item.edition_isbn} already exists in collection",
+                params={},
+                orig=e,
+            ) from None
 
         if commit:
             db.commit()

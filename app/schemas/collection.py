@@ -89,6 +89,10 @@ class CollectionItemBase(BaseModel):
         orm_mode = True
 
 
+class CollectionItemInnerCreateIn(CollectionItemBase):
+    collection_id: UUID
+
+
 class CollectionCreateIn(BaseModel):
     name: str
 
