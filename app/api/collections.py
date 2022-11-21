@@ -170,7 +170,7 @@ async def create_collection(
     collection_data: CollectionCreateIn,
     session: Session = Depends(get_session),
     ignore_conflicts: bool = Query(
-        default=False,
+        default=True,
         description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
         this parameter simply controls whether or not an error is raised if a duplicate is found""",
     ),
@@ -213,7 +213,7 @@ async def set_collection(
     collection: Collection = Permission("delete", get_collection_from_id),
     session: Session = Depends(get_session),
     ignore_conflicts: bool = Query(
-        default=False,
+        default=True,
         description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
         this parameter simply controls whether or not an error is raised if a duplicate is found""",
     ),
@@ -360,7 +360,7 @@ async def update_collection(
         description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
     ),
     ignore_conflicts: bool = Query(
-        default=False,
+        default=True,
         description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
         this parameter simply controls whether or not an error is raised if a duplicate is found""",
     ),

@@ -6,11 +6,13 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from structlog import get_logger
+from app import crud
 
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
+from app.models.edition import Edition
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -19,6 +21,7 @@ from app.schemas.collection import (
     CollectionItemUpdate,
     CollectionUpdateType,
 )
+from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
 
@@ -112,7 +115,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                         raise e
                 case CollectionUpdateType.UPDATE:
                     self._update_item_in_collection(
-                        db=db, collection_id=db_obj.id, item_update=change, commit=False
+                        db=db,
+                        collection_id=db_obj.id,
+                        item_update=change,
+                        commit=False,
                     )
                 case CollectionUpdateType.REMOVE:
                     self._remove_item_from_collection(
@@ -124,8 +130,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if commit:
             db.commit()
+            db.refresh(collection_orm_object)
 
-        db.refresh(collection_orm_object)
         return collection_orm_object
 
     def delete_all_items(
@@ -141,8 +147,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if commit:
             db.commit()
+            db.refresh(db_obj)
 
-        db.refresh(db_obj)
         return db_obj
 
     def _update_item_in_collection(
@@ -174,12 +180,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         if item_update.copies_total:
             item_orm_object.copies_total = item_update.copies_total
 
-        db.add(item_orm_object)
-
         if commit:
             db.commit()
+            db.refresh(item_orm_object)
 
-        db.refresh(item_orm_object)
         return item_orm_object
 
     def _remove_item_from_collection(
@@ -210,12 +214,21 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):
+        try:
+            edition = crud.edition.get_or_create_unhydrated(
+                db=db, isbn=item.edition_isbn, commit=True
+            )
+        except AssertionError as e:
+            # Invalid isbn, just skip
+            logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
+            return
+
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
-            edition_isbn=item.edition_isbn,
+            edition_isbn=edition.isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
-            info=dict(item.info),
+            info=dict(item.info) if item.info else {},
         )
 
         stmt = (

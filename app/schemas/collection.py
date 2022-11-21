@@ -133,7 +133,7 @@ class CollectionUpdateType(str, enum.Enum):
 
 
 class CollectionItemUpdate(CollectionItemBase):
-    action: CollectionUpdateType
+    action: CollectionUpdateType = CollectionUpdateType.ADD
 
     class Config:
         orm_mode = True
