@@ -81,6 +81,7 @@ async def get_collection_items(
     collection_items = session.scalars(
         select(CollectionItem)
         .where(CollectionItem.collection_id == collection.id)
+        .order_by(CollectionItem.created_at.desc())
         .offset(pagination.skip)
         .limit(pagination.limit)
     ).all()
