@@ -10,7 +10,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
-from app.models import School
+from app.models import School, EventLevel
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import (
     HueyBook,
@@ -183,8 +183,7 @@ async def get_recommendations_with_fallback(
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [json.loads(b.json()) for b in filtered_books[:10]]
 
-        background_tasks.add_task(
-            crud.event.create,
+        crud.event.create(
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(filtered_books)} books",
@@ -198,8 +197,7 @@ async def get_recommendations_with_fallback(
         )
     else:
         if len(row_results) == 0:
-            background_tasks.add_task(
-                crud.event.create,
+            crud.event.create(
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
@@ -209,6 +207,7 @@ async def get_recommendations_with_fallback(
                 },
                 school=school,
                 account=account,
+                level=EventLevel.WARNING,
             )
     return filtered_books, query_parameters
 
@@ -229,7 +228,6 @@ def get_recommended_editions_and_labelsets(
         collection_id = school.collection.id
     else:
         collection_id = None
-
 
     query = get_recommended_labelset_query(
         session,
