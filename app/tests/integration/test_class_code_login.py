@@ -5,10 +5,10 @@ from app.models import Student
 
 
 def test_invalid_class_code_login_attempt(client):
-    response = client.get("v1/auth/class-code", json={})
+    response = client.get("v1/auth/class-code")
     assert response.status_code != status.HTTP_200_OK
 
-    response = client.post("v1/auth/class-code", json={})
+    response = client.post("v1/auth/class-code")
     assert response.status_code != status.HTTP_200_OK
 
     response = client.post(
