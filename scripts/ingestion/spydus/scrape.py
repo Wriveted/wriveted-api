@@ -13,16 +13,16 @@ logger = logging.getLogger("wriveted.spydus")
 
 
 class Settings(BaseSettings):
-    #wriveted_api: AnyHttpUrl = "http://localhost:8000/v1"
-    #wriveted_api_token: str
+    # wriveted_api: AnyHttpUrl = "http://localhost:8000/v1"
+    # wriveted_api_token: str
 
     spydus_base_url = "https://blacktown.spydus.com"
     spydus_api_token: str | None
 
-    spydus_client_id: str = '808C3188772BA5ECE76F74F304AF3DCC'
+    spydus_client_id: str = "808C3188772BA5ECE76F74F304AF3DCC"
     spydus_client_secret: str
 
-    output_db = 'spydus.db'
+    output_db = "spydus.db"
 
 
 def get_access_token(config: Settings):
@@ -30,14 +30,16 @@ def get_access_token(config: Settings):
     base64_encoded_id_secret = base64.b64encode(to_encode.encode()).decode()
 
     headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic {}'.format(base64_encoded_id_secret)
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic {}".format(base64_encoded_id_secret),
     }
-    params = {'grant_type': 'client_credentials'}
+    params = {"grant_type": "client_credentials"}
 
-    response = httpx.post(f"{config.spydus_base_url}/api/token", headers=headers, data=params)
+    response = httpx.post(
+        f"{config.spydus_base_url}/api/token", headers=headers, data=params
+    )
     response.raise_for_status()
-    return response.json()['access_token']
+    return response.json()["access_token"]
 
 
 def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120):
@@ -58,12 +60,12 @@ def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120)
     start_time = time.time()
     response = httpx.get(
         f"{config.spydus_base_url}/api/lcf/1.2/manifestations",
-        params={'os:count': count, 'os:startIndex': startIndex, 'global': 1},
+        params={"os:count": count, "os:startIndex": startIndex, "global": 1},
         headers={
-            'Accept': "application/json",
-            'Authorization': f'Bearer {config.spydus_api_token}'
+            "Accept": "application/json",
+            "Authorization": f"Bearer {config.spydus_api_token}",
         },
-        timeout=timeout
+        timeout=timeout,
     )
     logger.debug(f"Response status code: {response.status_code}")
     if response.status_code == 401:
@@ -77,9 +79,11 @@ def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120)
         logger.warning(response.status_code)
         logger.warning(f"JSON didn't parse.\n{response.text}")
     end_time = time.time()
-    #logger.debug(f"Raw result: {data}")
-    logger.info(f"Total manifestations: {data['totalResults']}. Received {len(data['entity'])} in {humanize.naturaldelta(dt.timedelta(seconds=end_time-start_time))}")
-    return [item['id'] for item in data['entity']]
+    # logger.debug(f"Raw result: {data}")
+    logger.info(
+        f"Total manifestations: {data['totalResults']}. Received {len(data['entity'])} in {humanize.naturaldelta(dt.timedelta(seconds=end_time-start_time))}"
+    )
+    return [item["id"] for item in data["entity"]]
 
 
 def get_manifestation_from_isbn(isbn, config: Settings, timeout=30):
@@ -87,17 +91,17 @@ def get_manifestation_from_isbn(isbn, config: Settings, timeout=30):
     response = httpx.get(
         f"{config.spydus_base_url}/api/lcf/1.2/manifestations",
         params={
-            'global': 1,
-            'os:count': 10,
-            'alt-manifestation-id': isbn,
+            "global": 1,
+            "os:count": 10,
+            "alt-manifestation-id": isbn,
             # https://bic-org-uk.github.io/bic-lcf/LCF-CodeLists.html#MNI
-            'alt-manifestation-id-type': "03",
+            "alt-manifestation-id-type": "03",
         },
         headers={
-            'Accept': "application/json",
-            'Authorization': f'Bearer {config.spydus_api_token}'
+            "Accept": "application/json",
+            "Authorization": f"Bearer {config.spydus_api_token}",
         },
-        timeout=timeout
+        timeout=timeout,
     )
 
     return response.json()
@@ -107,13 +111,13 @@ def get_manifestation_details(identifier, config: Settings, timeout=30):
     response = httpx.get(
         f"{config.spydus_base_url}/api/lcf/1.2/manifestations/{identifier}",
         params={
-            'global': 1,
+            "global": 1,
         },
         headers={
-            'Accept': "application/json",
-            'Authorization': f'Bearer {config.spydus_api_token}'
+            "Accept": "application/json",
+            "Authorization": f"Bearer {config.spydus_api_token}",
         },
-        timeout=timeout
+        timeout=timeout,
     )
 
     return response.json()
@@ -129,8 +133,8 @@ def main():
 
     print(config.spydus_api_token)
 
-    #experiment1(config)
-    #experiment2(config)
+    # experiment1(config)
+    # experiment2(config)
 
     # Scrape all manifestation ids
     con = sqlite3.connect(config.output_db)
@@ -149,7 +153,9 @@ def main():
     batch_size = 1000
 
     # Get the last completed batch to see where we should start from (assuming this has been running before)
-    cur.execute("SELECT startIndex FROM batch where status='completed' order by ts DESC limit 1")
+    cur.execute(
+        "SELECT startIndex FROM batch where status='completed' order by ts DESC limit 1"
+    )
     res = cur.fetchone()
     if res is not None:
         start_index = res[0] + batch_size
@@ -157,23 +163,32 @@ def main():
         start_index = 1
 
     for iteration in range(1, 1_000):
-        print(f"Iteration {iteration}. Current offset: {start_index}. Batch size {batch_size}")
+        print(
+            f"Iteration {iteration}. Current offset: {start_index}. Batch size {batch_size}"
+        )
 
         try:
             # Add an entry for the current batch job
-            cur.execute("INSERT INTO batch VALUES (?, ?, ?, ?)",
-                    (dt.datetime.now(), start_index, batch_size, 'queued'),
+            cur.execute(
+                "INSERT INTO batch VALUES (?, ?, ?, ?)",
+                (dt.datetime.now(), start_index, batch_size, "queued"),
             )
             con.commit()
             current_batch_id = cur.lastrowid
 
-            manifestations = get_manifestation_ids(config, count=batch_size, startIndex=start_index)
+            manifestations = get_manifestation_ids(
+                config, count=batch_size, startIndex=start_index
+            )
             logger.info(f"Received {len(manifestations)} manifestation ids")
 
-            cur.executemany("INSERT INTO manifestations VALUES (?) ON CONFLICT(id) DO NOTHING", [(m,) for m in manifestations])
+            cur.executemany(
+                "INSERT INTO manifestations VALUES (?) ON CONFLICT(id) DO NOTHING",
+                [(m,) for m in manifestations],
+            )
 
-            cur.execute(f"UPDATE batch SET status=? where rowid={current_batch_id}",
-                        ('completed',),
+            cur.execute(
+                f"UPDATE batch SET status=? where rowid={current_batch_id}",
+                ("completed",),
             )
             con.commit()
             start_index += batch_size
@@ -192,7 +207,7 @@ def main():
 
     print("Exporting all manifestation ids to plain csv file")
     filename = "manifestation-ids.csv"
-    with open(filename, 'wt') as f:
+    with open(filename, "wt") as f:
         cur.execute("SELECT * FROM manifestations")
         for row in cur.fetchall():
             f.write(f"{row[0]}\n")
@@ -203,10 +218,10 @@ def main():
 def experiment1(config):
     """
     Experiment 1 - Is it feasible to request all manifestations then get details on them?
-    
+
     TL;DR - not really. Lots of items without isbns, and we don't find this out until we've queried
     for the details.
-    
+
     """
     manifestations = get_manifestation_ids(config, count=100, startIndex=100)
     print(f"Received {len(manifestations)} manifestation ids")
@@ -214,11 +229,11 @@ def experiment1(config):
     for identifier in manifestations:
         # Get details and map manifestation ID type "03" to ISBN
         detail = get_manifestation_details(identifier, config)
-        for alternative_id in detail['additional-manifestation-id']:
+        for alternative_id in detail["additional-manifestation-id"]:
 
-            if alternative_id['manifestation-id-type'] == "02":
+            if alternative_id["manifestation-id-type"] == "02":
                 # An item with an ISBN!
-                print("ISBN:", alternative_id['value'])
+                print("ISBN:", alternative_id["value"])
                 print(detail)
 
 
@@ -308,9 +323,9 @@ def experiment2(config):
 
     for i, isbn in enumerate(isbns.splitlines()[:50]):
         data = get_manifestation_from_isbn(isbn=isbn.strip(), config=config)
-        if data['totalResults'] >= 1:
+        if data["totalResults"] >= 1:
             print(i, data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
