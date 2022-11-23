@@ -13,16 +13,14 @@ from sqlalchemy import (
     Integer,
     String,
     func,
-    select,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import relationship
 
 from app.db import Base
-from app.models.collection_item import CollectionItem
 from app.models.school_admin import SchoolAdmin
 from app.models.service_account_school_association import (
     service_account_school_association_table,

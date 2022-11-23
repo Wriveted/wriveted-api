@@ -10,7 +10,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
-from app.models import School, EventLevel
+from app.models import EventLevel, School
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import (
     HueyBook,

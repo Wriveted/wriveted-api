@@ -2,8 +2,8 @@ from typing import Any, Tuple
 from uuid import UUID
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase

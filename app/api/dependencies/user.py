@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import Body, Depends, Path
+from fastapi import Depends, Path
 from sqlalchemy.orm import Session
 
 from app import crud
