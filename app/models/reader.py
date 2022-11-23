@@ -12,6 +12,8 @@ class Reader(User):
     Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
     """
 
+    __mapper_args__ = {"polymorphic_identity": "reader"}
+
     id = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_reader_inherits_user", ondelete="CASCADE"),
