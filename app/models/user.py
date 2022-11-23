@@ -22,6 +22,8 @@ class UserAccountType(str, enum.Enum):
 class User(Base):
     """
     An abstract user.
+
+    https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance
     Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
     """
 
