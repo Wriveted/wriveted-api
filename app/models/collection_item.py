@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict

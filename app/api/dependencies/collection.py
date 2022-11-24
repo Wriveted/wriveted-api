@@ -1,16 +1,12 @@
 import uuid
 
-from fastapi import Body, Depends, HTTPException, Path, Request
-from fastapi_permissions import has_permission, Allow, All, Everyone, Authenticated
+from fastapi import Depends, HTTPException, Path, Request
+from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
-from app.models.school import School
-from app.models.user import User
-from app.permissions import Permission
-from app.schemas.collection import CollectionCreateIn
 
 
 def get_collection_from_id(

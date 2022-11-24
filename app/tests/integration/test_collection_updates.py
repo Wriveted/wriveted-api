@@ -1,8 +1,8 @@
 import csv
 import random
 import time
-from app import crud
 
+from app import crud
 from app.services.editions import check_digit_13
 
 
