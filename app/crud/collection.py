@@ -235,7 +235,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         stmt = (
             insert(CollectionItem).on_conflict_do_nothing(
-                index_elements=["index_editions_per_collection"]
+                constraint="unique_editions_per_collection"
             )
             if ignore_conflicts
             else insert(CollectionItem)
