@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
 from sqlalchemy import delete, func, select
+from sqlalchemy import asc, delete, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from structlog import get_logger
@@ -10,8 +11,8 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
-    validate_collection_creation,
     get_collection_from_id,
+    validate_collection_creation,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
@@ -80,8 +81,11 @@ async def get_collection_items(
 
     collection_items = session.scalars(
         select(CollectionItem)
+        .join(
+            CollectionItem.edition
+        )  # Note would be a joined load anyway, but now we can filter with it
         .where(CollectionItem.collection_id == collection.id)
-        .order_by(CollectionItem.created_at.desc())
+        .order_by(asc(Edition.title))
         .offset(pagination.skip)
         .limit(pagination.limit)
     ).all()

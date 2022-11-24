@@ -1,20 +1,13 @@
 import uuid
 from datetime import datetime
-from fastapi_permissions import All, Allow, Deny
-from sqlalchemy import (
-    JSON,
-    Column,
-    DateTime,
-    ForeignKey,
-    String,
-    func,
-    select,
-    text,
-)
+
+from fastapi_permissions import All, Allow
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import column_property, relationship
+
 from app.db import Base
 from app.models.collection_item import CollectionItem
 

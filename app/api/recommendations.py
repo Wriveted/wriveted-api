@@ -10,7 +10,7 @@ from app.api.dependencies.security import get_current_active_user_or_service_acc
 from app.config import get_settings
 from app.db.explain import explain
 from app.db.session import get_session
-from app.models import School
+from app.models import EventLevel, School
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import (
     HueyBook,
@@ -41,7 +41,7 @@ async def get_recommendations(
 
     Note this endpoint returns recommendations in a random order.
     """
-    logger.info("Recommendation endpoint called", parameters=data)
+    logger.debug("Recommendation endpoint called", parameters=data)
 
     if data.wriveted_identifier is not None:
         school = crud.school.get_by_wriveted_id_or_404(
@@ -92,6 +92,7 @@ async def get_recommendations_with_fallback(
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
     row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
+    logger.debug("Have got recommendation results from database")
     fallback_level = 0
     if data.fallback and len(row_results) < 3:
         fallback_level += 1
@@ -105,7 +106,9 @@ async def get_recommendations_with_fallback(
             session, **query_parameters
         )
     if len(row_results) < 3:
-        # Still not enough, alright let's recommend outside the school collection
+        logger.debug(
+            "Still not enough, alright let's recommend outside the school collection"
+        )
         fallback_level += 1
         # Let's just include all the hues and try the query again.
         query_parameters["hues"] = None
@@ -118,7 +121,7 @@ async def get_recommendations_with_fallback(
         )
     if len(row_results) < 3:
         fallback_level += 1
-        # Widen the reading ability
+        logger.debug("Widen the reading ability")
         if len(query_parameters["reading_abilities"]) == 1:
             match query_parameters["reading_abilities"][0]:
                 case ReadingAbilityKey.HARRY_POTTER:
@@ -183,8 +186,7 @@ async def get_recommendations_with_fallback(
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [json.loads(b.json()) for b in filtered_books[:10]]
 
-        background_tasks.add_task(
-            crud.event.create,
+        crud.event.create(
             session,
             title=f"Made a recommendation",
             description=f"Made a recommendation of {len(filtered_books)} books",
@@ -198,8 +200,7 @@ async def get_recommendations_with_fallback(
         )
     else:
         if len(row_results) == 0:
-            background_tasks.add_task(
-                crud.event.create,
+            crud.event.create(
                 session,
                 title="No books",
                 description="No books met the criteria for recommendation",
@@ -209,6 +210,7 @@ async def get_recommendations_with_fallback(
                 },
                 school=school,
                 account=account,
+                level=EventLevel.WARNING,
             )
     return filtered_books, query_parameters
 
@@ -223,12 +225,17 @@ def get_recommended_editions_and_labelsets(
     exclude_isbns,
     limit=5,
 ):
-
+    collection_id = None
     if school_id is not None:
         school = crud.school.get(session, id=school_id)
-        collection_id = school.collection.id
-    else:
-        collection_id = None
+        logger.debug("Recommendation request for school", school=school)
+        if school.collection is not None:
+            collection_id = school.collection.id
+        else:
+            logger.warning(
+                "School recommendation was requested, but school doesn't have a collection!",
+                school=school,
+            )
 
     query = get_recommended_labelset_query(
         session,

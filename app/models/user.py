@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -22,6 +22,8 @@ class UserAccountType(str, enum.Enum):
 class User(Base):
     """
     An abstract user.
+
+    https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance
     Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
     """
 

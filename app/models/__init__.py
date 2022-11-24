@@ -2,6 +2,7 @@ from .author import Author
 from .booklist import BookList
 from .booklist_work_association import BookListItem
 from .class_group import ClassGroup
+from .collection import Collection
 from .collection_item import CollectionItem
 from .country import Country
 from .edition import Edition
@@ -24,4 +25,3 @@ from .student import Student
 from .user import User
 from .work import Work
 from .wriveted_admin import WrivetedAdmin
-from .collection import Collection

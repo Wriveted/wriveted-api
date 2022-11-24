@@ -5,6 +5,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound, IntegrityError
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 from structlog import get_logger
 from app import crud
 
