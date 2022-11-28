@@ -24,6 +24,8 @@ from app.schemas.collection import (
     CollectionUpdateType,
 )
 from app.services.editions import get_definitive_isbn
+from app.services.background_tasks import queue_background_task
+from app.services.images import base64_string_to_bucket
 
 logger = get_logger()
 
@@ -92,6 +94,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         merge_dicts: bool = True,
         commit: bool = True,
         ignore_conflicts: bool = False,
+        await_cover_image: bool = False,
     ) -> Collection:
         if item_changes := getattr(obj_in, "items", []):
             del obj_in.items
@@ -160,6 +163,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         collection_id: int,
         item_update: CollectionItemUpdate | CollectionItemBase,
         commit: bool = True,
+        await_cover_image: bool = False,
     ):
         item_orm_object = db.scalar(
             select(CollectionItem)
@@ -173,6 +177,23 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         if item_update.info is not None:
             info_dict = dict(item_orm_object.info)
             update_dict = dict(item_update.info)
+
+            # upload and fetch the cover_image if present
+            if image_data := item_update.info.cover_image:
+                if await_cover_image:
+                    update_dict["cover_image"] = base64_string_to_bucket(
+                        image_data, f"private/{collection_id}", item_update.edition_isbn
+                    )
+                else:
+                    queue_background_task(
+                        "update-cover-image",
+                        {
+                            "cover_url": image_data,
+                            "collection_id": collection_id,
+                            "isbn": item_update.edition_isbn,
+                        },
+                    )
+
             deep_merge_dicts(info_dict, update_dict)
             item_orm_object.info = info_dict
 
@@ -268,6 +289,15 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .scalars()
             .all()
         )
+
+    def get_collection_item_by_collection_id_and_isbn(
+        self, db: Session, *, collection_id: UUID, isbn: str
+    ):
+        return db.execute(
+            select(CollectionItem)
+            .where(CollectionItem.collection_id == collection_id.id)
+            .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
+        ).scalar_one_or_none()
 
 
 collection = CRUDCollection(Collection)

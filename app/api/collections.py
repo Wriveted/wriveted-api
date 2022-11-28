@@ -110,11 +110,9 @@ async def get_collection_item(
         f"Searching collection {collection.id} for edition {edition.isbn}",
     )
 
-    collection_item = session.execute(
-        select(CollectionItem)
-        .where(CollectionItem.collection_id == collection.id)
-        .where(CollectionItem.edition_isbn == edition.isbn)
-    ).scalar_one_or_none()
+    collection_item = crud.collection.get_collection_item_by_collection_id_and_isbn(
+        session, collection.id, edition.isbn
+    )
 
     if collection_item is None:
         raise HTTPException(
@@ -369,6 +367,10 @@ async def update_collection(
         description="""Whether or not to ignore duplicate entries in the collection. Note: only one copy of an edition can be held in a collection - 
         this parameter simply controls whether or not an error is raised if a duplicate is found""",
     ),
+    await_cover_image: bool = Query(
+        default=False,
+        description="Whether or not to wait for a cover image to be uploaded to bucket and new url fetched before returning",
+    ),
 ):
     """
     Update a collection itself, and/or its items with a list of changes.
@@ -404,6 +406,7 @@ async def update_collection(
             obj_in=collection_update_data,
             merge_dicts=merge_dicts,
             ignore_conflicts=ignore_conflicts,
+            await_cover_image=await_cover_image,
         )
     except IntegrityError as e:
         raise HTTPException(

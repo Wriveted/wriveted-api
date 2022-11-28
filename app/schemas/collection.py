@@ -2,6 +2,9 @@ import enum
 from typing import Any, Optional
 from uuid import UUID
 
+from base64 import b64encode, b64decode
+from binascii import Error as BinasciiError
+
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 
 from app.schemas.edition import EditionBrief
@@ -76,7 +79,35 @@ class CollectionItemInfo(BaseModel):
 
 
 class CollectionItemInfoCreateIn(CollectionItemInfo):
-    cover_image: AnyHttpUrl | str | None
+    cover_image: str | None
+
+    @validator("cover_image", pre=True)
+    def _validate_cover_image(cls, v, values: dict):
+        # first thing's first
+        if v is not None and not v.startswith("data:image"):
+            raise ValueError(
+                "cover_image must be a valid base64 image string, beginning with 'data:image'"
+            )
+
+        # if the string is misformed, decoding will fail
+        try:
+            decoded = b64decode(v, validate=True)
+        except BinasciiError:
+            raise ValueError(
+                "cover_image must be a valid base64 image string, properly formed"
+            )
+
+        # decoding and re-encoding a valid string should be idempotent. any diff indicates invalidity
+        if v is not None and not b64encode(decoded) == v:
+            raise ValueError("cover_image must be a valid base64 image string")
+
+        # we now have a valid base64 string that claims to be an image
+        return v
+
+
+class CoverImageUpdateIn(CollectionItemInfoCreateIn):
+    collection_id: UUID | None
+    edition_isbn: str
 
 
 class CollectionItemBase(BaseModel):
