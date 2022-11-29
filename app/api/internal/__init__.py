@@ -12,7 +12,7 @@ from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import get_sendgrid_api, send_sendgrid_email
 from app.services.events import process_events
-from app.services.images import base64_string_to_bucket
+from app.services.cover_images import base64_string_to_bucket
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -85,42 +85,3 @@ def handle_send_email(
     svc_account = crud.service_account.get(db=session, id=data.service_account_id)
     account = user_account or svc_account
     send_sendgrid_email(data.email_data, session, sg, account=account)
-
-
-@router.post("/update-book-cover")
-def update_book_cover(
-    data: CoverImageUpdateIn,
-    session: Session = Depends(get_session),
-):
-    logger.info("Internal API updating book cover")
-
-    if data.collection_id:
-        collection_item = crud.collection.get_collection_item_by_collection_id_and_isbn(
-            db=session, collection_id=str(data.collection_id), isbn=data.isbn
-        )
-        if collection_item:
-            collection_item.info["cover_image"] = base64_string_to_bucket(
-                data.cover_image,
-                f"private/{str(collection_item.collection_id)}",
-                collection_item.edition_isbn,
-            )
-            collection_item.info.changed()
-        else:
-            return {"msg": "no collection item found"}
-    else:
-        edition = crud.edition.get_by_isbn(db=session, isbn=data.isbn)
-        if edition:
-            edition.cover_url = base64_string_to_bucket(
-                data.cover_image,
-                "admin",
-                edition.isbn,
-            )
-        else:
-            return {"msg": "no edition found"}
-
-        session.commit()
-
-    edition = crud.edition.get(db=session, id=data.edition_id)
-    edition.cover_image_url = data.cover_image_url
-    session.commit()
-    return {"msg": "ok"}

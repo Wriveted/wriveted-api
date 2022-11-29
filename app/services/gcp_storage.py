@@ -1,9 +1,10 @@
-import os
 from google.cloud import storage
+from structlog import get_logger
 
 from app.config import get_settings
 
 settings = get_settings()
+logger = get_logger()
 
 # setup gcp bucket
 def get_cover_image_bucket():
@@ -25,7 +26,7 @@ def get_cover_image_bucket():
 # upload base64 image string to google bucket
 def base64_string_to_bucket(data: str, folder: str, filename: str):
     """
-    Upload a base64 image string to the environment's google bucket.
+    Upload a base64 image string to the environment's google bucket, returning the public url
     """
     # get the image type
     filetype = data.split(";")[0].split("/")[1]
@@ -44,3 +45,19 @@ def base64_string_to_bucket(data: str, folder: str, filename: str):
 
     # return the public url to the image
     return blob.public_url
+
+
+def url_to_blob_name(url: str) -> str:
+    """
+    Convert a wriveted cover image url to a blob name.
+    """
+    return url.split(settings.GCP_IMAGE_BUCKET + "/")[1]
+
+
+def delete_blob(blob_name: str):
+    """
+    Delete a blob from the bucket.
+    """
+    bucket = get_cover_image_bucket()
+    blob = bucket.blob(blob_name)
+    blob.delete()

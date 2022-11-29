@@ -14,7 +14,6 @@ from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
-from app.models.edition import Edition
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -24,8 +23,11 @@ from app.schemas.collection import (
     CollectionUpdateType,
 )
 from app.services.editions import get_definitive_isbn
-from app.services.background_tasks import queue_background_task
-from app.services.images import base64_string_to_bucket
+from app.services.cover_images import (
+    handle_collection_item_cover_image,
+    handle_collection_item_cover_image_update,
+    handle_new_collection_item_cover_image,
+)
 
 logger = get_logger()
 
@@ -90,11 +92,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         db_obj: Collection,
-        obj_in: CollectionAndItemsUpdateIn | CollectionItemUpdate,
+        obj_in: CollectionAndItemsUpdateIn,
         merge_dicts: bool = True,
         commit: bool = True,
         ignore_conflicts: bool = False,
-        await_cover_image: bool = False,
     ) -> Collection:
         if item_changes := getattr(obj_in, "items", []):
             del obj_in.items
@@ -163,7 +164,6 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         collection_id: int,
         item_update: CollectionItemUpdate | CollectionItemBase,
         commit: bool = True,
-        await_cover_image: bool = False,
     ):
         item_orm_object = db.scalar(
             select(CollectionItem)
@@ -176,25 +176,17 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if item_update.info is not None:
             info_dict = dict(item_orm_object.info)
-            update_dict = dict(item_update.info)
+            info_update_dict = item_update.info.dict(exclude_unset=True)
 
-            # upload and fetch the cover_image if present
-            if image_data := item_update.info.cover_image:
-                if await_cover_image:
-                    update_dict["cover_image"] = base64_string_to_bucket(
-                        image_data, f"private/{collection_id}", item_update.edition_isbn
-                    )
-                else:
-                    queue_background_task(
-                        "update-cover-image",
-                        {
-                            "cover_url": image_data,
-                            "collection_id": collection_id,
-                            "isbn": item_update.edition_isbn,
-                        },
-                    )
+            if hasattr(info_update_dict, "cover_image"):
+                info_update_dict[
+                    "cover_image"
+                ] = handle_collection_item_cover_image_update(
+                    item_orm_object,
+                    info_update_dict["cover_image"],
+                )
 
-            deep_merge_dicts(info_dict, update_dict)
+            deep_merge_dicts(info_dict, info_update_dict)
             item_orm_object.info = info_dict
 
         if item_update.copies_available:
@@ -246,12 +238,23 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
             return
 
+        info_dict = {}
+        if item.info is not None:
+            info_dict = item.info.dict(exclude_unset=True, exclude_none=True)
+
+            if hasattr(info_dict, "cover_image"):
+                info_dict["cover_image"] = handle_new_collection_item_cover_image(
+                    str(collection_orm_object.id),
+                    item.edition_isbn,
+                    info_dict["cover_image"],
+                )
+
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
             edition_isbn=edition.isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
-            info=dict(item.info) if item.info else {},
+            info=info_dict,
         )
 
         stmt = (

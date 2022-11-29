@@ -1,8 +1,10 @@
 import enum
 from typing import Any, Optional
 from uuid import UUID
+from PIL import Image
+from io import BytesIO
 
-from base64 import b64encode, b64decode
+from base64 import b64decode
 from binascii import Error as BinasciiError
 
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
@@ -86,23 +88,31 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
         if not v:
             return
 
-        # first thing's first
-        if not v.startswith("data:image"):
-            raise ValueError(
-                "cover_image must be a valid base64 image string, beginning with 'data:image'"
-            )
-
-        # if the string is misformed, decoding will fail
+        # base64 image string validity
         try:
-            decoded = b64decode(v, validate=True)
-        except BinasciiError:
+            image_bytes = b64decode(v)
+            img = Image.open(BytesIO(image_bytes))
+        except (BinasciiError, IOError):
             raise ValueError(
                 "cover_image must be a valid base64 image string, properly formed"
             )
 
-        # decoding and re-encoding a valid string should be idempotent. any diff indicates invalidity
-        if not b64encode(decoded) == v:
-            raise ValueError("cover_image must be a valid base64 image string")
+        # image filesize
+        if len(image_bytes) > 512_000:
+            raise ValueError("Maximum cover_image size is 500kb")
+
+        # image formats
+        if img.format.lower() not in ["jpg", "jpeg", "png"]:
+            raise ValueError(
+                "cover_image must be either `jpg`, `jpeg`, or `png` format"
+            )
+
+        # image dimensions
+        width, height = img.size
+        if (width < 100) or (height < 100) or (width > 1000) or (height > 1000):
+            raise ValueError(
+                "Minimum cover_image dimensions are 100x100 and maximum dimensions are 1000x1000"
+            )
 
         # we now have a valid base64 string that claims to be an image
         return v
@@ -115,7 +125,7 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
 
 class CollectionItemBase(BaseModel):
     edition_isbn: str
-    info: CollectionItemInfo | None
+    info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
@@ -148,13 +158,13 @@ class CollectionCreateIn(BaseModel):
 
 
 class CollectionItemDetail(BaseModel):
-    work: Optional[WorkBrief]
+    work: WorkBrief | None
     edition: EditionBrief
 
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
-    info: Optional[Any]
+    info: CollectionItemInfo | None
 
     class Config:
         orm_mode = True

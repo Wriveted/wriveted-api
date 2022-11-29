@@ -17,8 +17,6 @@ from app.models.work import Work
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionItemBase,
-    CollectionItemUpdate,
-    CollectionUpdateType,
 )
 from app.services.editions import get_definitive_isbn
 
