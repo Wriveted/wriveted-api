@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, func
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
@@ -36,8 +45,6 @@ class CollectionItem(Base):
         "Collection", back_populates="items", foreign_keys=[collection_id]
     )
 
-    Index("index_editions_per_collection", collection_id, edition_isbn, unique=True)
-
     info = Column(MutableDict.as_mutable(JSON))
 
     copies_total = Column(Integer, default=1, nullable=False)
@@ -52,6 +59,12 @@ class CollectionItem(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            collection_id, edition_isbn, name="unique_editions_per_collection"
+        ),
     )
 
     def __repr__(self):
