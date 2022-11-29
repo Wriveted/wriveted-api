@@ -83,8 +83,11 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
 
     @validator("cover_image", pre=True)
     def _validate_cover_image(cls, v, values: dict):
+        if not v:
+            return
+
         # first thing's first
-        if v is not None and not v.startswith("data:image"):
+        if not v.startswith("data:image"):
             raise ValueError(
                 "cover_image must be a valid base64 image string, beginning with 'data:image'"
             )
@@ -98,7 +101,7 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
             )
 
         # decoding and re-encoding a valid string should be idempotent. any diff indicates invalidity
-        if v is not None and not b64encode(decoded) == v:
+        if not b64encode(decoded) == v:
             raise ValueError("cover_image must be a valid base64 image string")
 
         # we now have a valid base64 string that claims to be an image
