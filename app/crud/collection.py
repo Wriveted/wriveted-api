@@ -9,11 +9,11 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
 from app import crud
-
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
+
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -177,7 +177,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             info_dict = dict(item_orm_object.info)
             info_update_dict = item_update.info.dict(exclude_unset=True)
 
-            if hasattr(info_update_dict, "cover_image"):
+            if "cover_image" in info_update_dict:
                 info_update_dict[
                     "cover_image"
                 ] = handle_collection_item_cover_image_update(

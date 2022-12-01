@@ -13,6 +13,17 @@ def test_backend_service_account_can_list_works(
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_list_works_of_author(
+    client, backend_service_account_headers, works_list, author_list
+):
+    response = client.get(
+        "v1/works",
+        params={"author_id": author_list[0].id},
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_backend_service_account_can_get_detail_on_specific_works(
     client, backend_service_account_headers, works_list
 ):
