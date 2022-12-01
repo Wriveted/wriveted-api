@@ -90,15 +90,16 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
 
         # base64 image string validity
         try:
-            image_bytes = b64decode(v)
-            img = Image.open(BytesIO(image_bytes))
-        except (BinasciiError, IOError):
+            # remove the metadata from the base64 string before decoding
+            raw_image_bytes = b64decode(v.split(",")[1])
+            img = Image.open(BytesIO(raw_image_bytes))
+        except (BinasciiError, IOError) as e:
             raise ValueError(
                 "cover_image must be a valid base64 image string, properly formed"
             )
 
         # image filesize
-        if len(image_bytes) > 512_000:
+        if len(raw_image_bytes) > 512_000:
             raise ValueError("Maximum cover_image size is 500kb")
 
         # image formats

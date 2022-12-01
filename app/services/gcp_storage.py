@@ -13,7 +13,7 @@ def get_cover_image_bucket():
     Get the google bucket for cover images.
     """
     # get the bucket name
-    bucket_name = settings.GCP_IMAGE_BUCKET_NAME
+    bucket_name = settings.GCP_IMAGE_BUCKET
 
     # get the bucket
     storage_client = storage.Client()

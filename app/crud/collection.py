@@ -239,9 +239,9 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         info_dict = {}
         if item.info is not None:
-            info_dict = item.info.dict(exclude_unset=True, exclude_none=True)
+            info_dict = item.info.dict(exclude_unset=True)
 
-            if hasattr(info_dict, "cover_image"):
+            if "cover_image" in info_dict:
                 info_dict["cover_image"] = handle_new_collection_item_cover_image(
                     str(collection_orm_object.id),
                     item.edition_isbn,
