@@ -24,7 +24,6 @@ from app.schemas.collection import (
 )
 from app.services.editions import get_definitive_isbn
 from app.services.cover_images import (
-    handle_collection_item_cover_image,
     handle_collection_item_cover_image_update,
     handle_new_collection_item_cover_image,
 )
