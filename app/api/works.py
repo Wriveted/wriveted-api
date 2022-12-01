@@ -11,7 +11,7 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
-from app.models import Work
+from app.models import Work, Author
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
@@ -58,12 +58,16 @@ def get_work(
 )
 async def get_works(
     query: Optional[str] = Query(None, description="Query string"),
+    author_id: Optional[int] = Query(None, description="Author's Wriveted Id"),
     isbn: Optional[str] = Query(None, description="Isbn"),
     type: Optional[WorkType] = Query(WorkType.BOOK),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
     works_query = crud.work.get_all_query(session).where(Work.type == type)
+
+    if author_id is not None:
+        works_query = works_query.where(Work.authors.any(Author.id == author_id))
 
     if query is not None:
         works_query = works_query.where(func.lower(Work.title).contains(query.lower()))
