@@ -14,7 +14,7 @@ from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
-from app.models.edition import Edition
+
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -23,7 +23,6 @@ from app.schemas.collection import (
     CollectionItemUpdate,
     CollectionUpdateType,
 )
-from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
 

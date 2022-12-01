@@ -19,7 +19,7 @@ def test_list_works_of_author(
     response = client.get(
         "v1/works",
         params={"author_id": author_list[0].id},
-        headers=backend_service_account_headers
+        headers=backend_service_account_headers,
     )
     assert response.status_code == status.HTTP_200_OK
 
