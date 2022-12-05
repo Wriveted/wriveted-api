@@ -92,6 +92,8 @@ steps:
       - '--network=cloudbuild'
       - '--entrypoint'
       - 'bash'
+      - "--volume"
+      - "/workspace:/workspace"
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
       - 'chmod +x /workspace/migrate.sh && /workspace/migrate.sh'
