@@ -91,6 +91,10 @@ steps:
       - run
       - '-i'
       - '--network=cloudbuild'
+      - '--env="POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD'
+      - '--env="SENDGRID_API_KEY=$$SENDGRID_API_KEY'
+      - '--env="SHOPIFY_HMAC_SECRET=$$SHOPIFY_HMAC_SECRET'
+      - '--env="SECRET_KEY=$$SECRET_KEY'
       - '--entrypoint'
       - 'bash'
       - "--volume"
