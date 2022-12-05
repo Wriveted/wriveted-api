@@ -86,7 +86,7 @@ steps:
       - '--entrypoint'
       - 'bash'
       - '-v'
-      - "/$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate/"
+      - "/$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate/migrate.sh"
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
       - 'chmod +x /migrate/migrate.sh && /migrate/migrate.sh'
