@@ -92,7 +92,7 @@ steps:
       - '-i'
       - '--network=cloudbuild'
       - '-e'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://postgres:$${POSTGRESQL_PASSWORD}@localhost/postgres'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://postgres:$${POSTGRESQL_PASSWORD}@127.0.0.1/postgres'
       - '-e'
       - 'POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD'
       - '-e'
