@@ -98,15 +98,12 @@ steps:
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
       - 'chmod +x /workspace/migrate.sh && /workspace/migrate.sh'
-    secretEnv: ['POSTGRESQL_PASSWORD']
     env:
       - 'SENDGRID_API_KEY=key-not-needed'
       - 'SHOPIFY_HMAC_SECRET=key-not-needed'
       - 'SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781'
-  availableSecrets:
-    secretManager:
-    - versionName: projects/wriveted-api/secrets/wriveted-api-cloud-sql-root-password/versions/latest
-      env: 'POSTGRESQL_PASSWORD'
+    env: 'POSTGRESQL_PASSWORD'
+    secretEnv: ['POSTGRESQL_PASSWORD']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
     args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER']
@@ -116,6 +113,8 @@ availableSecrets:
   secretManager:
     - versionName: projects/wriveted-api/secrets/cloud-build-slack-app-webhook/versions/latest
       env: 'SLACK_WEBHOOK'
+    - versionName: projects/wriveted-api/secrets/wriveted-api-cloud-sql-root-password/versions/latest
+      env: 'POSTGRESQL_PASSWORD'
 images:
   - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
 options:
