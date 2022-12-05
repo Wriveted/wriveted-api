@@ -94,6 +94,8 @@ steps:
       - '-e'
       - 'POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD'
       - '-e'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://postgres:$$POSTGRESQL_PASSWORD@localhost:5432/postgres'
+      - '-e'
       - 'SENDGRID_API_KEY=$$SENDGRID_API_KEY'
       - '-e'
       - 'SHOPIFY_HMAC_SECRET=$$SHOPIFY_HMAC_SECRET'
