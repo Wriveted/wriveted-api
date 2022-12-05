@@ -80,7 +80,7 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
 
 
 class CollectionItemBase(BaseModel):
-    edition_isbn: str
+    edition_isbn: str | None
     info: CollectionItemInfo | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
