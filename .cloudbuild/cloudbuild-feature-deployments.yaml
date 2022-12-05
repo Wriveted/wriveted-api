@@ -78,6 +78,13 @@ steps:
       - '--args=app.internal_api:internal_app'
     id: Deploy-internal-api
     entrypoint: gcloud
+  - id: "Store migration script"
+    name: ubuntu
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cp .cloudbuild/scripts/migrate.sh /workspace/migrate.sh
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - run
@@ -85,8 +92,6 @@ steps:
       - '--network=cloudbuild'
       - '--entrypoint'
       - 'bash'
-      - '-v'
-      - "/$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate/migrate.sh"
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
       - 'chmod +x /migrate/migrate.sh && /migrate/migrate.sh'
