@@ -81,7 +81,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - run
-      - '-it'
+      - '-i'
       - '--entrypoint'
       - '/migrate.sh'
       - '-v'
