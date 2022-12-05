@@ -86,7 +86,7 @@ steps:
       - |
         cp .cloudbuild/scripts/migrate.sh /workspace/migrate.sh
   - name: 'gcr.io/cloud-builders/docker'
-		id: RunMigration
+    id: RunMigration
     args:
       - run
       - '-i'
