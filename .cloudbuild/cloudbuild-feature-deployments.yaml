@@ -102,7 +102,6 @@ steps:
       - 'SENDGRID_API_KEY=key-not-needed'
       - 'SHOPIFY_HMAC_SECRET=key-not-needed'
       - 'SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781'
-    env: 'POSTGRESQL_PASSWORD'
     secretEnv: ['POSTGRESQL_PASSWORD']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
