@@ -78,6 +78,17 @@ steps:
       - '--args=app.internal_api:internal_app'
     id: Deploy-internal-api
     entrypoint: gcloud
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - run
+      - '-it'
+      - '--entrypoint'
+      - '/migrate.sh'
+      - '-v'
+      - "$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate.sh"
+      - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+			- '--network=cloudbuild'
+    id: RunMigration
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
     args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER']
