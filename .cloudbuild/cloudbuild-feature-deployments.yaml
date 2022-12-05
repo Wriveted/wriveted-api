@@ -86,10 +86,10 @@ steps:
       - '--entrypoint'
       - 'bash'
       - '-v'
-      - "/$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate.sh"
+      - "/$(pwd)/.cloudbuild/scripts/migrate.sh:/migrate/"
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
-      - 'chmod +x /migrate.sh && /migrate.sh'
+      - 'chmod +x /migrate/migrate.sh && /migrate/migrate.sh'
     id: RunMigration
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
