@@ -82,7 +82,7 @@ async def get_collection_items(
     collection_items = session.scalars(
         select(CollectionItem)
         .join(
-            CollectionItem.edition
+            CollectionItem.edition, isouter=True
         )  # Note would be a joined load anyway, but now we can filter with it
         .where(CollectionItem.collection_id == collection.id)
         .order_by(asc(Edition.title))

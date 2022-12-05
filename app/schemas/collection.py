@@ -115,7 +115,7 @@ class CollectionCreateIn(BaseModel):
 
 class CollectionItemDetail(BaseModel):
     work: Optional[WorkBrief]
-    edition: EditionBrief
+    edition: EditionBrief | None
 
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
