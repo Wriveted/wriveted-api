@@ -92,7 +92,7 @@ steps:
       - '-i'
       - '--network=cloudbuild'
       - '-e'
-      - 'POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD'
+      - "POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD"
       - '-e'
       - 'SENDGRID_API_KEY=$$SENDGRID_API_KEY'
       - '-e'
@@ -102,7 +102,7 @@ steps:
       - '--entrypoint'
       - 'bash'
       - "--volume"
-      - "/workspace:/workspace"
+      - '/workspace:/workspace'
       - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '-c'
       - 'chmod +x /workspace/migrate.sh && /workspace/migrate.sh'
