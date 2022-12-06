@@ -19,7 +19,7 @@ chmod +x cloud_sql_proxy
 
 # We consider "curl: (52) Empty reply from server" as an established connection
 echo "Waiting for proxy connection to establish..."
-until grep -q "(52)" <(curl -L localhost:5432/ 2>&1); do
+until grep -q "(52)" <(curl -L "localhost:${POSTGRES_PORT}/" 2>&1); do
   echo "waiting..."
   sleep 2
 done
@@ -27,4 +27,6 @@ echo "connection established"
 
 echo "Running migration"
 export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_PASSWORD}@localhost/postgres"
+echo "${SQLALCHEMY_DATABASE_URI}" | wc -c
+
 poetry run alembic upgrade head
