@@ -92,8 +92,6 @@ steps:
       - '-i'
       - '--network=cloudbuild'
       - '-e'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://postgres:$${POSTGRESQL_PASSWORD}@127.0.0.1/postgres'
-      - '-e'
       - 'POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD'
       - '-e'
       - 'SENDGRID_API_KEY=$$SENDGRID_API_KEY'

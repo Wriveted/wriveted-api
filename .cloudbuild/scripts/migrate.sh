@@ -15,7 +15,7 @@ trap proxy_connection_cleanup EXIT SIGTERM SIGINT SIGQUIT
 echo "Downloading cloud_sql_proxy"
 wget -q "https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64" -O cloud_sql_proxy
 chmod +x cloud_sql_proxy
-./cloud_sql_proxy -instances="${CLOUD_SQL_INSTANCE}=tcp:127.0.0.1:${POSTGRES_PORT}" &
+./cloud_sql_proxy -instances="${CLOUD_SQL_INSTANCE}=tcp:localhost:${POSTGRES_PORT}" &
 
 # We consider "curl: (52) Empty reply from server" as an established connection
 echo "Waiting for proxy connection to establish..."
@@ -26,4 +26,5 @@ done
 echo "connection established"
 
 echo "Running migration"
+export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_PASSWORD}@localhost/postgres"
 poetry run alembic upgrade head
