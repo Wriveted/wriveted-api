@@ -96,7 +96,7 @@ steps:
        -e POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD \
        -e SENDGRID_API_KEY=foo \
        -e SHOPIFY_HMAC_SECRET=foo \
-       SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781 \
+       -e SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781 \
        --entrypoint bash \
        --volume /workspace:/workspace \
        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
