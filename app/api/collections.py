@@ -82,7 +82,7 @@ async def get_collection_items(
     collection_items = session.scalars(
         select(CollectionItem)
         .join(
-            CollectionItem.edition
+            CollectionItem.edition, isouter=True
         )  # Note would be a joined load anyway, but now we can filter with it
         .where(CollectionItem.collection_id == collection.id)
         .order_by(asc(Edition.title))
@@ -95,38 +95,7 @@ async def get_collection_items(
 
 
 @router.get(
-    "/collection/{collection_id}/{isbn}",
-    response_model=CollectionItemDetail,
-)
-async def get_collection_item(
-    collection: Collection = Permission("read", get_collection_from_id),
-    edition: Edition = Depends(get_edition_from_isbn),
-    session: Session = Depends(get_session),
-):
-    """
-    Returns a selected item from a collection, raising a 404 if it doesn't exist (either in the collection or at all).
-    """
-    logger.debug(
-        f"Searching collection {collection.id} for edition {edition.isbn}",
-    )
-
-    collection_item = session.execute(
-        select(CollectionItem)
-        .where(CollectionItem.collection_id == collection.id)
-        .where(CollectionItem.edition_isbn == edition.isbn)
-    ).scalar_one_or_none()
-
-    if collection_item is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection {collection.id} does not contain edition {edition.isbn}",
-        )
-
-    return collection_item
-
-
-@router.get(
-    "/collection/{id}/info",
+    "/collection/{collection_id}/info",
     response_model=CollectionInfo,
 )
 async def get_collection_info(
@@ -164,6 +133,39 @@ async def get_collection_info(
     ).scalar_one()
 
     return output
+
+
+# note the order of the endpoints in this file is important:
+# to avoid ambiguity the /items and /info endpoints must be defined before this /{isbn} endpoint
+@router.get(
+    "/collection/{collection_id}/{isbn}",
+    response_model=CollectionItemDetail,
+)
+async def get_collection_item(
+    collection: Collection = Permission("read", get_collection_from_id),
+    edition: Edition = Depends(get_edition_from_isbn),
+    session: Session = Depends(get_session),
+):
+    """
+    Returns a selected item from a collection, raising a 404 if it doesn't exist (either in the collection or at all).
+    """
+    logger.debug(
+        f"Searching collection {collection.id} for edition {edition.isbn}",
+    )
+
+    collection_item = session.execute(
+        select(CollectionItem)
+        .where(CollectionItem.collection_id == collection.id)
+        .where(CollectionItem.edition_isbn == edition.isbn)
+    ).scalar_one_or_none()
+
+    if collection_item is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collection {collection.id} does not contain edition {edition.isbn}",
+        )
+
+    return collection_item
 
 
 @router.post(

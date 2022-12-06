@@ -463,8 +463,10 @@ def test_collection_management(
         + ADDED_NUMBER_OF_BOOKS
         - REMOVED_NUMBER_OF_BOOKS,
     )
+
+    current_school_total = new_school_collection["book_count"]
     assert (
-        new_school_collection["book_count"]
+        current_school_total
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         + ADDED_NUMBER_OF_BOOKS
@@ -500,12 +502,91 @@ def test_collection_management(
         + ADDED_NUMBER_OF_BOOKS
         - REMOVED_NUMBER_OF_BOOKS,
     )
+
+    current_user_total = new_user_collection["book_count"]
     assert (
-        new_user_collection["book_count"]
+        current_user_total
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS
         + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
         + ADDED_NUMBER_OF_BOOKS
         - REMOVED_NUMBER_OF_BOOKS
+    )
+
+    # ------------------- WITHOUT ISBNS -------------------
+
+    NUMBER_WITHOUT_ISBNS = 10
+
+    print("Adding 10 books without ISBNs to collection via `PATCH .../collection` API")
+    collection_changes = [
+        {
+            "action": "add",
+            "info": {
+                "title": f"Test Book {i}",
+                "author": f"Test Author {i}",
+            },
+        }
+        for i in range(NUMBER_WITHOUT_ISBNS)
+    ]
+
+    # school
+
+    updates_response = client.patch(
+        f"/v1/collection/{school_collection_id}",
+        json={"items": collection_changes},
+        timeout=120,
+        headers=lms_service_account_headers_for_school,
+    )
+    updates_response.raise_for_status()
+    print(updates_response.json())
+
+    print("Added books without ISBNs to school collection")
+    get_collection_response = client.get(
+        f"/v1/collection/{school_collection_id}",
+        headers=lms_service_account_headers_for_school,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    new_school_collection = get_collection_response.json()
+    print(
+        "Current collection size:",
+        new_school_collection["book_count"],
+        "expected: ",
+        current_school_total + NUMBER_WITHOUT_ISBNS,
+    )
+    assert (
+        new_school_collection["book_count"]
+        == current_school_total + NUMBER_WITHOUT_ISBNS
+    )
+
+    # user
+
+    updates_response = client.patch(
+        f"/v1/collection/{user_collection_id}",
+        json={"items": collection_changes},
+        timeout=120,
+        headers=test_user_account_headers,
+    )
+    updates_response.raise_for_status()
+    print(updates_response.json())
+
+    print("Added books without ISBNs to user collection")
+    get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    new_user_collection = get_collection_response.json()
+    print(
+        "Current collection size:",
+        new_user_collection["book_count"],
+        "expected: ",
+        current_user_total + NUMBER_WITHOUT_ISBNS,
+    )
+    assert (
+        new_user_collection["book_count"] == current_user_total + NUMBER_WITHOUT_ISBNS
     )
 
     # ----------------- DELETE COLLECTION -----------------
