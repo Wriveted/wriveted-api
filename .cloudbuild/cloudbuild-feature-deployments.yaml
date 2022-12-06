@@ -78,13 +78,6 @@ steps:
       - '--args=app.internal_api:internal_app'
     id: Deploy-internal-api
     entrypoint: gcloud
-  - id: "Store migration script"
-    name: ubuntu
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        cp .cloudbuild/scripts/migrate.sh /workspace/migrate.sh
   - name: 'gcr.io/cloud-builders/docker'
     id: RunMigration
     entrypoint: bash
@@ -98,9 +91,9 @@ steps:
        -e SHOPIFY_HMAC_SECRET=foo \
        -e SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781 \
        --entrypoint bash \
-       --volume /workspace:/workspace \
+       --volume $(pwd)/.cloudbuild/scripts/:/scripts/ \
        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-       -c '/workspace/migrate.sh'
+       -c '/scripts/migrate.sh'
     secretEnv: ['POSTGRESQL_PASSWORD']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
