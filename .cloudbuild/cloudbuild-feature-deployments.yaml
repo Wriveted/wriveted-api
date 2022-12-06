@@ -78,6 +78,11 @@ steps:
       - '--args=app.internal_api:internal_app'
     id: Deploy-internal-api
     entrypoint: gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'bash'
+    args: ['-c', './.cloudbuild/scripts/slack-send.sh $_PR_NUMBER']
+    secretEnv: ['SLACK_WEBHOOK']
+    id: SlackNotification
 availableSecrets:
   secretManager:
     - versionName: projects/wriveted-api/secrets/cloud-build-slack-app-webhook/versions/latest
