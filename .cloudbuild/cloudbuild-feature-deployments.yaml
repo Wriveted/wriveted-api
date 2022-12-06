@@ -100,7 +100,7 @@ steps:
        --entrypoint bash \
        --volume /workspace:/workspace \
        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-       -c 'chmod +x /workspace/migrate.sh && /workspace/migrate.sh'
+       -c '/workspace/migrate.sh'
     secretEnv: ['POSTGRESQL_PASSWORD']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
