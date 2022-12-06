@@ -93,7 +93,7 @@ steps:
        --entrypoint bash \
        --volume $(pwd)/.cloudbuild/scripts/:/scripts/ \
        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-       -c '/scripts/migrate.sh'
+       -c '/scripts/database_migrate.sh'
     secretEnv: ['POSTGRESQL_PASSWORD']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
