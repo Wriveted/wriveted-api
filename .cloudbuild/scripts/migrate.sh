@@ -7,7 +7,7 @@ POSTGRES_PORT="5432"
 
 # trap signals to kill the background connection process
 proxy_connection_cleanup() {
-  echo "cleaning up"
+  echo "cleaning up cloud_sql_proxy connection"
   kill "$(jobs -p)"
 }
 trap proxy_connection_cleanup EXIT SIGTERM SIGINT SIGQUIT
@@ -27,6 +27,4 @@ echo "connection established"
 
 echo "Running migration"
 export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_PASSWORD}@localhost/postgres"
-echo "${SQLALCHEMY_DATABASE_URI}" | wc -c
-
 poetry run alembic upgrade head
