@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-CLOUD_SQL_INSTANCE="wriveted-api:australia-southeast1:wriveted-development"
+CLOUD_SQL_INSTANCE="wriveted-api:australia-southeast1:wriveted"
 POSTGRES_PORT="5432"
 
 # trap signals to kill the background connection process
