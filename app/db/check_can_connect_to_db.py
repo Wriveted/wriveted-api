@@ -33,7 +33,6 @@ def check_can_connect_to_database() -> None:
 
 def check_database_ready_with_retry(config):
     logger.info("Waiting for database to accept connections")
-    logger.info(config)
     check_can_connect_to_database()
     logger.info("Database ready")
 
