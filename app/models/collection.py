@@ -33,7 +33,7 @@ class Collection(Base):
     works = association_proxy("items", "work")
 
     book_count = column_property(
-        select(func.count(CollectionItem.edition_isbn))
+        select(func.count(CollectionItem.id))
         .where(CollectionItem.collection_id == id)
         .correlate_except(CollectionItem)
         .scalar_subquery()
