@@ -19,7 +19,7 @@ class CollectionBrief(BaseModel):
         orm_mode = True
 
 
-class CollectionInfo(CollectionBrief):
+class CollectionInfo(BaseModel):
     """
     Count editions in each state in a collection.
 
@@ -29,10 +29,6 @@ class CollectionInfo(CollectionBrief):
     total_editions: int = Field(
         ..., description="Count of unique editions in this collection"
     )
-
-    @validator("total_editions", pre=True)
-    def _validate_total_editions(cls, v, values: dict):
-        return values.get("book_count", 0)
 
     hydrated: int = Field(
         ...,

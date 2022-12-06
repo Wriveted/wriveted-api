@@ -126,7 +126,7 @@ async def get_collection_item(
 
 
 @router.get(
-    "/collection/{id}/info",
+    "/collection/{collection_id}/info",
     response_model=CollectionInfo,
 )
 async def get_collection_info(
