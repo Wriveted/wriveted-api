@@ -15,9 +15,12 @@ from pydantic import (
     root_validator,
     validator,
 )
+from structlog import get_logger
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
+
+logger = get_logger()
 
 
 class CollectionBrief(BaseModel):
@@ -90,6 +93,8 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
     def _validate_cover_image(cls, v, values: dict):
         if not v:
             return
+
+        logger.info(f"Validating cover_image `{v[0:100]}...`")
 
         # base64 image string validity
         try:
