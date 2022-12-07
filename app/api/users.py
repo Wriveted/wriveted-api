@@ -11,6 +11,7 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.common.sortable import SortableQueryParams
 from app.api.dependencies.security import (
     create_user_access_token,
     get_active_principals,
@@ -50,6 +51,7 @@ async def get_users(
         None, description="Filter users by account type. Default is all."
     ),
     pagination: PaginatedQueryParams = Depends(),
+    sorting: SortableQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
     """
