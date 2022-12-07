@@ -1,3 +1,4 @@
+from base64 import b64decode
 from google.cloud import storage
 from structlog import get_logger
 
@@ -33,6 +34,7 @@ def base64_string_to_bucket(data: str, folder: str, filename: str):
 
     # get the image data
     image_data = data.split(",")[1]
+    data_bytes = b64decode(image_data)
 
     # create blob filename
     full_filename = f"{filename}.{filetype}"
@@ -41,7 +43,7 @@ def base64_string_to_bucket(data: str, folder: str, filename: str):
     # upload the image to the bucket
     bucket = get_cover_image_bucket()
     blob = bucket.blob(blob_name)
-    blob.upload_from_string(image_data, content_type=f"image/{filetype}")
+    blob.upload_from_string(data_bytes, content_type=f"image/{filetype}")
 
     # return the public url to the image
     return blob.public_url
