@@ -148,6 +148,7 @@ class CollectionItemBase(BaseModel):
 
 class CollectionItemInnerCreateIn(CollectionItemBase):
     collection_id: UUID
+    info: CollectionItemInfo | None
 
 
 class CollectionCreateIn(BaseModel):
