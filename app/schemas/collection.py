@@ -7,7 +7,14 @@ from io import BytesIO
 from base64 import b64decode
 from binascii import Error as BinasciiError
 
-from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    Field,
+    conint,
+    root_validator,
+    validator,
+)
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
@@ -114,6 +121,10 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
         # we now have a valid base64 string that claims to be an image
         return v
 
+    class Config:
+        max_anystr_length = 2**18
+        validate_assignment = True
+
 
 class CoverImageUpdateIn(CollectionItemInfoCreateIn):
     collection_id: UUID | None
@@ -122,7 +133,7 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
 
 class CollectionItemBase(BaseModel):
     edition_isbn: str | None
-    info: CollectionItemInfo | None
+    info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
