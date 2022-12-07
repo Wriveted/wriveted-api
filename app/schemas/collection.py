@@ -24,7 +24,7 @@ class CollectionBrief(BaseModel):
         orm_mode = True
 
 
-class CollectionInfo(CollectionBrief):
+class CollectionInfo(BaseModel):
     """
     Count editions in each state in a collection.
 
@@ -34,10 +34,6 @@ class CollectionInfo(CollectionBrief):
     total_editions: int = Field(
         ..., description="Count of unique editions in this collection"
     )
-
-    @validator("total_editions", pre=True)
-    def _validate_total_editions(cls, v, values: dict):
-        return values.get("book_count", 0)
 
     hydrated: int = Field(
         ...,
@@ -125,8 +121,8 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
 
 
 class CollectionItemBase(BaseModel):
-    edition_isbn: str
-    info: CollectionItemInfoCreateIn | None
+    edition_isbn: str | None
+    info: CollectionItemInfo | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
@@ -159,8 +155,8 @@ class CollectionCreateIn(BaseModel):
 
 
 class CollectionItemDetail(BaseModel):
-    work: WorkBrief | None
-    edition: EditionBrief
+    work: Optional[WorkBrief]
+    edition: EditionBrief | None
 
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None

@@ -228,14 +228,18 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):
-        try:
-            edition = crud.edition.get_or_create_unhydrated(
-                db=db, isbn=item.edition_isbn, commit=True
-            )
-        except AssertionError as e:
-            # Invalid isbn, just skip
-            logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
-            return
+        isbn = item.edition_isbn
+
+        if isbn is not None:
+            try:
+                edition = crud.edition.get_or_create_unhydrated(
+                    db=db, isbn=item.edition_isbn, commit=True
+                )
+                isbn = edition.isbn
+            except AssertionError as e:
+                # Invalid isbn, just skip
+                logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
+                return
 
         info_dict = {}
         if item.info is not None:
@@ -250,7 +254,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
-            edition_isbn=edition.isbn,
+            edition_isbn=isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
             info=info_dict,
@@ -273,10 +277,30 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 orig=e,
             ) from None
 
+        db.refresh(collection_orm_object)
+
+        if not isbn:
+            logger.warning(
+                f"Item with no isbn added to collection #{collection_orm_object.id}"
+            )
+            crud.event.create(
+                session=db,
+                title="Unknown Book added to Collection",
+                description=f"Book with no isbn added to collection #{collection_orm_object.id}",
+                info={
+                    "collection_id": str(collection_orm_object.id),
+                    "title": item.info.title if item.info else None,
+                    "author": item.info.author if item.info else None,
+                    "item_id": str(new_orm_item.id),
+                },
+                school=collection_orm_object.school,
+                account=collection_orm_object.user,
+                commit=False,
+            )
+
         if commit:
             db.commit()
 
-        db.refresh(collection_orm_object)
         return new_orm_item
 
     def get_collection_items_by_collection_id(

@@ -102,6 +102,8 @@ async def create_missing_editions_unhydrated(session: Session, isbn_list: list[s
 # all Editions should be stored by ISBN13, and any queries should standardise the request into
 # a "definitive" isbn to store or lookup.
 def get_definitive_isbn(isbn: str):
+    assert isbn
+
     # strip all characters that aren't "valid" (i.e. hyphens, spaces)
     valid_chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"]
     cleaned_isbn = "".join([i for i in isbn.upper() if i in valid_chars])
