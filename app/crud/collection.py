@@ -217,7 +217,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
     ):
         isbn = item.edition_isbn
 
-        if isbn:
+        if isbn is not None:
             try:
                 edition = crud.edition.get_or_create_unhydrated(
                     db=db, isbn=item.edition_isbn, commit=True
