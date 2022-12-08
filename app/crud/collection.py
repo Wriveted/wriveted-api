@@ -3,18 +3,15 @@ from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound, IntegrityError
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from app import crud
 
+from app import crud
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
-
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,

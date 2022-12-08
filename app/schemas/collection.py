@@ -2,7 +2,7 @@ import enum
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
+from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
