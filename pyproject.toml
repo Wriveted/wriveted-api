@@ -29,6 +29,7 @@ google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
 setuptools = "^65.6.2"
 humanize = "^4.4.0"
+stripe = "^5.0.0"
 
 
 [tool.poetry.dev-dependencies]

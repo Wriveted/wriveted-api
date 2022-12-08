@@ -1,3 +1,4 @@
+import stripe
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -11,7 +12,7 @@ from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app.api.depedencies.stripe_security import get_stripe_event
+from app.api.dependencies.stripe_security import get_stripe_event
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     verify_shopify_hmac,
@@ -128,6 +129,8 @@ async def process_stripe_webhook(
     https://stripe.com/docs/webhooks
     """
 
-    logger.info("Received an event from Stripe", event=event)
+    logger.info("Received an event from Stripe", stripe_event=event)
+
 
     return {"status": "success"}
+

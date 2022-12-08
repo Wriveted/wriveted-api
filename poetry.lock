@@ -1924,6 +1924,17 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyaml"]
 
 [[package]]
+name = "stripe"
+version = "5.0.0"
+description = "Python bindings for the Stripe API"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[package.dependencies]
+requests = {version = ">=2.20", markers = "python_version >= \"3.0\""}
+
+[[package]]
 name = "structlog"
 version = "22.2.0"
 description = "Structured Logging for Python"
@@ -2201,7 +2212,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "778ccea94abfa5739250a69015682d4d8a819151b3694f92d00fcb65402c24fd"
+content-hash = "c453120848156c6fef0638fb4aed4473047eb3fe2b89abc6c11c644c1959ccf8"
 
 [metadata.files]
 alembic = [
@@ -3665,6 +3676,10 @@ starkbank-ecdsa = [
 starlette = [
     {file = "starlette-0.21.0-py3-none-any.whl", hash = "sha256:0efc058261bbcddeca93cad577efd36d0c8a317e44376bcfc0e097a2b3dc24a7"},
     {file = "starlette-0.21.0.tar.gz", hash = "sha256:b1b52305ee8f7cfc48cde383496f7c11ab897cd7112b33d998b1317dc8ef9027"},
+]
+stripe = [
+    {file = "stripe-5.0.0-py2.py3-none-any.whl", hash = "sha256:50f69a5fc9cd6f7629861b80ea70a3c6da0c76401ddc159474f2d45fab9215d6"},
+    {file = "stripe-5.0.0.tar.gz", hash = "sha256:bdc8c5ee8e6b53c4767bbe720752cedb8af91db46ad96e511edd0fb74964ac5d"},
 ]
 structlog = [
     {file = "structlog-22.2.0-py3-none-any.whl", hash = "sha256:bb1aa189214c30372a8afaa592f9556756aeb690e1ad7eb34391d7b5fa0f09b2"},
