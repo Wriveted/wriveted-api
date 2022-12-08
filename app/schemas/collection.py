@@ -127,7 +127,10 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
         return v
 
     class Config:
-        max_anystr_length = 2**18
+        max_anystr_length = (
+            2**19
+        ) * 1.5  # Max filesize is 500kb, but base64 strings are at least 4/3 the size
+
         validate_assignment = True
 
 
