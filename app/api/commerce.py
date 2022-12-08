@@ -11,6 +11,7 @@ from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
+from app.api.depedencies.stripe_security import get_stripe_event
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     verify_shopify_hmac,
@@ -112,3 +113,21 @@ async def create_shopify_order(
     background_tasks.add_task(process_shopify_order, data, sg, session)
 
     return Response(status_code=200, content="Thanks Shopify")
+
+
+@router.post(
+    "/stripe/webhook",
+)
+async def process_stripe_webhook(
+    event: stripe.Event = Depends(get_stripe_event),
+    session: Session = Depends(get_session),
+):
+    """
+    Endpoint for the Webhook called by Stripe.
+
+    https://stripe.com/docs/webhooks
+    """
+
+    logger.info("Received an event from Stripe", event=event)
+
+    return {"status": "success"}

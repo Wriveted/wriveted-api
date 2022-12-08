@@ -147,6 +147,9 @@ class Settings(BaseSettings):
     LOG_AS_JSON: bool = False
     DEBUG: bool = False
 
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+
     class Config:
         case_sensitive = True
         use_enum_values = True
