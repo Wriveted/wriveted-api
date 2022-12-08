@@ -1,6 +1,5 @@
 import stripe as stripe
-
-from fastapi import Request, Header
+from fastapi import Header, Request
 from structlog import get_logger
 
 from app.config import get_settings
@@ -16,17 +15,14 @@ async def get_stripe_event(
     """A FastAPI dependency to get and verify the Stripe signature."""
     payload = await request.body()
     endpoint_secret = config.STRIPE_WEBHOOK_SECRET
-    logger.warning("Have stripe webhook secret", secret=endpoint_secret, stripe_header=stripe_signature)
-    logger.warning("Body", body=payload)
     try:
         event = stripe.Webhook.construct_event(
-            payload,
-            stripe_signature,
-            endpoint_secret)
+            payload, stripe_signature, endpoint_secret
+        )
     except ValueError as e:
-        # Invalid payload
+        logger.warning("Invalid payload", payload=payload, exc_info=e)
         raise e
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
+        logger.warning("Invalid signature", payload=payload, exc_info=e)
         raise e
     return event

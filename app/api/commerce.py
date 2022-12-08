@@ -11,12 +11,13 @@ from fastapi import (
 from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from structlog.contextvars import bind_contextvars
 
-from app.api.dependencies.stripe_security import get_stripe_event
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     verify_shopify_hmac,
 )
+from app.api.dependencies.stripe_security import get_stripe_event
 from app.config import get_settings
 from app.db.session import get_session
 from app.schemas.sendgrid import (
@@ -129,8 +130,42 @@ async def process_stripe_webhook(
     https://stripe.com/docs/webhooks
     """
 
-    logger.info("Received an event from Stripe", stripe_event=event)
+    logger.info("Received an event from Stripe", stripe_event_type=event.type)
+    event_data = event.data["object"]
+    bind_contextvars(stripe_event_type=event.type)
 
+    if "customer" in event_data:
+        bind_contextvars(stripe_customer_id=event_data["customer"])
+
+    match event.type:
+        # Customer events
+        case "customer.created":
+            logger.info("Stripe customer created")
+            logger.info("Payload", stripe_event_data=event_data)
+        case "customer.updated":
+            logger.info("Stripe customer updated")
+        # Subscription events
+        case "customer.subscription.created":
+            logger.info("Subscription created")
+            logger.info("Payload", stripe_event_data=event_data)
+            logger.info("Scheduling task to update User with Stripe customer")
+
+            # TODO: Work out how to link User and Stripe customer
+            # Schedule a background task to update the User with the Stripe customer ID
+
+        case "customer.subscription.updated":
+            logger.info("Subscription created")
+        case "customer.subscription.deleted":
+            logger.info("Subscription deleted")
+
+        # Payment events
+        case "payment_intent.succeeded":
+            logger.info("Payment intent succeeded")
+        case "payment_intent.payment_failed":
+            logger.warning("Payment failed")
+
+        case _:
+            logger.info("Unhandled Stripe event", stripe_event_type=event.type)
+            logger.debug("Stripe event data", stripe_event_data=event.data)
 
     return {"status": "success"}
-
