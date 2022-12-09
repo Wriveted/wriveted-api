@@ -1,3 +1,4 @@
+import stripe
 import textwrap
 
 from fastapi import FastAPI
@@ -41,6 +42,10 @@ internal_app = FastAPI(
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
 )
+
+
+# Load the Stripe API key
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 @internal_app.exception_handler(RequestValidationError)
