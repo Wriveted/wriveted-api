@@ -9,7 +9,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.87"
+fastapi = "^0.88"
 uvicorn = {extras = ["standard"], version = "^0.20"}
 alembic = "^1.8"
 structlog = "^22.2.0"
