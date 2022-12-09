@@ -6,11 +6,13 @@ from structlog import get_logger
 
 from app import crud
 from app.db.session import get_session
+from app.schemas.collection import CoverImageUpdateIn
 from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import get_sendgrid_api, send_sendgrid_email
 from app.services.events import process_events
+from app.services.cover_images import base64_string_to_bucket
 
 
 class CloudRunEnvironment(BaseSettings):
