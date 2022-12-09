@@ -15,6 +15,7 @@ async def get_stripe_event(
     """A FastAPI dependency to get and verify the Stripe signature."""
     payload = await request.body()
     endpoint_secret = config.STRIPE_WEBHOOK_SECRET
+    logger.warning("Verifying Stripe signature", signature=stripe_signature, endpoint_secret=endpoint_secret)
     try:
         event = stripe.Webhook.construct_event(
             payload, stripe_signature, endpoint_secret
