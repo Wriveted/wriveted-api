@@ -120,12 +120,12 @@ async def create_shopify_order(
 @router.post(
     "/stripe/webhook",
 )
-async def process_stripe_webhook(
+async def handle_stripe_webhook(
     event: stripe.Event = Depends(get_stripe_event),
     session: Session = Depends(get_session),
 ):
     """
-    Endpoint for the Webhook called by Stripe.
+    Public endpoint for the Webhook called by Stripe.
 
     https://stripe.com/docs/webhooks
     """
@@ -136,36 +136,14 @@ async def process_stripe_webhook(
 
     if "customer" in event_data:
         bind_contextvars(stripe_customer_id=event_data["customer"])
+    logger.info("Stripe event scheduled for internal processing")
+    background_task_response = queue_background_task(
+        "process-stripe-event",
+        {
+            "stripe_event_type": event.type,
+            "stripe_event_data": event_data,
+        },
+    )
 
-    match event.type:
-        # Customer events
-        case "customer.created":
-            logger.info("Stripe customer created")
-            logger.info("Payload", stripe_event_data=event_data)
-        case "customer.updated":
-            logger.info("Stripe customer updated")
-        # Subscription events
-        case "customer.subscription.created":
-            logger.info("Subscription created")
-            logger.info("Payload", stripe_event_data=event_data)
-            logger.info("Scheduling task to update User with Stripe customer")
-
-            # TODO: Work out how to link User and Stripe customer
-            # Schedule a background task to update the User with the Stripe customer ID
-
-        case "customer.subscription.updated":
-            logger.info("Subscription created")
-        case "customer.subscription.deleted":
-            logger.info("Subscription deleted")
-
-        # Payment events
-        case "payment_intent.succeeded":
-            logger.info("Payment intent succeeded")
-        case "payment_intent.payment_failed":
-            logger.warning("Payment failed")
-
-        case _:
-            logger.info("Unhandled Stripe event", stripe_event_type=event.type)
-            logger.debug("Stripe event data", stripe_event_data=event.data)
-
+    logger.info("Bg task", bg_task=background_task_response)
     return {"status": "success"}

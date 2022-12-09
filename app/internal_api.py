@@ -1,6 +1,6 @@
-import stripe
 import textwrap
 
+import stripe
 from fastapi import FastAPI
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
