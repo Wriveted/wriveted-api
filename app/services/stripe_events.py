@@ -53,7 +53,7 @@ def process_stripe_event(event_type: str, event_data):
 
                 logger.info("Updating Wriveted user")
                 wriveted_user.is_active = True
-                wriveted_user.info["stripe_subscription"] = event_data["id"]
+                wriveted_user.info["stripe_subscription_id"] = event_data["id"]
                 logger.info("Finished processing a subscription created event")
             case "customer.subscription.updated":
                 logger.info("Subscription updated. Not taking an action")
