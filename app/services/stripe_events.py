@@ -1,9 +1,13 @@
+from stripe.api_resources.customer import Customer
+from typing import Tuple, Optional
+
 import stripe
 from structlog import get_logger
 from structlog.contextvars import bind_contextvars
 
 from app import crud
 from app.db.session import get_session_maker
+from app.models import User
 
 logger = get_logger()
 
@@ -72,11 +76,16 @@ def process_stripe_event(event_type: str, event_data):
                 logger.debug("Stripe event data", stripe_event_data=event_data)
 
 
-def get_user_for_stripe_customer(session, customer_id):
+def get_user_for_stripe_customer(session, customer_id) -> Tuple[Optional[User], Customer]:
     logger.info("Looking up stripe customer details")
     customer_detail = stripe.Customer.retrieve(customer_id)
     logger.info("Customer detail", customer_detail=customer_detail)
     customer_email = customer_detail["email"]
-    logger.info("Customer email", customer_email=customer_email)
-    wriveted_user = crud.user.get_by_account_email(db=session, email=customer_email)
+    if customer_email is not None:
+        logger.info("Customer email", customer_email=customer_email)
+        wriveted_user = crud.user.get_by_account_email(db=session, email=customer_email)
+    else:
+        logger.warning("No email found for customer")
+        wriveted_user = None
+
     return wriveted_user, customer_detail
