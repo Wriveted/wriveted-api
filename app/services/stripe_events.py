@@ -54,11 +54,11 @@ def process_stripe_event(event_type: str, event_data):
                     # TODO: Send an email to the customer to let them know
                     # that we couldn't find their account, and with instructions
                     # to link their subscription to their existing Wriveted account
-
-                logger.info("Updating Wriveted user")
-                wriveted_user.is_active = True
-                wriveted_user.info["stripe_subscription_id"] = event_data["id"]
-                logger.info("Finished processing a subscription created event")
+                else:
+                    logger.info("Updating Wriveted user")
+                    wriveted_user.is_active = True
+                    wriveted_user.info["stripe_subscription_id"] = event_data["id"]
+                    logger.info("Finished processing a subscription created event")
             case "customer.subscription.updated":
                 logger.info("Subscription updated. Not taking an action")
             case "customer.subscription.deleted":
