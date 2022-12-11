@@ -81,4 +81,8 @@ class User(Base):
         order_by="desc(Event.timestamp)",
     )
 
+    stripe_subscription = relationship(
+        "StripeSubscription", back_populates="user", uselist=False
+    )
+
     newsletter = Column(Boolean(), nullable=False, server_default="false")
