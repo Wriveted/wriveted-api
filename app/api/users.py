@@ -19,6 +19,7 @@ from app.api.dependencies.security import (
 )
 from app.api.dependencies.user import get_user_from_id
 from app.db.session import get_session
+from app.models.subscription import SubscriptionType
 from app.models.user import User, UserAccountType
 from app.permissions import Permission
 from app.schemas.auth import SpecificUserDetail
@@ -49,6 +50,9 @@ async def get_users(
     type: Optional[UserAccountType] = Query(
         None, description="Filter users by account type. Default is all."
     ),
+    active_subscription_type: Optional[SubscriptionType] = Query(
+        None, description="Filter users by active subscription type. Default is all."
+    ),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -61,6 +65,7 @@ async def get_users(
         query_string=q,
         is_active=is_active,
         type=type,
+        active_subscription_type=active_subscription_type,
         skip=pagination.skip,
         limit=pagination.limit,
     )
@@ -102,6 +107,10 @@ async def create_user(
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user", user=user)
+    try:
+        logger.info("User sub", sub=user.subscription)
+    except:
+        logger.info("No sub")
     return user
 
 

@@ -2,6 +2,7 @@ from starlette import status
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
+from app.models import Subscription
 from app.schemas.users.user_update import UserUpdateIn
 
 
@@ -108,6 +109,51 @@ def test_get_parent_user(
 
     json = response.json()
     assert json["type"] == "parent"
+
+
+def test_get_subscribed_parent_user(
+    session,
+    client,
+    backend_service_account_headers,
+):
+    email = "testemail@site.com"
+    if user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=user.id)
+
+    user = crud.user.create(
+        db=session,
+        obj_in=UserUpdateIn(name="Subscribed Parent", email=email, type="parent"),
+    )
+    new_subscription = Subscription(
+        id="sub_123",
+        user_id=user.id,
+        stripe_customer_id="cus_123",
+        is_active=True,
+        info={},
+    )
+    session.add(new_subscription)
+    session.commit()
+
+    # Test getting parent details includes subscription info
+    response = client.get(f"v1/user/{user.id}", headers=backend_service_account_headers)
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["type"] == "parent"
+    assert json["subscription"]["provider"] == "stripe"
+    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["type"] == "family"
+    assert json["subscription"]["stripe_customer_id"] == "cus_123"
+    assert json["subscription"]["id"] == "sub_123"
+
+    # Test that querying users with active family subscriptions returns the
+    # created parent
+    response = client.get(
+        f"v1/users",
+        params={"limit": 500, "active_subscription_type": "family"},
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
 
 
 def test_parent_user_can_login(

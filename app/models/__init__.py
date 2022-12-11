@@ -21,8 +21,8 @@ from .school import School, SchoolState
 from .school_admin import SchoolAdmin
 from .series import Series
 from .service_account import ServiceAccount, ServiceAccountType
-from .stripe_subscription import StripeSubscription
 from .student import Student
+from .subscription import Subscription
 from .user import User
 from .work import Work
 from .wriveted_admin import WrivetedAdmin

@@ -16,10 +16,12 @@ from app.models import (
     PublicReader,
     SchoolAdmin,
     Student,
+    Subscription,
     User,
     WrivetedAdmin,
 )
 from app.models.school import School
+from app.models.subscription import SubscriptionType
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
@@ -223,6 +225,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         type: Optional[UserAccountType] = None,
         is_active: Optional[bool] = None,
         students_of: Optional["School"] = None,
+        active_subscription_type: Optional[SubscriptionType] = None,
     ):
         user_query = self.get_all_query(db=db, order_by=User.name.asc())
 
@@ -244,7 +247,13 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 .where(User.id == Student.id)
                 .where(Student.school == students_of)
             )
-
+        if active_subscription_type is not None:
+            user_query = (
+                user_query.join(Subscription)
+                .where(User.id == Subscription.user_id)
+                .where(Subscription.is_active == True)
+                .where(Subscription.type == active_subscription_type)
+            )
         return user_query
 
     def get_filtered_with_count(
@@ -254,6 +263,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         type: Optional[UserAccountType] = None,
         is_active: Optional[bool] = None,
         students_of: Optional[School] = None,
+        active_subscription_type: Optional[SubscriptionType] = None,
         skip: int = 0,
         limit: int = 100,
     ):
@@ -270,6 +280,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
             type=type,
             is_active=is_active,
             students_of=students_of,
+            active_subscription_type=active_subscription_type,
         )
         matching_count = self.count_query(db=db, query=select_statement)
 

@@ -11,7 +11,6 @@ import sqlalchemy as sa
 from sqlalchemy import select, update
 
 from alembic import op
-from app.services.users import new_identifiable_username
 
 revision = "35112b0ae03e"
 down_revision = "77c90a741ba7"
