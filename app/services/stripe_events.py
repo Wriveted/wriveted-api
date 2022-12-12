@@ -70,6 +70,9 @@ def process_stripe_event(event_type: str, event_data):
 
             # Checkout session events
             case "checkout.session.completed":
+                crud.event.create(
+                    session=session, title="Checkout session completed", info=event_data
+                )
                 # This event is triggered when a checkout session is completed successfully.
                 # It contains the custom field `client_reference_id` which we use to look up
                 # the Wriveted user and link the Stripe customer to the Wriveted user.
