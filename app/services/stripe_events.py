@@ -68,6 +68,23 @@ def process_stripe_event(event_type: str, event_data):
                     logger.info("Subscription deleted. Marking user as inactive")
                     wriveted_user.is_active = False
 
+            # Checkout session events
+            case "checkout.session.completed":
+                # This event is triggered when a checkout session is completed successfully.
+                # It contains the custom field `client_reference_id` which we use to look up
+                # the Wriveted user and link the Stripe customer to the Wriveted user.
+                customer_wriveted_id = event_data.get("client_reference_id")
+                if customer_wriveted_id is not None:
+                    logger.info(
+                        "Checkout session completed for a Wriveted user",
+                        customer_wriveted_id=customer_wriveted_id,
+                    )
+                else:
+                    logger.info("Checkout session completed for a non-Wriveted user")
+
+                logger.info("Checkout session completed")
+                logger.info("Payload", stripe_event_data=event_data)
+
             # Payment events
             case "payment_intent.succeeded":
                 logger.info("Payment succeeded")
