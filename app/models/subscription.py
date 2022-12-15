@@ -28,7 +28,7 @@ class Subscription(Base):
     user_id = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_user_stripe_subscription", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     user = relationship("Parent", back_populates="subscription")
@@ -40,6 +40,14 @@ class Subscription(Base):
     )
     stripe_customer_id = Column(String, nullable=False, index=True)
     is_active = Column(Boolean(), default=False)
+
+    product_id = Column(
+        String,
+        ForeignKey("products.id", name="fk_product_stripe_subscription"),
+        nullable=False,
+        index=True,
+    )
+    product = relationship("Product", back_populates="subscriptions")
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(

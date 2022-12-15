@@ -14,6 +14,7 @@ from .labelset import LabelSet
 from .labelset_hue_association import LabelSetHue
 from .labelset_reading_ability_association import LabelSetReadingAbility
 from .parent import Parent
+from .product import Product
 from .public_reader import PublicReader
 from .reader import Reader
 from .reading_ability import ReadingAbility
