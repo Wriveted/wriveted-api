@@ -61,6 +61,8 @@ class Subscription(Base):
         default=SubscriptionProvider.STRIPE,
     )
 
+    latest_checkout_session_id = Column(String, nullable=True, index=True)
+
     def __acl__(self):
         return [
             (Allow, "role:admin", All),
