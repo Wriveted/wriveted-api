@@ -112,9 +112,7 @@ def test_get_parent_user(
 
 
 def test_get_subscribed_parent_user(
-    session,
-    client,
-    backend_service_account_headers,
+    session, client, backend_service_account_headers, test_product
 ):
     email = "testemail@site.com"
     if user := crud.user.get_by_account_email(db=session, email=email):
@@ -130,6 +128,7 @@ def test_get_subscribed_parent_user(
         stripe_customer_id="cus_123",
         is_active=True,
         info={},
+        product_id=test_product.id,
     )
     session.add(new_subscription)
     session.commit()

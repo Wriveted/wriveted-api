@@ -22,6 +22,7 @@ from app.schemas.collection import (
     CollectionUpdateType,
 )
 from app.schemas.edition import EditionCreateIn
+from app.schemas.product import ProductCreateIn
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 from app.schemas.service_account import ServiceAccountCreateIn
 from app.schemas.users.huey_attributes import HueyAttributes
@@ -234,6 +235,19 @@ def author_list(client, session):
 
     for a in authors:
         crud.author.remove(db=session, id=a.id)
+
+
+@pytest.fixture()
+def test_product(session):
+    product = crud.product.create(
+        db=session,
+        obj_in=ProductCreateIn(
+            name="Super Cool Tier",
+            id="integration-test-product",
+        ),
+    )
+    yield product
+    session.delete(product)
 
 
 @pytest.fixture()
