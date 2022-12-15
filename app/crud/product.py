@@ -7,4 +7,4 @@ class CRUDProduct(CRUDBase[Product, ProductCreateIn, ProductUpdateIn]):
     pass
 
 
-subscription = CRUDProduct(Product)
+product = CRUDProduct(Product)
