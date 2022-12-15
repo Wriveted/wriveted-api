@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
-
 from app import crud
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
@@ -19,6 +18,11 @@ from app.schemas.collection import (
     CollectionItemInnerCreateIn,
     CollectionItemUpdate,
     CollectionUpdateType,
+)
+from app.services.editions import get_definitive_isbn
+from app.services.cover_images import (
+    handle_collection_item_cover_image_update,
+    handle_new_collection_item_cover_image,
 )
 
 logger = get_logger()
@@ -84,7 +88,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         db_obj: Collection,
-        obj_in: CollectionAndItemsUpdateIn | CollectionItemUpdate,
+        obj_in: CollectionAndItemsUpdateIn,
         merge_dicts: bool = True,
         commit: bool = True,
         ignore_conflicts: bool = False,
@@ -168,8 +172,17 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if item_update.info is not None:
             info_dict = dict(item_orm_object.info)
-            update_dict = dict(item_update.info)
-            deep_merge_dicts(info_dict, update_dict)
+            info_update_dict = item_update.info.dict(exclude_unset=True)
+
+            if "cover_image" in info_update_dict:
+                info_update_dict[
+                    "cover_image"
+                ] = handle_collection_item_cover_image_update(
+                    item_orm_object,
+                    info_update_dict["cover_image"],
+                )
+
+            deep_merge_dicts(info_dict, info_update_dict)
             item_orm_object.info = info_dict
 
         if item_update.copies_available:
@@ -225,12 +238,23 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
                 return
 
+        info_dict = {}
+        if item.info is not None:
+            info_dict = item.info.dict(exclude_unset=True)
+
+            if "cover_image" in info_dict:
+                info_dict["cover_image"] = handle_new_collection_item_cover_image(
+                    str(collection_orm_object.id),
+                    item.edition_isbn,
+                    info_dict["cover_image"],
+                )
+
         new_orm_item = CollectionItem(
             collection_id=collection_orm_object.id,
             edition_isbn=isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
-            info=dict(item.info) if item.info else {},
+            info=info_dict,
         )
 
         stmt = (
@@ -288,6 +312,15 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .scalars()
             .all()
         )
+
+    def get_collection_item_by_collection_id_and_isbn(
+        self, db: Session, *, collection_id: UUID, isbn: str
+    ):
+        return db.execute(
+            select(CollectionItem)
+            .where(CollectionItem.collection_id == collection_id.id)
+            .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
+        ).scalar_one_or_none()
 
 
 collection = CRUDCollection(Collection)
