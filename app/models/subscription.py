@@ -31,7 +31,7 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    user = relationship("Parent", back_populates="subscription")
+    user = relationship("User", back_populates="subscription")
 
     type = Column(
         Enum(SubscriptionType, name="enum_subscription_type"),
