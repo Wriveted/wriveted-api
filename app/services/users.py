@@ -26,8 +26,6 @@ def handle_user_creation(
     checkout_session_id = user_data.checkout_session_id
     del user_data.checkout_session_id
 
-    from app import crud
-
     new_user = crud.user.create(db=session, obj_in=user_data, commit=True)
 
     if user_data.type == UserAccountType.PARENT:
@@ -67,12 +65,9 @@ def handle_user_creation(
             )
 
         if checkout_session_id:
-            subscription = crud.subscription.get_by_checkout_session_id(
-                db=session, checkout_session_id=checkout_session_id
+            link_user_with_subscription_via_checkout_session(
+                session, new_user, checkout_session_id
             )
-            if subscription and not subscription.user:
-                new_user.subscription = subscription
-                session.commit()
 
     return new_user
 
@@ -236,3 +231,19 @@ def generate_random_username_from_wordlist(
         )
 
     return name if not slugify else name.lower()
+
+
+def link_user_with_subscription_via_checkout_session(
+    session: Session, user: User, checkout_session_id: str
+):
+    """
+    Link a user with a subscription via a checkout session ID.
+    """
+    from app import crud
+
+    subscription = crud.subscription.get_by_checkout_session_id(
+        db=session, checkout_session_id=checkout_session_id
+    )
+    if subscription and not subscription.user:
+        user.subscription = subscription
+        session.commit()

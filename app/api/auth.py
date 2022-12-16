@@ -28,7 +28,10 @@ from app.schemas.users.user import UserDetail
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
-from app.services.users import new_identifiable_username
+from app.services.users import (
+    link_user_with_subscription_via_checkout_session,
+    new_identifiable_username,
+)
 
 logger = get_logger()
 config = get_settings()
@@ -58,6 +61,7 @@ def secure_user_endpoint(
     raw_data=Depends(get_raw_info),
     session: Session = Depends(get_session),
     create: bool = True,
+    checkout_session_id: str | None = None,
 ):
     """Login to Wriveted API by exchanging a valid Firebase token.
 
@@ -72,6 +76,9 @@ def secure_user_endpoint(
 
     Updates existing users with the latest SSO data.
     (e.g. their profile picture).
+
+    If a checkout_session_id is provided, the user will be associated with the subscription associated
+    with that checkout session (provided everything checks out). Pun intended.
     """
 
     # If we have gotten this far the user has a valid firebase token
@@ -138,6 +145,11 @@ def secure_user_endpoint(
     session.commit()
 
     wriveted_access_token = create_user_access_token(user)
+
+    if checkout_session_id:
+        link_user_with_subscription_via_checkout_session(
+            session, user, checkout_session_id
+        )
 
     return {
         "access_token": wriveted_access_token,
