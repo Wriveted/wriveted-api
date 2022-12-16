@@ -12,6 +12,7 @@ from app.db.session import get_session_maker
 from app.models import User
 from app.models.product import Product
 from app.models.subscription import Subscription
+from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn, SubscriptionUpdateIn
 
@@ -185,7 +186,9 @@ def _handle_checkout_session_completed(
     base_subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
         stripe_customer_id=stripe_subscription.customer,
-        wriveted_user_id=wriveted_user.id if wriveted_user else None,
+        parent_id=wriveted_user.id
+        if wriveted_user and wriveted_user.type == UserAccountType.PARENT
+        else None,
     )
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 

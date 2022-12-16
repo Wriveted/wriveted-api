@@ -27,7 +27,7 @@ class SubscriptionDetail(SubscriptionBrief):
 class SubscriptionCreateIn(BaseModel):
     id: str
     stripe_customer_id: str
-    user_id: str | None
+    parent_id: str | None
     product_id: str
     is_active: bool | None
     info: dict | None

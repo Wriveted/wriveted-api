@@ -23,7 +23,7 @@ class CRUDSubscription(
             subscription = Subscription(
                 id=subscription_data.id,
                 stripe_customer_id=subscription_data.stripe_customer_id,
-                user_id=subscription_data.user_id,
+                parent_id=subscription_data.parent_id,
             )
             db.add(subscription)
 

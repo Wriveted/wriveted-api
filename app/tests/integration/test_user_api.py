@@ -124,7 +124,7 @@ def test_get_subscribed_parent_user(
     )
     new_subscription = Subscription(
         id="sub_123",
-        user_id=user.id,
+        parent_id=user.id,
         stripe_customer_id="cus_123",
         is_active=True,
         info={},
@@ -272,7 +272,7 @@ def test_user_create_with_checkout_session_id(
 
     orphaned_subscription = Subscription(
         id="sub_123",
-        user_id=None,
+        parent_id=None,
         stripe_customer_id="cus_123",
         is_active=True,
         info={},
