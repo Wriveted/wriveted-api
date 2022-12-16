@@ -198,7 +198,7 @@ def _handle_checkout_session_completed(
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 
     # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription.items[0].price
+    stripe_price_id = stripe_subscription["items"][0].price
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     # populate the subscription in our database with the latest information
@@ -237,7 +237,7 @@ def _handle_subscription_updated(
     stripe_subscription_status = stripe_subscription.status
 
     # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription.items[0].price
+    stripe_price_id = stripe_subscription["items"][0].price
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
