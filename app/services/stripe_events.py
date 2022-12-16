@@ -295,6 +295,7 @@ def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dic
 
 
 def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> Product:
+    logger.info("Syncing Stripe price %s with Wriveted product", stripe_price_id)
     wriveted_product = crud.product.get(session, id=stripe_price_id)
     if not wriveted_product:
         logger.info("Creating new product in db")
@@ -304,4 +305,6 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
             session,
             obj_in=ProductCreateIn(id=stripe_price_id, name=stripe_product.name),
         )
+    else:
+        logger.info("Product already exists in db")
     return wriveted_product
