@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     GCP_CLOUD_SQL_INSTANCE_ID: str = "wriveted"
     GCP_LOCATION: str = "australia-southeast1"
 
+    GCP_IMAGE_BUCKET: str = "wriveted-cover-images"
+
     GCP_CLOUD_TASKS_NAME: Optional[str] = None  # 'background-tasks'
     GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = (
         "background-tasks@wriveted-api.iam.gserviceaccount.com"

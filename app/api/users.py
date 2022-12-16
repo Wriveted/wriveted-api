@@ -109,7 +109,7 @@ async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user", user=user)
     try:
         logger.info("User sub", sub=user.subscription)
-    except:
+    except AttributeError:
         logger.info("No sub")
     return user
 

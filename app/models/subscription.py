@@ -25,13 +25,23 @@ class Subscription(Base):
 
     id = Column(String, primary_key=True)
 
-    user_id = Column(
+    parent_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_user_stripe_subscription", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey(
+            "parents.id", name="fk_parent_stripe_subscription", ondelete="CASCADE"
+        ),
+        nullable=True,
         index=True,
     )
-    user = relationship("Parent", back_populates="subscription")
+    parent = relationship("Parent", back_populates="subscription")
+
+    # school_id = Column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("schools.id", name="fk_school_stripe_subscription", ondelete="CASCADE"),
+    #     nullable=True,
+    #     index=True,
+    # )
+    # school = relationship("School", back_populates="subscriptions")
 
     type = Column(
         Enum(SubscriptionType, name="enum_subscription_type"),
@@ -40,6 +50,14 @@ class Subscription(Base):
     )
     stripe_customer_id = Column(String, nullable=False, index=True)
     is_active = Column(Boolean(), default=False)
+
+    product_id = Column(
+        String,
+        ForeignKey("products.id", name="fk_product_stripe_subscription"),
+        nullable=False,
+        index=True,
+    )
+    product = relationship("Product", back_populates="subscriptions")
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
@@ -52,6 +70,8 @@ class Subscription(Base):
         nullable=False,
         default=SubscriptionProvider.STRIPE,
     )
+
+    latest_checkout_session_id = Column(String, nullable=True, index=True)
 
     def __acl__(self):
         return [

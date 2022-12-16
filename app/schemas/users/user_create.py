@@ -69,6 +69,9 @@ class UserCreateIn(BaseModel):
     # parents
     children: list[UserCreateIn] | None
 
+    # subscription
+    checkout_session_id: str | None
+
     @root_validator
     def validate_user_creation(cls, values):
         # infer names from other fields if necessary

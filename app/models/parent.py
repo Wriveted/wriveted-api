@@ -28,7 +28,7 @@ class Parent(User):
 
     subscription = relationship(
         "Subscription",
-        back_populates="user",
+        back_populates="parent",
         uselist=False,
         cascade="all, delete-orphan",
     )

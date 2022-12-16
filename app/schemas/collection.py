@@ -1,11 +1,27 @@
 import enum
 from typing import Any, Optional
 from uuid import UUID
+from PIL import Image
+from io import BytesIO
 
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator
+from base64 import b64decode
+from binascii import Error as BinasciiError
+
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    Field,
+    conint,
+    root_validator,
+    validator,
+)
+from structlog import get_logger
 
 from app.schemas.edition import EditionBrief
 from app.schemas.work import WorkBrief
+
+logger = get_logger()
 
 
 class CollectionBrief(BaseModel):
@@ -72,12 +88,61 @@ class CollectionItemInfo(BaseModel):
 
 
 class CollectionItemInfoCreateIn(CollectionItemInfo):
-    cover_image: AnyHttpUrl | str | None
+    cover_image: str | None
+
+    @validator("cover_image", pre=True)
+    def _validate_cover_image(cls, v, values: dict):
+        if not v:
+            return
+
+        logger.info(f"Validating cover_image `{v[0:100]}...`")
+
+        # base64 image string validity
+        try:
+            # remove the metadata from the base64 string before decoding
+            raw_image_bytes = b64decode(v.split(",")[1])
+            img = Image.open(BytesIO(raw_image_bytes))
+        except (BinasciiError, IOError) as e:
+            raise ValueError(
+                "cover_image must be a valid base64 image string, properly formed"
+            )
+
+        # image filesize
+        if len(raw_image_bytes) > 512_000:
+            raise ValueError("Maximum cover_image size is 500kb")
+
+        # image formats
+        if img.format.lower() not in ["jpg", "jpeg", "png"]:
+            raise ValueError(
+                "cover_image must be either `jpg`, `jpeg`, or `png` format"
+            )
+
+        # image dimensions
+        width, height = img.size
+        if (width < 100) or (height < 100) or (width > 1000) or (height > 1000):
+            raise ValueError(
+                "Minimum cover_image dimensions are 100x100 and maximum dimensions are 1000x1000"
+            )
+
+        # we now have a valid base64 string that claims to be an image
+        return v
+
+    class Config:
+        max_anystr_length = (
+            2**19
+        ) * 1.5  # Max filesize is 500kb, but base64 strings are at least 4/3 the size
+
+        validate_assignment = True
+
+
+class CoverImageUpdateIn(CollectionItemInfoCreateIn):
+    collection_id: UUID | None
+    edition_isbn: str
 
 
 class CollectionItemBase(BaseModel):
     edition_isbn: str | None
-    info: CollectionItemInfo | None
+    info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
@@ -87,6 +152,7 @@ class CollectionItemBase(BaseModel):
 
 class CollectionItemInnerCreateIn(CollectionItemBase):
     collection_id: UUID
+    info: CollectionItemInfo | None
 
 
 class CollectionCreateIn(BaseModel):
@@ -116,7 +182,7 @@ class CollectionItemDetail(BaseModel):
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
-    info: Optional[Any]
+    info: CollectionItemInfo | None
 
     class Config:
         orm_mode = True
