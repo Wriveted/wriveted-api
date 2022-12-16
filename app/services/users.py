@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.models import Student
+from app.models.parent import Parent
 from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
@@ -66,8 +67,8 @@ def handle_user_creation(
                 },
             )
 
-        if checkout_session_id:
-            link_user_with_subscription_via_checkout_session(
+        if user_data.type == UserAccountType.PARENT and checkout_session_id:
+            link_parent_with_subscription_via_checkout_session(
                 session, new_user, checkout_session_id
             )
 
@@ -235,8 +236,8 @@ def generate_random_username_from_wordlist(
     return name if not slugify else name.lower()
 
 
-def link_user_with_subscription_via_checkout_session(
-    session: Session, user: User, checkout_session_id: str
+def link_parent_with_subscription_via_checkout_session(
+    session: Session, parent: Parent, checkout_session_id: str
 ):
     """
     Link a user with a subscription via a checkout session ID.
@@ -247,5 +248,5 @@ def link_user_with_subscription_via_checkout_session(
         db=session, checkout_session_id=checkout_session_id
     )
     if subscription and not subscription.user:
-        user.subscription = subscription
+        parent.subscription = subscription
         session.commit()

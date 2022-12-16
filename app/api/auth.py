@@ -29,7 +29,7 @@ from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
 from app.services.users import (
-    link_user_with_subscription_via_checkout_session,
+    link_parent_with_subscription_via_checkout_session,
     new_identifiable_username,
 )
 
@@ -146,8 +146,8 @@ def secure_user_endpoint(
 
     wriveted_access_token = create_user_access_token(user)
 
-    if checkout_session_id:
-        link_user_with_subscription_via_checkout_session(
+    if user.type == UserAccountType.PARENT and checkout_session_id:
+        link_parent_with_subscription_via_checkout_session(
             session, user, checkout_session_id
         )
 
