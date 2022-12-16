@@ -188,7 +188,11 @@ def _handle_checkout_session_completed(
         stripe_customer.save()
 
     # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription["items"]["data"][0].price.id
+    stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
+    logger.info(
+        "Ensuring product %s exists in our database",
+        stripe_subscription=stripe_subscription,
+    )
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     # create or update a base subscription in our database
@@ -237,7 +241,7 @@ def _handle_subscription_updated(
     stripe_subscription_status = stripe_subscription.status
 
     # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription["items"]["data"][0].price.id
+    stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
