@@ -71,7 +71,7 @@ def handle_user_creation(
                 db=session, checkout_session_id=checkout_session_id
             )
             if subscription and not subscription.user:
-                new_user.subscription_id = subscription.id
+                new_user.subscription = subscription
                 session.commit()
 
     return new_user
