@@ -127,7 +127,7 @@ def _extract_user_and_customer_from_stripe_object(
 
     # check customer metadata for a wriveted user id
     # (this is stored upon the first successful checkout)
-    if user_id := stripe_customer.metadata.get("wriveted_id"):
+    if user_id := stripe_customer["metadata"].get("wriveted_id"):
         wriveted_user = crud.user.get(session, user_id)
         logger.info("Found wriveted user id in customer metadata", user=wriveted_user)
 
