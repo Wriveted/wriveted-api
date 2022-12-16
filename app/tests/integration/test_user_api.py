@@ -301,3 +301,22 @@ def test_user_create_with_checkout_session_id(
     assert json["subscription"]["stripe_customer_id"] == "cus_123"
     assert json["subscription"]["id"] == "sub_123"
     assert json["subscription"]["product"]["id"] == test_product.id
+
+    email_2 = "testemail2@site.com"
+    if existing_user := crud.user.get_by_account_email(db=session, email=email_2):
+        crud.user.remove(db=session, id=existing_user.id)
+
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "A Parent Trying to Steal a Subscription",
+            "email": email_2,
+            "type": "parent",
+            "checkout_session_id": "TEST_CHECKOUT_SESSION_ID",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["subscription"] is None
