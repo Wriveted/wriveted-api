@@ -26,6 +26,8 @@ def handle_user_creation(
     checkout_session_id = user_data.checkout_session_id
     del user_data.checkout_session_id
 
+    from app import crud
+
     new_user = crud.user.create(db=session, obj_in=user_data, commit=True)
 
     if user_data.type == UserAccountType.PARENT:
