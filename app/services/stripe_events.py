@@ -187,9 +187,14 @@ def _handle_checkout_session_completed(
         stripe_customer.metadata["wriveted_id"] = str(wriveted_user.id)
         stripe_customer.save()
 
+    # ensure our db knows about the specified product
+    stripe_price_id = stripe_subscription["items"]["data"][0].price
+    _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
+
     # create or update a base subscription in our database
     base_subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
+        product_id=stripe_price_id,
         stripe_customer_id=stripe_subscription.customer,
         parent_id=wriveted_user.id
         if wriveted_user and wriveted_user.type == UserAccountType.PARENT
@@ -197,13 +202,8 @@ def _handle_checkout_session_completed(
     )
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 
-    # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription["items"]["data"][0].price
-    _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
-
     # populate the subscription in our database with the latest information
     current_subscription_data = SubscriptionUpdateIn(
-        product_id=stripe_price_id,
         is_active=True,
         # we store the checkout session id in the subscription so that we can
         # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
