@@ -320,3 +320,5 @@ def test_user_create_with_checkout_session_id(
 
     json = response.json()
     assert json["subscription"] is None
+
+    crud.subscription.remove(db=session, id=orphaned_subscription.id)
