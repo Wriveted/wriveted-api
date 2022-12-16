@@ -244,7 +244,7 @@ def _handle_subscription_updated(
         latest_checkout_session_id=event_data.get("id"),
     ).dict()
 
-    if wriveted_user and not subscription.user_id:
+    if wriveted_user and not subscription.parent_id:
         # we have a wriveted user, but no wriveted id on the subscription
         logger.info(
             "Updating subscription %s with Wriveted user id %s",
@@ -273,14 +273,14 @@ def _handle_subscription_updated(
 def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dict):
     stripe_subscription_id = event_data.get("id")
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
-    user = subscription.user
+    parent = subscription.parent
     product = subscription.product
     crud.subscription.remove(session, id=stripe_subscription_id)
 
     crud.event.create(
         session=session,
         title="Stripe Subscription cancelled",
-        description=f"User {user.id} cancelled their subscription to {product.name}",
+        description=f"User {parent.id} cancelled their subscription to {product.name}",
         info={
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": product.id,

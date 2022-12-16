@@ -247,6 +247,6 @@ def link_parent_with_subscription_via_checkout_session(
     subscription = crud.subscription.get_by_checkout_session_id(
         db=session, checkout_session_id=checkout_session_id
     )
-    if subscription and not subscription.user:
+    if subscription and not subscription.parent:
         parent.subscription = subscription
         session.commit()

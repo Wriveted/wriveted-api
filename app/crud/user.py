@@ -250,7 +250,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         if active_subscription_type is not None:
             user_query = (
                 user_query.join(Subscription)
-                .where(User.id == Subscription.user_id)
+                .where(User.id == Subscription.parent_id)
                 .where(Subscription.is_active == True)
                 .where(Subscription.type == active_subscription_type)
             )
