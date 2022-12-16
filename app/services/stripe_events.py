@@ -200,9 +200,13 @@ def _handle_checkout_session_completed(
         id=stripe_subscription_id,
         product_id=stripe_price_id,
         stripe_customer_id=stripe_subscription.customer,
-        parent_id=wriveted_user.id
+        parent_id=str(wriveted_user.id)
         if wriveted_user and wriveted_user.type == UserAccountType.PARENT
         else None,
+    )
+    logger.info(
+        "Creating or updating subscription in our database",
+        base_subscription_data=base_subscription_data,
     )
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 
@@ -245,6 +249,8 @@ def _handle_subscription_updated(
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
+    if not subscription:
+        return
 
     # populate the subscription in our database with the latest information
     current_subscription_data = SubscriptionUpdateIn(
