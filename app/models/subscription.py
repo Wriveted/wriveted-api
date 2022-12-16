@@ -25,13 +25,23 @@ class Subscription(Base):
 
     id = Column(String, primary_key=True)
 
-    user_id = Column(
+    parent_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_user_stripe_subscription", ondelete="CASCADE"),
+        ForeignKey(
+            "parents.id", name="fk_parent_stripe_subscription", ondelete="CASCADE"
+        ),
         nullable=True,
         index=True,
     )
-    user = relationship("User", back_populates="subscription")
+    parent = relationship("Parent", back_populates="subscription")
+
+    # school_id = Column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("schools.id", name="fk_school_stripe_subscription", ondelete="CASCADE"),
+    #     nullable=True,
+    #     index=True,
+    # )
+    # school = relationship("School", back_populates="subscriptions")
 
     type = Column(
         Enum(SubscriptionType, name="enum_subscription_type"),

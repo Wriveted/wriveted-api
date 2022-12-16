@@ -81,11 +81,4 @@ class User(Base):
         order_by="desc(Event.timestamp)",
     )
 
-    subscription = relationship(
-        "Subscription",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
-
     newsletter = Column(Boolean(), nullable=False, server_default="false")
