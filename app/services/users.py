@@ -67,9 +67,10 @@ def handle_user_creation(
             )
 
         if checkout_session_id:
-            if subscription := crud.subscription.get_by_checkout_session_id(
+            subscription = crud.subscription.get_by_checkout_session_id(
                 db=session, checkout_session_id=checkout_session_id
-            ):
+            )
+            if subscription and not subscription.user:
                 new_user.subscription_id = subscription.id
                 session.commit()
 
