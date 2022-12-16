@@ -23,6 +23,9 @@ def handle_user_creation(
     children_to_create = user_data.children
     del user_data.children
 
+    checkout_session_id = user_data.checkout_session_id
+    del user_data.checkout_session_id
+
     from app import crud
 
     new_user = crud.user.create(db=session, obj_in=user_data, commit=True)
@@ -62,6 +65,13 @@ def handle_user_creation(
                     "user_id": str(new_user.id),
                 },
             )
+
+        if checkout_session_id:
+            if subscription := crud.subscription.get_by_checkout_session_id(
+                db=session, checkout_session_id=checkout_session_id
+            ):
+                new_user.subscription_id = subscription.id
+                session.commit()
 
     return new_user
 
