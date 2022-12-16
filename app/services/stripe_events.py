@@ -233,7 +233,7 @@ def _handle_checkout_session_completed(
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
         },
-        user=wriveted_user,
+        account=wriveted_user,
     )
 
     return subscription
@@ -281,7 +281,7 @@ def _handle_subscription_updated(
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": stripe_price_id,
         },
-        user=wriveted_user,
+        account=wriveted_user,
     )
 
     return subscription
@@ -302,7 +302,7 @@ def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dic
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": product.id,
         },
-        user=wriveted_user,
+        account=wriveted_user,
     )
 
 
