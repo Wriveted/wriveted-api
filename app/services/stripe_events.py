@@ -180,6 +180,8 @@ def _handle_checkout_session_completed(
     stripe_customer_id = stripe_subscription.customer
     stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
 
+    checkout_session_id = event_data.get("id")
+
     if wriveted_user and not stripe_customer.metadata.get("wriveted_id"):
         # we have a wriveted user, but no wriveted id on the stripe customer
         logger.info(
@@ -192,7 +194,8 @@ def _handle_checkout_session_completed(
     # ensure our db knows about the specified product
     stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
     logger.info(
-        "Ensuring product %s exists in our database",
+        "Ensuring product exists in our database",
+        stripe_price_id=stripe_price_id,
         stripe_subscription=stripe_subscription,
     )
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
@@ -209,6 +212,7 @@ def _handle_checkout_session_completed(
     logger.info(
         "Creating or updating subscription in our database",
         base_subscription_data=base_subscription_data,
+        checkout_session_id=checkout_session_id,
     )
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 
@@ -218,7 +222,7 @@ def _handle_checkout_session_completed(
         # we store the checkout session id in the subscription so that we can
         # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
         # and need to link this subscription to their account once they have).
-        latest_checkout_session_id=event_data.get("id"),
+        latest_checkout_session_id=checkout_session_id
     ).dict(exclude_unset=True)
 
     subscription = crud.subscription.update(
