@@ -1,9 +1,7 @@
-from stripe import (
-    Subscription as StripeSubscription,
-    Customer as StripeCustomer,
-    Price as StripePrice,
-    Product as StripeProduct,
-)
+from stripe import Customer as StripeCustomer
+from stripe import Price as StripePrice
+from stripe import Product as StripeProduct
+from stripe import Subscription as StripeSubscription
 from structlog import get_logger
 from structlog.contextvars import bind_contextvars
 
@@ -74,63 +72,14 @@ def process_stripe_event(event_type: str, event_data):
 
     Session = get_session_maker()
     with Session() as session:
-        wriveted_user = None
-
-        # webhook is only listening to events that are guaranteed to include a customer id (for now)
-        stripe_customer_id = (
-            event_data.get("id")
-            if object_type == "customer"
-            else event_data.get("customer")
+        wriveted_user, stripe_customer = _extract_user_and_customer_from_stripe_object(
+            session, event_data, object_type
         )
-        if stripe_customer_id:
-            stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
-            bind_contextvars(stripe_customer_id=stripe_customer_id)
-
-        # check customer metadata for a wriveted user id
-        # (this is stored upon the first successful checkout)
-        if user_id := stripe_customer.metadata.get("wriveted_id"):
-            wriveted_user = crud.user.get(session, user_id)
-            logger.info(
-                "Found wriveted user id in customer metadata", user=wriveted_user
-            )
-            bind_contextvars(wriveted_user_id=str(wriveted_user.id))
-
-        # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
-        # note: empty values can sometimes be returned as the strings "undefined" or "null"
-        client_reference_id = event_data.get("client_reference_id")
-        if client_reference_id == "undefined" or client_reference_id == "null":
-            client_reference_id = None
-
-        if client_reference_id:
-            if referenced_user := crud.user.get(session, client_reference_id):
-                if wriveted_user and referenced_user != wriveted_user:
-                    logger.warning(
-                        "Client reference id does not match User associated with Stripe customer id",
-                        referenced_user_id=referenced_user.id,
-                    )
-                    # TODO: Handle this case?
-                else:
-                    wriveted_user = referenced_user
-                    logger.info(
-                        "Client reference id matches User associated with Stripe customer id",
-                        referenced_user_id=referenced_user.id,
-                    )
-            else:
-                logger.warning(
-                    "Client reference id does not match any user",
-                    client_reference_id=client_reference_id,
-                )
-                # TODO: Handle this case?
-
-        if wriveted_user:
-            bind_contextvars(wriveted_user_id=str(wriveted_user.id))
-
         # we now have a stripe customer and, if it exists, equivalent wriveted user
 
         match event_type:
             # Actionable events
-            case "checkout.session.completed":  # https://stripe.com/docs/api/checkout/sessions/object
-                logger.info("Checkout session completed. Creating subscription")
+            case "checkout.session.completed":
                 _handle_checkout_session_completed(session, wriveted_user, event_data)
 
             case "customer.subscription.updated":  # https://stripe.com/docs/api/subscriptions/object
@@ -167,9 +116,73 @@ def process_stripe_event(event_type: str, event_data):
                 logger.debug("Stripe event data", stripe_event_data=event_data)
 
 
+def _extract_user_and_customer_from_stripe_object(
+    session, stripe_object, stripe_object_type
+):
+    wriveted_user = None
+    # webhook is only listening to events that are guaranteed to include a customer id (for now)
+    stripe_customer = _get_stripe_customer_from_stripe_object(
+        stripe_object, stripe_object_type
+    )
+
+    # check customer metadata for a wriveted user id
+    # (this is stored upon the first successful checkout)
+    if user_id := stripe_customer.metadata.get("wriveted_id"):
+        wriveted_user = crud.user.get(session, user_id)
+        logger.info("Found wriveted user id in customer metadata", user=wriveted_user)
+
+    # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
+    # note: empty values can sometimes be returned as the strings "undefined" or "null"
+    client_reference_id = stripe_object.get("client_reference_id")
+    if client_reference_id == "undefined" or client_reference_id == "null":
+        client_reference_id = None
+
+    if client_reference_id:
+        if referenced_user := crud.user.get(session, client_reference_id):
+            if wriveted_user and referenced_user != wriveted_user:
+                logger.warning(
+                    "Client reference id does not match User associated with Stripe customer id",
+                    referenced_user_id=referenced_user.id,
+                )
+            else:
+                wriveted_user = referenced_user
+                logger.info(
+                    "Client reference id matches User associated with Stripe customer id",
+                    referenced_user_id=referenced_user.id,
+                )
+        else:
+            logger.warning(
+                "Client reference id does not match any user",
+                client_reference_id=client_reference_id,
+            )
+
+    if wriveted_user:
+        bind_contextvars(wriveted_user_id=str(wriveted_user.id))
+
+    return wriveted_user, stripe_customer
+
+
+def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
+    if stripe_object_type == "customer":
+        stripe_customer = stripe_object
+    else:
+        stripe_customer_id = stripe_object.get("customer")
+        if stripe_customer_id:
+            stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
+            bind_contextvars(stripe_customer_id=stripe_customer_id)
+        else:
+            raise NotImplemented("Stripe event does not include a customer id")
+    return stripe_customer
+
+
 def _handle_checkout_session_completed(
     session, wriveted_user: User, event_data: dict
 ) -> Subscription:
+    """
+
+    # https://stripe.com/docs/api/checkout/sessions/object
+    """
+    logger.info("Checkout session completed. Creating subscription")
     # in this case we want to query the Stripe API for the subscription and customer,
     # as we know they exist and have been processed by Stripe.
     # we can then use this information to create a new subscription in our database (if needed),
@@ -216,23 +229,17 @@ def _handle_checkout_session_completed(
     )
     subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
 
-    # populate the subscription in our database with the latest information
-    current_subscription_data = SubscriptionUpdateIn(
-        is_active=True,
-        # we store the checkout session id in the subscription so that we can
-        # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
-        # and need to link this subscription to their account once they have).
-        latest_checkout_session_id=checkout_session_id,
-    ).dict(exclude_unset=True)
-
-    subscription = crud.subscription.update(
-        session, db_obj=subscription, obj_in=current_subscription_data
-    )
+    # update the subscription in our database with the latest information
+    # we store the checkout session id in the subscription so that we can
+    # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
+    # and need to link this subscription to their account once they have).
+    subscription.is_active = True
+    subscription.latest_checkout_session_id = checkout_session_id
 
     crud.event.create(
         session=session,
         title="Checkout session completed",
-        description="Subscription created or updated for stripe customer",
+        description="Subscription created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
