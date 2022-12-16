@@ -12,7 +12,7 @@ from app.models.product import Product
 from app.models.subscription import Subscription
 from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
-from app.schemas.subscription import SubscriptionCreateIn, SubscriptionUpdateIn
+from app.schemas.subscription import SubscriptionCreateIn
 
 logger = get_logger()
 
@@ -238,7 +238,7 @@ def _handle_checkout_session_completed(
 
     crud.event.create(
         session=session,
-        title="Checkout session completed",
+        title="Subscription started",
         description="Subscription created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
@@ -263,29 +263,28 @@ def _handle_subscription_updated(
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
     if not subscription or not wriveted_user:
+        logger.warning(
+            "Ignoring subscription update event for missing subscription or user",
+            subscription=subscription,
+            wriveted_user=wriveted_user,
+        )
         return
 
     # populate the subscription in our database with the latest information
-    current_subscription_data = SubscriptionUpdateIn(
-        product_id=stripe_price_id,
-        is_active=stripe_subscription_status == "active",
-    ).dict()
+    subscription.product_id = stripe_price_id
+    subscription.is_active = stripe_subscription_status == "active"
 
-    if wriveted_user and not subscription.parent_id:
+    if wriveted_user and subscription.parent_id is None:
         # we have a wriveted user, but no wriveted id on the subscription
         logger.info(
-            "Updating subscription %s with Wriveted user id %s",
-            stripe_subscription_id,
-            wriveted_user.id,
+            "Updating subscription with Wriveted user id",
+            stripe_subscription_id=stripe_subscription_id,
         )
-        current_subscription_data["wriveted_user_id"] = wriveted_user.id
+        subscription.parent_id = wriveted_user.id
 
-    subscription = crud.subscription.update(
-        session, db_obj=subscription, obj_in=current_subscription_data
-    )
     crud.event.create(
         session=session,
-        title="Stripe Subscription updated",
+        title="Subscription updated",
         description=f"User {wriveted_user.id} updated their subscription to {stripe_price_id}",
         info={
             "stripe_subscription_id": stripe_subscription_id,
@@ -300,20 +299,28 @@ def _handle_subscription_updated(
 def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dict):
     stripe_subscription_id = event_data.get("id")
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
-    parent = subscription.parent
-    product = subscription.product
-    crud.subscription.remove(session, id=stripe_subscription_id)
 
-    crud.event.create(
-        session=session,
-        title="Stripe Subscription cancelled",
-        description=f"User {parent.id} cancelled their subscription to {product.name}",
-        info={
-            "stripe_subscription_id": stripe_subscription_id,
-            "product_id": product.id,
-        },
-        account=wriveted_user,
-    )
+    if subscription is not None:
+        parent = subscription.parent
+        product = subscription.product
+        subscription.is_active = False
+
+        crud.event.create(
+            session=session,
+            title="Subscription cancelled",
+            description=f"User {parent.id} cancelled their subscription to {product.name}",
+            info={
+                "stripe_subscription_id": stripe_subscription_id,
+                "product_id": product.id,
+                "product_name": product.name,
+            },
+            account=wriveted_user,
+        )
+    else:
+        logger.info(
+            "Ignoring subscription cancelled event for unknown subscription (likely already removed)",
+            stripe_subscription_id=stripe_subscription_id,
+        )
 
 
 def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> Product:
