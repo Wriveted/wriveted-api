@@ -239,7 +239,9 @@ def author_list(client, session):
 
 @pytest.fixture()
 def test_product(session):
-    product = crud.product.create(
+    product = crud.product.get(
+        db=session, id="integration-test-product"
+    ) or crud.product.create(
         db=session,
         obj_in=ProductCreateIn(
             name="Super Cool Tier",

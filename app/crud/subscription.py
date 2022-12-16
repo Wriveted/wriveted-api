@@ -48,10 +48,8 @@ class CRUDSubscription(
     def get_by_checkout_session_id(
         self, db: Session, *, checkout_session_id: str
     ) -> Subscription | None:
-        q = (
-            select(User)
-            .join(Subscription)
-            .where(Subscription.latest_checkout_session_id == checkout_session_id)
+        q = select(Subscription).where(
+            Subscription.latest_checkout_session_id == checkout_session_id
         )
         return db.execute(q).scalar_one_or_none()
 

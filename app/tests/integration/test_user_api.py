@@ -257,3 +257,47 @@ def test_parent_create_with_child_via_api(
     child_json = child_response.json()
     assert child_json["huey_attributes"]["age"] == 10
     assert child_json["huey_attributes"]["reading_ability"] == ["SPOT"]
+
+
+def test_user_create_with_checkout_session_id(
+    session, client, backend_service_account_headers, test_product
+):
+    email = "testemail@site.com"
+    if existing_user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=existing_user.id)
+
+    subscription_id = "sub_123"
+    if existing_subscription := crud.subscription.get(db=session, id=subscription_id):
+        crud.subscription.remove(db=session, id=existing_subscription.id)
+
+    orphaned_subscription = Subscription(
+        id="sub_123",
+        user_id=None,
+        stripe_customer_id="cus_123",
+        is_active=True,
+        info={},
+        product_id=test_product.id,
+        latest_checkout_session_id="TEST_CHECKOUT_SESSION_ID",
+    )
+    session.add(orphaned_subscription)
+    session.commit()
+
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "A Parent With Subscription",
+            "email": email,
+            "type": "parent",
+            "checkout_session_id": "TEST_CHECKOUT_SESSION_ID",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["subscription"]["provider"] == "stripe"
+    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["type"] == "family"
+    assert json["subscription"]["stripe_customer_id"] == "cus_123"
+    assert json["subscription"]["id"] == "sub_123"
+    assert json["subscription"]["product"]["id"] == test_product.id
