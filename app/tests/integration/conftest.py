@@ -239,15 +239,15 @@ def author_list(client, session):
 
 @pytest.fixture()
 def test_product(session):
-    product = crud.product.get(
-        db=session, id="integration-test-product"
-    ) or crud.product.create(
-        db=session,
-        obj_in=ProductCreateIn(
-            name="Super Cool Tier",
-            id="integration-test-product",
-        ),
-    )
+    product = crud.product.get(db=session, id="integration-test-product")
+    if not product:
+        product = crud.product.create(
+            db=session,
+            obj_in=ProductCreateIn(
+                name="Super Cool Tier",
+                id="integration-test-product",
+            ),
+        )
     yield product
     session.delete(product)
 
