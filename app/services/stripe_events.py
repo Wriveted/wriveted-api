@@ -84,13 +84,16 @@ def process_stripe_event(event_type: str, event_data):
         )
         if stripe_customer_id:
             stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
-            bind_contextvars(stripe_customer_id=stripe_customer.id)
+            bind_contextvars(stripe_customer_id=stripe_customer_id)
 
         # check customer metadata for a wriveted user id
         # (this is stored upon the first successful checkout)
         if user_id := stripe_customer.metadata.get("wriveted_id"):
             wriveted_user = crud.user.get(session, user_id)
-            bind_contextvars(user=wriveted_user)
+            logger.info(
+                "Found wriveted user id in customer metadata", user=wriveted_user
+            )
+            bind_contextvars(wriveted_user_id=str(wriveted_user.id))
 
         # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
         # note: empty values can sometimes be returned as the strings "undefined" or "null"
@@ -120,7 +123,7 @@ def process_stripe_event(event_type: str, event_data):
                 # TODO: Handle this case?
 
         if wriveted_user:
-            bind_contextvars(user=wriveted_user)
+            bind_contextvars(wriveted_user_id=str(wriveted_user.id))
 
         # we now have a stripe customer and, if it exists, equivalent wriveted user
 
@@ -180,9 +183,8 @@ def _handle_checkout_session_completed(
     if wriveted_user and not stripe_customer.metadata.get("wriveted_id"):
         # we have a wriveted user, but no wriveted id on the stripe customer
         logger.info(
-            "Updating Stripe customer %s metadata with Wriveted user id %s",
-            stripe_customer_id,
-            wriveted_user.id,
+            "Updating Stripe customer metadata with Wriveted user id",
+            stripe_customer_id=stripe_customer_id,
         )
         stripe_customer.metadata["wriveted_id"] = str(wriveted_user.id)
         stripe_customer.save()
