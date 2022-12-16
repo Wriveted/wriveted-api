@@ -1,6 +1,8 @@
 from typing import Tuple
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from app.crud import CRUDBase
 from app.models.subscription import Subscription
 from app.models.user import User

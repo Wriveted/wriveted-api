@@ -1,21 +1,12 @@
 import enum
-from typing import Any, Optional
-from uuid import UUID
-from PIL import Image
-from io import BytesIO
-
-from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator
 from base64 import b64decode
 from binascii import Error as BinasciiError
+from io import BytesIO
+from typing import Any, Optional
+from uuid import UUID
 
-from pydantic import (
-    AnyHttpUrl,
-    BaseModel,
-    Field,
-    conint,
-    root_validator,
-    validator,
-)
+from PIL import Image
+from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 from structlog import get_logger
 
 from app.schemas.edition import EditionBrief

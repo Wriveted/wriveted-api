@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
 from structlog import get_logger
+
 from app import crud
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
@@ -19,11 +20,11 @@ from app.schemas.collection import (
     CollectionItemUpdate,
     CollectionUpdateType,
 )
-from app.services.editions import get_definitive_isbn
 from app.services.cover_images import (
     handle_collection_item_cover_image_update,
     handle_new_collection_item_cover_image,
 )
+from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
 

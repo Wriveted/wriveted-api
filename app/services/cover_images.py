@@ -1,6 +1,5 @@
-import os
 from uuid import uuid4
-from google.cloud import storage
+
 from structlog import get_logger
 
 from app.config import get_settings
