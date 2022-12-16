@@ -219,7 +219,7 @@ def _handle_checkout_session_completed(
         # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
         # and need to link this subscription to their account once they have).
         latest_checkout_session_id=event_data.get("id"),
-    ).dict()
+    ).dict(exclude_unset=True)
 
     subscription = crud.subscription.update(
         session, db_obj=subscription, obj_in=current_subscription_data
