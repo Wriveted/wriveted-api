@@ -65,6 +65,8 @@ def process_stripe_event(event_type: str, event_data):
     `customer.created` and `customer.subscription.created` events.
     """
 
+    object_type = event_data.get("object")
+
     logger.info(
         "Processing a stripe event", event_type=event_type, event_data=event_data
     )
@@ -75,7 +77,12 @@ def process_stripe_event(event_type: str, event_data):
         wriveted_user = None
 
         # webhook is only listening to events that are guaranteed to include a customer id (for now)
-        if stripe_customer_id := event_data.get("customer"):
+        stripe_customer_id = (
+            event_data.get("id")
+            if object_type == "customer"
+            else event_data.get("customer")
+        )
+        if stripe_customer_id:
             stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
             bind_contextvars(stripe_customer_id=stripe_customer.id)
 
@@ -121,9 +128,7 @@ def process_stripe_event(event_type: str, event_data):
             # Actionable events
             case "checkout.session.completed":  # https://stripe.com/docs/api/checkout/sessions/object
                 logger.info("Checkout session completed. Creating subscription")
-                _handle_checkout_session_completed(
-                    session, wriveted_user, stripe_customer, event_data
-                )
+                _handle_checkout_session_completed(session, wriveted_user, event_data)
 
             case "customer.subscription.updated":  # https://stripe.com/docs/api/subscriptions/object
                 logger.info(
