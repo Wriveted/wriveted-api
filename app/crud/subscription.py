@@ -20,16 +20,7 @@ class CRUDSubscription(
         subscription = db.execute(q).scalar_one_or_none()
 
         if subscription is None:
-            subscription = Subscription(
-                id=subscription_data.id,
-                stripe_customer_id=subscription_data.stripe_customer_id,
-                parent_id=subscription_data.parent_id,
-            )
-            db.add(subscription)
-
-            if commit:
-                db.commit()
-
+            subscription = self.create(db, obj_in=subscription_data, commit=commit)
             db.refresh(subscription)
             return subscription, True
 
