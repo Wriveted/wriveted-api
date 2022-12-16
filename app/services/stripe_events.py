@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from stripe import Customer as StripeCustomer
 from stripe import Price as StripePrice
 from stripe import Product as StripeProduct
@@ -84,13 +86,19 @@ def process_stripe_event(event_type: str, event_data):
             case "checkout.session.completed":
                 _handle_checkout_session_completed(session, wriveted_user, event_data)
 
-            case "customer.subscription.updated":  # https://stripe.com/docs/api/subscriptions/object
+            case "customer.subscription.updated":
+                # Sent when the subscription is successfully started, after the payment is confirmed.
+                # Also sent whenever a subscription is changed. For example, adding a coupon, applying
+                # a discount, adding an invoice item, and changing plans all trigger this event.
+                # https://stripe.com/docs/api/subscriptions/object
                 logger.info(
                     "Subscription updated. Updating underlying product or plan if necessary"
                 )
                 _handle_subscription_updated(session, wriveted_user, event_data)
 
-            case "customer.subscription.deleted":  # https://stripe.com/docs/api/subscriptions/object
+            case "customer.subscription.deleted":
+                # Sent when a customer’s subscription ends
+                # https://stripe.com/docs/api/subscriptions/object
                 logger.info("Subscription deleted. Removing subscription from user")
                 _handle_subscription_cancelled(session, wriveted_user, event_data)
 
@@ -299,11 +307,12 @@ def _handle_subscription_updated(
     session, wriveted_user: User, event_data: dict
 ) -> Subscription:
     stripe_subscription_id = event_data.get("id")
-    stripe_subscription = StripeSubscription.retrieve(stripe_subscription_id)
-    stripe_subscription_status = stripe_subscription.status
+    assert event_data.get("object") == "subscription"
+
+    stripe_subscription_status = event_data["status"]
 
     # ensure our db knows about the specified product
-    stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
+    stripe_price_id = event_data["items"]["data"][0]["price"]["id"]
     product = _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
@@ -318,7 +327,9 @@ def _handle_subscription_updated(
     # populate the subscription in our database with the latest information
     subscription.product_id = stripe_price_id
     subscription.is_active = stripe_subscription_status in {"active", "past_due"}
-
+    subscription.expiration = datetime.utcfromtimestamp(
+        event_data["current_period_end"]
+    )
     if wriveted_user and subscription.parent_id is None:
         # we have a wriveted user, but no wriveted id on the subscription
         logger.info(
