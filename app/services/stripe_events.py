@@ -237,6 +237,13 @@ def _handle_checkout_session_completed(
     # we can then use this information to create a new subscription in our database (if needed),
     # and link the customer to the user (if needed).
     stripe_subscription_id = event_data.get("subscription")
+
+    # Note this checkout complete could get fired for non-subscription purchases
+    if stripe_subscription_id is None:
+        logger.info(
+            "Checkout session completed for non-subscription purchase. Ignoring"
+        )
+        return
     stripe_subscription = StripeSubscription.retrieve(stripe_subscription_id)
 
     stripe_customer_id = stripe_subscription.customer
