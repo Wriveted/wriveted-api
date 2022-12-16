@@ -79,6 +79,8 @@ def process_stripe_event(event_type: str, event_data):
 
         match event_type:
             # Actionable events
+            case "invoice.paid":
+                _handle_invoice_paid(session, wriveted_user, event_data)
             case "checkout.session.completed":
                 _handle_checkout_session_completed(session, wriveted_user, event_data)
 
@@ -173,6 +175,45 @@ def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
         else:
             raise NotImplemented("Stripe event does not include a customer id")
     return stripe_customer
+
+
+def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
+    logger.info("Invoice paid. Updating user subscription")
+    # Get the subscription id from the invoice paid event
+    stripe_subscription_id = event_data.get("subscription")
+    stripe_customer_id = event_data.get("customer")
+
+    if stripe_subscription_id is None:
+        logger.warning(
+            "Invoice paid event does not include a subscription id. Ignoring"
+        )
+        return
+
+    # Get the subscription from Stripe and fetch the current expiration date
+    stripe_subscription = StripeSubscription.retrieve(stripe_subscription_id)
+    subscription = crud.subscription.get(session, stripe_subscription_id)
+    if subscription is None:
+        logger.warning(
+            "Invoice paid event references a subscription that is not in the database."
+        )
+        raise NotImplementedError(
+            "Invoice paid event references a subscription that is not in the database"
+        )
+    subscription.expiration = stripe_subscription.current_period_end
+    subscription.is_active = stripe_subscription.status in {"active", "past_due"}
+
+    crud.event.create(
+        session=session,
+        title="Subscription payment received",
+        description="Invoice paid for subscription",
+        info={
+            "stripe_invoice_id": event_data.get("id"),
+            "stripe_customer_id": stripe_customer_id,
+            "stripe_subscription_id": stripe_subscription_id,
+            "expiration": stripe_subscription.current_period_end,
+        },
+        account=wriveted_user,
+    )
 
 
 def _handle_checkout_session_completed(
