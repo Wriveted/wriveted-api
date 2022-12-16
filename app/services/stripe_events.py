@@ -222,7 +222,7 @@ def _handle_checkout_session_completed(
         # we store the checkout session id in the subscription so that we can
         # retrieve it later (in the case that a user hasn't yet signed up nor logged in,
         # and need to link this subscription to their account once they have).
-        latest_checkout_session_id=checkout_session_id
+        latest_checkout_session_id=checkout_session_id,
     ).dict(exclude_unset=True)
 
     subscription = crud.subscription.update(
@@ -255,7 +255,7 @@ def _handle_subscription_updated(
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
-    if not subscription:
+    if not subscription or not wriveted_user:
         return
 
     # populate the subscription in our database with the latest information
