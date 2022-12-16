@@ -74,8 +74,9 @@ def process_stripe_event(event_type: str, event_data):
         wriveted_user = None
 
         # webhook is only listening to events that are guaranteed to include a customer id (for now)
-        stripe_customer = StripeCustomer.retrieve(event_data.get("customer"))
-        bind_contextvars(stripe_customer_id=stripe_customer.id)
+        if stripe_customer_id := event_data.get("customer"):
+            stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
+            bind_contextvars(stripe_customer_id=stripe_customer.id)
 
         # check customer metadata for a wriveted user id
         # (this is stored upon the first successful checkout)
@@ -135,15 +136,10 @@ def process_stripe_event(event_type: str, event_data):
 
             # Log-and-move-on events
             case "customer.created":
-                logger.info(
-                    "Stripe customer created", stripe_customer_id=stripe_customer.id
-                )
+                logger.info("Stripe customer created")
 
             case "customer.updated":
-                logger.info(
-                    "Stripe customer updated. Not taking any action",
-                    stripe_customer_id=stripe_customer.id,
-                )
+                logger.info("Stripe customer updated. Not taking any action")
 
             case "customer.subscription.created":
                 logger.info(
