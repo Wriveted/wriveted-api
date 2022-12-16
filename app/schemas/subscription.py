@@ -34,6 +34,7 @@ class SubscriptionCreateIn(BaseModel):
     is_active: bool | None
     info: dict | None
     latest_checkout_session_id: str | None
+    expiration: datetime | None
 
 
 class SubscriptionUpdateIn(BaseModel):
@@ -41,3 +42,4 @@ class SubscriptionUpdateIn(BaseModel):
     is_active: bool | None
     info: dict | None
     latest_checkout_session_id: str | None
+    expiration: datetime | None

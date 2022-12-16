@@ -214,13 +214,17 @@ def _handle_checkout_session_completed(
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     # create or update a base subscription in our database
+    wriveted_parent_id = (
+        str(wriveted_user.id)
+        if wriveted_user and wriveted_user.type == UserAccountType.PARENT
+        else None
+    )
     base_subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
         product_id=stripe_price_id,
         stripe_customer_id=stripe_subscription.customer,
-        parent_id=str(wriveted_user.id)
-        if wriveted_user and wriveted_user.type == UserAccountType.PARENT
-        else None,
+        parent_id=wriveted_parent_id,
+        expiration=stripe_subscription.current_period_end,
     )
     logger.info(
         "Creating or updating subscription in our database",
@@ -259,7 +263,7 @@ def _handle_subscription_updated(
 
     # ensure our db knows about the specified product
     stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
-    _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
+    product = _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
     if not subscription or not wriveted_user:
@@ -272,7 +276,7 @@ def _handle_subscription_updated(
 
     # populate the subscription in our database with the latest information
     subscription.product_id = stripe_price_id
-    subscription.is_active = stripe_subscription_status == "active"
+    subscription.is_active = stripe_subscription_status in {"active", "past_due"}
 
     if wriveted_user and subscription.parent_id is None:
         # we have a wriveted user, but no wriveted id on the subscription
@@ -285,10 +289,11 @@ def _handle_subscription_updated(
     crud.event.create(
         session=session,
         title="Subscription updated",
-        description=f"User {wriveted_user.id} updated their subscription to {stripe_price_id}",
+        description=f"User {wriveted_user.id} updated their subscription to {product.name}",
         info={
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": stripe_price_id,
+            "status": stripe_subscription_status,
         },
         account=wriveted_user,
     )
@@ -335,5 +340,5 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
             obj_in=ProductCreateIn(id=stripe_price_id, name=stripe_product.name),
         )
     else:
-        logger.info("Product already exists in db")
+        logger.debug("Product already exists in db")
     return wriveted_product

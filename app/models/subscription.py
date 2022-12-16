@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, String
@@ -63,7 +63,9 @@ class Subscription(Base):
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-
+    expiration = Column(
+        DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
+    )
     info = Column(MutableDict.as_mutable(JSON))
     provider = Column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),
