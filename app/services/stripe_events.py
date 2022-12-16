@@ -258,7 +258,6 @@ def _handle_subscription_updated(
     current_subscription_data = SubscriptionUpdateIn(
         product_id=stripe_price_id,
         is_active=stripe_subscription_status == "active",
-        latest_checkout_session_id=event_data.get("id"),
     ).dict()
 
     if wriveted_user and not subscription.parent_id:
