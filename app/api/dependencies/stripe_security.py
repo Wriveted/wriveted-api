@@ -1,5 +1,6 @@
 import stripe as stripe
-from fastapi import Header, Request
+from fastapi import Header, HTTPException, Request
+from starlette import status
 from structlog import get_logger
 
 from app.config import get_settings
@@ -21,8 +22,12 @@ async def get_stripe_event(
         )
     except ValueError as e:
         logger.warning("Invalid payload", payload=payload, exc_info=e)
-        raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload"
+        )
     except stripe.error.SignatureVerificationError as e:
         logger.warning("Invalid signature", payload=payload, exc_info=e)
-        raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature"
+        )
     return event

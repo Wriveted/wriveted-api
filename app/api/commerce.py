@@ -120,10 +120,7 @@ async def create_shopify_order(
 @router.post(
     "/stripe/webhook",
 )
-async def handle_stripe_webhook(
-    event: stripe.Event = Depends(get_stripe_event),
-    session: Session = Depends(get_session),
-):
+async def handle_stripe_webhook(event: stripe.Event = Depends(get_stripe_event)):
     """
     Public endpoint for the Webhook called by Stripe.
 
