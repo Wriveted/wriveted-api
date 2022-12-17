@@ -2,6 +2,7 @@ from starlette import status
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
+from app.models import Subscription
 from app.schemas.users.user_update import UserUpdateIn
 
 
@@ -110,6 +111,50 @@ def test_get_parent_user(
     assert json["type"] == "parent"
 
 
+def test_get_subscribed_parent_user(
+    session, client, backend_service_account_headers, test_product
+):
+    email = "testemail@site.com"
+    if user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=user.id)
+
+    user = crud.user.create(
+        db=session,
+        obj_in=UserUpdateIn(name="Subscribed Parent", email=email, type="parent"),
+    )
+    new_subscription = Subscription(
+        id="sub_123",
+        parent_id=user.id,
+        stripe_customer_id="cus_123",
+        is_active=True,
+        info={},
+        product_id=test_product.id,
+    )
+    session.add(new_subscription)
+    session.commit()
+
+    # Test getting parent details includes subscription info
+    response = client.get(f"v1/user/{user.id}", headers=backend_service_account_headers)
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["type"] == "parent"
+    assert json["subscription"]["provider"] == "stripe"
+    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["type"] == "family"
+    assert json["subscription"]["stripe_customer_id"] == "cus_123"
+    assert json["subscription"]["id"] == "sub_123"
+
+    # Test that querying users with active family subscriptions returns the
+    # created parent
+    response = client.get(
+        f"v1/users",
+        params={"limit": 500, "active_subscription_type": "family"},
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_parent_user_can_login(
     session,
     client,
@@ -212,3 +257,68 @@ def test_parent_create_with_child_via_api(
     child_json = child_response.json()
     assert child_json["huey_attributes"]["age"] == 10
     assert child_json["huey_attributes"]["reading_ability"] == ["SPOT"]
+
+
+def test_user_create_with_checkout_session_id(
+    session, client, backend_service_account_headers, test_product
+):
+    email = "testemail@site.com"
+    if existing_user := crud.user.get_by_account_email(db=session, email=email):
+        crud.user.remove(db=session, id=existing_user.id)
+
+    subscription_id = "sub_123"
+    if existing_subscription := crud.subscription.get(db=session, id=subscription_id):
+        crud.subscription.remove(db=session, id=existing_subscription.id)
+
+    orphaned_subscription = Subscription(
+        id="sub_123",
+        parent_id=None,
+        stripe_customer_id="cus_123",
+        is_active=True,
+        info={},
+        product_id=test_product.id,
+        latest_checkout_session_id="TEST_CHECKOUT_SESSION_ID",
+    )
+    session.add(orphaned_subscription)
+    session.commit()
+
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "A Parent With Subscription",
+            "email": email,
+            "type": "parent",
+            "checkout_session_id": "TEST_CHECKOUT_SESSION_ID",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["subscription"]["provider"] == "stripe"
+    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["type"] == "family"
+    assert json["subscription"]["stripe_customer_id"] == "cus_123"
+    assert json["subscription"]["id"] == "sub_123"
+    assert json["subscription"]["product"]["id"] == test_product.id
+
+    email_2 = "testemail2@site.com"
+    if existing_user := crud.user.get_by_account_email(db=session, email=email_2):
+        crud.user.remove(db=session, id=existing_user.id)
+
+    response = client.post(
+        f"v1/user",
+        json={
+            "name": "A Parent Trying to Steal a Subscription",
+            "email": email_2,
+            "type": "parent",
+            "checkout_session_id": "TEST_CHECKOUT_SESSION_ID",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    json = response.json()
+    assert json["subscription"] is None
+
+    crud.subscription.remove(db=session, id=orphaned_subscription.id)

@@ -1,4 +1,5 @@
 from base64 import b64decode
+
 from google.cloud import storage
 from structlog import get_logger
 

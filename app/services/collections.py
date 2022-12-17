@@ -14,10 +14,7 @@ from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
-from app.schemas.collection import (
-    CollectionAndItemsUpdateIn,
-    CollectionItemBase,
-)
+from app.schemas.collection import CollectionAndItemsUpdateIn, CollectionItemBase
 from app.services.editions import get_definitive_isbn
 
 logger = get_logger()

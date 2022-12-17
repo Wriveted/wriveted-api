@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, BaseSettings
 from sendgrid import SendGridAPIClient
@@ -6,13 +8,12 @@ from structlog import get_logger
 
 from app import crud
 from app.db.session import get_session
-from app.schemas.collection import CoverImageUpdateIn
 from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import get_sendgrid_api, send_sendgrid_email
 from app.services.events import process_events
-from app.services.cover_images import base64_string_to_bucket
+from app.services.stripe_events import process_stripe_event
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -42,6 +43,21 @@ class ProcessEventPayload(BaseModel):
 async def process_event(data: ProcessEventPayload):
     return process_events(
         event_id=data.event_id,
+    )
+
+
+class StripeInternalEventPayload(BaseModel):
+    stripe_event_type: str
+    stripe_event_data: Any
+
+
+@router.post("/process-stripe-event")
+async def handle_stripe_event(data: StripeInternalEventPayload):
+    logger.info("Internal API processing a stripe event", data=data)
+
+    return process_stripe_event(
+        event_type=data.stripe_event_type,
+        event_data=data.stripe_event_data,
     )
 
 

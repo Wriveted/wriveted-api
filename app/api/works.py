@@ -11,7 +11,7 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
-from app.models import Work, Author
+from app.models import Author, Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission

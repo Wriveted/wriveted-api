@@ -1,10 +1,9 @@
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
-from sqlalchemy import delete, func, select
 from sqlalchemy import asc, delete, func, select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud

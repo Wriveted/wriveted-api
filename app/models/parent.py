@@ -2,6 +2,7 @@ from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import relationship
 
 from app.models.user import User, UserAccountType
 
@@ -24,6 +25,13 @@ class Parent(User):
 
     # misc
     parent_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+
+    subscription = relationship(
+        "Subscription",
+        back_populates="parent",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

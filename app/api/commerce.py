@@ -1,3 +1,4 @@
+import stripe
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -10,11 +11,13 @@ from fastapi import (
 from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from structlog.contextvars import bind_contextvars
 
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     verify_shopify_hmac,
 )
+from app.api.dependencies.stripe_security import get_stripe_event
 from app.config import get_settings
 from app.db.session import get_session
 from app.schemas.sendgrid import (
@@ -112,3 +115,32 @@ async def create_shopify_order(
     background_tasks.add_task(process_shopify_order, data, sg, session)
 
     return Response(status_code=200, content="Thanks Shopify")
+
+
+@router.post(
+    "/stripe/webhook",
+)
+async def handle_stripe_webhook(event: stripe.Event = Depends(get_stripe_event)):
+    """
+    Public endpoint for the Webhook called by Stripe.
+
+    https://stripe.com/docs/webhooks
+    """
+
+    logger.info("Received an event from Stripe", stripe_event_type=event.type)
+    event_data = event.data["object"]
+    bind_contextvars(stripe_event_type=event.type)
+
+    if "customer" in event_data:
+        bind_contextvars(stripe_customer_id=event_data["customer"])
+    logger.info("Stripe event scheduled for internal processing")
+    background_task_response = queue_background_task(
+        "process-stripe-event",
+        {
+            "stripe_event_type": event.type,
+            "stripe_event_data": event_data,
+        },
+    )
+
+    logger.info("Bg task", bg_task=background_task_response)
+    return {"status": "success"}

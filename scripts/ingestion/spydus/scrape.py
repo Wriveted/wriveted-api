@@ -1,12 +1,12 @@
 import base64
-import logging
 import datetime as dt
-import humanize as humanize
-import time
+import logging
 import sqlite3
+import time
 
 import httpx
-from pydantic import BaseSettings, AnyHttpUrl
+import humanize as humanize
+from pydantic import AnyHttpUrl, BaseSettings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("wriveted.spydus")

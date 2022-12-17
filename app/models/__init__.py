@@ -14,6 +14,7 @@ from .labelset import LabelSet
 from .labelset_hue_association import LabelSetHue
 from .labelset_reading_ability_association import LabelSetReadingAbility
 from .parent import Parent
+from .product import Product
 from .public_reader import PublicReader
 from .reader import Reader
 from .reading_ability import ReadingAbility
@@ -22,6 +23,7 @@ from .school_admin import SchoolAdmin
 from .series import Series
 from .service_account import ServiceAccount, ServiceAccountType
 from .student import Student
+from .subscription import Subscription
 from .user import User
 from .work import Work
 from .wriveted_admin import WrivetedAdmin
