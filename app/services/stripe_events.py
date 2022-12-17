@@ -206,6 +206,7 @@ def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
         logger.warning(
             "Invoice paid event references a subscription that is not in the database"
         )
+        return
 
     subscription.expiration = datetime.utcfromtimestamp(
         stripe_subscription.current_period_end
