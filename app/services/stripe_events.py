@@ -115,6 +115,7 @@ def process_stripe_event(event_type: str, event_data):
                     "Stripe subscription created",
                     stripe_subscription_id=event_data.get("subscription"),
                 )
+                _handle_subscription_created(session, wriveted_user, event_data)
 
             case "payment_intent.succeeded":
                 logger.info("Payment succeeded")
@@ -309,6 +310,49 @@ def _handle_checkout_session_completed(
     )
 
     return subscription
+
+
+def _handle_subscription_created(session, wriveted_user: User, event_data: dict):
+    stripe_subscription_id = event_data.get("id")
+    assert event_data.get("object") == "subscription"
+
+    stripe_subscription_status = event_data["status"]
+    stripe_subscription_expiry = event_data["current_period_end"]
+
+    # ensure our db knows about the specified product
+    stripe_price_id = event_data["items"]["data"][0]["price"]["id"]
+    product = _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
+
+    # If user is missing, look to see if the Stripe Customer's metadata includes `wriveted_id`
+    if wriveted_user is None:
+        stripe_customer = _get_stripe_customer_from_stripe_object(
+            event_data, "subscription"
+        )
+
+        # check customer metadata for a wriveted user id
+        # (this is stored upon the first successful checkout)
+        if user_id := stripe_customer["metadata"].get("wriveted_id"):
+            wriveted_user = crud.user.get(session, user_id)
+            logger.info(
+                "Found wriveted user id in Stripe Customer metadata", user=wriveted_user
+            )
+
+    wriveted_parent_id = (
+        str(wriveted_user.id)
+        if wriveted_user and wriveted_user.type == UserAccountType.PARENT
+        else None
+    )
+    subscription_data = SubscriptionCreateIn(
+        id=stripe_subscription_id,
+        product_id=stripe_price_id,
+        stripe_customer_id=event_data.get("customer"),
+        parent_id=wriveted_parent_id,
+        expiration=stripe_subscription_expiry,
+    )
+
+    subscription, created = crud.subscription.get_or_create(session, subscription_data)
+    if created:
+        logger.info("Created a new subscription", subscription=subscription)
 
 
 def _handle_subscription_updated(
