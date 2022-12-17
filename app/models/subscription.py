@@ -49,8 +49,13 @@ class Subscription(Base):
         default=SubscriptionType.FAMILY,
     )
     stripe_customer_id = Column(String, nullable=False, index=True)
-    is_active = Column(Boolean(), default=False)
 
+    # Note a subscription may be in_active (e.g. the user has cancelled)
+    # but still have an expiration date in the future.
+    is_active = Column(Boolean(), default=False)
+    expiration = Column(
+        DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
+    )
     product_id = Column(
         String,
         ForeignKey("products.id", name="fk_product_stripe_subscription"),
@@ -63,9 +68,7 @@ class Subscription(Base):
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-    expiration = Column(
-        DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
-    )
+
     info = Column(MutableDict.as_mutable(JSON))
     provider = Column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),

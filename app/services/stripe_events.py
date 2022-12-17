@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from stripe import Customer as StripeCustomer
 from stripe import Price as StripePrice
@@ -312,7 +313,7 @@ def _handle_checkout_session_completed(
 
 def _handle_subscription_updated(
     session, wriveted_user: User, event_data: dict
-) -> Subscription:
+) -> Optional[Subscription]:
     stripe_subscription_id = event_data.get("id")
     assert event_data.get("object") == "subscription"
 
@@ -321,6 +322,20 @@ def _handle_subscription_updated(
     # ensure our db knows about the specified product
     stripe_price_id = event_data["items"]["data"][0]["price"]["id"]
     product = _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
+
+    # If user is missing, look to see if the Stripe Customer's metadata includes `wriveted_id`
+    if wriveted_user is None:
+        stripe_customer = _get_stripe_customer_from_stripe_object(
+            event_data, "subscription"
+        )
+
+        # check customer metadata for a wriveted user id
+        # (this is stored upon the first successful checkout)
+        if user_id := stripe_customer["metadata"].get("wriveted_id"):
+            wriveted_user = crud.user.get(session, user_id)
+            logger.info(
+                "Found wriveted user id in Stripe Customer metadata", user=wriveted_user
+            )
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
     if not subscription or not wriveted_user:
