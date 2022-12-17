@@ -27,7 +27,9 @@ Note this will print out a local webhook secret. You will need to set this as th
 
 Then send a test event to the Stripe CLI webhook proxy:
     
-    stripe trigger customer.subscription.created
+    stripe trigger customer.subscription.created --override customer:email=brian@hardbyte.nz --override customer:metadata.wriveted_id=83a889bf-5722-4c35-8d81-224cc600e394
+
+    stripe trigger customer.subscription.deleted --override customer:email=brian@hardbyte.nz --override customer:metadata.wriveted_id=83a889bf-5722-4c35-8d81-224cc600e394
 
 
 ## Non Production Environments
@@ -47,8 +49,6 @@ Adding a `stripe_customer_id` to the User's `info` object.
 
 When a customer subscribes to a plan, a customer.subscription.created event is sent to the webhook. 
 
-We store the `stripe_subscription_id` on the `User.info` as well
-as ensuring `is_active` is `True`.
 
 ### customer.subscription.deleted
 

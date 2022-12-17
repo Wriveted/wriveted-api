@@ -89,8 +89,8 @@ def process_stripe_event(event_type: str, event_data):
 
             case "customer.subscription.updated":
                 # Sent when the subscription is successfully started, after the payment is confirmed.
-                # Also sent whenever a subscription is changed. For example, adding a coupon, applying
-                # a discount, adding an invoice item, and changing plans all trigger this event.
+                # Also sent whenever a subscription is changed. For example applying a discount,
+                # adding an invoice item, and changing plans all trigger this event.
                 # https://stripe.com/docs/api/subscriptions/object
                 logger.info(
                     "Subscription updated. Updating underlying product or plan if necessary"
@@ -414,5 +414,9 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
             obj_in=ProductCreateIn(id=stripe_price_id, name=stripe_product.name),
         )
     else:
-        logger.debug("Product already exists in db")
+        logger.debug(
+            "Product already exists in db",
+            product_id=stripe_price_id,
+            product_name=wriveted_product.name,
+        )
     return wriveted_product
