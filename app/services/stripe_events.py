@@ -204,12 +204,12 @@ def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
     subscription = crud.subscription.get(session, stripe_subscription_id)
     if subscription is None:
         logger.warning(
-            "Invoice paid event references a subscription that is not in the database."
-        )
-        raise NotImplementedError(
             "Invoice paid event references a subscription that is not in the database"
         )
-    subscription.expiration = stripe_subscription.current_period_end
+
+    subscription.expiration = datetime.utcfromtimestamp(
+        stripe_subscription.current_period_end
+    )
     subscription.is_active = stripe_subscription.status in {"active", "past_due"}
 
     crud.event.create(
@@ -220,7 +220,7 @@ def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
             "stripe_invoice_id": event_data.get("id"),
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
-            "expiration": stripe_subscription.current_period_end,
+            "expiration": str(subscription.expiration),
         },
         account=wriveted_user,
     )
