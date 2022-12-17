@@ -321,7 +321,7 @@ def _handle_subscription_created(session, wriveted_user: User, event_data: dict)
 
     # ensure our db knows about the specified product
     stripe_price_id = event_data["items"]["data"][0]["price"]["id"]
-    product = _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
+    _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     # If user is missing, look to see if the Stripe Customer's metadata includes `wriveted_id`
     if wriveted_user is None:
@@ -344,6 +344,7 @@ def _handle_subscription_created(session, wriveted_user: User, event_data: dict)
     )
     subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
+        is_active=stripe_subscription_status in {"active", "past_due"},
         product_id=stripe_price_id,
         stripe_customer_id=event_data.get("customer"),
         parent_id=wriveted_parent_id,
