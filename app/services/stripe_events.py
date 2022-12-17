@@ -365,14 +365,14 @@ def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dic
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
 
     if subscription is not None:
-        parent = subscription.parent
+        logger.info("Marking subscription as inactive", subscription=subscription)
         product = subscription.product
         subscription.is_active = False
 
         crud.event.create(
             session=session,
             title="Subscription cancelled",
-            description=f"User {parent.id} cancelled their subscription to {product.name}",
+            description=f"User cancelled their subscription to {product.name}",
             info={
                 "stripe_subscription_id": stripe_subscription_id,
                 "product_id": product.id,
