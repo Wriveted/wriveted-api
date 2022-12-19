@@ -13,6 +13,7 @@ class SubscriptionBrief(BaseModel):
     type: Literal["family"]
     provider: Literal["stripe"]
     is_active: bool
+    expiration: datetime | None
     product: ProductBrief
 
     class Config:
