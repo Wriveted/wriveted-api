@@ -16,6 +16,7 @@ from app.models.subscription import Subscription
 from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
+from app.services.background_tasks import queue_background_task
 
 logger = get_logger()
 
@@ -251,6 +252,7 @@ def _handle_checkout_session_completed(
 
     stripe_customer_id = stripe_subscription.customer
     stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
+    stripe_customer_email = stripe_customer.email
 
     checkout_session_id = event_data.get("id")
 
@@ -308,6 +310,25 @@ def _handle_checkout_session_completed(
             "stripe_subscription_id": stripe_subscription_id,
         },
         account=wriveted_user,
+    )
+    logger.info("Queueing subscription welcome email")
+
+    queue_background_task(
+        "send-email",
+        {
+            "email_data": {
+                "from_email": "orders@hueybooks.com",
+                "from_name": "Huey Books",
+                "to_emails": [stripe_customer_email],
+                "subject": "Your Huey Books Membership",
+                "template_id": "d-6e42a074612148bb805a8c03be2020d5",
+                "template_data": {
+                    "name": stripe_customer.name,
+                    "checkout_session_id": checkout_session_id,
+                },
+            },
+            "user_id": str(wriveted_user.id) if wriveted_user else None,
+        },
     )
 
     return subscription
