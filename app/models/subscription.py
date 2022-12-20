@@ -50,7 +50,7 @@ class Subscription(Base):
     )
     stripe_customer_id = Column(String, nullable=False, index=True)
 
-    # Note a subscription may be in_active (e.g. the user has cancelled)
+    # Note a subscription may be inactive (e.g. the user has cancelled)
     # but still have an expiration date in the future.
     is_active = Column(Boolean(), default=False)
     expiration = Column(
