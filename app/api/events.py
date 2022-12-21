@@ -14,13 +14,14 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models.event import EventLevel
+from app.models.event import EventLevel, EventSlackChannel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
 from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -54,7 +55,7 @@ async def create(
     else:
         school = None
 
-    event = crud.event.create(
+    event = create_event(
         session=session,
         title=data.title,
         description=data.description,
@@ -70,6 +71,27 @@ async def create(
         {"event_id": str(event.id)},
     )
 
+    return event
+
+
+@router.post("/test-slack-event", response_model=EventDetail)
+async def test_slack_event(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_active_user_or_service_account),
+):
+    school = crud.school.get_by_wriveted_id_or_404(
+        db=session, wriveted_id="784039ba-7eda-406d-9058-efe65f62f034"
+    )
+    event = create_event(
+        session=session,
+        title="Test Slack Event",
+        description="This is a test event",
+        info={"test": "info", "more": "info", "even": "more", "broken": {"oops": "!"}},
+        level=EventLevel.NORMAL,
+        slack_channel=EventSlackChannel.GENERAL,
+        school=school,
+        account=user,
+    )
     return event
 
 

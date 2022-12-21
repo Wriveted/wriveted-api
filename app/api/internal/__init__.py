@@ -8,11 +8,12 @@ from structlog import get_logger
 
 from app import crud
 from app.db.session import get_session
+from app.models.event import EventSlackChannel
 from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import get_sendgrid_api, send_sendgrid_email
-from app.services.events import process_events
+from app.services.events import handle_event_to_slack_alert, process_events
 from app.services.stripe_events import process_stripe_event
 
 
@@ -44,6 +45,20 @@ async def process_event(data: ProcessEventPayload):
     return process_events(
         event_id=data.event_id,
     )
+
+
+class EventSlackAlertPayload(BaseModel):
+    event_id: str
+    slack_channel: EventSlackChannel
+
+
+@router.post("/event-to-slack-alert")
+async def event_to_slack_alert(
+    data: EventSlackAlertPayload,
+    session: Session = Depends(get_session),
+):
+    logger.info("Internal API preparing to send event to slack", data=data)
+    return handle_event_to_slack_alert(session, data.event_id, data.slack_channel)
 
 
 class StripeInternalEventPayload(BaseModel):
