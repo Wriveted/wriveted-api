@@ -77,7 +77,7 @@ def handle_user_creation(
     create_event(
         session,
         title="User created",
-        description=f"New {new_user.type} user created",
+        description=f"New {new_user.type.name} user created",
         slack_channel=EventSlackChannel.GENERAL,
         account=new_user,
         info={

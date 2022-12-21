@@ -165,7 +165,7 @@ def create_event(
         queue_background_task(
             "event-to-slack-alert",
             {
-                "event_id": event.id,
+                "event_id": str(event.id),
                 "slack_channel": slack_channel,
                 "slack_extra": slack_extra,
             },
