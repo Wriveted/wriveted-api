@@ -79,9 +79,9 @@ def handle_user_creation(
         title="User created",
         description=f"New {new_user.type} user created",
         slack_channel=EventSlackChannel.GENERAL,
-        user=new_user,
+        account=new_user,
         info={
-            "user_id": new_user.id,
+            "user_id": str(new_user.id),
             "user_type": new_user.type,
             "user_email": str(new_user.email),
         },
