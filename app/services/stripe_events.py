@@ -265,6 +265,10 @@ def _handle_checkout_session_completed(
     stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
     stripe_customer_email = stripe_customer.get("email")
 
+    if not stripe_customer_email:
+        logger.warning("Checkout session emitted without an email address. Ignoring")
+        return
+
     checkout_session_id = event_data.get("id")
 
     if wriveted_user and not stripe_customer.metadata.get("wriveted_id"):
