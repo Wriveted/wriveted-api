@@ -123,7 +123,7 @@ def handle_event_to_slack_alert(
         title=event.title,
         description=event.description,
         channel=slack_channel,
-        token=config.SLACK_BOT_TOKEN
+        token=config.SLACK_BOT_TOKEN,
     )
 
     client = WebClient(token=config.SLACK_BOT_TOKEN)
