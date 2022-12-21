@@ -263,7 +263,7 @@ def _handle_checkout_session_completed(
 
     stripe_customer_id = stripe_subscription.customer
     stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
-    stripe_customer_email = stripe_customer.email
+    stripe_customer_email = stripe_customer.get("email")
 
     checkout_session_id = event_data.get("id")
 
@@ -342,7 +342,7 @@ def _handle_checkout_session_completed(
             "email_data": {
                 "from_email": "orders@hueybooks.com",
                 "from_name": "Huey Books",
-                "to_emails": [stripe_customer_email],
+                "to_emails": [stripe_customer_email] if stripe_customer_email else [],
                 "subject": "Your Huey Books Membership",
                 "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
                 "template_data": {
