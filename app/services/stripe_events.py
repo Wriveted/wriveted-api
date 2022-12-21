@@ -11,12 +11,14 @@ from structlog.contextvars import bind_contextvars
 from app import crud
 from app.db.session import get_session_maker
 from app.models import User
+from app.models.event import EventSlackChannel
 from app.models.product import Product
 from app.models.subscription import Subscription
 from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
 from app.services.background_tasks import queue_background_task
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -308,18 +310,30 @@ def _handle_checkout_session_completed(
     subscription.is_active = True
     subscription.latest_checkout_session_id = checkout_session_id
 
-    crud.event.create(
+    # fetch from db instead of stripe object in case we have a product name override
+    product_name = crud.product.get(session, stripe_price_id).name
+
+    create_event(
         session=session,
         title="Subscription started",
         description="Subscription created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
+            "stripe_customer_email": stripe_customer_email,
             "stripe_subscription_id": stripe_subscription_id,
+            "stripe_product_id": stripe_price_id,
+            "stripe_product_name": product_name,
         },
         account=wriveted_user,
+        slack_channel=EventSlackChannel.MEMBERSHIPS,
+        slack_extra={
+            "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
+            "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
+            "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
+        },
     )
-    logger.info("Queueing subscription welcome email")
 
+    logger.info("Queueing subscription welcome email")
     queue_background_task(
         "send-email",
         {

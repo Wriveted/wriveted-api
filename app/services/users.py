@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.models import Student
+from app.models.event import EventSlackChannel
 from app.models.parent import Parent
 from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists
+from app.services.events import create_event
 from app.services.util import oxford_comma_join
 
 logger = get_logger()
@@ -71,6 +73,19 @@ def handle_user_creation(
             link_parent_with_subscription_via_checkout_session(
                 session, new_user, checkout_session_id
             )
+
+    create_event(
+        session,
+        title="User created",
+        description=f"New {new_user.type} user created",
+        slack_channel=EventSlackChannel.GENERAL,
+        user=new_user,
+        info={
+            "user_id": new_user.id,
+            "user_type": new_user.type,
+            "user_email": str(new_user.email),
+        },
+    )
 
     return new_user
 

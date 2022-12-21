@@ -34,7 +34,7 @@ event_level_emoji = {
 }
 
 
-def _parse_event_to_slack_message(event: Event) -> str:
+def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
     """
     Parse an event into a Slack message using the Block Kit format.
     """
@@ -91,15 +91,33 @@ def _parse_event_to_slack_message(event: Event) -> str:
                 info_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
         blocks.append({"type": "section", "fields": info_fields})
 
+    if extra:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Extra*:",
+                },
+            }
+        )
+        extra_fields = []
+        for key, value in extra.items():
+            extra_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
+        blocks.append({"type": "section", "fields": extra_fields})
+
     output = json.dumps(blocks)
     return (output, text)
 
 
 def handle_event_to_slack_alert(
-    session: Session, event_id: int, slack_channel: EventSlackChannel
+    session: Session,
+    event_id: int,
+    slack_channel: EventSlackChannel,
+    extra: dict = None,
 ):
     event = crud.event.get(session, id=event_id)
-    payload, text = _parse_event_to_slack_message(event)
+    payload, text = _parse_event_to_slack_message(event, extra=extra)
     logger.info(
         "Sending event to Slack",
         title=event.title,
@@ -124,6 +142,7 @@ def create_event(
     info: dict = None,
     level: EventLevel = EventLevel.NORMAL,
     slack_channel: EventSlackChannel | None = None,
+    slack_extra: dict = None,
     school: School = None,
     account: Union[ServiceAccount, User] = None,
     commit: bool = True,
@@ -148,6 +167,7 @@ def create_event(
             {
                 "event_id": event.id,
                 "slack_channel": slack_channel,
+                "slack_extra": slack_extra,
             },
         )
 

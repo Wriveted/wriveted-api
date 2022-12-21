@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, BaseSettings
@@ -49,7 +49,8 @@ async def process_event(data: ProcessEventPayload):
 
 class EventSlackAlertPayload(BaseModel):
     event_id: str
-    slack_channel: EventSlackChannel
+    slack_channel: EventSlackChannel = EventSlackChannel.GENERAL
+    slack_extra: Dict[str, str] | None
 
 
 @router.post("/event-to-slack-alert")
@@ -58,7 +59,9 @@ async def event_to_slack_alert(
     session: Session = Depends(get_session),
 ):
     logger.info("Internal API preparing to send event to slack", data=data)
-    return handle_event_to_slack_alert(session, data.event_id, data.slack_channel)
+    return handle_event_to_slack_alert(
+        session, data.event_id, data.slack_channel, extra=data.slack_extra
+    )
 
 
 class StripeInternalEventPayload(BaseModel):
