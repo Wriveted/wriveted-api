@@ -342,7 +342,7 @@ def _handle_checkout_session_completed(
                 "from_name": "Huey Books",
                 "to_emails": [stripe_customer_email],
                 "subject": "Your Huey Books Membership",
-                "template_id": "d-6e42a074612148bb805a8c03be2020d5",
+                "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
                 "template_data": {
                     "name": stripe_customer.name,
                     "checkout_session_id": checkout_session_id,
