@@ -151,21 +151,18 @@ async def update_user(
 
 
 @router.post(
-    "/user/{uuid}/auth-token",
+    "/user/{user_id}/auth-token",
     responses={
         401: {"description": "Unauthorized"},
         422: {"description": "Invalid data"},
     },
-    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
 def magic_link_endpoint(
-    uuid: str,
-    session: Session = Depends(get_session),
+    user=Permission("update", get_user_from_id),
 ):
     """
     Create a Wriveted API magic-link token for a user.
     """
-    user = crud.user.get(db=session, id=uuid)
     logger.info("Generating magic link access-token for user", user=user)
     wriveted_access_token = create_user_access_token(
         user, expires_delta=datetime.timedelta(days=90)

@@ -21,6 +21,7 @@ from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -54,7 +55,7 @@ async def create(
     else:
         school = None
 
-    event = crud.event.create(
+    event = create_event(
         session=session,
         title=data.title,
         description=data.description,

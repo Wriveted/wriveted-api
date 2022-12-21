@@ -4,7 +4,6 @@ on:
   pull_request:
     types: [opened]
 jobs:
-
   hadolint:
     runs-on: ubuntu-latest
     steps:
@@ -86,7 +85,7 @@ jobs:
         name: Git Checkout
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -115,4 +114,5 @@ jobs:
           export POSTGRESQL_PASSWORD=unused-password-set-for-unit-testing
           export SENDGRID_API_KEY=unused-key-set-for-testing
           export SHOPIFY_HMAC_SECRET=unused-key-set-for-testing
+          export SLACK_BOT_TOKEN=unused-key-for-testing
           poetry run pytest app/tests/unit

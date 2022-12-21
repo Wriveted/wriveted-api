@@ -1,12 +1,16 @@
-from typing import Optional
+import json
+from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
+from app.models.event import EventLevel, EventSlackChannel
+from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
     BookListCreateIn,
@@ -15,8 +19,160 @@ from app.schemas.booklist import (
     BookListUpdateIn,
     ItemUpdateType,
 )
+from app.services.background_tasks import queue_background_task
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 logger = get_logger()
+config = get_settings()
+
+event_level_emoji = {
+    EventLevel.DEBUG: ":bug:",
+    EventLevel.NORMAL: ":information_source:",
+    EventLevel.WARNING: ":warning:",
+    EventLevel.ERROR: ":bangbang:",
+}
+
+
+def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
+    """
+    Parse an event into a Slack message using the Block Kit format.
+    """
+    blocks = []
+    text = f"{event_level_emoji[event.level]} API Event: *{event.title}* \n{event.description}"
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": text,
+            },
+        }
+    )
+    fields = []
+    if event.school is not None:
+        fields.append(
+            {
+                "type": "mrkdwn",
+                "text": f"*School*: <https://api.wriveted.com/school/{event.school.wriveted_identifier}|{event.school.name}>",
+            }
+        )
+    if event.user is not None:
+        fields.append(
+            {
+                "type": "mrkdwn",
+                "text": f"*User*: <https://api.wriveted.com/user/{event.user_id}|{event.user.name}>",
+            }
+        )
+    if event.service_account is not None:
+        fields.append(
+            {
+                "type": "mrkdwn",
+                "text": f"*Service Account*: {event.service_account.name}",
+            }
+        )
+    if len(fields) > 0:
+        blocks.append({"type": "section", "fields": fields})
+
+    if event.info:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Info*:",
+                },
+            }
+        )
+        info_fields = []
+        for key, value in event.info.items():
+            if key != "description":
+                info_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
+        blocks.append({"type": "section", "fields": info_fields})
+
+    if extra:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Extra*:",
+                },
+            }
+        )
+        extra_fields = []
+        for key, value in extra.items():
+            extra_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
+        blocks.append({"type": "section", "fields": extra_fields})
+
+    output = json.dumps(blocks)
+    return (output, text)
+
+
+def handle_event_to_slack_alert(
+    session: Session,
+    event_id: int,
+    slack_channel: EventSlackChannel,
+    extra: dict = None,
+):
+    event = crud.event.get(session, id=event_id)
+    payload, text = _parse_event_to_slack_message(event, extra=extra)
+    logger.info(
+        "Sending event to Slack",
+        title=event.title,
+        description=event.description,
+        channel=slack_channel,
+        token=config.SLACK_BOT_TOKEN,
+    )
+
+    client = WebClient(token=config.SLACK_BOT_TOKEN)
+    try:
+        _response = client.chat_postMessage(
+            channel=slack_channel, blocks=payload, text=text
+        )
+        logger.info("Slack alert posted successfully")
+    except SlackApiError as e:
+        logger.error("Error sending Slack alert: {}".format(e))
+
+
+def create_event(
+    session: Session,
+    title: str,
+    description: str = None,
+    info: dict = None,
+    level: EventLevel = EventLevel.NORMAL,
+    slack_channel: EventSlackChannel | None = None,
+    slack_extra: dict = None,
+    school: School = None,
+    account: Union[ServiceAccount, User] = None,
+    commit: bool = True,
+) -> Event:
+    """
+    Create a new event, passing a Slack alert if requested.
+    """
+    event = crud.event.create(
+        session,
+        title=title,
+        description=description,
+        info=info,
+        level=level,
+        school=school,
+        account=account,
+        commit=commit,
+    )
+
+    if slack_channel is not None:
+        queue_background_task(
+            "event-to-slack-alert",
+            {
+                "event_id": str(event.id),
+                "slack_channel": slack_channel,
+                "slack_extra": slack_extra,
+            },
+        )
+
+    return event
 
 
 def process_events(event_id):

@@ -19,6 +19,11 @@ class EventLevel(str, enum.Enum):
     ERROR = "error"
 
 
+class EventSlackChannel(str, enum.Enum):
+    GENERAL = "#api-alerts"
+    MEMBERSHIPS = "#memberships"
+
+
 class Event(Base):
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
 

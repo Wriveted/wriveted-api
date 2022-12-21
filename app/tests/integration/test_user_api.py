@@ -122,8 +122,13 @@ def test_get_subscribed_parent_user(
         db=session,
         obj_in=UserUpdateIn(name="Subscribed Parent", email=email, type="parent"),
     )
+
+    subscription_id = "sub_123"
+    if existing_subscription := crud.subscription.get(db=session, id=subscription_id):
+        crud.subscription.remove(db=session, id=existing_subscription.id)
+
     new_subscription = Subscription(
-        id="sub_123",
+        id=subscription_id,
         parent_id=user.id,
         stripe_customer_id="cus_123",
         is_active=True,

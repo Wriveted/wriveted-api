@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from jose import jwt
 from pydantic import BaseModel, validator
@@ -9,7 +9,7 @@ from app.config import get_settings
 ALGORITHM = "HS256"
 
 
-def get_raw_payload_from_access_token(token) -> Dict[str, Any]:
+def get_raw_payload_from_access_token(token) -> dict[str, Any]:
     settings = get_settings()
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     return payload
@@ -35,7 +35,7 @@ def get_payload_from_access_token(token) -> TokenPayload:
 def create_access_token(
     subject: Union[str, Any],
     expires_delta: timedelta,
-    extra_claims: Optional[Dict[str, str]] = None,
+    extra_claims: Optional[dict[str, str]] = None,
 ) -> str:
     settings = get_settings()
 

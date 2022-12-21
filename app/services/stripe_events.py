@@ -11,12 +11,14 @@ from structlog.contextvars import bind_contextvars
 from app import crud
 from app.db.session import get_session_maker
 from app.models import User
+from app.models.event import EventSlackChannel
 from app.models.product import Product
 from app.models.subscription import Subscription
 from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
 from app.services.background_tasks import queue_background_task
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -147,8 +149,10 @@ def _extract_user_and_customer_from_stripe_object(
 
     # check customer metadata for a wriveted user id
     # (this is stored upon the first successful checkout)
-    if user_id := stripe_customer["metadata"].get("wriveted_id"):
-        wriveted_user = crud.user.get(session, user_id)
+    metadata = stripe_customer.get("metadata")
+    stripe_customer_wriveted_id = metadata.get("wriveted_id") if metadata else None
+    if stripe_customer_wriveted_id:
+        wriveted_user = crud.user.get(session, stripe_customer_wriveted_id)
         logger.info("Found wriveted user id in customer metadata", user=wriveted_user)
 
     # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
@@ -259,7 +263,11 @@ def _handle_checkout_session_completed(
 
     stripe_customer_id = stripe_subscription.customer
     stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
-    stripe_customer_email = stripe_customer.email
+    stripe_customer_email = stripe_customer.get("email")
+
+    if not stripe_customer_email:
+        logger.warning("Checkout session emitted without an email address. Ignoring")
+        return
 
     checkout_session_id = event_data.get("id")
 
@@ -308,27 +316,39 @@ def _handle_checkout_session_completed(
     subscription.is_active = True
     subscription.latest_checkout_session_id = checkout_session_id
 
-    crud.event.create(
+    # fetch from db instead of stripe object in case we have a product name override
+    product_name = crud.product.get(session, stripe_price_id).name
+
+    create_event(
         session=session,
         title="Subscription started",
         description="Subscription created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
+            "stripe_customer_email": stripe_customer_email,
             "stripe_subscription_id": stripe_subscription_id,
+            "stripe_product_id": stripe_price_id,
+            "stripe_product_name": product_name,
         },
         account=wriveted_user,
+        slack_channel=EventSlackChannel.MEMBERSHIPS,
+        slack_extra={
+            "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
+            "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
+            "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
+        },
     )
-    logger.info("Queueing subscription welcome email")
 
+    logger.info("Queueing subscription welcome email")
     queue_background_task(
         "send-email",
         {
             "email_data": {
                 "from_email": "orders@hueybooks.com",
                 "from_name": "Huey Books",
-                "to_emails": [stripe_customer_email],
+                "to_emails": [stripe_customer_email] if stripe_customer_email else [],
                 "subject": "Your Huey Books Membership",
-                "template_id": "d-6e42a074612148bb805a8c03be2020d5",
+                "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
                 "template_data": {
                     "name": stripe_customer.name,
                     "checkout_session_id": checkout_session_id,

@@ -32,6 +32,7 @@ humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
 pillow = "^9.3.0"
 stripe = "^5.0.0"
+slack-sdk = "^3.19.5"
 
 
 [tool.poetry.dev-dependencies]
