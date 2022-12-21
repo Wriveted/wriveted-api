@@ -2,128 +2,128 @@ steps:
   - name: gcr.io/cloud-builders/docker
     args:
       - build
-      - '--no-cache'
-      - '-t'
-      - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
-      - '-t'
-      - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest'
+      - "--no-cache"
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
       - .
-      - '-f'
+      - "-f"
       - Dockerfile
     id: Build
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
     id: Push
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest'
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:latest"
     id: PushLatestTag
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
       - services
       - update
       - $_SERVICE_NAME_DEVELOPMENT
-      - '--platform=managed'
+      - "--platform=managed"
       - >-
         --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development,LOG_AS_JSON=True,DATABASE_MAX_OVERFLOW=5,GCP_CLOUD_TASKS_NAME=background-tasks,WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app
-      - '--port=8000'
-      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - "--port=8000"
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest,STRIPE_SECRET_KEY=stripe-live-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest,STRIPE_SECRET_KEY=stripe-live-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,SLACK_BOT_TOKEN=slack-wriveted-api-bot-token:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
-      - '--region=$_DEPLOY_REGION'
-      - '--concurrency=20'
-      - '--max-instances=3'
-      - '--quiet'
+      - "--region=$_DEPLOY_REGION"
+      - "--concurrency=20"
+      - "--max-instances=3"
+      - "--quiet"
     id: Deploy-Non-Prod
     entrypoint: gcloud
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
       - services
       - update
       - "$_SERVICE_NAME_DEVELOPMENT-internal"
-      - '--platform=managed'
+      - "--platform=managed"
       - >-
         --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development,LOG_AS_JSON=True,DATABASE_MAX_OVERFLOW=5,GCP_CLOUD_TASKS_NAME=background-tasks,WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app
-      - '--port=8000'
-      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - "--port=8000"
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,STRIPE_SECRET_KEY=stripe-test-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-test-webhook-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,STRIPE_SECRET_KEY=stripe-test-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-test-webhook-secret:latest,SLACK_BOT_TOKEN=slack-wriveted-api-bot-token:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
-      - '--region=$_DEPLOY_REGION'
-      - '--concurrency=20'
-      - '--max-instances=3'
-      - '--quiet'
-      - '--args=app.internal_api:internal_app'
+      - "--region=$_DEPLOY_REGION"
+      - "--concurrency=20"
+      - "--max-instances=3"
+      - "--quiet"
+      - "--args=app.internal_api:internal_app"
     id: Deploy-Non-Prod-internal-api
     entrypoint: gcloud
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
       - services
       - update
       - $_SERVICE_NAME
-      - '--platform=managed'
+      - "--platform=managed"
       - >-
         --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,LOG_AS_JSON=True,GCP_CLOUD_TASKS_NAME=background-tasks,WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app
-      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest,STRIPE_SECRET_KEY=stripe-test-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-test-webhook-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,METABASE_SECRET_KEY=metabase-secret-key:latest,STRIPE_SECRET_KEY=stripe-test-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-test-webhook-secret:latest,SLACK_BOT_TOKEN=slack-wriveted-api-bot-token:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
-      - '--region=$_DEPLOY_REGION'
-      - '--quiet'
+      - "--region=$_DEPLOY_REGION"
+      - "--quiet"
     id: Deploy-Prod
     entrypoint: gcloud
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
       - services
       - update
       - "$_SERVICE_NAME-internal"
-      - '--platform=managed'
+      - "--platform=managed"
       - >-
         --set-env-vars=POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,POSTGRESQL_USER=cloudrun,LOG_AS_JSON=True,GCP_CLOUD_TASKS_NAME=background-tasks,WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app
-      - '--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - >-
-        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,STRIPE_SECRET_KEY=stripe-live-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest
+        --set-secrets=POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,SECRET_KEY=wriveted-api-secret-key:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest,STRIPE_SECRET_KEY=stripe-live-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,SLACK_BOT_TOKEN=slack-wriveted-api-bot-token:latest
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
-      - '--region=$_DEPLOY_REGION'
-      - '--quiet'
-      - '--args=app.internal_api:internal_app'
+      - "--region=$_DEPLOY_REGION"
+      - "--quiet"
+      - "--args=app.internal_api:internal_app"
     id: Deploy-Prod-internal-api
     entrypoint: gcloud
-  - name: 'gcr.io/cloud-builders/docker'
+  - name: "gcr.io/cloud-builders/docker"
     id: RunMigration
     entrypoint: bash
     args:
-     - -c
-     - |
-       docker run -i \
-       --network=cloudbuild \
-       -e POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD \
-       -e SENDGRID_API_KEY=foo \
-       -e SHOPIFY_HMAC_SECRET=foo \
-       -e SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781 \
-       --entrypoint bash \
-       --volume $(pwd)/.cloudbuild/scripts/:/scripts/ \
-       $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-       -c '/scripts/database_migrate.sh'
-    secretEnv: ['POSTGRESQL_PASSWORD']
+      - -c
+      - |
+        docker run -i \
+        --network=cloudbuild \
+        -e POSTGRESQL_PASSWORD=$$POSTGRESQL_PASSWORD \
+        -e SENDGRID_API_KEY=foo \
+        -e SHOPIFY_HMAC_SECRET=foo \
+        -e SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We781 \
+        --entrypoint bash \
+        --volume $(pwd)/.cloudbuild/scripts/:/scripts/ \
+        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
+        -c '/scripts/database_migrate.sh'
+    secretEnv: ["POSTGRESQL_PASSWORD"]
 availableSecrets:
   secretManager:
     - versionName: projects/wriveted-api/secrets/wriveted-api-cloud-sql-root-password/versions/latest
-      env: 'POSTGRESQL_PASSWORD'
+      env: "POSTGRESQL_PASSWORD"
 images:
-  - '$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
 options:
   substitutionOption: ALLOW_LOOSE
 substitutions:
