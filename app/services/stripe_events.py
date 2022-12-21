@@ -132,7 +132,6 @@ def process_stripe_event(event_type: str, event_data):
 def _extract_user_and_customer_from_stripe_object(
     session, stripe_object, stripe_object_type
 ):
-
     logger.info(
         "Extracting user and customer from stripe object", stripe_object=stripe_object
     )
@@ -142,7 +141,9 @@ def _extract_user_and_customer_from_stripe_object(
     stripe_customer = _get_stripe_customer_from_stripe_object(
         stripe_object, stripe_object_type
     )
-    logger.info("Got stripe customer", stripe_customer=stripe_customer)
+    logger.info(
+        "Got stripe customer from stripe object", stripe_customer=stripe_customer
+    )
 
     # check customer metadata for a wriveted user id
     # (this is stored upon the first successful checkout)
