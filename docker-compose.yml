@@ -10,6 +10,7 @@ services:
       - POSTGRES_PASSWORD=xvc8kcn
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - SLACK_BOT_TOKEN=unused-key-for-testing
     ports:
       - 5432:5432
     healthcheck:
@@ -31,6 +32,7 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - SLACK_BOT_TOKEN=unused-key-for-testing
       - WRIVETED_INTERNAL_API=http://internal:8888
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
@@ -45,6 +47,7 @@ services:
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - METABASE_SECRET_KEY=unused-key-for-testing
+      - SLACK_BOT_TOKEN=unused-key-for-testing
       - UVICORN_PORT=8000
       - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
@@ -73,6 +76,7 @@ services:
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
+      - SLACK_BOT_TOKEN=unused-key-for-testing
       - PORT=8888
       - WRIVETED_INTERNAL_API=http://internal:8888
     ports:
