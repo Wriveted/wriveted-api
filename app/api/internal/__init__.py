@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, BaseSettings
@@ -50,7 +50,7 @@ async def process_event(data: ProcessEventPayload):
 class EventSlackAlertPayload(BaseModel):
     event_id: str
     slack_channel: EventSlackChannel = EventSlackChannel.GENERAL
-    slack_extra: Dict[str, str] | None
+    slack_extra: dict[str, str] | None
 
 
 @router.post("/event-to-slack-alert")
