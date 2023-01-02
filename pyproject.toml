@@ -23,7 +23,7 @@ fastapi_permissions = "^0.2.7"
 gunicorn = "^20.1.0"
 tenacity = "^8.1"
 sendgrid = "^6.9.7"
-mock = "^4.0.3"
+mock = "^5.0.0"
 webencodings = "^0.5.1"
 google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
