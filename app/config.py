@@ -1,6 +1,6 @@
 import enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseSettings, DirectoryPath, HttpUrl, validator
 
@@ -39,9 +39,11 @@ class Settings(BaseSettings):
 
     SHOPIFY_HMAC_SECRET: str
 
+    SLACK_BOT_TOKEN: str = ""
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
-        cls, v: Optional[str], values: Dict[str, Any]
+        cls, v: Optional[str], values: dict[str, Any]
     ) -> Any:
         if isinstance(v, str):
             # If a string is provided (e.g. via environment variable) we just use that
