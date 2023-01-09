@@ -91,8 +91,8 @@ class Collection(Base):
         ]
 
         if self.school:
-            policies.append((Allow, f"school:{self.school_id}", "read"))
-            policies.append((Allow, f"schooladmin:{self.school_id}", All))
+            policies.append((Allow, f"school:{self.school.id}", "read"))
+            policies.append((Allow, f"schooladmin:{self.school.id}", All))
 
         if self.user:
             policies.append((Allow, f"user:{self.user_id}", All))
