@@ -6,6 +6,62 @@ from app import crud
 from app.services.editions import check_digit_13
 
 
+def test_collection_timestamps(
+    client,
+    test_unhydrated_editions,
+    test_user_account,
+    test_user_account_headers,
+):
+    test_user_id = str(test_user_account.id)
+
+    print("Creating new user collection")
+    user_collection_create_response = client.post(
+        "/v1/collection",
+        headers=test_user_account_headers,
+        json={
+            "name": "Test collection",
+            "user_id": test_user_id,
+        },
+    )
+    user_collection_create_response.raise_for_status()
+    user_collection_create_response_data = user_collection_create_response.json()
+    user_collection_id = user_collection_create_response_data["id"]
+
+    user_get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+    )
+    user_get_collection_response.raise_for_status()
+
+    user_collection = user_get_collection_response.json()
+    assert user_collection["created_at"] is not None
+    assert user_collection["updated_at"] is not None
+    assert user_collection["created_at"] == user_collection["updated_at"]
+
+    print("Updating user collection")
+    items = [
+        {"edition_isbn": edition.isbn, "copies_total": 1, "copies_available": 1}
+        for edition in test_unhydrated_editions
+    ]
+    user_collection_update_response = client.put(
+        f"/v1/collection/{user_collection_id}/items",
+        headers=test_user_account_headers,
+        json={"items": items},
+    )
+    user_collection_update_response.raise_for_status()
+
+    user_get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+    )
+    user_get_collection_response.raise_for_status()
+
+    user_collection = user_get_collection_response.json()
+    assert user_collection["created_at"] is not None
+    assert user_collection["updated_at"] is not None
+    assert user_collection["created_at"] != user_collection["updated_at"]
+
+
 def test_collection_management(
     client,
     session,
