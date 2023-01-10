@@ -1,3 +1,4 @@
+from datetime import datetime
 import enum
 from base64 import b64decode
 from binascii import Error as BinasciiError
@@ -21,6 +22,7 @@ class CollectionBrief(BaseModel):
     book_count: int
     school_id: UUID | None
     user_id: UUID | None
+    updated_at: datetime
 
     class Config:
         orm_mode = True

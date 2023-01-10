@@ -29,6 +29,7 @@ class Collection(Base):
     items = relationship(
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
+
     editions = association_proxy("items", "edition")
     works = association_proxy("items", "work")
 
