@@ -1,15 +1,16 @@
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from structlog import get_logger
 
 from app import crud
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
+from app.models import Edition
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
 from app.schemas.collection import (
@@ -322,6 +323,36 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .where(CollectionItem.collection_id == collection_id.id)
             .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
         ).scalar_one_or_none()
+
+    def get_filtered_with_count(
+        self,
+        db: Session,
+        collection_id: UUID,
+        query_string: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 1000,
+    ):
+        statement = (
+            select(CollectionItem)
+            .join(
+                CollectionItem.edition, isouter=True
+            )  # Note would be a joined load anyway, but now we can filter with it
+            .where(CollectionItem.collection_id == collection_id)
+            .order_by(asc(Edition.title))
+        )
+
+        if query_string is not None:
+            statement = statement.where(Edition.title.match(query_string))
+
+        # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
+
+        cte = statement.cte()
+        aliased_model = aliased(CollectionItem, cte)
+        matching_count = db.scalar(select(func.count(aliased_model.id)))
+
+        paginated_items_query = self.apply_pagination(statement, skip=skip, limit=limit)
+
+        return matching_count, db.scalars(paginated_items_query).all()
 
 
 collection = CRUDCollection(Collection)

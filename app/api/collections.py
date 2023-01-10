@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
-from sqlalchemy import asc, delete, func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -30,6 +30,7 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemBase,
     CollectionItemDetail,
+    CollectionItemsResponse,
     CollectionUpdateSummaryResponse,
 )
 from app.schemas.pagination import Pagination
@@ -66,31 +67,36 @@ async def get_collection_details(
 
 @router.get(
     "/collection/{collection_id}/items",
-    response_model=List[CollectionItemDetail],
+    response_model=CollectionItemsResponse,
 )
 async def get_collection_items(
     collection: Collection = Permission("read", get_collection_from_id),
+    query: Optional[str] = Query(None, description="Query string for edition title"),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
     """
-    Paginate the items in an existing collection.
+    Retrieve items in a collection, with filtering and pagination.
     """
     logger.debug("Getting collection items", pagination=pagination)
 
-    collection_items = session.scalars(
-        select(CollectionItem)
-        .join(
-            CollectionItem.edition, isouter=True
-        )  # Note would be a joined load anyway, but now we can filter with it
-        .where(CollectionItem.collection_id == collection.id)
-        .order_by(asc(Edition.title))
-        .offset(pagination.skip)
-        .limit(pagination.limit)
-    ).all()
+    matching_count, items = crud.collection.get_filtered_with_count(
+        db=session,
+        collection_id=collection.id,
+        query_string=query,
+        skip=pagination.skip,
+        limit=pagination.limit,
+    )
 
-    logger.debug("Loading collection", collection_size=len(collection_items))
-    return collection_items
+    logger.debug(
+        "Loading collection items",
+        items_matching_query=matching_count,
+        items_returned=len(items),
+    )
+    return CollectionItemsResponse(
+        data=items,
+        pagination=Pagination(**pagination.to_dict(), total=matching_count),
+    )
 
 
 @router.get(

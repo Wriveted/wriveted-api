@@ -11,6 +11,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, valid
 from structlog import get_logger
 
 from app.schemas.edition import EditionBrief
+from app.schemas.pagination import PaginatedResponse
 from app.schemas.work import WorkBrief
 
 logger = get_logger()
@@ -179,6 +180,10 @@ class CollectionItemDetail(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CollectionItemsResponse(PaginatedResponse):
+    data: list[CollectionItemDetail]
 
 
 class CollectionUpdateType(str, enum.Enum):
