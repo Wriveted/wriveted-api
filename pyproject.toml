@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wriveted-api"
-version = "0.3.2"
+version = "0.3.3"
 description = "Wriveted helps children find books they will love to read"
 authors = ["Brian Thorne <brian@wriveted.com>", "Joshua Landy <joshua@wriveted.com>"]
 packages = [

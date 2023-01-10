@@ -281,14 +281,36 @@ def test_collection_management(
 
     get_collection_response.raise_for_status()
     collection_items = get_collection_response.json()
-    for item in collection_items:
+
+    assert "pagination" in collection_items
+
+    for item in collection_items["data"]:
         assert item["copies_total"] > 1
-    print("Collection after adding (first 3):\n", collection_items[:3])
+    print("Collection after adding (first 3):\n", collection_items["data"][:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
-        len(collection_items)
+        collection_items["pagination"]["total"]
+        == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
+    )
+    assert (
+        len(collection_items["data"])
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
     ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection_items)}"
+
+    # check collection search
+
+    print("Checking the collection items can be filtered by title")
+
+    get_collection_response = client.get(
+        f"/v1/collection/{school_collection_id}/items",
+        headers=lms_service_account_headers_for_school,
+        params={"skip": 0, "limit": 2000, "title": "The"},
+        timeout=30,
+    )
+    get_collection_response.raise_for_status()
+    collection_items = get_collection_response.json()
+    assert "pagination" in collection_items
+    assert collection_items["pagination"]["total"] < len(original_collection)
 
     # user
 
@@ -314,12 +336,12 @@ def test_collection_management(
 
     get_collection_response.raise_for_status()
     collection_items = get_collection_response.json()
-    for item in collection_items:
+    for item in collection_items["data"]:
         assert item["copies_total"] > 1
-    print("Collection after adding (first 3):\n", collection_items[:3])
+    print("Collection after adding (first 3):\n", collection_items["data"][:3])
     # check that the number of books exactly matches the number of -valid- isbns provided
     assert (
-        len(collection_items)
+        len(collection_items["data"])
         == INITIAL_NUMBER_OF_HYDRATED_BOOKS + INITIAL_NUMBER_OF_UNHYDRATED_BOOKS
     ), f"Expected the collection to contain {INITIAL_NUMBER_OF_HYDRATED_BOOKS} items, but it had {len(collection_items)}"
 
@@ -363,7 +385,7 @@ def test_collection_management(
     collection_items = get_collection_response.json()
 
     number_items_with_updated_loan_status = 0
-    for item in collection_items:
+    for item in collection_items["data"]:
         if item["copies_total"] == 99 and item["copies_available"] == 99:
             number_items_with_updated_loan_status += 1
 
@@ -396,7 +418,7 @@ def test_collection_management(
     collection_items = get_collection_response.json()
 
     number_items_with_updated_loan_status = 0
-    for item in collection_items:
+    for item in collection_items["data"]:
         if item["copies_total"] == 99 and item["copies_available"] == 99:
             number_items_with_updated_loan_status += 1
 
