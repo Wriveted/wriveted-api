@@ -7,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import column_property, relationship
-from sqlalchemy.event import listens_for
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
@@ -30,12 +29,6 @@ class Collection(Base):
     items = relationship(
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
-
-    @listens_for(items, "append")
-    @listens_for(items, "remove")
-    def receive_append_or_remove(target, value, initiator):
-        # Update when a child is added or removed
-        target.updated_at = datetime.utcnow()
 
     editions = association_proxy("items", "edition")
     works = association_proxy("items", "work")

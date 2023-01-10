@@ -36,12 +36,17 @@ class CollectionItem(Base):
             "collections.id",
             name="fk_collection_items_collection_id",
             ondelete="CASCADE",
+            onupdate="CASCADE",
         ),
         index=True,
         nullable=False,
     )
     collection = relationship(
-        "Collection", back_populates="items", foreign_keys=[collection_id]
+        "Collection",
+        back_populates="items",
+        foreign_keys=[collection_id],
+        passive_updates=True,
+        passive_deletes=True,
     )
 
     info = Column(MutableDict.as_mutable(JSON))

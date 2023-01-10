@@ -56,6 +56,7 @@ def test_collection_timestamps(
     user_get_collection_response.raise_for_status()
 
     user_collection = user_get_collection_response.json()
+    assert user_collection["book_count"] == len(test_unhydrated_editions)
     assert user_collection["updated_at"] != creation_time
 
 
