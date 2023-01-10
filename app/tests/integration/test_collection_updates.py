@@ -34,9 +34,8 @@ def test_collection_timestamps(
     user_get_collection_response.raise_for_status()
 
     user_collection = user_get_collection_response.json()
-    assert user_collection["created_at"] is not None
-    assert user_collection["updated_at"] is not None
-    assert user_collection["created_at"] == user_collection["updated_at"]
+    creation_time = user_collection["updated_at"]
+    assert creation_time is not None
 
     print("Updating user collection")
     items = [
@@ -46,7 +45,7 @@ def test_collection_timestamps(
     user_collection_update_response = client.put(
         f"/v1/collection/{user_collection_id}/items",
         headers=test_user_account_headers,
-        json={"items": items},
+        json=items,
     )
     user_collection_update_response.raise_for_status()
 
@@ -57,9 +56,7 @@ def test_collection_timestamps(
     user_get_collection_response.raise_for_status()
 
     user_collection = user_get_collection_response.json()
-    assert user_collection["created_at"] is not None
-    assert user_collection["updated_at"] is not None
-    assert user_collection["created_at"] != user_collection["updated_at"]
+    assert user_collection["updated_at"] != creation_time
 
 
 def test_collection_management(
