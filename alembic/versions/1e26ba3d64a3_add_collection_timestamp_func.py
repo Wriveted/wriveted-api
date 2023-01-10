@@ -1,4 +1,4 @@
-"""add collection timestamp trigger
+"""add collection timestamp update func
 
 Revision ID: 1e26ba3d64a3
 Revises: 9cfb4e3c02b2
@@ -30,12 +30,19 @@ def upgrade():
         onupdate="CASCADE",
         ondelete="CASCADE",
     )
-    op.execute("""
-        CREATE TRIGGER update_collections_updated_at
-        AFTER INSERT OR UPDATE ON collection_items
-        FOR EACH ROW
-            UPDATE collections SET updated_at = NOW() WHERE id = NEW.collection_id;
-    """)
+    op.execute(
+        """
+        CREATE OR REPLACE FUNCTION update_collections_function()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          UPDATE collections
+          SET updated_at = NOW()
+          WHERE collections.id = NEW.collection_id;
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    """
+    )
     # ### end Alembic commands ###
 
 
@@ -52,5 +59,5 @@ def downgrade():
         ["id"],
         ondelete="CASCADE",
     )
-    op.execute("DROP TRIGGER update_collection_updated_at ON collection_items")
+    op.execute("DROP FUNCTION update_collections_function")
     # ### end Alembic commands ###
