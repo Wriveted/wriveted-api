@@ -224,3 +224,27 @@ async def update_work(
     updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
     logger.info("Updated work", updated=updated)
     return updated
+
+
+@router.delete(
+    "/work/{work_id}",
+    response_model=WorkDetail,
+    dependencies=[
+        Permission("delete", bulk_work_access_control_list),
+    ],
+)
+async def delete_work(
+    work_orm: Work = Depends(get_work),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
+):
+    crud.event.create(
+        session,
+        title=f"Work deleted",
+        description=f"Deleted work '{work_orm.title}'",
+        info={
+            "work_id": work_orm.id,
+        },
+        account=account,
+    )
+    return crud.work.remove(db=session, id=work_orm.id)

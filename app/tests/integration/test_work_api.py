@@ -63,6 +63,18 @@ def test_backend_service_account_can_create_empty_work(
     assert work_data["title"] == "Test Work"
 
 
+def test_backend_service_account_can_delete_a_work(
+    client, backend_service_account_headers, works_list
+):
+
+    response = client.delete(
+        f"v1/work/{works_list[0].id}",
+        headers=backend_service_account_headers,
+    )
+    work_data = response.json()
+    assert "id" in work_data
+
+
 def test_backend_service_account_can_label_work(
     client,
     backend_service_account,
