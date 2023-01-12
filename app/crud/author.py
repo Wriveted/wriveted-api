@@ -1,6 +1,6 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
@@ -53,6 +53,38 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
         db.execute(insert_stmt, values)
 
         db.flush()
+
+    def get_all_with_optional_filters_query(
+        self,
+        db: Session,
+        query_string: Optional[str] = None,
+    ):
+        author_query = self.get_all_query(db=db)
+
+        if query_string is not None:
+            # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
+            author_query = author_query.where(
+                func.lower(Author.name_key).contains(query_string.lower())
+            )
+
+        return author_query
+
+    def get_all_with_optional_filters(
+        self,
+        db: Session,
+        query_string: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ):
+        optional_filters = {
+            "query_string": query_string,
+        }
+        query = self.apply_pagination(
+            self.get_all_with_optional_filters_query(db=db, **optional_filters),
+            skip=skip,
+            limit=limit,
+        )
+        return db.scalars(query).all()
 
 
 author = CRUDAuthor(Author)

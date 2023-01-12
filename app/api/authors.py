@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Security
+from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy.orm import Session
 
 from app import crud
@@ -17,10 +17,13 @@ router = APIRouter(
 
 @router.get("/authors", response_model=List[AuthorBrief])
 async def get_authors(
+    query: Optional[str] = Query(None, description="Query string"),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    return crud.author.get_all(session, skip=pagination.skip, limit=pagination.limit)
+    return crud.author.get_all_with_optional_filters(
+        session, query_string=query, skip=pagination.skip, limit=pagination.limit
+    )
 
 
 @router.get("/authors/{author_id}", response_model=AuthorDetail)
