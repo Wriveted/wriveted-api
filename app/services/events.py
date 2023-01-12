@@ -1,6 +1,8 @@
 import json
 from typing import Optional, Union
 
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -20,8 +22,6 @@ from app.schemas.booklist import (
     ItemUpdateType,
 )
 from app.services.background_tasks import queue_background_task
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
 logger = get_logger()
 config = get_settings()

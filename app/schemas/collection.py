@@ -1,7 +1,7 @@
-from datetime import datetime
 import enum
 from base64 import b64decode
 from binascii import Error as BinasciiError
+from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
 from uuid import UUID
