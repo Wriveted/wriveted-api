@@ -9,6 +9,7 @@ from uuid import UUID
 from PIL import Image
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 from structlog import get_logger
+from app.models.collection_item_activity import CollectionItemReadStatus
 
 from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
@@ -211,3 +212,13 @@ class CollectionAndItemsUpdateIn(CollectionUpdateIn):
 class CollectionUpdateSummaryResponse(BaseModel):
     msg: str
     collection_size: int
+
+
+class CollectionItemActivityBase(BaseModel):
+    collection_item_id: UUID
+    reader_id: UUID
+    status: CollectionItemReadStatus
+
+
+class CollectionItemActivityBrief(BaseModel):
+    timestamp: datetime

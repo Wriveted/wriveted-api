@@ -11,13 +11,17 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
     get_collection_from_id,
+    get_collection_item_from_body,
     validate_collection_creation,
+    validate_collection_item_activity_creation,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.user import get_reader_from_body
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
+from app.models.collection_item_activity import CollectionItemReadStatus
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
@@ -28,6 +32,8 @@ from app.schemas.collection import (
     CollectionBrief,
     CollectionCreateIn,
     CollectionInfo,
+    CollectionItemActivityBase,
+    CollectionItemActivityBrief,
     CollectionItemBase,
     CollectionItemDetail,
     CollectionItemsResponse,
@@ -40,6 +46,7 @@ from app.services.collections import (
     get_collection_items_also_in_booklist,
     reset_collection,
 )
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -72,6 +79,13 @@ async def get_collection_details(
 async def get_collection_items(
     collection: Collection = Permission("read", get_collection_from_id),
     query: Optional[str] = Query(None, description="Query string for edition title"),
+    reader_id: str
+    | None = Query(
+        None, description="Filter by items that a specific Reader has interacted with"
+    ),
+    read_status: Optional[CollectionItemReadStatus] = Query(
+        None, description="Filter by a specific CollectionItemActivity read status"
+    ),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -84,6 +98,8 @@ async def get_collection_items(
         db=session,
         collection_id=collection.id,
         query_string=query,
+        reader_id=reader_id,
+        read_status=read_status,
         skip=pagination.skip,
         limit=pagination.limit,
     )
@@ -427,3 +443,37 @@ async def update_collection(
     ).scalar_one()
 
     return {"msg": "updated", "collection_size": count}
+
+
+@router.post(
+    "/collection_item_activity",
+    response_model=CollectionItemActivityBrief,
+)
+async def log_collection_item_activity(
+    data: CollectionItemActivityBase,
+    collection_item: CollectionItem = Permission(
+        "activity", get_collection_item_from_body
+    ),
+    reader=Permission("update", get_reader_from_body),
+    account=Depends(get_current_active_user_or_service_account),
+    session: Session = Depends(get_session),
+):
+    """
+    Create new activity entry for a collection item and reader
+    """
+    logger.info(
+        "Creating collection item activity",
+        collection_item=collection_item,
+        account=account,
+    )
+
+    # TODO: create event based on the read status of the activity (dynamic title, etc)
+    # handle_collection_item_activity_event(session, collection_item, reader, data)
+
+    activity = crud.collection_item_activity.create(
+        db=session,
+        obj_in=data,
+        account=account,
+    )
+    session.commit()
+    return activity
