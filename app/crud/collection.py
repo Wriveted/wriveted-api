@@ -2,7 +2,7 @@ from typing import Any, Optional, Tuple
 from uuid import UUID
 from fastapi import HTTPException
 
-from sqlalchemy import asc, delete, func, select
+from sqlalchemy import and_, asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased
@@ -368,14 +368,48 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             statement = statement.join(CollectionItemActivity)
 
             if reader_id is not None:
+                # filters for items that have been interacted with by a specific reader
                 statement = statement.where(
                     CollectionItemActivity.reader_id == reader_id
                 )
 
             if read_status is not None:
-                statement = statement.where(
-                    CollectionItemActivity.read_status == read_status
+                # We need to join on the most recent activity for each item
+                # (as this is effectively the "active" status)
+                most_recent_timestamps = (
+                    select(
+                        [
+                            CollectionItemActivity.collection_item_id,
+                            CollectionItemActivity.reader_id,
+                            func.max(CollectionItemActivity.timestamp).label(
+                                "most_recent_timestamp"
+                            ),
+                        ]
+                    )
+                    .group_by(
+                        CollectionItemActivity.collection_item_id,
+                        CollectionItemActivity.reader_id,
+                    )
+                    .alias("most_recent_timestamps")
                 )
+
+                statement = statement.select_from(
+                    CollectionItem.join(
+                        most_recent_timestamps,
+                        CollectionItem.id
+                        == most_recent_timestamps.c.collection_item_id,
+                    ).join(
+                        CollectionItemActivity,
+                        and_(
+                            CollectionItem.id
+                            == CollectionItemActivity.collection_item_id,
+                            most_recent_timestamps.c.max_timestamp
+                            == CollectionItemActivity.timestamp,
+                            CollectionItemActivity.reader_id
+                            == most_recent_timestamps.c.reader_id,
+                        ),
+                    )
+                ).where(CollectionItemActivity.status == read_status)
 
         # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
 
