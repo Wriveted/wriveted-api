@@ -1229,20 +1229,23 @@ protobuf = ["protobuf (<5.0.0dev)"]
 
 [[package]]
 name = "google-cloud-tasks"
-version = "2.11.0"
+version = "2.12.0"
 description = "Google Cloud Tasks API client library"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-tasks-2.11.0.tar.gz", hash = "sha256:4c2dae0e70fde4d531d4b2cb2e8b592bdb4977a25665ae0c8e2a5c13a934ecca"},
-    {file = "google_cloud_tasks-2.11.0-py2.py3-none-any.whl", hash = "sha256:d1af8d235cc535965337e97f5824f0758a4a8dd92e373a23a0f5785e9f7ecd84"},
+    {file = "google-cloud-tasks-2.12.0.tar.gz", hash = "sha256:f1d858a23dff117c0c64b45dbb0b24a009fb3528c0e0df31848c3c51b0008676"},
+    {file = "google_cloud_tasks-2.12.0-py2.py3-none-any.whl", hash = "sha256:f78781fa52ca043b9b1ac186aeac06683c57cb830c3db6e4029e23b582d54431"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.0 || >=2.11.0,<3.0.0dev", extras = ["grpc"]}
 grpc-google-iam-v1 = ">=0.12.4,<1.0.0dev"
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = [
+    {version = ">=1.22.0,<2.0.0dev", markers = "python_version < \"3.11\""},
+    {version = ">=1.22.2,<2.0.0dev", markers = "python_version >= \"3.11\""},
+]
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -4347,4 +4350,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "39228a9574556f716fee94a127386cb5d31f7024e15eece0ccf5ec45c378d7b3"
+content-hash = "0e7505136165c0de968c037502ff809cb09230d31c8139fbd089ab4f882b3430"
