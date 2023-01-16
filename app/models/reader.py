@@ -23,6 +23,10 @@ class Reader(User):
     first_name = Column(String, nullable=True)
     last_name_initial = Column(String, nullable=True)
 
+    collection_item_activity_log = relationship(
+        "CollectionItemActivity", back_populates="reader"
+    )
+
     parent_id = Column(
         UUID,
         ForeignKey("parents.id", name="fk_reader_parent"),
