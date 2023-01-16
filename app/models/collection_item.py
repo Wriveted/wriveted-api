@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
+from fastapi_permissions import All, Allow
 
 from app.db import Base
 
@@ -71,5 +72,28 @@ class CollectionItem(Base):
         ),
     )
 
+    def get_display_title(self) -> str:
+        return (
+            self.edition.get_display_title()
+            if self.edition
+            else self.info.get("title")
+            if self.info
+            else None
+        )
+
     def __repr__(self):
         return f"<CollectionItem '{self.work.title}' @ '{self.collection.name}' ({self.copies_available}/{self.copies_total} available)>"
+
+    def __acl__(self):
+        """
+        Defines who can do what to the CollectionItem instance.
+        """
+
+        policies = [
+            (Allow, "role:admin", All),
+            (Allow, f"user:{self.collection.user_id}", All),
+            (Allow, f"parent:{self.collection.user_id}", "read"),
+            (Allow, f"educator:{self.collection.school_id}", "read"),
+        ]
+
+        return policies

@@ -1,5 +1,6 @@
 from typing import Any, Optional, Tuple
 from uuid import UUID
+from fastapi import HTTPException
 
 from sqlalchemy import asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -13,6 +14,10 @@ from app.crud.base import deep_merge_dicts
 from app.models import Edition
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
+from app.models.collection_item_activity import (
+    CollectionItemActivity,
+    CollectionItemReadStatus,
+)
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -324,11 +329,26 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
         ).scalar_one_or_none()
 
+    def get_collection_item_or_404(
+        self, db: Session, *, collection_item_id: UUID
+    ) -> CollectionItem:
+        try:
+            return db.execute(
+                select(CollectionItem).where(CollectionItem.id == collection_item_id)
+            ).scalar_one()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection Item with id {collection_item_id} not found.",
+            )
+
     def get_filtered_with_count(
         self,
         db: Session,
         collection_id: UUID,
         query_string: Optional[str] = None,
+        reader_id: Optional[UUID] = None,
+        read_status: Optional[CollectionItemReadStatus] = None,
         skip: int = 0,
         limit: int = 1000,
     ):
@@ -343,6 +363,19 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if query_string is not None:
             statement = statement.where(Edition.title.match(query_string))
+
+        if reader_id is not None or read_status is not None:
+            statement = statement.join(CollectionItemActivity)
+
+            if reader_id is not None:
+                statement = statement.where(
+                    CollectionItemActivity.reader_id == reader_id
+                )
+
+            if read_status is not None:
+                statement = statement.where(
+                    CollectionItemActivity.read_status == read_status
+                )
 
         # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
 
