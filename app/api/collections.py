@@ -84,7 +84,8 @@ async def get_collection_items(
         None, description="Filter by items that a specific Reader has interacted with"
     ),
     read_status: Optional[CollectionItemReadStatus] = Query(
-        None, description="Filter by a specific CollectionItemActivity read status"
+        None,
+        description="Filter by a specific -current- CollectionItemActivity read status, for any Reader (if none specified). Example: retrieve all items that are -currently- being read by at least one Reader.",
     ),
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),

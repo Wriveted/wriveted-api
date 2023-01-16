@@ -1,19 +1,14 @@
 from datetime import datetime
-from enum import Enum
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-)
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Enum
 from fastapi_permissions import All, Allow
 from sqlalchemy.orm import relationship
+import enum
 
 from app.db import Base
 
 
-class CollectionItemReadStatus(str, Enum):
+class CollectionItemReadStatus(str, enum.Enum):
     UNREAD = "Unread"
     TO_READ = "Want to read"
     NOT_INTERESTED = "Don't want to read"
@@ -49,6 +44,7 @@ class CollectionItemActivity(Base):
 
     status = Column(
         Enum(CollectionItemReadStatus, name="enum_collection_item_read_status"),
+        default=CollectionItemReadStatus.UNREAD,
         nullable=False,
         index=True,
     )
