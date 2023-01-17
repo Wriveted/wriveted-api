@@ -73,4 +73,5 @@ def downgrade():
         table_name="collection_item_activity_log",
     )
     op.drop_table("collection_item_activity_log")
+    op.execute("DROP TYPE enum_collection_item_read_status")
     # ### end Alembic commands ###
