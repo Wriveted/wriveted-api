@@ -13,7 +13,6 @@ from app.api.dependencies.collection import (
     get_collection_from_id,
     get_collection_item_from_body,
     validate_collection_creation,
-    validate_collection_item_activity_creation,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
