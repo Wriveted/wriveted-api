@@ -393,12 +393,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     .alias("most_recent_timestamps")
                 )
 
-                statement = statement.filter(and_(
-                    CollectionItem.id == CollectionItemActivity.collection_item_id,
-                    most_recent_timestamps.c.most_recent_timestamp == CollectionItemActivity.timestamp,
-                    CollectionItemActivity.reader_id == most_recent_timestamps.c.reader_id,
-                    CollectionItemActivity.status == read_status,
-                ))
+                statement = statement.filter(
+                    and_(
+                        CollectionItem.id == CollectionItemActivity.collection_item_id,
+                        most_recent_timestamps.c.most_recent_timestamp
+                        == CollectionItemActivity.timestamp,
+                        CollectionItemActivity.reader_id
+                        == most_recent_timestamps.c.reader_id,
+                        CollectionItemActivity.status == read_status,
+                    )
+                )
 
         # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
 
