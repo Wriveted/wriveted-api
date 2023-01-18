@@ -1,6 +1,14 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Security,
+)
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -450,7 +458,7 @@ async def update_collection(
     response_model=CollectionItemActivityBrief,
 )
 async def log_collection_item_activity(
-    data: CollectionItemActivityBase,
+    req: Request,
     collection_item: CollectionItem = Permission(
         "activity", get_collection_item_from_body
     ),
@@ -461,6 +469,11 @@ async def log_collection_item_activity(
     """
     Create new activity entry for a collection item and reader
     """
+    # Since we have already consumed parts of the request body in the permission checks,
+    # we need to re-read the body here (using the Request object) to get the data again
+    body = await req.json()
+    collection_item_activity_data = CollectionItemActivityBase(**body)
+
     logger.info(
         "Creating collection item activity",
         collection_item=collection_item,
@@ -471,9 +484,6 @@ async def log_collection_item_activity(
     # handle_collection_item_activity_event(session, collection_item, reader, data)
 
     activity = crud.collection_item_activity.create(
-        db=session,
-        obj_in=data,
-        account=account,
+        db=session, obj_in=collection_item_activity_data
     )
-    session.commit()
     return activity

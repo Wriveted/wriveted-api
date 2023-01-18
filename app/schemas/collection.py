@@ -171,6 +171,7 @@ class CollectionCreateIn(BaseModel):
 
 
 class CollectionItemDetail(BaseModel):
+    id: int
     work: Optional[WorkBrief]
     edition: EditionBrief | None
 
@@ -215,10 +216,13 @@ class CollectionUpdateSummaryResponse(BaseModel):
 
 
 class CollectionItemActivityBase(BaseModel):
-    collection_item_id: UUID
+    collection_item_id: int
     reader_id: UUID
     status: CollectionItemReadStatus
 
+    class Config:
+        orm_mode = True
 
-class CollectionItemActivityBrief(BaseModel):
+
+class CollectionItemActivityBrief(CollectionItemActivityBase):
     timestamp: datetime

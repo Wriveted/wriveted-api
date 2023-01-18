@@ -22,4 +22,4 @@ def get_reader_from_body(
     reader_id: uuid.UUID = Body("reader_id"),
     session: Session = Depends(get_session),
 ):
-    return crud.user.get_or_404(db=session, reader_id=reader_id)
+    return crud.user.get_or_404(db=session, id=reader_id)

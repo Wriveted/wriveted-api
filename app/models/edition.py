@@ -90,10 +90,18 @@ class Edition(Base):
     )
 
     def get_display_title(self) -> str:
-        leading_article = self.leading_article or self.work.leading_article
-        title = self.edition_title or self.work.title
+        display_title = (
+            f"{self.leading_article} {self.title}"
+            if self.leading_article is not None
+            else self.title
+        )
+        if not display_title and self.work:
+            display_title = self.work.get_display_title()
 
-        return f"{leading_article} {title}" if leading_article is not None else title
+        if not display_title:
+            display_title = self.isbn
+
+        return display_title
 
     # ---------these are used for the hybrid attribute used in querying by number of collections in GET:editions/to_hydrate---------
     # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior

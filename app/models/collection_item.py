@@ -23,11 +23,15 @@ class CollectionItem(Base):
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
 
     edition_isbn = Column(
-        ForeignKey("editions.isbn", name="fk_collection_items_edition_isbn"),
+        ForeignKey(
+            "editions.isbn",
+            name="fk_collection_items_edition_isbn",
+            ondelete="CASCADE",
+        ),
         index=True,
         nullable=True,
     )
-    edition = relationship("Edition", lazy="joined")
+    edition = relationship("Edition", lazy="joined", passive_deletes=True)
     # Proxy the work from the edition
     work = association_proxy("edition", "work")
     work_id = association_proxy("edition", "work_id")
@@ -48,6 +52,12 @@ class CollectionItem(Base):
         foreign_keys=[collection_id],
         passive_updates=True,
         passive_deletes=True,
+    )
+
+    activity_log = relationship(
+        "CollectionItemActivity",
+        back_populates="collection_item",
+        cascade="all, delete-orphan",
     )
 
     info = Column(MutableDict.as_mutable(JSON))
@@ -82,7 +92,7 @@ class CollectionItem(Base):
         )
 
     def __repr__(self):
-        return f"<CollectionItem '{self.work.title}' @ '{self.collection.name}' ({self.copies_available}/{self.copies_total} available)>"
+        return f"<CollectionItem '{self.get_display_title()}' @ '{self.collection.name}' ({self.copies_available}/{self.copies_total} available)>"
 
     def __acl__(self):
         """

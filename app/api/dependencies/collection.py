@@ -19,7 +19,7 @@ def get_collection_from_id(
 
 
 def get_collection_item_from_body(
-    collection_item_id: uuid.UUID = Body("collection_item_id"),
+    collection_item_id: int = Body("collection_item_id"),
     session: Session = Depends(get_session),
 ):
     return crud.collection.get_collection_item_or_404(

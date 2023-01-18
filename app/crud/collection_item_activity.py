@@ -21,7 +21,7 @@ class CRUDCollectionItemActivity(
     def get_all_query_with_optional_filters(
         self,
         db: Session,
-        collection_item_id: UUID | None = None,
+        collection_item_id: int | None = None,
         reader: Reader | None = None,
         status: CollectionItemReadStatus | None = None,
     ):

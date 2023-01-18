@@ -9,12 +9,12 @@ from app.db import Base
 
 
 class CollectionItemReadStatus(str, enum.Enum):
-    UNREAD = "Unread"
-    TO_READ = "Want to read"
-    NOT_INTERESTED = "Don't want to read"
-    READING = "Currently reading"
-    STOPPED_READING = "Halted reading, unfinished"
-    READ = "Finished reading"
+    UNREAD = "UNREAD"
+    TO_READ = "TO_READ"
+    NOT_INTERESTED = "NOT_INTERESTED"
+    READING = "READING"
+    STOPPED_READING = "STOPPED_READING"
+    READ = "READ"
 
 
 class CollectionItemActivity(Base):
@@ -26,11 +26,14 @@ class CollectionItemActivity(Base):
         ForeignKey(
             "collection_items.id",
             name="fk_collection_item_activity_collection_item_id",
+            ondelete="CASCADE",
         ),
         index=True,
         nullable=False,
     )
-    collection_item = relationship("CollectionItem", lazy="joined")
+    collection_item = relationship(
+        "CollectionItem", lazy="joined", passive_deletes=True
+    )
 
     reader_id = Column(
         ForeignKey("readers.id", name="fk_collection_item_activity_reader"),
