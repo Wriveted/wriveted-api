@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Enum
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Enum
 from fastapi_permissions import All, Allow
 from sqlalchemy.orm import relationship
 import enum
@@ -37,7 +37,7 @@ class CollectionItemActivity(Base):
 
     reader_id = Column(
         ForeignKey("readers.id", name="fk_collection_item_activity_reader"),
-        nullable=True,
+        nullable=False,
     )
     reader = relationship(
         "Reader",
@@ -54,6 +54,13 @@ class CollectionItemActivity(Base):
 
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 
+    # index the timestamp and reader_id together to allow for fast "current status" lookups
+    Index(
+        "idx_collection_item_activity_log_timestamp_reader_id",
+        timestamp,
+        reader_id,
+    )
+
     def __repr__(self):
         return f"<CollectionItemActivity '{self.reader.name}' marked the book '{self.collection_item.get_display_title()}' as '{self.status}'>"
 
@@ -65,8 +72,8 @@ class CollectionItemActivity(Base):
         policies = [
             (Allow, "role:admin", All),
             # Allow users (or their parents) to view their own activity
-            (Allow, f"user:{self.user_id}", All),
-            (Allow, f"parent:{self.user_id}", "read"),
+            (Allow, f"user:{self.reader_id}", All),
+            (Allow, f"parent:{self.reader_id}", "read"),
             # Educators can view school activity
             (Allow, f"educator:{self.school_id}", "read"),
         ]
