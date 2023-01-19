@@ -98,12 +98,15 @@ class CollectionItem(Base):
         """
         Defines who can do what to the CollectionItem instance.
         """
-
-        policies = [
+        acl = [
             (Allow, "role:admin", All),
-            (Allow, f"user:{self.collection.user_id}", All),
-            (Allow, f"parent:{self.collection.user_id}", "read"),
-            (Allow, f"educator:{self.collection.school_id}", "read"),
         ]
 
-        return policies
+        if self.collection.school_id is not None:
+            acl.append((Allow, f"educator:{self.collection.school_id}", "read"))
+
+        if self.collection.user_id is not None:
+            acl.append((Allow, f"user:{self.collection.user_id}", All))
+            acl.append((Allow, f"parent:{self.collection.user_id}", "read"))
+
+        return acl
