@@ -455,7 +455,7 @@ async def update_collection(
 
 
 @router.post(
-    "/collection_item_activity",
+    "/collection-item-activity",
     response_model=CollectionItemActivityBrief,
 )
 async def log_collection_item_activity(

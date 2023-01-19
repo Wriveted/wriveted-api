@@ -53,7 +53,7 @@ def test_collection_item_activity_creation_and_fetching(
 
     print("Set collection item as being currently read")
     user_collection_item_activity_create_response = client.post(
-        f"/v1/collection_item_activity",
+        f"/v1/collection-item-activity",
         headers=test_user_account_headers,
         json={
             "reader_id": test_user_id,
