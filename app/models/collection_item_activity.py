@@ -65,17 +65,4 @@ class CollectionItemActivity(Base):
         return f"<CollectionItemActivity '{self.reader.name}' marked the book '{self.collection_item.get_display_title()}' as '{self.status}'>"
 
     def __acl__(self):
-        """
-        Defines who can do what to the CollectionItemActivity instance.
-        """
-
-        policies = [
-            (Allow, "role:admin", All),
-            # Allow users (or their parents) to view their own activity
-            (Allow, f"user:{self.reader_id}", All),
-            (Allow, f"parent:{self.reader_id}", "read"),
-            # Educators can view school activity
-            (Allow, f"educator:{self.school_id}", "read"),
-        ]
-
-        return policies
+        return self.collection_item.__acl__()
