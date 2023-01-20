@@ -44,11 +44,11 @@ class Edition(Base):
 
     # TODO computed columns for display_title / sort_title based on the above
 
-    title = column_property(
-        select(coalesce(edition_title, Work.title))
-        .where(Work.id == work_id)
-        .correlate_except(Work)
-        .scalar_subquery()
+    # computed column for edition_title coallesced with work title
+    title = Column(
+        String(512),
+        index=True,
+        nullable=True,
     )
 
     date_published = Column(Integer, nullable=True)
