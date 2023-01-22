@@ -22,6 +22,13 @@ def upgrade():
     op.create_index(op.f("ix_editions_title"), "editions", ["title"], unique=False)
     op.execute(
         """
+        UPDATE editions SET title = COALESCE(editions.edition_title, works.title)
+        FROM works
+        WHERE editions.work_id = works.id;
+        """
+    )
+    op.execute(
+        """
     CREATE OR REPLACE FUNCTION update_edition_title() RETURNS TRIGGER AS $$
     BEGIN
         UPDATE editions SET title = COALESCE(editions.edition_title, works.title)
