@@ -39,7 +39,7 @@ slack-sdk = "^3.19.5"
 pytest = "^7.2"
 jupyterlab = "^3.5"
 black = {extras = ["jupyter"], version = "^22.8"}
-google-api-python-client = "^2.66"
+google-api-python-client = "^2.73"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.8"
 pre-commit = "^2.21"
