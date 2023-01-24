@@ -22,10 +22,14 @@ from app.api.dependencies.collection import (
     get_collection_from_id,
     get_collection_item_from_body,
     validate_collection_creation,
+    validate_specified_collection_item_update,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.user import get_reader_from_body
+from app.api.dependencies.user import (
+    get_optional_reader_from_body,
+    validate_specified_reader_update,
+)
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
@@ -457,29 +461,30 @@ async def update_collection(
 @router.post(
     "/collection-item-activity",
     response_model=CollectionItemActivityBrief,
+    dependencies=[
+        Depends(validate_specified_reader_update),
+        Depends(validate_specified_collection_item_update),
+    ],
 )
 async def log_collection_item_activity(
-    collection_item_activity_data: CollectionItemActivityBase,
-    collection_item: CollectionItem = Permission(
-        "activity", get_collection_item_from_body
-    ),
-    reader=Permission("update", get_reader_from_body),
-    account=Depends(get_current_active_user_or_service_account),
+    data: CollectionItemActivityBase,
     session: Session = Depends(get_session),
 ):
     """
     Create new activity entry for a collection item and reader
     """
-    logger.info(
-        "Creating collection item activity",
-        collection_item=collection_item,
-        account=account,
+    activity = crud.collection_item_activity.create(db=session, obj_in=data)
+
+    create_event(
+        session=session,
+        title="Collection item activity created",
+        description=f"Collection item activity '{activity.status}' created for collection item {activity.collection_item_id}",
+        info={
+            "collection_id": str(activity.collection_item.collection_id),
+            "collection_item_id": str(activity.collection_item_id),
+            "activity_id": str(activity.id),
+        },
+        account=activity.reader,
     )
 
-    # TODO: create event based on the read status of the activity (dynamic title, etc)
-    # handle_collection_item_activity_event(session, collection_item, reader, data)
-
-    activity = crud.collection_item_activity.create(
-        db=session, obj_in=collection_item_activity_data
-    )
     return activity

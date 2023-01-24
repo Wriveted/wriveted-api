@@ -13,12 +13,11 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
-from app.api.dependencies.user import get_optional_specified_user_from_body
+from app.api.dependencies.user import get_optional_user_from_body
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.permissions import Permission
 from app.schemas.event import EventCreateIn
 from app.schemas.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
@@ -39,7 +38,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User = Depends(get_optional_specified_user_from_body),
+    specified_user: User = Depends(get_optional_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
@@ -76,10 +75,10 @@ async def create(
     )
 
     # Queue a background task to process the created event
-    queue_background_task(
-        "process-event",
-        {"event_id": str(event.id)},
-    )
+    # queue_background_task(
+    #     "process-event",
+    #     {"event_id": str(event.id)},
+    # )
 
     return event
 

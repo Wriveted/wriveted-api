@@ -9,7 +9,13 @@ from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
+from app.models.collection_item import CollectionItem
+from app.models.collection_item_activity import (
+    CollectionItemActivity,
+    CollectionItemReadStatus,
+)
 from app.models.event import EventLevel, EventSlackChannel
+from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
@@ -19,6 +25,8 @@ from app.schemas.booklist import (
     BookListUpdateIn,
     ItemUpdateType,
 )
+from app.schemas.collection import CollectionItemActivityBase
+from app.schemas.event import EventCreateIn
 from app.services.background_tasks import queue_background_task
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError

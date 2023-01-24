@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
+from app.models.collection_item import CollectionItem
 
 
 def get_collection_from_id(
@@ -20,7 +21,11 @@ def get_collection_from_id(
 
 
 class HasCollectionItemId(BaseModel):
-    collection_item_id: int
+    collection_item_id: uuid.UUID
+
+
+class MaybeHasCollectionItemId(BaseModel):
+    collection_item_id: int | None
 
 
 def get_collection_item_from_body(
@@ -30,6 +35,31 @@ def get_collection_item_from_body(
     return crud.collection.get_collection_item_or_404(
         db=session, collection_item_id=data.collection_item_id
     )
+
+
+def get_optional_collection_item_from_body(
+    data: MaybeHasCollectionItemId,
+    session: Session = Depends(get_session),
+):
+    return (
+        crud.collection.get_collection_item_or_404(
+            db=session, collection_item_id=data.collection_item_id
+        )
+        if data.collection_item_id
+        else None
+    )
+
+
+def validate_specified_collection_item_update(
+    collection_item: CollectionItem = Depends(get_optional_collection_item_from_body),
+    active_principals=Depends(get_active_principals),
+):
+    if collection_item is not None:
+        if not has_permission(active_principals, "update", collection_item):
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized to perform operations on collection item",
+            )
 
 
 async def validate_collection_creation(
