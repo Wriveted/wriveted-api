@@ -1,7 +1,8 @@
 import uuid
 
-from fastapi import Body, Depends, HTTPException, Path, Request
+from fastapi import Depends, HTTPException, Path, Request
 from fastapi_permissions import has_permission
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import crud
@@ -18,12 +19,16 @@ def get_collection_from_id(
     return crud.collection.get_or_404(db=session, id=collection_id)
 
 
+class HasCollectionItemId(BaseModel):
+    collection_item_id: int
+
+
 def get_collection_item_from_body(
-    collection_item_id: int = Body("collection_item_id"),
+    data: HasCollectionItemId,
     session: Session = Depends(get_session),
 ):
     return crud.collection.get_collection_item_or_404(
-        db=session, collection_item_id=collection_item_id
+        db=session, collection_item_id=data.collection_item_id
     )
 
 
