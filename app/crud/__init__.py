@@ -6,6 +6,10 @@ from app.crud.author import CRUDAuthor, author
 from app.crud.booklist import CRUDBookList, booklist
 from app.crud.class_group import CRUDClassGroup, class_group
 from app.crud.collection import CRUDCollection, collection
+from app.crud.collection_item_activity import (
+    CRUDCollectionItemActivity,
+    collection_item_activity,
+)
 from app.crud.edition import CRUDEdition, edition
 from app.crud.event import CRUDEvent, event
 from app.crud.illustrator import CRUDIllustrator, illustrator

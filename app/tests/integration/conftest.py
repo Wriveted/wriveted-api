@@ -502,6 +502,28 @@ def lms_service_account_headers_for_school(lms_service_account_token_for_school)
 
 
 @pytest.fixture()
+def test_public_user_hacker(session):
+    hacker = crud.user.create(
+        db=session,
+        obj_in=UserCreateIn(
+            name="NotAHacker", email=f"{random_lower_string(6)}@notahacker.com"
+        ),
+    )
+    yield hacker
+    session.delete(hacker)
+
+
+@pytest.fixture()
+def test_public_user_hacker_token(test_public_user_hacker):
+    return create_user_access_token(test_public_user_hacker)
+
+
+@pytest.fixture()
+def test_public_user_hacker_headers(test_public_user_hacker_token):
+    return {"Authorization": f"bearer {test_public_user_hacker_token}"}
+
+
+@pytest.fixture()
 def test_huey_attributes():
     return HueyAttributes(
         birthdate="2015-01-01 00:00:00",

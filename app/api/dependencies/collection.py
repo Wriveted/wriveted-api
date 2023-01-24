@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import Depends, HTTPException, Path, Request
+from fastapi import Body, Depends, HTTPException, Path, Request
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,15 @@ def get_collection_from_id(
     session: Session = Depends(get_session),
 ):
     return crud.collection.get_or_404(db=session, id=collection_id)
+
+
+def get_collection_item_from_body(
+    collection_item_id: int = Body("collection_item_id"),
+    session: Session = Depends(get_session),
+):
+    return crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=collection_item_id
+    )
 
 
 async def validate_collection_creation(

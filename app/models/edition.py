@@ -44,11 +44,11 @@ class Edition(Base):
 
     # TODO computed columns for display_title / sort_title based on the above
 
-    title = column_property(
-        select(coalesce(edition_title, Work.title))
-        .where(Work.id == work_id)
-        .correlate_except(Work)
-        .scalar_subquery()
+    # computed column for edition_title coallesced with work title
+    title = Column(
+        String(512),
+        index=True,
+        nullable=True,
     )
 
     date_published = Column(Integer, nullable=True)
@@ -90,11 +90,18 @@ class Edition(Base):
     )
 
     def get_display_title(self) -> str:
-        return (
-            f"{self.leading_article} {self.edition_title}"
+        display_title = (
+            f"{self.leading_article} {self.title}"
             if self.leading_article is not None
             else self.title
         )
+        if not display_title and self.work:
+            display_title = self.work.get_display_title()
+
+        if not display_title:
+            display_title = self.isbn
+
+        return display_title
 
     # ---------these are used for the hybrid attribute used in querying by number of collections in GET:editions/to_hydrate---------
     # https://docs.sqlalchemy.org/en/14/orm/extensions/hybrid.html#defining-expression-behavior-distinct-from-attribute-behavior

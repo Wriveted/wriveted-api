@@ -67,6 +67,13 @@ class Work(Base):
         # lazy="joined"
     )
 
+    def get_display_title(self) -> str:
+        return (
+            f"{self.leading_article} {self.title}"
+            if self.leading_article is not None
+            else self.title
+        )
+
     def get_authors_string(self):
         return ", ".join(map(str, self.authors))
 
