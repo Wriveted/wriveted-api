@@ -459,7 +459,7 @@ async def update_collection(
     response_model=CollectionItemActivityBrief,
 )
 async def log_collection_item_activity(
-    req: Request,
+    collection_item_activity_data: CollectionItemActivityBase,
     collection_item: CollectionItem = Permission(
         "activity", get_collection_item_from_body
     ),
@@ -470,20 +470,6 @@ async def log_collection_item_activity(
     """
     Create new activity entry for a collection item and reader
     """
-    # Since we have already consumed parts of the request body in the permission checks,
-    # we need to re-read the body here (using the Request object) to get the data again.
-    # (there is a choice here between having to re-read the body, or having to
-    # recreate the permission checks in the body of the function.
-    # the former was opted as it is one reconstruction vs two)
-    body = await req.json()
-    try:
-        collection_item_activity_data = CollectionItemActivityBase(**body)
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=422,
-            detail=e.json(),
-        )
-
     logger.info(
         "Creating collection item activity",
         collection_item=collection_item,

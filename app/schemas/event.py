@@ -24,5 +24,6 @@ class EventCreateIn(BaseModel):
     description: str
     level: EventLevel
     school_id: UUID | None
+    user_id: UUID | None
     info: dict[str, Any] | None
     slack_channel: EventSlackChannel | None
