@@ -105,6 +105,54 @@ def test_post_events_api(
     assert create_event_response.json()["level"] == "normal"
 
 
+def test_post_events_api_with_specified_user(
+    client,
+    test_user_account,
+    backend_service_account_headers,
+    test_public_user_hacker_headers,
+):
+    # create an event with a specified user (with appropriate permissions)
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": str(test_user_account.id),
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response.raise_for_status()
+    create_event_response_data = create_event_response.json()
+    assert create_event_response_data["user"]["id"] == str(test_user_account.id)
+
+    # create an event with a specified user (without appropriate permissions)
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": str(test_user_account.id),
+        },
+        headers=test_public_user_hacker_headers,
+    )
+    assert create_event_response.status_code == status.HTTP_403_FORBIDDEN
+
+    # create an event for a user that doesn't exist
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": "00000000-0000-0000-0000-000000000000",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert create_event_response.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_post_events_api_background_process(
     client,
     session_factory,

@@ -13,7 +13,7 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
-from app.api.dependencies.user import get_specified_user_from_body
+from app.api.dependencies.user import get_optional_specified_user_from_body
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -39,7 +39,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User = Depends(get_specified_user_from_body),
+    specified_user: User = Depends(get_optional_specified_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
