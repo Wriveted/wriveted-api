@@ -39,7 +39,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User = get_specified_user_from_body,
+    specified_user: User = Depends(get_specified_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
