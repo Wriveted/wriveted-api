@@ -1,7 +1,7 @@
 from typing import List, Union
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 from starlette import status
@@ -18,8 +18,8 @@ from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.event import EventCreateIn
-from app.schemas.event_detail import EventDetail, EventListsResponse
+from app.schemas.events.event import EventCreateIn
+from app.schemas.events.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
@@ -86,6 +86,10 @@ async def create(
 @router.get("/events", response_model=EventListsResponse)
 async def get_events(
     query: str = None,
+    starts_with: bool = Query(
+        False,
+        description="Whether to search for the provided `query` string as a prefix",
+    ),
     level: EventLevel = None,
     school_id: UUID = None,
     user_id: UUID = None,
@@ -154,6 +158,7 @@ async def get_events(
     events = crud.event.get_all_with_optional_filters(
         session,
         query_string=query,
+        starts_with=starts_with,
         level=level,
         school=school,
         user=user,

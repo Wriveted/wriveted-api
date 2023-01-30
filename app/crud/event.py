@@ -8,7 +8,7 @@ from app.crud import CRUDBase
 from app.models import Event, ServiceAccount, User
 from app.models.event import EventLevel
 from app.models.school import School
-from app.schemas.event import EventCreateIn
+from app.schemas.events.event import EventCreateIn
 
 logger = get_logger()
 
@@ -56,19 +56,25 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters_query(
         self,
         db: Session,
-        query_string: Optional[str] = None,
-        level: Optional[EventLevel] = None,
-        school: Optional[School] = None,
-        user: Optional[User] = None,
-        service_account: Optional[ServiceAccount] = None,
+        query_string: str | None = None,
+        starts_with: bool | None = False,
+        level: EventLevel | None = None,
+        school: School | None = None,
+        user: User | None = None,
+        service_account: ServiceAccount | None = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
-            event_query = event_query.where(
-                func.lower(Event.title).contains(query_string.lower())
-            )
+            if starts_with:
+                event_query = event_query.filter(
+                    func.lower(Event.title).startswith(query_string.lower())
+                )
+            else:
+                event_query = event_query.where(
+                    func.lower(Event.title).contains(query_string.lower())
+                )
         if level is not None:
             event_query = event_query.where(Event.level == level)
         if school is not None:
@@ -83,16 +89,18 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters(
         self,
         db: Session,
-        query_string: Optional[str] = None,
-        level: Optional[EventLevel] = None,
-        school: Optional[School] = None,
-        user: Optional[User] = None,
-        service_account: Optional[ServiceAccount] = None,
+        query_string: str | None = None,
+        starts_with: bool | None = False,
+        level: EventLevel | None = None,
+        school: School | None = None,
+        user: User | None = None,
+        service_account: ServiceAccount | None = None,
         skip: int = 0,
         limit: int = 100,
     ):
         optional_filters = {
             "query_string": query_string,
+            "starts_with": starts_with,
             "level": level,
             "school": school,
             "user": user,
@@ -104,6 +112,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             skip=skip,
             limit=limit,
         )
+        print(query)
         return db.scalars(query).all()
 
 
