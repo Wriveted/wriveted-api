@@ -44,7 +44,6 @@ def get_collection_item_from_body(
     )
 
 
-
 def validate_specified_collection_item_update(
     collection_item: CollectionItem = Depends(get_collection_item_from_body),
     active_principals=Depends(get_active_principals),

@@ -27,7 +27,7 @@ from app.schemas.booklist import (
     ItemUpdateType,
 )
 from app.schemas.collection import CollectionItemActivityBase
-from app.schemas.events.event_detail import ReadingLogEvent
+from app.schemas.events.special_events import ReadingLogEvent
 from app.services.background_tasks import queue_background_task
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
