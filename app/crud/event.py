@@ -68,7 +68,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             if starts_with:
-                event_query = event_query.filter(
+                event_query = event_query.where(
                     func.lower(Event.title).startswith(query_string.lower())
                 )
             else:
