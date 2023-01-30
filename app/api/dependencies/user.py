@@ -34,24 +34,11 @@ class HasReaderId(BaseModel):
     reader_id: UUID
 
 
-class MaybeHasReaderId(BaseModel):
-    reader_id: UUID | None
-
-
 def get_reader_from_body(
     data: HasReaderId,
     session: Session = Depends(get_session),
 ):
     return crud.user.get_or_404(db=session, id=data.reader_id)
-
-
-def get_optional_reader_from_body(
-    data: MaybeHasReaderId,
-    session: Session = Depends(get_session),
-):
-    return (
-        crud.user.get_or_404(db=session, id=data.reader_id) if data.reader_id else None
-    )
 
 
 def validate_specified_reader_update(

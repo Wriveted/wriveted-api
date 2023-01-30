@@ -5,7 +5,7 @@ from pydantic import UUID4, BaseModel, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models import ServiceAccountType
-from app.schemas.event import EventBrief
+from app.schemas.events.event import EventBrief
 from app.schemas.school_identity import SchoolIdentity, SchoolWrivetedIdentity
 
 
