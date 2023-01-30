@@ -230,7 +230,7 @@ def test_event_query_and_prefix(
     # Test that we can query for prefix
     get_events_response = client.get(
         f"/v1/events",
-        params={"query": "Foo:", "starts_with": True},
+        params={"query": "Foo:", "match_prefix": True},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()

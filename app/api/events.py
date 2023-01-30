@@ -38,7 +38,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User = Depends(get_optional_user_from_body),
+    specified_user: User | None = Depends(get_optional_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
@@ -86,7 +86,7 @@ async def create(
 @router.get("/events", response_model=EventListsResponse)
 async def get_events(
     query: str = None,
-    starts_with: bool = Query(
+    match_prefix: bool = Query(
         False,
         description="Whether to search for the provided `query` string as a prefix",
     ),
@@ -158,7 +158,7 @@ async def get_events(
     events = crud.event.get_all_with_optional_filters(
         session,
         query_string=query,
-        starts_with=starts_with,
+        match_prefix=match_prefix,
         level=level,
         school=school,
         user=user,

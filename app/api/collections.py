@@ -472,8 +472,8 @@ async def get_collection_item(
     "/collection-item-activity",
     response_model=CollectionItemActivityBrief,
     dependencies=[
-        Depends(validate_specified_reader_update),
-        Depends(validate_specified_collection_item_update),
+        Permission("update", validate_specified_reader_update),
+        Permission("update", validate_specified_collection_item_update),
     ],
 )
 async def log_collection_item_activity(

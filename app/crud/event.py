@@ -57,7 +57,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         self,
         db: Session,
         query_string: str | None = None,
-        starts_with: bool | None = False,
+        match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
         user: User | None = None,
@@ -67,7 +67,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
-            if starts_with:
+            if match_prefix:
                 event_query = event_query.filter(
                     func.lower(Event.title).startswith(query_string.lower())
                 )
@@ -90,7 +90,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         self,
         db: Session,
         query_string: str | None = None,
-        starts_with: bool | None = False,
+        match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
         user: User | None = None,
@@ -100,7 +100,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     ):
         optional_filters = {
             "query_string": query_string,
-            "starts_with": starts_with,
+            "match_prefix": match_prefix,
             "level": level,
             "school": school,
             "user": user,
