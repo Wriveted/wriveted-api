@@ -1,4 +1,4 @@
-from app.schemas.event import EventBrief
+from app.schemas.events.event import EventBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school_identity import SchoolWrivetedIdentity
 from app.schemas.service_account import ServiceAccountBrief
