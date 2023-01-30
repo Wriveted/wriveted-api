@@ -6,10 +6,8 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
-    Request,
     Security,
 )
-from pydantic import ValidationError
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -20,14 +18,13 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
     get_collection_from_id,
-    get_collection_item_from_body,
+    get_collection_item_from_id,
     validate_collection_creation,
     validate_specified_collection_item_update,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.api.dependencies.user import (
-    get_optional_reader_from_body,
     validate_specified_reader_update,
 )
 from app.db.session import get_session
@@ -456,6 +453,19 @@ async def update_collection(
     ).scalar_one()
 
     return {"msg": "updated", "collection_size": count}
+
+
+@router.get(
+    "/collection-item/{collection_item_id}",
+    response_model=CollectionItemDetail,
+)
+async def get_collection_item(
+    collection_item: CollectionItem = Permission("read", get_collection_item_from_id),
+):
+    """
+    Get a single collection item.
+    """
+    return collection_item
 
 
 @router.post(

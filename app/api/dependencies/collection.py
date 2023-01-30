@@ -20,8 +20,19 @@ def get_collection_from_id(
     return crud.collection.get_or_404(db=session, id=collection_id)
 
 
+def get_collection_item_from_id(
+    collection_item_id: int = Path(
+        ..., description="Integer representing a unique collection item"
+    ),
+    session: Session = Depends(get_session),
+):
+    return crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=collection_item_id
+    )
+
+
 class HasCollectionItemId(BaseModel):
-    collection_item_id: uuid.UUID
+    collection_item_id: int
 
 
 class MaybeHasCollectionItemId(BaseModel):
