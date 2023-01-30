@@ -188,3 +188,51 @@ def test_post_events_api_background_process(
         assert len(events) == 1
         event = events[0]
         assert event.description == "MODIFIED"
+
+
+def test_event_query_and_prefix(
+    client,
+    backend_service_account_headers,
+):
+    # Create some events
+    create_event_response_foo_bar = client.post(
+        f"/v1/events",
+        json={
+            "title": "Foo: Bar",
+            "description": "Notice the Title: Subtitle format",
+            "level": "normal",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response_foo_bar.raise_for_status()
+
+    create_event_response_foo_baz = client.post(
+        f"/v1/events",
+        json={
+            "title": "Foo: Baz",
+            "description": "Notice the Title: Subtitle format",
+            "level": "normal",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response_foo_baz.raise_for_status()
+
+    # Test that we can query for entire string
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo: Bar"},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 1
+
+    # Test that we can query for prefix
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo:", "starts_with": True},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 2
