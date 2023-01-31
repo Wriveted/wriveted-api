@@ -13,7 +13,10 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
-from app.api.dependencies.user import get_optional_user_from_body
+from app.api.dependencies.user import (
+    get_optional_user_from_body,
+    validate_specified_user_operation,
+)
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -38,7 +41,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User | None = Depends(get_optional_user_from_body),
+    specified_user: User | None = Depends(validate_specified_user_operation),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
@@ -56,13 +59,6 @@ async def create(
             )
     else:
         school = None
-
-    if specified_user is not None:
-        if not has_permission(principals, "update", specified_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to create an event associated with that user",
-            )
 
     event = create_event(
         session=session,
