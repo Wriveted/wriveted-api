@@ -1,7 +1,7 @@
 from typing import List, Union
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import has_permission
 from sqlalchemy.orm import Session
 from starlette import status
@@ -13,12 +13,15 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
+from app.api.dependencies.user import (
+    get_and_validate_specified_user_from_body,
+)
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
-from app.schemas.event import EventCreateIn
-from app.schemas.event_detail import EventDetail, EventListsResponse
+from app.schemas.events.event import EventCreateIn
+from app.schemas.events.event_detail import EventDetail, EventListsResponse
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
@@ -37,6 +40,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
+    specified_user: User | None = Depends(get_and_validate_specified_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
@@ -62,7 +66,7 @@ async def create(
         info=data.info,
         level=data.level,
         school=school,
-        account=account,
+        account=specified_user or account,
     )
 
     # Queue a background task to process the created event
@@ -77,6 +81,10 @@ async def create(
 @router.get("/events", response_model=EventListsResponse)
 async def get_events(
     query: str = None,
+    match_prefix: bool = Query(
+        False,
+        description="Whether to search for the provided `query` string as a prefix",
+    ),
     level: EventLevel = None,
     school_id: UUID = None,
     user_id: UUID = None,
@@ -145,6 +153,7 @@ async def get_events(
     events = crud.event.get_all_with_optional_filters(
         session,
         query_string=query,
+        match_prefix=match_prefix,
         level=level,
         school=school,
         user=user,

@@ -6,10 +6,8 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
-    Request,
     Security,
 )
-from pydantic import ValidationError
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,11 +19,14 @@ from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
     get_collection_from_id,
     get_collection_item_from_body,
+    get_collection_item_from_id,
     validate_collection_creation,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.user import get_reader_from_body
+from app.api.dependencies.user import (
+    get_reader_from_body,
+)
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
@@ -454,46 +455,46 @@ async def update_collection(
     return {"msg": "updated", "collection_size": count}
 
 
+@router.get(
+    "/collection-item/{collection_item_id}",
+    response_model=CollectionItemDetail,
+)
+async def get_collection_item(
+    collection_item: CollectionItem = Permission("read", get_collection_item_from_id),
+):
+    """
+    Get a single collection item.
+    """
+    return collection_item
+
+
 @router.post(
     "/collection-item-activity",
     response_model=CollectionItemActivityBrief,
+    dependencies=[
+        Permission("update", get_reader_from_body),
+        Permission("update", get_collection_item_from_body),
+    ],
 )
 async def log_collection_item_activity(
-    req: Request,
-    collection_item: CollectionItem = Permission(
-        "activity", get_collection_item_from_body
-    ),
-    reader=Permission("update", get_reader_from_body),
-    account=Depends(get_current_active_user_or_service_account),
+    data: CollectionItemActivityBase,
     session: Session = Depends(get_session),
 ):
     """
     Create new activity entry for a collection item and reader
     """
-    # Since we have already consumed parts of the request body in the permission checks,
-    # we need to re-read the body here (using the Request object) to get the data again.
-    # (there is a choice here between having to re-read the body, or having to
-    # recreate the permission checks in the body of the function.
-    # the former was opted as it is one reconstruction vs two)
-    body = await req.json()
-    try:
-        collection_item_activity_data = CollectionItemActivityBase(**body)
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=422,
-            detail=e.json(),
-        )
+    activity = crud.collection_item_activity.create(db=session, obj_in=data)
 
-    logger.info(
-        "Creating collection item activity",
-        collection_item=collection_item,
-        account=account,
+    create_event(
+        session=session,
+        title="Collection item activity created",
+        description=f"Collection item activity '{activity.status}' created for collection item {activity.collection_item_id}",
+        info={
+            "collection_id": str(activity.collection_item.collection_id),
+            "collection_item_id": str(activity.collection_item_id),
+            "activity_id": str(activity.id),
+        },
+        account=activity.reader,
     )
 
-    # TODO: create event based on the read status of the activity (dynamic title, etc)
-    # handle_collection_item_activity_event(session, collection_item, reader, data)
-
-    activity = crud.collection_item_activity.create(
-        db=session, obj_in=collection_item_activity_data
-    )
     return activity

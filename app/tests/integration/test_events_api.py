@@ -105,6 +105,54 @@ def test_post_events_api(
     assert create_event_response.json()["level"] == "normal"
 
 
+def test_post_events_api_with_specified_user(
+    client,
+    test_user_account,
+    backend_service_account_headers,
+    test_public_user_hacker_headers,
+):
+    # create an event with a specified user (with appropriate permissions)
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": str(test_user_account.id),
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response.raise_for_status()
+    create_event_response_data = create_event_response.json()
+    assert create_event_response_data["user"]["id"] == str(test_user_account.id)
+
+    # create an event with a specified user (without appropriate permissions)
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": str(test_user_account.id),
+        },
+        headers=test_public_user_hacker_headers,
+    )
+    assert create_event_response.status_code == status.HTTP_403_FORBIDDEN
+
+    # create an event for a user that doesn't exist
+    create_event_response = client.post(
+        f"/v1/events",
+        json={
+            "title": "TEST EVENT",
+            "description": "test description",
+            "level": "normal",
+            "user_id": "00000000-0000-0000-0000-000000000000",
+        },
+        headers=backend_service_account_headers,
+    )
+    assert create_event_response.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_post_events_api_background_process(
     client,
     session_factory,
@@ -140,3 +188,51 @@ def test_post_events_api_background_process(
         assert len(events) == 1
         event = events[0]
         assert event.description == "MODIFIED"
+
+
+def test_event_query_and_prefix(
+    client,
+    backend_service_account_headers,
+):
+    # Create some events
+    create_event_response_foo_bar = client.post(
+        f"/v1/events",
+        json={
+            "title": "Foo: Bar",
+            "description": "Notice the Title: Subtitle format",
+            "level": "normal",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response_foo_bar.raise_for_status()
+
+    create_event_response_foo_baz = client.post(
+        f"/v1/events",
+        json={
+            "title": "Foo: Baz",
+            "description": "Notice the Title: Subtitle format",
+            "level": "normal",
+        },
+        headers=backend_service_account_headers,
+    )
+    create_event_response_foo_baz.raise_for_status()
+
+    # Test that we can query for entire string
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo: Bar"},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 1
+
+    # Test that we can query for prefix
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo:", "match_prefix": True},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 2

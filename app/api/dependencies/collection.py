@@ -1,12 +1,14 @@
 import uuid
 
-from fastapi import Body, Depends, HTTPException, Path, Request
+from fastapi import Depends, HTTPException, Path, Request
 from fastapi_permissions import has_permission
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
+from app.models.collection_item import CollectionItem
 
 
 def get_collection_from_id(
@@ -18,12 +20,27 @@ def get_collection_from_id(
     return crud.collection.get_or_404(db=session, id=collection_id)
 
 
-def get_collection_item_from_body(
-    collection_item_id: int = Body("collection_item_id"),
+def get_collection_item_from_id(
+    collection_item_id: int = Path(
+        ..., description="Integer representing a unique collection item"
+    ),
     session: Session = Depends(get_session),
 ):
     return crud.collection.get_collection_item_or_404(
         db=session, collection_item_id=collection_item_id
+    )
+
+
+class HasCollectionItemId(BaseModel):
+    collection_item_id: int
+
+
+def get_collection_item_from_body(
+    data: HasCollectionItemId,
+    session: Session = Depends(get_session),
+):
+    return crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=data.collection_item_id
     )
 
 

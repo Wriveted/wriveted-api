@@ -1,5 +1,6 @@
 import json
 from typing import Optional, Union
+from pydantic import ValidationError
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -11,7 +12,13 @@ from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
+from app.models.collection_item import CollectionItem
+from app.models.collection_item_activity import (
+    CollectionItemActivity,
+    CollectionItemReadStatus,
+)
 from app.models.event import EventLevel, EventSlackChannel
+from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
@@ -21,6 +28,8 @@ from app.schemas.booklist import (
     BookListUpdateIn,
     ItemUpdateType,
 )
+from app.schemas.collection import CollectionItemActivityBase
+from app.schemas.events.special_events import ReadingLogEvent
 from app.services.background_tasks import queue_background_task
 
 logger = get_logger()
@@ -192,6 +201,8 @@ def process_events(event_id):
                 session.refresh(event)
                 logger.info("Changed", e=event)
                 return {"msg": "ok"}
+            case "Reader timeline event: Reading logged":
+                return process_reading_logged_event(session, event)
             case _:
                 return
 
@@ -251,6 +262,28 @@ def process_book_review_event(session: Session, event: Event):
                 booklist_name=f"{class_group.name} Liked Books",
             )
             logger.info("Updated class liked books", booklist=class_booklist)
+
+
+def process_reading_logged_event(session: Session, event: Event):
+    """
+    Process a reading logged event, creating a CollectionItemActivity of the appropriate status.
+    """
+    logger.info("Processing reading logged event")
+
+    try:
+        log_data = ReadingLogEvent.parse_obj(event.info.get("reading_logged"))
+    except ValidationError as e:
+        logger.warning("Error parsing reading logged event", error=e, event=event)
+        return
+
+    activity = CollectionItemActivityBase(
+        collection_item_id=log_data.collection_item_id,
+        reader_id=event.user_id,
+        status=CollectionItemReadStatus.READ
+        if log_data.finished
+        else CollectionItemReadStatus.READING,
+    )
+    crud.collection_item_activity.create(session, obj_in=activity)
 
 
 def update_or_create_liked_books(
