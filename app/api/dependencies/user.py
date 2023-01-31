@@ -35,7 +35,7 @@ def get_optional_user_from_body(
 def validate_specified_user_operation(
     user: User | None = Depends(get_optional_user_from_body),
     active_principals=Depends(get_active_principals),
-):
+) -> User | None:
     """
     Validate that the current user has permission to perform modifying operations [on/in lieu of] the specified user.
     """
@@ -45,6 +45,7 @@ def validate_specified_user_operation(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"The current account is not allowed to perform an operation associated with that user",
             )
+        return user
 
 
 class HasReaderId(BaseModel):
