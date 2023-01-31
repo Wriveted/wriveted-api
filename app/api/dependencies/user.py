@@ -32,12 +32,12 @@ def get_optional_user_from_body(
     return crud.user.get_or_404(db=session, id=data.user_id) if data.user_id else None
 
 
-def validate_specified_user_operation(
+def get_and_validate_specified_user_from_body(
     user: User | None = Depends(get_optional_user_from_body),
     active_principals=Depends(get_active_principals),
 ) -> User | None:
     """
-    Validate that the current user has permission to perform modifying operations [on/in lieu of] the specified user.
+    Validate that the current user has permission to perform modifying operations [on/in lieu of] the specified user, returning the specified user if so.
     """
     if user is not None:
         if not has_permission(active_principals, "update", user):

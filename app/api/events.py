@@ -14,8 +14,7 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.api.dependencies.user import (
-    get_optional_user_from_body,
-    validate_specified_user_operation,
+    get_and_validate_specified_user_from_body,
 )
 from app.db.session import get_session
 from app.models.event import EventLevel
@@ -41,7 +40,7 @@ async def create(
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
     ),
-    specified_user: User | None = Depends(validate_specified_user_operation),
+    specified_user: User | None = Depends(get_and_validate_specified_user_from_body),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
 ):
