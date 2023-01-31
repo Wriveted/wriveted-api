@@ -77,7 +77,6 @@ class Event(Base):
         if self.user_id is not None:
             acl.append((Allow, f"user:{self.user_id}", "read"))
 
-            if self.user.parent is not None:
-                acl.append((Allow, f"parent:{self.user.id}", "read"))
+            acl.append((Allow, f"parent:{self.user_id}", "read"))
 
         return acl
