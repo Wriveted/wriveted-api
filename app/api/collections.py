@@ -18,14 +18,14 @@ from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
     get_collection_from_id,
+    get_collection_item_from_body,
     get_collection_item_from_id,
     validate_collection_creation,
-    validate_specified_collection_item_update,
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.api.dependencies.user import (
-    validate_specified_reader_update,
+    get_reader_from_body,
 )
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
@@ -472,8 +472,8 @@ async def get_collection_item(
     "/collection-item-activity",
     response_model=CollectionItemActivityBrief,
     dependencies=[
-        Permission("update", validate_specified_reader_update),
-        Permission("update", validate_specified_collection_item_update),
+        Permission("update", get_reader_from_body),
+        Permission("update", get_collection_item_from_body),
     ],
 )
 async def log_collection_item_activity(

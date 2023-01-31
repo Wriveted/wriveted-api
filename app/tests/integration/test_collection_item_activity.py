@@ -1,11 +1,7 @@
-from app.api.dependencies.security import create_user_access_token
 from app.models.collection_item_activity import CollectionItemReadStatus
-from app.schemas.users.user_create import UserCreateIn
-from app import crud
 
 
 def test_collection_item_activity_creation_and_fetching(
-    session,
     client,
     test_unhydrated_editions,
     test_user_account,

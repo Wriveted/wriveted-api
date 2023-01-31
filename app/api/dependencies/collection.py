@@ -44,17 +44,6 @@ def get_collection_item_from_body(
     )
 
 
-def validate_specified_collection_item_update(
-    collection_item: CollectionItem = Depends(get_collection_item_from_body),
-    active_principals=Depends(get_active_principals),
-):
-    if not has_permission(active_principals, "update", collection_item):
-        raise HTTPException(
-            status_code=403,
-            detail="Unauthorized to perform operations on collection item",
-        )
-
-
 async def validate_collection_creation(
     request: Request,
     session: Session = Depends(get_session),

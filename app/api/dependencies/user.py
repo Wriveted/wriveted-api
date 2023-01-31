@@ -56,13 +56,3 @@ def get_reader_from_body(
     session: Session = Depends(get_session),
 ):
     return crud.user.get_or_404(db=session, id=data.reader_id)
-
-
-def validate_specified_reader_update(
-    reader=Depends(get_reader_from_body),
-    active_principals=Depends(get_active_principals),
-):
-    if not has_permission(active_principals, "update", reader):
-        raise HTTPException(
-            status_code=403, detail="Unauthorized to perform operations on reader"
-        )
