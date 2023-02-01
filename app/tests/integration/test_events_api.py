@@ -236,3 +236,128 @@ def test_event_query_and_prefix(
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
     assert len(events) == 2
+
+
+def test_event_api_info_filtering(
+    client,
+    session,
+    backend_service_account_headers,
+):
+    # Create a few events
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 1234, "boolean": True},
+    )
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 0, "boolean": False, "missing": "value"},
+    )
+
+    # Test that we can get events for a work
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"work_id": 0},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 1
+    assert events[0]["info"]["work_id"] == 0
+
+
+def test_event_crud_optional_filtering_by_string(
+    session,
+):
+    # Create a few events
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 1234, "string": "match"},
+    )
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 0, "string": "Not a Match"},
+    )
+
+    # Test that we can filter events using optional info keys
+    events = crud.event.get_all_with_optional_filters(
+        session,
+        info_filters={"string": "match"},
+    )
+
+    assert len(events) >= 1
+
+    for e in events:
+        assert "string" in e.info
+        assert e.info["string"] == "match"
+
+
+def test_event_crud_optional_filtering_missing_attribute(
+    session,
+):
+    # Create a few events
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 1234, "boolean": True},
+    )
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 0, "boolean": False, "missing": "value"},
+    )
+
+    # Test that we can filter events using optional info keys
+    events = crud.event.get_all_with_optional_filters(
+        session,
+        info_filters={"missing": "value"},
+    )
+    assert len(events) >= 1
+    for e in events:
+        assert "missing" in e.info
+        assert e.info["missing"] == "value"
+
+
+def test_event_crud_optional_filtering_bool_attribute(
+    session,
+):
+    # Create a few events
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 1234, "boolean": True},
+    )
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 0, "boolean": False, "missing": "value"},
+    )
+
+    # Test that we can filter events using boolean values
+    events = crud.event.get_all_with_optional_filters(
+        session,
+        info_filters={"boolean": True},
+    )
+    assert len(events) >= 1
+    for e in events:
+        assert "boolean" in e.info
+        assert e.info["boolean"] == True

@@ -13,9 +13,7 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
-from app.api.dependencies.user import (
-    get_and_validate_specified_user_from_body,
-)
+from app.api.dependencies.user import get_and_validate_specified_user_from_body
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -86,9 +84,22 @@ async def get_events(
         description="Whether to search for the provided `query` string as a prefix",
     ),
     level: EventLevel = None,
-    school_id: UUID = None,
-    user_id: UUID = None,
-    service_account_id: UUID = None,
+    school_id: UUID = Query(
+        None, description="Filter events that are associated with a school"
+    ),
+    user_id: UUID = Query(
+        None, description="Filter events that are associated with or created by a user"
+    ),
+    service_account_id: UUID = Query(
+        None,
+        description="Filter events that are associated with or created by a service account",
+    ),
+    work_id: int = Query(
+        None, description="Filter events that are associated with a work"
+    ),
+    collection_id: UUID = Query(
+        None, description="Filter events that are associated with a collection"
+    ),
     pagination: PaginatedQueryParams = Depends(),
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
@@ -158,6 +169,11 @@ async def get_events(
         school=school,
         user=user,
         service_account=service_account,
+        info_filters={
+            k: v
+            for k, v in {"work_id": work_id, "collection_id": collection_id}.items()
+            if v is not None
+        },
         skip=pagination.skip,
         limit=pagination.limit,
     )

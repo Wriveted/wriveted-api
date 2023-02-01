@@ -1,4 +1,5 @@
-from typing import Any, Optional, Union
+import uuid
+from typing import Any, Union
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -62,6 +63,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         school: School | None = None,
         user: User | None = None,
         service_account: ServiceAccount | None = None,
+        info_filters: dict[str, str | int | uuid.UUID] | None = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
@@ -83,6 +85,16 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             event_query = event_query.where(Event.user == user)
         if service_account is not None:
             event_query = event_query.where(Event.service_account == service_account)
+        if info_filters is not None:
+            for key, value in info_filters.items():
+                if isinstance(value, bool):
+                    # convert Python bool to Postgres/JSON bool string
+                    value = str(value).lower()
+
+                # We cast the value to a string for simplicity, some info fields are ints or UUIDs
+                event_query = event_query.where(
+                    Event.info[key].as_string() == str(value)
+                )
 
         return event_query
 
@@ -95,6 +107,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         school: School | None = None,
         user: User | None = None,
         service_account: ServiceAccount | None = None,
+        info_filters: dict[str, str | int | uuid.UUID] | None = None,
         skip: int = 0,
         limit: int = 100,
     ):
@@ -105,6 +118,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             "school": school,
             "user": user,
             "service_account": service_account,
+            "info_filters": info_filters,
         }
         logger.debug("Querying events", **optional_filters)
         query = self.apply_pagination(
