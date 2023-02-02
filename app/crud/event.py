@@ -1,6 +1,7 @@
 from typing import Any, Union
 
 from sqlalchemy import func, text
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -122,7 +123,11 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             skip=skip,
             limit=limit,
         )
-        return db.scalars(query).all()
+        try:
+            return db.scalars(query).all()
+        except ProgrammingError as e:
+            logger.error("Error querying events", error=e, **optional_filters)
+            raise ValueError("Problem filtering events")
 
 
 event = CRUDEvent(Event)

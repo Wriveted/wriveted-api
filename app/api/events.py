@@ -160,18 +160,23 @@ async def get_events(
     else:
         school = None
 
-    events = crud.event.get_all_with_optional_filters(
-        session,
-        query_string=query,
-        match_prefix=match_prefix,
-        level=level,
-        school=school,
-        user=user,
-        service_account=service_account,
-        info_jsonpath_match=info_jsonpath_match,
-        skip=pagination.skip,
-        limit=pagination.limit,
-    )
+    try:
+        events = crud.event.get_all_with_optional_filters(
+            session,
+            query_string=query,
+            match_prefix=match_prefix,
+            level=level,
+            school=school,
+            user=user,
+            service_account=service_account,
+            info_jsonpath_match=info_jsonpath_match,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
     filtered_events = [e for e in events if has_permission(principals, "read", e)]
     if len(filtered_events) != len(events):
         logger.info(

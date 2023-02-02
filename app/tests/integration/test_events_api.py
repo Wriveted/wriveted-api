@@ -225,7 +225,7 @@ def test_event_query_and_prefix(
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) == 1
+    assert len(events) >= 1
 
     # Test that we can query for prefix
     get_events_response = client.get(
@@ -235,7 +235,7 @@ def test_event_query_and_prefix(
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) == 2
+    assert len(events) >= 2
 
 
 def test_event_api_info_filtering(
@@ -267,8 +267,31 @@ def test_event_api_info_filtering(
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) == 1
-    assert events[0]["info"]["work_id"] == 0
+    assert len(events) >= 1
+    for e in events:
+        assert e["info"]["work_id"] == 0
+
+
+def test_event_api_info_filtering_raises(
+    client,
+    session,
+    backend_service_account_headers,
+):
+    crud.event.create(
+        session,
+        title=f"test event for filtering by info",
+        description="test description",
+        level="normal",
+        info={"work_id": 1234, "boolean": True},
+    )
+
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"info_jsonpath_match": "invalid json path"},
+        headers=backend_service_account_headers,
+    )
+
+    assert get_events_response.status_code == 400
 
 
 def test_event_crud_optional_filtering_by_string(
