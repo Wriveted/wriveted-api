@@ -1,6 +1,7 @@
 from typing import Any, Union
 
-from sqlalchemy import func, text
+from sqlalchemy import cast, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -88,9 +89,9 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         if info_jsonpath_match is not None:
             # Apply the jsonpath filter to the info field
             event_query = event_query.where(
-                text(
-                    "jsonb_path_match(info::jsonb, (:jsonpath_query)::jsonpath)::boolean"
-                ).bindparams(jsonpath_query=info_jsonpath_match)
+                func.jsonb_path_match(cast(Event.info, JSONB), info_jsonpath_match).is_(
+                    True
+                )
             )
 
         return event_query
