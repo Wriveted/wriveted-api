@@ -91,6 +91,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
         logger.error(
             "An uncaught exception occurred in a request handler",
             request=request.url,
+            method=request.method,
             exc_info=e,
         )
         return Response(
