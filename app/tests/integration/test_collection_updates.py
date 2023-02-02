@@ -672,7 +672,7 @@ def test_collection_management(
 
     lonely_book_data = CollectionItemBase(
         info=CollectionItemInfoCreateIn(
-            title="Lonely Book",
+            title="Loneliest Book",
             author="Lonely Author",
         )
     ).json()
