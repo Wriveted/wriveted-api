@@ -21,7 +21,7 @@ from app.models.collection_item_activity import (
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
-    CollectionItemBase,
+    CollectionItemCreateIn,
     CollectionItemInnerCreateIn,
     CollectionItemUpdate,
     CollectionUpdateType,
@@ -165,7 +165,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         collection_id: int,
-        item_update: CollectionItemUpdate | CollectionItemBase,
+        item_update: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
         item_orm_object = db.scalar(
@@ -209,7 +209,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         collection_orm_object: Collection,
-        item_to_remove: CollectionItemUpdate | CollectionItemBase,
+        item_to_remove: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
         db.execute(
@@ -228,7 +228,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db: Session,
         *,
         collection_orm_object: Collection,
-        item: CollectionItemUpdate | CollectionItemBase,
+        item: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):

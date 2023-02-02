@@ -34,7 +34,7 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemActivityBase,
     CollectionItemActivityBrief,
-    CollectionItemBase,
+    CollectionItemCreateIn,
     CollectionItemDetail,
     CollectionItemsResponse,
     CollectionUpdateSummaryResponse,
@@ -334,7 +334,7 @@ async def get_collection_booklist_intersection(
     response_model=CollectionItemDetail,
 )
 async def add_collection_item(
-    data: CollectionItemBase,
+    data: CollectionItemCreateIn,
     collection: Collection = Permission("update", get_collection_from_id),
     session: Session = Depends(get_session),
 ):
@@ -358,7 +358,7 @@ async def add_collection_item(
     response_model=CollectionUpdateSummaryResponse,
 )
 async def set_collection_items(
-    collection_data: List[CollectionItemBase],
+    collection_data: List[CollectionItemCreateIn],
     collection: Collection = Permission("update", get_collection_from_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),

@@ -14,7 +14,7 @@ from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
-from app.schemas.collection import CollectionAndItemsUpdateIn, CollectionItemBase
+from app.schemas.collection import CollectionAndItemsUpdateIn, CollectionItemCreateIn
 from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
@@ -23,7 +23,10 @@ logger = get_logger()
 # Mostly the same as add_editions_to_collection, but only processes a list of isbns.
 # Due to the lack of EditionCreateIns, any created editions will be unhydrated
 async def add_editions_to_collection_by_isbn(
-    session, collection_data: List[CollectionItemBase], collection: Collection, account
+    session,
+    collection_data: List[CollectionItemCreateIn],
+    collection: Collection,
+    account,
 ):
     existing_collection_count = collection.book_count
 
