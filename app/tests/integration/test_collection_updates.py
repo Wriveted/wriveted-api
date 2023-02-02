@@ -3,7 +3,6 @@ import random
 import time
 
 from app import crud
-from app.schemas.collection import CollectionItemBase, CollectionItemInfoCreateIn
 from app.services.editions import check_digit_13
 
 

@@ -135,7 +135,7 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
     edition_isbn: str
 
 
-class CollectionItemBase(BaseModel):
+class CollectionItemCreateIn(BaseModel):
     edition_isbn: str | None
     info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
@@ -145,7 +145,7 @@ class CollectionItemBase(BaseModel):
         orm_mode = True
 
 
-class CollectionItemInnerCreateIn(CollectionItemBase):
+class CollectionItemInnerCreateIn(CollectionItemCreateIn):
     collection_id: UUID
     info: CollectionItemInfo | None
 
@@ -157,7 +157,7 @@ class CollectionCreateIn(BaseModel):
     user_id: UUID | None
 
     info: dict[str, Any] | None
-    items: list[CollectionItemBase] | None
+    items: list[CollectionItemCreateIn] | None
 
     @root_validator(pre=True)
     def _validate_relationships(cls, values: dict):
@@ -194,7 +194,7 @@ class CollectionUpdateType(str, enum.Enum):
     UPDATE = "update"
 
 
-class CollectionItemUpdate(CollectionItemBase):
+class CollectionItemUpdate(CollectionItemCreateIn):
     action: CollectionUpdateType = CollectionUpdateType.ADD
 
     class Config:
