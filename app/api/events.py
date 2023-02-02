@@ -97,7 +97,7 @@ async def get_events(
     info_jsonpath_match: str = Query(
         None,
         description="Filter events using a JSONPath over the info field. The resulting value must be a boolean expression.",
-        examples=['($.reading_logged.emoji == "🤪")', '($.string == "match")'],
+        example='($.reading_logged.emoji == "🤪")',
     ),
     pagination: PaginatedQueryParams = Depends(),
     account: Union[ServiceAccount, User] = Depends(
