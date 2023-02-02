@@ -262,7 +262,7 @@ def test_event_api_info_filtering(
     # Test that we can get events for a work
     get_events_response = client.get(
         f"/v1/events",
-        params={"work_id": 0},
+        params={"info_jsonpath_match": "($.work_id == 0)"},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
@@ -293,7 +293,7 @@ def test_event_crud_optional_filtering_by_string(
     # Test that we can filter events using optional info keys
     events = crud.event.get_all_with_optional_filters(
         session,
-        info_filters={"string": "match"},
+        info_jsonpath_match='($.string == "match")',
     )
 
     assert len(events) >= 1
@@ -325,7 +325,7 @@ def test_event_crud_optional_filtering_missing_attribute(
     # Test that we can filter events using optional info keys
     events = crud.event.get_all_with_optional_filters(
         session,
-        info_filters={"missing": "value"},
+        info_jsonpath_match='$.missing == "value"',
     )
     assert len(events) >= 1
     for e in events:
@@ -355,7 +355,7 @@ def test_event_crud_optional_filtering_bool_attribute(
     # Test that we can filter events using boolean values
     events = crud.event.get_all_with_optional_filters(
         session,
-        info_filters={"boolean": True},
+        info_jsonpath_match="$.boolean == true",
     )
     assert len(events) >= 1
     for e in events:

@@ -94,11 +94,10 @@ async def get_events(
         None,
         description="Filter events that are associated with or created by a service account",
     ),
-    work_id: int = Query(
-        None, description="Filter events that are associated with a work"
-    ),
-    collection_id: UUID = Query(
-        None, description="Filter events that are associated with a collection"
+    info_jsonpath_match: str = Query(
+        None,
+        description="Filter events using a JSONPath over the info field. The resulting value must be a boolean expression.",
+        examples=['($.reading_logged.emoji == "🤪")', '($.string == "match")'],
     ),
     pagination: PaginatedQueryParams = Depends(),
     account: Union[ServiceAccount, User] = Depends(
@@ -169,11 +168,7 @@ async def get_events(
         school=school,
         user=user,
         service_account=service_account,
-        info_filters={
-            k: v
-            for k, v in {"work_id": work_id, "collection_id": collection_id}.items()
-            if v is not None
-        },
+        info_jsonpath_match=info_jsonpath_match,
         skip=pagination.skip,
         limit=pagination.limit,
     )
