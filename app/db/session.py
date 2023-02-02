@@ -43,8 +43,10 @@ def database_connection(
         # new connection from the pool. After the specified amount of time, an
         # exception will be thrown.
         pool_timeout=120,
+        # Enable the SqlAlchemy 2.0 engine and connection API
+        future=True,
     )
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
     return engine, SessionLocal
 
 
@@ -61,7 +63,10 @@ def get_session_maker(settings: Settings = None):
     return SessionLocal
 
 
-# Solution to db pool deadlock issue from https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/104#issuecomment-775858005
+# This was introduced in https://github.com/Wriveted/wriveted-api/pull/140 to deal with a deadlock issue from
+# https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/104#issuecomment-775858005
+# The issue has since been solved upstream so could be refactored out.
+# See https://github.com/Wriveted/wriveted-api/issues/139 for a setup
 class SessionManager:
     def __init__(self, session_maker: sessionmaker):
         self.session: Session = session_maker()
