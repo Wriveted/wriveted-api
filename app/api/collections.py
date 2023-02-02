@@ -18,8 +18,8 @@ from app.api.dependencies.collection import (
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.api.dependencies.user import (
+    get_and_validate_collection_with_optional_reader,
     get_reader_from_body,
-    validate_optional_reader_from_body,
 )
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
@@ -337,11 +337,12 @@ async def get_collection_booklist_intersection(
 @router.post(
     "/collection/{collection_id}/item",
     response_model=CollectionItemDetail,
-    dependencies=[Depends(validate_optional_reader_from_body)],
 )
 async def add_collection_item(
     data: CollectionItemAndStatusCreateIn,
-    collection: Collection = Permission("update", get_collection_from_id),
+    collection: Collection = Permission(
+        "update", get_and_validate_collection_with_optional_reader
+    ),
     session: Session = Depends(get_session),
 ):
     """
