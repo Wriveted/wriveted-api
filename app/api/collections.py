@@ -17,11 +17,15 @@ from app.api.dependencies.collection import (
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.user import get_reader_from_body
+from app.api.dependencies.user import (
+    get_reader_from_body,
+    validate_optional_reader_from_body,
+)
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
 from app.models.collection_item_activity import CollectionItemReadStatus
+from app.models.reader import Reader
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
@@ -34,6 +38,7 @@ from app.schemas.collection import (
     CollectionInfo,
     CollectionItemActivityBase,
     CollectionItemActivityBrief,
+    CollectionItemAndStatusCreateIn,
     CollectionItemCreateIn,
     CollectionItemDetail,
     CollectionItemsResponse,
@@ -332,9 +337,10 @@ async def get_collection_booklist_intersection(
 @router.post(
     "/collection/{collection_id}/item",
     response_model=CollectionItemDetail,
+    dependencies=[Depends(validate_optional_reader_from_body)],
 )
 async def add_collection_item(
-    data: CollectionItemCreateIn,
+    data: CollectionItemAndStatusCreateIn,
     collection: Collection = Permission("update", get_collection_from_id),
     session: Session = Depends(get_session),
 ):
@@ -342,8 +348,17 @@ async def add_collection_item(
     Endpoint for adding a new item to a collection.
     """
     logger.debug("Adding item to collection", collection=collection)
+
+    read_status_data = (
+        {"status": data.read_status, "reader_id": str(data.reader_id)}
+        if data.read_status or data.reader_id
+        else None
+    )
+    del data.read_status
+    del data.reader_id
+
     try:
-        return crud.collection.add_item_to_collection(
+        item = crud.collection.add_item_to_collection(
             session, item=data, collection_orm_object=collection
         )
     except IntegrityError as e:
@@ -351,6 +366,16 @@ async def add_collection_item(
             status_code=409,
             detail=e,
         )
+
+    if read_status_data:
+        crud.collection_item_activity.create(
+            session,
+            obj_in=CollectionItemActivityBase(
+                collection_item_id=item.id,
+                **read_status_data,
+            ),
+        )
+    return item
 
 
 @router.put(

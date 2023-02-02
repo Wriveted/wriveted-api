@@ -128,3 +128,54 @@ def test_collection_item_activity_creation_and_fetching(
         },
     )
     assert hacker_collection_item_activity_create_response.status_code == 403
+
+    # Test that user can create a single collection item and activity together
+
+    item_and_activity_create_response = client.post(
+        f"/v1/collection/{user_collection_id}/item",
+        headers=test_user_account_headers,
+        json={
+            "title": "Lonely book",
+            "author": "Lonely author",
+            "read_status": CollectionItemReadStatus.READ,
+            "reader_id": test_user_id,
+        },
+    )
+    item_and_activity_create_response.raise_for_status()
+
+    item_and_activity_create_data = item_and_activity_create_response.json()
+    new_item_id = item_and_activity_create_data["id"]
+
+    new_item_response = client.get(
+        f"/v1/collection-item/{new_item_id}",
+        headers=test_user_account_headers,
+    )
+    new_item_response.raise_for_status()
+
+    activity_fetch_response = client.get(
+        f"/v1/collection/{user_collection_id}/items",
+        headers=test_user_account_headers,
+        params={
+            "reader_id": test_user_id,
+            "read_status": "READ",
+        },
+    )
+    activity_fetch_response.raise_for_status()
+
+    activity_fetch_data = activity_fetch_response.json()
+    assert len(activity_fetch_data["data"]) == 1
+    assert activity_fetch_data["data"][0]["id"] == new_item_id
+
+    # Test that hacker can't do the same, for someone else
+
+    hacker_item_and_activity_create_response = client.post(
+        f"/v1/collection/{user_collection_id}/item",
+        headers=test_public_user_hacker_headers,
+        json={
+            "title": "Sinister, lonely book (extra controversial edition)",
+            "author": "Sinister, lonely author",
+            "read_status": CollectionItemReadStatus.READ,
+            "reader_id": test_user_id,
+        },
+    )
+    assert hacker_item_and_activity_create_response.status_code == 403
