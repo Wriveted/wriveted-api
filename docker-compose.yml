@@ -50,6 +50,7 @@ services:
       - SLACK_BOT_TOKEN=unused-key-for-testing
       - UVICORN_PORT=8000
       - WRIVETED_INTERNAL_API=http://internal:8888
+      - SQLALCHEMY_WARN_20=true
     ports:
       - "8000:8000"
     volumes:
@@ -79,6 +80,7 @@ services:
       - SLACK_BOT_TOKEN=unused-key-for-testing
       - PORT=8888
       - WRIVETED_INTERNAL_API=http://internal:8888
+      - SQLALCHEMY_WARN_20=true
     ports:
       - "8888:8888"
     volumes:
