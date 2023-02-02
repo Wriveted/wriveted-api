@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import Integer, String
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
@@ -8,10 +8,10 @@ from app.models.labelset_reading_ability_association import LabelSetReadingAbili
 class ReadingAbility(Base):
     __tablename__ = "reading_abilities"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    key = Column(String(50), nullable=False, index=True, unique=True)
-    name = Column(String(128), nullable=False, unique=True)
+    key = mapped_column(String(50), nullable=False, index=True, unique=True)
+    name = mapped_column(String(128), nullable=False, unique=True)
 
     labelsets = relationship(
         "LabelSet",

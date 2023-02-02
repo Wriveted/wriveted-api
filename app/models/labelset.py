@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlalchemy import (
     JSON,
     Boolean,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -15,7 +14,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 from app.models.labelset_hue_association import LabelSetHue
@@ -48,9 +47,9 @@ class LabelOrigin(str, enum.Enum):
 # by combining data from editions' metdata.
 class LabelSet(Base):
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    work_id = Column(
+    work_id = mapped_column(
         ForeignKey("works.id", name="fk_labelset_work"), nullable=True, index=True
     )
     work = relationship("Work", back_populates="labelset")
@@ -70,10 +69,10 @@ class LabelSet(Base):
         lazy="selectin",
     )
 
-    hue_origin = Column(Enum(LabelOrigin), nullable=True)
+    hue_origin = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    huey_summary = Column(Text, nullable=True)
-    summary_origin = Column(Enum(LabelOrigin), nullable=True)
+    huey_summary = mapped_column(Text, nullable=True)
+    summary_origin = mapped_column(Enum(LabelOrigin), nullable=True)
 
     reading_abilities = relationship(
         "ReadingAbility",
@@ -81,10 +80,10 @@ class LabelSet(Base):
         back_populates="labelsets",
         lazy="selectin",
     )
-    reading_ability_origin = Column(Enum(LabelOrigin), nullable=True)
+    reading_ability_origin = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    min_age = Column(Integer, nullable=True)
-    max_age = Column(Integer, nullable=True)
+    min_age = mapped_column(Integer, nullable=True)
+    max_age = mapped_column(Integer, nullable=True)
     Index(
         "index_age_range",
         min_age,
@@ -92,9 +91,9 @@ class LabelSet(Base):
         postgresql_where=and_(min_age.is_not(None), max_age.is_not(None)),
     )
 
-    age_origin = Column(Enum(LabelOrigin), nullable=True)
+    age_origin = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    recommend_status = Column(
+    recommend_status = mapped_column(
         Enum(RecommendStatus), nullable=False, server_default="GOOD"
     )
     Index(
@@ -103,25 +102,25 @@ class LabelSet(Base):
         postgresql_where=(recommend_status == RecommendStatus.GOOD),
     )
 
-    recommend_status_origin = Column(Enum(LabelOrigin), nullable=True)
+    recommend_status_origin = mapped_column(Enum(LabelOrigin), nullable=True)
 
     # both service accounts and users could potentially label works
-    labelled_by_user_id = Column(
+    labelled_by_user_id = mapped_column(
         ForeignKey("users.id", name="fk_labeller-user_labelset"), nullable=True
     )
-    labelled_by_sa_id = Column(
+    labelled_by_sa_id = mapped_column(
         ForeignKey("service_accounts.id", name="fk_labeller-sa_labelset"), nullable=True
     )
 
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
-    created_at = Column(
+    created_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
         nullable=False,
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
@@ -129,7 +128,7 @@ class LabelSet(Base):
         nullable=False,
     )
 
-    checked = Column(Boolean(), nullable=False, default=False)
+    checked = mapped_column(Boolean(), nullable=False, default=False)
 
     def __repr__(self):
         return f"<LabelSet id={self.id} - '{self.work.title}' ages: {self.min_age}-{self.max_age} >"

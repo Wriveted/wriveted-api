@@ -1,8 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.models.reader import Reader
 from app.models.user import UserAccountType
@@ -13,7 +13,7 @@ class Student(Reader):
     A concrete Student user in a school context.
     """
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("readers.id", name="fk_student_inherits_reader", ondelete="CASCADE"),
         primary_key=True,
@@ -27,13 +27,13 @@ class Student(Reader):
         ),
     )
 
-    username = Column(
+    username = mapped_column(
         String,
         index=True,
         nullable=False,
     )
 
-    school_id = Column(
+    school_id = mapped_column(
         Integer,
         ForeignKey("schools.id", name="fk_student_school", ondelete="CASCADE"),
         nullable=False,
@@ -41,7 +41,7 @@ class Student(Reader):
     )
     school = relationship("School", backref="students", foreign_keys=[school_id])
 
-    class_group_id = Column(
+    class_group_id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "class_groups.id", name="fk_student_class_group", ondelete="CASCADE"
@@ -54,7 +54,9 @@ class Student(Reader):
     )
 
     # class_history? other misc
-    student_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    student_info = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=True, default={}
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

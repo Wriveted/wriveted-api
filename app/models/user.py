@@ -2,10 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Boolean, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
@@ -27,7 +27,7 @@ class User(Base):
     Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
     """
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         unique=True,
@@ -36,9 +36,9 @@ class User(Base):
         nullable=False,
     )
 
-    is_active = Column(Boolean(), default=True)
+    is_active = mapped_column(Boolean(), default=True)
 
-    type = Column(
+    type = mapped_column(
         Enum(UserAccountType, name="enum_user_account_type"),
         nullable=False,
         index=True,
@@ -49,19 +49,19 @@ class User(Base):
         "polymorphic_on": type,
     }
 
-    email = Column(String, unique=True, index=True, nullable=True)
+    email = mapped_column(String, unique=True, index=True, nullable=True)
 
     # overall "name" string, most likely provided by SSO
-    name = Column(String, nullable=False)
+    name = mapped_column(String, nullable=False)
 
     # Social stuff: Twitter, Goodreads
-    info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
+    created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-    last_login_at = Column(DateTime, nullable=True)
+    last_login_at = mapped_column(DateTime, nullable=True)
 
     collection = relationship(
         "Collection", back_populates="user", uselist=False, cascade="all, delete-orphan"
@@ -81,4 +81,4 @@ class User(Base):
         order_by="desc(Event.timestamp)",
     )
 
-    newsletter = Column(Boolean(), nullable=False, server_default="false")
+    newsletter = mapped_column(Boolean(), nullable=False, server_default="false")

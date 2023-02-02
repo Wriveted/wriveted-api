@@ -1,14 +1,14 @@
-from sqlalchemy import Column, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import String
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
 
 class Product(Base):
     # in all current cases this is to the be a Stripe 'price' id
-    id = Column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
 
-    name = Column(String, nullable=False)
+    name = mapped_column(String, nullable=False)
 
     subscriptions = relationship("Subscription", back_populates="product")
 

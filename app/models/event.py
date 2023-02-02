@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Index, String
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -25,26 +25,30 @@ class EventSlackChannel(str, enum.Enum):
 
 
 class Event(Base):
-    id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
+    id = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
 
     # This is really the event name (like in Mixpanel)
-    title = Column(String(256), nullable=False, index=True)
+    title = mapped_column(String(256), nullable=False, index=True)
 
     # Any properties for the event
-    info = Column(MutableDict.as_mutable(JSON), nullable=True)
+    info = mapped_column(MutableDict.as_mutable(JSON), nullable=True)
 
     @hybrid_property
     def description(self):
         return self.info["description"]
 
-    level = Column(Enum(EventLevel), nullable=False, default=EventLevel.NORMAL)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    level = mapped_column(Enum(EventLevel), nullable=False, default=EventLevel.NORMAL)
+    timestamp = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False, index=True
+    )
 
     # These are optional
-    school_id = Column(ForeignKey("schools.id", name="fk_event_school"), nullable=True)
+    school_id = mapped_column(
+        ForeignKey("schools.id", name="fk_event_school"), nullable=True
+    )
     school = relationship("School", back_populates="events", foreign_keys=[school_id])
 
-    user_id = Column(ForeignKey("users.id", name="fk_event_user"), nullable=True)
+    user_id = mapped_column(ForeignKey("users.id", name="fk_event_user"), nullable=True)
     user = relationship("User", back_populates="events", foreign_keys=[user_id])
 
     # Partial indexes for school and user events
@@ -54,7 +58,7 @@ class Event(Base):
         Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
     )
 
-    service_account_id = Column(
+    service_account_id = mapped_column(
         ForeignKey("service_accounts.id", name="fk_event_service_account"),
         nullable=True,
     )

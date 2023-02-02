@@ -3,7 +3,6 @@ from datetime import datetime
 
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import (
-    Column,
     DateTime,
     ForeignKey,
     String,
@@ -13,7 +12,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.student import Student
@@ -22,7 +21,7 @@ from app.models.student import Student
 class ClassGroup(Base):
     __tablename__ = "class_groups"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
@@ -33,7 +32,7 @@ class ClassGroup(Base):
         UniqueConstraint("name", "school_id", name="unique_class_name_per_school"),
     )
 
-    school_id = Column(
+    school_id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "schools.wriveted_identifier",
@@ -46,9 +45,9 @@ class ClassGroup(Base):
     school = relationship("School", back_populates="class_groups", lazy="joined")
     students = relationship("Student", back_populates="class_group")
 
-    name = Column(String(256), nullable=False)
+    name = mapped_column(String(256), nullable=False)
 
-    join_code = Column(String(6))
+    join_code = mapped_column(String(6))
 
     student_count = column_property(
         select(func.count(Student.id))
@@ -57,13 +56,13 @@ class ClassGroup(Base):
         .scalar_subquery()
     )
 
-    created_at = Column(
+    created_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
         nullable=False,
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,

@@ -3,10 +3,10 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, String
+from sqlalchemy import JSON, Boolean, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 from app.models.service_account_school_association import (
@@ -25,7 +25,7 @@ class ServiceAccount(Base):
 
     __tablename__ = "service_accounts"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         unique=True,
@@ -34,10 +34,10 @@ class ServiceAccount(Base):
         nullable=False,
     )
 
-    name = Column(String, nullable=False)
+    name = mapped_column(String, nullable=False)
 
-    is_active = Column(Boolean(), default=True)
-    type = Column(Enum(ServiceAccountType), nullable=False, index=True)
+    is_active = mapped_column(Boolean(), default=True)
+    type = mapped_column(Enum(ServiceAccountType), nullable=False, index=True)
 
     schools = relationship(
         "School",
@@ -52,10 +52,10 @@ class ServiceAccount(Base):
         passive_deletes=True,
     )
 
-    info = Column(MutableDict.as_mutable(JSON), nullable=True)
+    info = mapped_column(MutableDict.as_mutable(JSON), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
+    created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 

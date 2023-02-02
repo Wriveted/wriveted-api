@@ -1,5 +1,5 @@
-from sqlalchemy import Column, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
@@ -7,7 +7,7 @@ from app.db import Base
 class LabelSetReadingAbility(Base):
     __tablename__ = "labelset_reading_ability_association"
 
-    labelset_id = Column(
+    labelset_id = mapped_column(
         "labelset_id",
         ForeignKey(
             "labelsets.id", name="fk_labelset_reading_ability_association_labelset_id"
@@ -16,7 +16,7 @@ class LabelSetReadingAbility(Base):
     )
     labelset = relationship("LabelSet", viewonly=True)
 
-    reading_ability_id = Column(
+    reading_ability_id = mapped_column(
         "reading_ability_id",
         ForeignKey(
             "reading_abilities.id",

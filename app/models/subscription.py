@@ -2,10 +2,10 @@ import enum
 from datetime import datetime, timedelta
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
@@ -23,9 +23,9 @@ class SubscriptionType(str, enum.Enum):
 class Subscription(Base):
     __tablename__ = "subscriptions"
 
-    id = Column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
 
-    parent_id = Column(
+    parent_id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "parents.id", name="fk_parent_stripe_subscription", ondelete="CASCADE"
@@ -35,7 +35,7 @@ class Subscription(Base):
     )
     parent = relationship("Parent", back_populates="subscription")
 
-    # school_id = Column(
+    # school_id = mapped_column(
     #     UUID(as_uuid=True),
     #     ForeignKey("schools.id", name="fk_school_stripe_subscription", ondelete="CASCADE"),
     #     nullable=True,
@@ -43,20 +43,20 @@ class Subscription(Base):
     # )
     # school = relationship("School", back_populates="subscriptions")
 
-    type = Column(
+    type = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),
         nullable=False,
         default=SubscriptionType.FAMILY,
     )
-    stripe_customer_id = Column(String, nullable=False, index=True)
+    stripe_customer_id = mapped_column(String, nullable=False, index=True)
 
     # Note a subscription may be inactive (e.g. the user has cancelled)
     # but still have an expiration date in the future.
-    is_active = Column(Boolean(), default=False)
-    expiration = Column(
+    is_active = mapped_column(Boolean(), default=False)
+    expiration = mapped_column(
         DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
     )
-    product_id = Column(
+    product_id = mapped_column(
         String,
         ForeignKey("products.id", name="fk_product_stripe_subscription"),
         nullable=False,
@@ -64,19 +64,19 @@ class Subscription(Base):
     )
     product = relationship("Product", back_populates="subscriptions")
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
+    created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    info = Column(MutableDict.as_mutable(JSON))
-    provider = Column(
+    info = mapped_column(MutableDict.as_mutable(JSON))
+    provider = mapped_column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),
         nullable=False,
         default=SubscriptionProvider.STRIPE,
     )
 
-    latest_checkout_session_id = Column(String, nullable=True, index=True)
+    latest_checkout_session_id = mapped_column(String, nullable=True, index=True)
 
     def __acl__(self):
         return [

@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer
-from sqlalchemy.orm import relationship
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
@@ -19,9 +19,9 @@ class CollectionItemReadStatus(str, enum.Enum):
 class CollectionItemActivity(Base):
     __tablename__ = "collection_item_activity_log"
 
-    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, nullable=False, autoincrement=True)
 
-    collection_item_id = Column(
+    collection_item_id = mapped_column(
         ForeignKey(
             "collection_items.id",
             name="fk_collection_item_activity_collection_item_id",
@@ -34,7 +34,7 @@ class CollectionItemActivity(Base):
         "CollectionItem", lazy="joined", passive_deletes=True
     )
 
-    reader_id = Column(
+    reader_id = mapped_column(
         ForeignKey("readers.id", name="fk_collection_item_activity_reader"),
         nullable=False,
     )
@@ -44,14 +44,14 @@ class CollectionItemActivity(Base):
         foreign_keys=[reader_id],
     )
 
-    status = Column(
+    status = mapped_column(
         Enum(CollectionItemReadStatus, name="enum_collection_item_read_status"),
         default=CollectionItemReadStatus.UNREAD,
         nullable=False,
         index=True,
     )
 
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    timestamp = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     # index the timestamp and reader_id together to allow for fast "current status" lookups
     Index(

@@ -3,20 +3,10 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import (
-    JSON,
-    Column,
-    DateTime,
-    Enum,
-    ForeignKey,
-    String,
-    func,
-    select,
-    text,
-)
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.booklist_work_association import BookListItem
@@ -30,11 +20,17 @@ class ListType(str, enum.Enum):
     OTHER_LIST = "Other"
 
 
+class ListSharingOptions(str, enum.Enum):
+    PRIVATE = "private"
+    RESTRICTED = "restricted"  # Some other mechanism will determine who can view..
+    PUBLIC = "public"
+
+
 class BookList(Base):
 
     __tablename__ = "book_lists"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
@@ -44,15 +40,20 @@ class BookList(Base):
         nullable=False,
     )
 
-    name = Column(String(200), nullable=False, index=True)
-    type = Column(
+    name = mapped_column(String(200), nullable=False, index=True)
+    type = mapped_column(
         Enum(ListType, name="enum_book_list_type"), nullable=False, index=True
     )
-    info = Column(MutableDict.as_mutable(JSON))
-    created_at = Column(
+    # sharing = mapped_column(
+    #     Enum(ListSharingOptions, name="enum_book_list_sharing"), nullable=False, index=True,
+    #     default=ListSharingOptions.PRIVATE
+    # )
+
+    info = mapped_column(MutableDict.as_mutable(JSON))
+    created_at = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
@@ -78,7 +79,7 @@ class BookList(Base):
 
     works = relationship("Work", secondary=BookListItem.__tablename__, viewonly=True)
 
-    school_id = Column(
+    school_id = mapped_column(
         ForeignKey("schools.id", name="fk_booklist_school", ondelete="CASCADE"),
         nullable=True,
     )
@@ -86,7 +87,7 @@ class BookList(Base):
         "School", back_populates="booklists", foreign_keys=[school_id]
     )
 
-    user_id = Column(
+    user_id = mapped_column(
         ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
         nullable=True,
     )
@@ -94,7 +95,7 @@ class BookList(Base):
         "User", back_populates="booklists", foreign_keys=[user_id], lazy="joined"
     )
 
-    service_account_id = Column(
+    service_account_id = mapped_column(
         ForeignKey(
             "service_accounts.id",
             name="fk_booklist_service_account",
