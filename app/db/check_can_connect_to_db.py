@@ -1,5 +1,6 @@
 import logging
 
+from sqlalchemy import select
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
 from app.config import get_settings
@@ -24,7 +25,7 @@ def check_can_connect_to_database() -> None:
     logger.debug(f"Session: {session}")
     try:
         logger.debug("Checking DB is awake and accepting connections")
-        session.execute("SELECT 1")
+        session.execute(select(1))
         logger.info("Database is responding to queries")
     except Exception as e:
         logger.error(e)
