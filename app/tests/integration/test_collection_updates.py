@@ -670,13 +670,6 @@ def test_collection_management(
 
     print("Adding individual book to collection via `POST .../collection/id/item` API")
 
-    lonely_book_data = CollectionItemBase(
-        info=CollectionItemInfoCreateIn(
-            title="Loneliest Book",
-            author="Lonely Author",
-        )
-    ).json()
-
     # school
 
     add_book_response = client.post(
