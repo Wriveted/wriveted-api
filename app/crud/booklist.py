@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -109,7 +109,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
 
             # This little gem tells postgresql to only check the constraints
             # AFTER the whole transaction is ready to commit.
-            db.execute("SET CONSTRAINTS ALL DEFERRED")
+            db.execute(text("SET CONSTRAINTS ALL DEFERRED"))
 
             new_position = item_update.order_id
             if new_position < old_position:
