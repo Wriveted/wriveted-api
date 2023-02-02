@@ -2,7 +2,7 @@ from typing import Any, Optional, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import and_, asc, delete, func, select
+from sqlalchemy import asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased
@@ -382,13 +382,11 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 # (as this is effectively the "active" status)
                 most_recent_timestamps = (
                     select(
-                        [
-                            CollectionItemActivity.collection_item_id,
-                            CollectionItemActivity.reader_id,
-                            func.max(CollectionItemActivity.timestamp).label(
-                                "most_recent_timestamp"
-                            ),
-                        ]
+                        CollectionItemActivity.collection_item_id,
+                        CollectionItemActivity.reader_id,
+                        func.max(CollectionItemActivity.timestamp).label(
+                            "most_recent_timestamp"
+                        ),
                     )
                     .group_by(
                         CollectionItemActivity.collection_item_id,
@@ -397,15 +395,19 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     .alias("most_recent_timestamps")
                 )
 
-                statement = statement.filter(
-                    and_(
-                        CollectionItem.id == CollectionItemActivity.collection_item_id,
-                        most_recent_timestamps.c.most_recent_timestamp
-                        == CollectionItemActivity.timestamp,
-                        CollectionItemActivity.reader_id
-                        == most_recent_timestamps.c.reader_id,
-                        CollectionItemActivity.status == read_status,
+                statement = (
+                    statement.where(
+                        CollectionItem.id == CollectionItemActivity.collection_item_id
                     )
+                    .where(
+                        most_recent_timestamps.c.most_recent_timestamp
+                        == CollectionItemActivity.timestamp
+                    )
+                    .where(
+                        CollectionItemActivity.reader_id
+                        == most_recent_timestamps.c.reader_id
+                    )
+                    .where(CollectionItemActivity.status == read_status)
                 )
 
         # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
