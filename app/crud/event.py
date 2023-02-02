@@ -1,6 +1,8 @@
-from typing import Any, Optional, Union
+from typing import Any, Union
 
-from sqlalchemy import func
+from sqlalchemy import cast, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -62,6 +64,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         school: School | None = None,
         user: User | None = None,
         service_account: ServiceAccount | None = None,
+        info_jsonpath_match: str = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
@@ -83,6 +86,13 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             event_query = event_query.where(Event.user == user)
         if service_account is not None:
             event_query = event_query.where(Event.service_account == service_account)
+        if info_jsonpath_match is not None:
+            # Apply the jsonpath filter to the info field
+            event_query = event_query.where(
+                func.jsonb_path_match(cast(Event.info, JSONB), info_jsonpath_match).is_(
+                    True
+                )
+            )
 
         return event_query
 
@@ -95,6 +105,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         school: School | None = None,
         user: User | None = None,
         service_account: ServiceAccount | None = None,
+        info_jsonpath_match: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ):
@@ -105,6 +116,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             "school": school,
             "user": user,
             "service_account": service_account,
+            "info_jsonpath_match": info_jsonpath_match,
         }
         logger.debug("Querying events", **optional_filters)
         query = self.apply_pagination(
@@ -112,7 +124,11 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             skip=skip,
             limit=limit,
         )
-        return db.scalars(query).all()
+        try:
+            return db.scalars(query).all()
+        except ProgrammingError as e:
+            logger.error("Error querying events", error=e, **optional_filters)
+            raise ValueError("Problem filtering events")
 
 
 event = CRUDEvent(Event)

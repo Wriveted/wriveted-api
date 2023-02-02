@@ -1,13 +1,6 @@
 from typing import List, Optional
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    HTTPException,
-    Query,
-    Security,
-)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,9 +17,7 @@ from app.api.dependencies.collection import (
 )
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.api.dependencies.user import (
-    get_reader_from_body,
-)
+from app.api.dependencies.user import get_reader_from_body
 from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection

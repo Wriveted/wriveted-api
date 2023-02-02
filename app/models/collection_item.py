@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from fastapi_permissions import All, Allow
 from sqlalchemy import (
     JSON,
     Column,
@@ -12,7 +13,6 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
-from fastapi_permissions import All, Allow
 
 from app.db import Base
 

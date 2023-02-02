@@ -13,9 +13,7 @@ from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
-from app.api.dependencies.user import (
-    get_and_validate_specified_user_from_body,
-)
+from app.api.dependencies.user import get_and_validate_specified_user_from_body
 from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
@@ -86,9 +84,21 @@ async def get_events(
         description="Whether to search for the provided `query` string as a prefix",
     ),
     level: EventLevel = None,
-    school_id: UUID = None,
-    user_id: UUID = None,
-    service_account_id: UUID = None,
+    school_id: UUID = Query(
+        None, description="Filter events that are associated with a school"
+    ),
+    user_id: UUID = Query(
+        None, description="Filter events that are associated with or created by a user"
+    ),
+    service_account_id: UUID = Query(
+        None,
+        description="Filter events that are associated with or created by a service account",
+    ),
+    info_jsonpath_match: str = Query(
+        None,
+        description="Filter events using a JSONPath over the info field. The resulting value must be a boolean expression.",
+        example='($.reading_logged.emoji == "🤪")',
+    ),
     pagination: PaginatedQueryParams = Depends(),
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
@@ -150,17 +160,23 @@ async def get_events(
     else:
         school = None
 
-    events = crud.event.get_all_with_optional_filters(
-        session,
-        query_string=query,
-        match_prefix=match_prefix,
-        level=level,
-        school=school,
-        user=user,
-        service_account=service_account,
-        skip=pagination.skip,
-        limit=pagination.limit,
-    )
+    try:
+        events = crud.event.get_all_with_optional_filters(
+            session,
+            query_string=query,
+            match_prefix=match_prefix,
+            level=level,
+            school=school,
+            user=user,
+            service_account=service_account,
+            info_jsonpath_match=info_jsonpath_match,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
     filtered_events = [e for e in events if has_permission(principals, "read", e)]
     if len(filtered_events) != len(events):
         logger.info(

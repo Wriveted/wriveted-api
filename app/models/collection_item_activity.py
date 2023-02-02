@@ -1,9 +1,8 @@
+import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Enum
-from fastapi_permissions import All, Allow
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer
 from sqlalchemy.orm import relationship
-import enum
 
 from app.db import Base
 

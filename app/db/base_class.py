@@ -2,6 +2,10 @@ from typing import Any
 
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
+# TODO migrate to sqlalchemy 2.0
+# from sqlalchemy.orm import DeclarativeBase
+# https://docs.sqlalchemy.org/en/20/changelog/whatsnew_20.html#migrating-an-existing-mapping
+
 
 @as_declarative()
 class Base:

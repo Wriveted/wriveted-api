@@ -48,6 +48,8 @@ jobs:
 
       - name: Check formatting
         uses: psf/black@stable
+        with:
+          version: "22.10.0"
 
   lint:
     name: Code Analysis
