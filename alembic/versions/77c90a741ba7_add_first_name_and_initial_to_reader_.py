@@ -8,7 +8,7 @@ Create Date: 2022-06-02 15:03:17.406912
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-from sqlalchemy import update
+from sqlalchemy import text, update
 
 from alembic import op
 
@@ -28,13 +28,13 @@ def upgrade():
         "readers",
         sa.Column("last_name_initial", sa.String(), server_default="", nullable=False),
     )
-    meta = sa.MetaData(bind=op.get_bind())
-    meta.reflect(only=("readers",))
+    meta = sa.MetaData()
+    meta.reflect(only=("readers",), bind=op.get_bind())
     readers_table = sa.Table("readers", meta)
     conn = op.get_bind()
 
     res = conn.execute(
-        "select id, name from users where type = 'PUBLIC' or type = 'STUDENT'"
+        text("select id, name from users where type = 'PUBLIC' or type = 'STUDENT'")
     )
     results = res.fetchall()
     for userid, name in results:

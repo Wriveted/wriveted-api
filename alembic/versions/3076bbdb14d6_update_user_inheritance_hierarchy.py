@@ -6,6 +6,7 @@ Create Date: 2022-06-01 00:06:24.749219
 
 """
 import sqlalchemy as sa
+from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
@@ -101,7 +102,7 @@ def upgrade():
     )
 
     # instantiate table objects to access op.bulk_insert without relying on model
-    meta = sa.MetaData(bind=op.get_bind())
+    meta = sa.MetaData()
     meta.reflect(
         only=(
             "readers",
@@ -110,7 +111,8 @@ def upgrade():
             "school_admins",
             "parents",
             "wriveted_admins",
-        )
+        ),
+        bind=op.get_bind(),
     )
     readers_table = sa.Table("readers", meta)
     public_readers_table = sa.Table("public_readers", meta)
@@ -123,14 +125,16 @@ def upgrade():
     conn = op.get_bind()
 
     # reader
-    res = conn.execute("select id from users where type = 'PUBLIC' or type = 'STUDENT'")
+    res = conn.execute(
+        text("select id from users where type = 'PUBLIC' or type = 'STUDENT'")
+    )
     results = res.fetchall()
     op.bulk_insert(
         readers_table, [{"id": str(r[0]), "reading_preferences": {}} for r in results]
     )
 
     # public reader
-    res = conn.execute("select id from users where type = 'PUBLIC'")
+    res = conn.execute(text("select id from users where type = 'PUBLIC'"))
     results = res.fetchall()
     op.bulk_insert(
         public_readers_table,
@@ -139,7 +143,7 @@ def upgrade():
 
     # students
     res = conn.execute(
-        "select id, school_id_as_student from users where type = 'STUDENT'"
+        text("select id, school_id_as_student from users where type = 'STUDENT'")
     )
     results = res.fetchall()
     op.bulk_insert(
@@ -152,7 +156,9 @@ def upgrade():
 
     # educator
     res = conn.execute(
-        "select id, school_id_as_admin from users where type = 'EDUCATOR' or type = 'SCHOOL_ADMIN'"
+        text(
+            "select id, school_id_as_admin from users where type = 'EDUCATOR' or type = 'SCHOOL_ADMIN'"
+        )
     )
     results = res.fetchall()
     op.bulk_insert(
@@ -164,7 +170,7 @@ def upgrade():
     )
 
     # school admin
-    res = conn.execute("select id from users where type = 'SCHOOL_ADMIN'")
+    res = conn.execute(text("select id from users where type = 'SCHOOL_ADMIN'"))
     results = res.fetchall()
     op.bulk_insert(
         school_admins_table,
@@ -172,7 +178,7 @@ def upgrade():
     )
 
     # wriveted_admins
-    res = conn.execute("select id from users where type = 'WRIVETED'")
+    res = conn.execute(text("select id from users where type = 'WRIVETED'"))
     results = res.fetchall()
     op.bulk_insert(
         wriveted_admins_table,
