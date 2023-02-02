@@ -274,9 +274,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         try:
             result = db.execute(
-                stmt, CollectionItemInnerCreateIn.from_orm(new_orm_item).dict()
+                stmt.returning(CollectionItem.id),
+                CollectionItemInnerCreateIn.from_orm(new_orm_item).dict(),
             )
-            new_id = result.inserted_primary_key[0]
+            new_id = result.scalar()
         except IntegrityError as e:
             raise IntegrityError(
                 statement=f"Isbn {new_orm_item.edition_isbn} already exists in collection",
