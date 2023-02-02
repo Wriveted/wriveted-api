@@ -3,6 +3,7 @@ import random
 import time
 
 from app import crud
+from app.schemas.collection import CollectionItemBase, CollectionItemInfoCreateIn
 from app.services.editions import check_digit_13
 
 
@@ -663,6 +664,89 @@ def test_collection_management(
     )
     assert (
         new_user_collection["book_count"] == current_user_total + NUMBER_WITHOUT_ISBNS
+    )
+
+    # ----------------- ADDING INDIVIDUAL BOOK ------------
+
+    print("Adding individual book to collection via `POST .../collection/id/item` API")
+
+    lonely_book_data = CollectionItemBase(
+        info=CollectionItemInfoCreateIn(
+            title="Lonely Book",
+            author="Lonely Author",
+        )
+    ).json()
+
+    # school
+
+    add_book_response = client.post(
+        f"/v1/collection/{school_collection_id}/item",
+        json={
+            "info": {
+                "title": "Lonely Book",
+                "author": "Lonely Author",
+            },
+        },
+        timeout=120,
+        headers=lms_service_account_headers_for_school,
+    )
+    add_book_response.raise_for_status()
+    print(add_book_response.json())
+
+    print("Added book to school collection")
+    get_collection_response = client.get(
+        f"/v1/collection/{school_collection_id}",
+        headers=lms_service_account_headers_for_school,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    new_school_collection = get_collection_response.json()
+    print(
+        "Current collection size:",
+        new_school_collection["book_count"],
+        "expected: ",
+        current_school_total + NUMBER_WITHOUT_ISBNS + 1,
+    )
+    assert (
+        new_school_collection["book_count"]
+        == current_school_total + NUMBER_WITHOUT_ISBNS + 1
+    )
+
+    # user
+
+    add_book_response = client.post(
+        f"/v1/collection/{user_collection_id}/item",
+        json={
+            "info": {
+                "title": "Lonely Book",
+                "author": "Lonely Author",
+            },
+        },
+        timeout=120,
+        headers=test_user_account_headers,
+    )
+    add_book_response.raise_for_status()
+    print(add_book_response.json())
+
+    print("Added book to user collection")
+    get_collection_response = client.get(
+        f"/v1/collection/{user_collection_id}",
+        headers=test_user_account_headers,
+        params={"skip": 0, "limit": 2000},
+        timeout=120,
+    )
+    get_collection_response.raise_for_status()
+    new_user_collection = get_collection_response.json()
+    print(
+        "Current collection size:",
+        new_user_collection["book_count"],
+        "expected: ",
+        current_user_total + NUMBER_WITHOUT_ISBNS + 1,
+    )
+    assert (
+        new_user_collection["book_count"]
+        == current_user_total + NUMBER_WITHOUT_ISBNS + 1
     )
 
     # ----------------- DELETE COLLECTION -----------------

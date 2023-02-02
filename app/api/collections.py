@@ -329,6 +329,30 @@ async def get_collection_booklist_intersection(
     )
 
 
+@router.post(
+    "/collection/{collection_id}/item",
+    response_model=CollectionItemDetail,
+)
+async def add_collection_item(
+    data: CollectionItemBase,
+    collection: Collection = Permission("update", get_collection_from_id),
+    session: Session = Depends(get_session),
+):
+    """
+    Endpoint for adding a new item to a collection.
+    """
+    logger.debug("Adding item to collection", collection=collection)
+    try:
+        return crud.collection.add_item_to_collection(
+            session, item=data, collection_orm_object=collection
+        )
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=e,
+        )
+
+
 @router.put(
     "/collection/{collection_id}/items",
     response_model=CollectionUpdateSummaryResponse,
