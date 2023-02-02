@@ -14,7 +14,7 @@ uvicorn = {extras = ["standard"], version = "^0.20"}
 alembic = "^1.9"
 structlog = "^22.3.0"
 psycopg2-binary = "^2.9.5"
-SQLAlchemy = "^1.4.43"
+SQLAlchemy = "^2.0"
 httpx = "^0.23"
 fastapi-cloudauth = "^0.4.3"
 cryptography = "^39.0"
