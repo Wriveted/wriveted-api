@@ -411,7 +411,7 @@ def test_school_with_collection(
     backend_service_account,
 ) -> School:
 
-    collection = crud.collection.get_or_create(
+    collection, created = crud.collection.get_or_create(
         db=session,
         collection_data=CollectionCreateIn(
             name=f"Books at {test_school.name}",
@@ -426,7 +426,7 @@ def test_school_with_collection(
     ]
 
     crud.collection.update(
-        db=session, db_obj=collection[0], obj_in=CollectionAndItemsUpdateIn(items=items)
+        db=session, db_obj=collection, obj_in=CollectionAndItemsUpdateIn(items=items)
     )
     session.commit()
 
