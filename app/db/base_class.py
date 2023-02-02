@@ -1,19 +1,14 @@
 from typing import Any
 
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-
-# TODO migrate to sqlalchemy 2.0
-# from sqlalchemy.orm import DeclarativeBase
-# https://docs.sqlalchemy.org/en/20/changelog/whatsnew_20.html#migrating-an-existing-mapping
+from sqlalchemy.orm import DeclarativeBase, declared_attr
 
 
-@as_declarative()
-class Base:
+class Base(DeclarativeBase):
     id: Any
     __name__: str
 
     # Generate __tablename__ automatically
-    # eg. Class "Book" -> "books"
+    # e.g, Class "Book" -> "books"
     # Class "Series" -> "series"
     @declared_attr
     def __tablename__(cls) -> str:
