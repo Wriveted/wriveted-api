@@ -113,7 +113,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             match change.action:
                 case CollectionUpdateType.ADD:
                     try:
-                        self._add_item_to_collection(
+                        self.add_item_to_collection(
                             db=db,
                             collection_orm_object=db_obj,
                             item=change,
@@ -223,7 +223,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         db.refresh(collection_orm_object)
 
-    def _add_item_to_collection(
+    def add_item_to_collection(
         self,
         db: Session,
         *,
@@ -273,7 +273,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         )
 
         try:
-            db.execute(stmt, CollectionItemInnerCreateIn.from_orm(new_orm_item).dict())
+            result = db.execute(
+                stmt, CollectionItemInnerCreateIn.from_orm(new_orm_item).dict()
+            )
+            new_id = result.inserted_primary_key[0]
         except IntegrityError as e:
             raise IntegrityError(
                 statement=f"Isbn {new_orm_item.edition_isbn} already exists in collection",
@@ -305,7 +308,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         if commit:
             db.commit()
 
-        return new_orm_item
+        return db.get(CollectionItem, new_id)
 
     def get_collection_items_by_collection_id(
         self, db: Session, *, collection_id: UUID
