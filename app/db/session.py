@@ -46,7 +46,9 @@ def database_connection(
         # Enable the SqlAlchemy 2.0 engine and connection API
         future=True,
     )
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
+    SessionLocal = sessionmaker(
+        autocommit=False, autoflush=False, bind=engine, future=True
+    )
     return engine, SessionLocal
 
 
