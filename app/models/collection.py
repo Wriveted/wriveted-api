@@ -2,11 +2,11 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, func, select, text
+from sqlalchemy import JSON, DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
@@ -14,7 +14,7 @@ from app.models.collection_item import CollectionItem
 
 class Collection(Base):
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
@@ -24,7 +24,7 @@ class Collection(Base):
         nullable=False,
     )
 
-    name = Column(String(200), nullable=False, index=True)
+    name = mapped_column(String(200), nullable=False, index=True)
 
     items = relationship(
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
@@ -40,7 +40,7 @@ class Collection(Base):
         .scalar_subquery()
     )
 
-    school_id = Column(
+    school_id = mapped_column(
         ForeignKey(
             "schools.wriveted_identifier",
             name="fk_school_collection",
@@ -51,18 +51,18 @@ class Collection(Base):
     )
     school = relationship("School", back_populates="collection")
 
-    user_id = Column(
+    user_id = mapped_column(
         ForeignKey("users.id", name="fk_user_collection", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
     user = relationship("User", back_populates="collection")
 
-    info = Column(MutableDict.as_mutable(JSON))
-    created_at = Column(
+    info = mapped_column(MutableDict.as_mutable(JSON))
+    created_at = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,

@@ -1,7 +1,6 @@
 from sqlalchemy import (
     JSON,
     Boolean,
-    Column,
     Computed,
     DateTime,
     ForeignKey,
@@ -13,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
@@ -23,11 +22,11 @@ from app.models.illustrator_edition_association import (
 
 
 class Edition(Base):
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    isbn = Column(String(200), nullable=False, index=True, unique=True)
+    isbn = mapped_column(String(200), nullable=False, index=True, unique=True)
 
-    work_id = Column(
+    work_id = mapped_column(
         Integer,
         ForeignKey("works.id", name="fk_editions_works"),
         index=True,
@@ -36,32 +35,32 @@ class Edition(Base):
     work = relationship("Work", back_populates="editions", lazy="joined")
 
     # this might be a localized title
-    edition_title = Column(String(512), nullable=True)
-    edition_subtitle = Column(String(512), nullable=True)
-    leading_article = Column(String(20), nullable=True)
+    edition_title = mapped_column(String(512), nullable=True)
+    edition_subtitle = mapped_column(String(512), nullable=True)
+    leading_article = mapped_column(String(20), nullable=True)
 
     # TODO computed columns for display_title / sort_title based on the above
 
     # computed column for edition_title coallesced with work title
-    title = Column(
+    title = mapped_column(
         String(512),
         index=True,
         nullable=True,
     )
 
-    date_published = Column(Integer, nullable=True)
+    date_published = mapped_column(Integer, nullable=True)
 
-    cover_url = Column(String(200), nullable=True)
+    cover_url = mapped_column(String(200), nullable=True)
 
     # Info contains stuff like edition number, language
     # media (paperback/hardback/audiobook), number of pages.
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
     authors = association_proxy("work", "authors")
 
-    hydrated_at = Column(DateTime, nullable=True)
-    hydrated = Column(
+    hydrated_at = mapped_column(DateTime, nullable=True)
+    hydrated = mapped_column(
         Boolean,
         Computed("hydrated_at is not null"),
         index=True,

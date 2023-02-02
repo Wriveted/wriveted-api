@@ -1,6 +1,6 @@
-from sqlalchemy import JSON, Column, Computed, Integer, String, and_, func, select
+from sqlalchemy import JSON, Computed, Integer, String, and_, func, select
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
@@ -8,21 +8,21 @@ from app.models.work import Work
 
 
 class Author(Base):
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    first_name = Column(String(200), nullable=True, index=True)
-    last_name = Column(String(200), nullable=False, index=True)
+    first_name = mapped_column(String(200), nullable=True, index=True)
+    last_name = mapped_column(String(200), nullable=False, index=True)
 
     # Building on the assumption of unique full names, an author's full name (sans whitespace and punctuation)
     # can serve as a unique key that can be caught even if data differs slightly (C.S. Lewis vs C S Lewis)
-    name_key = Column(
+    name_key = mapped_column(
         String(400),
         Computed("LOWER(REGEXP_REPLACE(first_name || last_name, '\\W|_', '', 'g'))"),
         unique=True,
         index=True,
     )
 
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
     books = relationship(
         "Work",

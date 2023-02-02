@@ -1,18 +1,10 @@
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import (
-    JSON,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    UniqueConstraint,
-    func,
-)
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 
@@ -20,9 +12,9 @@ from app.db import Base
 class CollectionItem(Base):
     __tablename__ = "collection_items"
 
-    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, nullable=False, autoincrement=True)
 
-    edition_isbn = Column(
+    edition_isbn = mapped_column(
         ForeignKey(
             "editions.isbn",
             name="fk_collection_items_edition_isbn",
@@ -36,7 +28,7 @@ class CollectionItem(Base):
     work = association_proxy("edition", "work")
     work_id = association_proxy("edition", "work_id")
 
-    collection_id = Column(
+    collection_id = mapped_column(
         ForeignKey(
             "collections.id",
             name="fk_collection_items_collection_id",
@@ -60,15 +52,15 @@ class CollectionItem(Base):
         cascade="all, delete-orphan",
     )
 
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
-    copies_total = Column(Integer, default=1, nullable=False)
-    copies_available = Column(Integer, default=1, nullable=False)
+    copies_total = mapped_column(Integer, default=1, nullable=False)
+    copies_available = mapped_column(Integer, default=1, nullable=False)
 
-    created_at = Column(
+    created_at = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,

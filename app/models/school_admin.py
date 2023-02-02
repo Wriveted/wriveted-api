@@ -1,7 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import mapped_column
 
 from app.models.educator import Educator
 from app.models.user import UserAccountType
@@ -15,7 +16,7 @@ class SchoolAdmin(Educator):
 
     __tablename__ = "school_admins"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "educators.id", name="fk_school_admin_inherits_educator", ondelete="CASCADE"
@@ -26,7 +27,9 @@ class SchoolAdmin(Educator):
     __mapper_args__ = {"polymorphic_identity": UserAccountType.SCHOOL_ADMIN}
 
     # class_history? other misc
-    school_admin_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    school_admin_info = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=True, default={}
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

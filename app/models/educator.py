@@ -1,8 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey, Integer
+from sqlalchemy import JSON, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.models.user import User, UserAccountType
 
@@ -13,7 +13,7 @@ class Educator(User):
     Could be a teacher, librarian, aid, principal, etc.
     """
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_educator_inherits_user", ondelete="CASCADE"),
         primary_key=True,
@@ -21,7 +21,7 @@ class Educator(User):
 
     __mapper_args__ = {"polymorphic_identity": UserAccountType.EDUCATOR}
 
-    school_id = Column(
+    school_id = mapped_column(
         Integer,
         ForeignKey("schools.id", name="fk_educator_school", ondelete="CASCADE"),
         nullable=False,
@@ -30,7 +30,9 @@ class Educator(User):
     school = relationship("School", backref="educators", foreign_keys=[school_id])
 
     # class_history? other misc
-    educator_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    educator_info = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=True, default={}
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

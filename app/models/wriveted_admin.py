@@ -1,7 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import mapped_column
 
 from app.models.user import User, UserAccountType
 
@@ -13,7 +14,7 @@ class WrivetedAdmin(User):
 
     __tablename__ = "wriveted_admins"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "users.id", name="fk_wriveted_admin_inherits_user", ondelete="CASCADE"
@@ -24,7 +25,7 @@ class WrivetedAdmin(User):
     __mapper_args__ = {"polymorphic_identity": UserAccountType.WRIVETED}
 
     # misc
-    wriveted_admin_info = Column(
+    wriveted_admin_info = mapped_column(
         MutableDict.as_mutable(JSON), nullable=True, default={}
     )
 

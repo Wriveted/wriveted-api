@@ -1,8 +1,8 @@
 import enum
 
-from sqlalchemy import JSON, Column, Enum, Integer, String
+from sqlalchemy import JSON, Enum, Integer, String
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 from app.models.author_work_association import author_work_association_table
@@ -17,20 +17,20 @@ class WorkType(str, enum.Enum):
 
 class Work(Base):
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    type = Column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
+    type = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
 
-    # series_id = Column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
+    # series_id = mapped_column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
 
     # TODO may want to look at a TSVector GIN index for decent full text search
-    title = Column(String(512), nullable=False, index=True)
-    subtitle = Column(String(512), nullable=True)
-    leading_article = Column(String(20), nullable=True)
+    title = mapped_column(String(512), nullable=False, index=True)
+    subtitle = mapped_column(String(512), nullable=True)
+    leading_article = mapped_column(String(20), nullable=True)
 
     # TODO computed columns for display_title / sort_title
 
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
     editions = relationship(
         "Edition",

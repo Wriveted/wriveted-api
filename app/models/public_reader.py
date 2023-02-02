@@ -1,7 +1,8 @@
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Column, ForeignKey
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import mapped_column
 
 from app.models.reader import Reader
 from app.models.user import UserAccountType
@@ -14,7 +15,7 @@ class PublicReader(Reader):
 
     __tablename__ = "public_readers"
 
-    id = Column(
+    id = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "readers.id", name="fk_public_reader_inherits_reader", ondelete="CASCADE"
@@ -25,7 +26,7 @@ class PublicReader(Reader):
     __mapper_args__ = {"polymorphic_identity": UserAccountType.PUBLIC}
 
     # misc
-    reader_info = Column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    reader_info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

@@ -5,7 +5,6 @@ from datetime import datetime
 from fastapi_permissions import All, Allow, Deny
 from sqlalchemy import (
     JSON,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -18,7 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
 from app.models.school_admin import SchoolAdmin
@@ -43,15 +42,15 @@ class SchoolState(str, enum.Enum):
 
 class School(Base):
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    country_code = Column(
+    country_code = mapped_column(
         String(3), ForeignKey("countries.id", name="fk_school_country"), index=True
     )
-    official_identifier = Column(String(512))
+    official_identifier = mapped_column(String(512))
 
     # Used for public links to school pages e.g. chatbot
-    wriveted_identifier = Column(
+    wriveted_identifier = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
@@ -67,16 +66,18 @@ class School(Base):
     # Note alembic can't automatically deal with this, but the migration (and index) exists!
     # Index("index_schools_by_country_state", country_code, text("(info->'location'->>'state')"))
 
-    state = Column(Enum(SchoolState), nullable=False, default=SchoolState.INACTIVE)
+    state = mapped_column(
+        Enum(SchoolState), nullable=False, default=SchoolState.INACTIVE
+    )
 
-    name = Column(String(256), nullable=False)
+    name = mapped_column(String(256), nullable=False)
 
     # e.g. "canterbury.ac.nz" if all student email addresses have the form
     # brian.thorne@canterbury.ac.nz - allows automatic registration
-    student_domain = Column(String(256), nullable=True)
+    student_domain = mapped_column(String(256), nullable=True)
 
     # All users with this email domain will be granted teacher rights
-    teacher_domain = Column(String(256), nullable=True)
+    teacher_domain = mapped_column(String(256), nullable=True)
 
     class_groups = relationship("ClassGroup", cascade="all, delete-orphan")
 
@@ -86,7 +87,7 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    info = Column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSON))
 
     country = relationship("Country")
 
@@ -103,13 +104,13 @@ class School(Base):
     editions = association_proxy("collection", "edition")
     works = association_proxy("editions", "work")
 
-    bookbot_type = Column(
+    bookbot_type = mapped_column(
         Enum(SchoolBookbotType),
         nullable=False,
         server_default=SchoolBookbotType.HUEY_BOOKS,
     )
 
-    lms_type = Column(String(50), nullable=False, server_default="none")
+    lms_type = mapped_column(String(50), nullable=False, server_default="none")
 
     # students  = list[Student]  (backref)
     # educators = list[Educator] (backref)
@@ -127,13 +128,13 @@ class School(Base):
         back_populates="schools",
     )
 
-    created_at = Column(
+    created_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
         nullable=False,
     )
-    updated_at = Column(
+    updated_at = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
