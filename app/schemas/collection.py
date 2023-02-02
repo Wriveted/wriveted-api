@@ -9,8 +9,8 @@ from uuid import UUID
 from PIL import Image
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 from structlog import get_logger
-from app.models.collection_item_activity import CollectionItemReadStatus
 
+from app.models.collection_item_activity import CollectionItemReadStatus
 from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.work import WorkBrief

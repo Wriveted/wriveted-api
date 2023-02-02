@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
-from app.models.collection_item import CollectionItem
 
 
 def get_collection_from_id(

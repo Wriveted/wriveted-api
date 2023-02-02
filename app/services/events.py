@@ -1,7 +1,7 @@
 import json
 from typing import Optional, Union
-from pydantic import ValidationError
 
+from pydantic import ValidationError
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
@@ -12,13 +12,8 @@ from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
-from app.models.collection_item import CollectionItem
-from app.models.collection_item_activity import (
-    CollectionItemActivity,
-    CollectionItemReadStatus,
-)
+from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
-from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (

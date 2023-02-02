@@ -1,8 +1,8 @@
 from typing import Any, Optional, Tuple
 from uuid import UUID
-from fastapi import HTTPException
 
-from sqlalchemy import and_, asc, delete, desc, func, select
+from fastapi import HTTPException
+from sqlalchemy import and_, asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased
