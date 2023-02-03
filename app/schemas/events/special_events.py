@@ -11,3 +11,4 @@ class ReadingLogEvent(BaseModel):
     emoji: str
     timestamp: datetime
     finished: bool = False
+    stopped: bool = False

@@ -271,12 +271,18 @@ def process_reading_logged_event(session: Session, event: Event):
         logger.warning("Error parsing reading logged event", error=e, event=event)
         return
 
+    status = CollectionItemReadStatus.READING
+    if log_data.stopped:
+        logger.info("Reading logged as stopped")
+        status = CollectionItemReadStatus.STOPPED_READING
+    if log_data.finished:
+        logger.info("Reading logged as finished")
+        status = CollectionItemReadStatus.READ
+
     activity = CollectionItemActivityBase(
         collection_item_id=log_data.collection_item_id,
         reader_id=event.user_id,
-        status=CollectionItemReadStatus.READ
-        if log_data.finished
-        else CollectionItemReadStatus.READING,
+        status=status,
     )
     crud.collection_item_activity.create(session, obj_in=activity)
 
