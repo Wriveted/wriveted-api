@@ -2,7 +2,7 @@ from typing import Any, Union
 
 from sqlalchemy import cast, func
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -134,7 +134,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         )
         try:
             return db.scalars(query).all()
-        except ProgrammingError as e:
+        except (ProgrammingError, DataError) as e:
             logger.error("Error querying events", error=e, **optional_filters)
             raise ValueError("Problem filtering events")
 
