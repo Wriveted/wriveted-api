@@ -145,6 +145,28 @@ class CollectionItemCreateIn(BaseModel):
         orm_mode = True
 
 
+class CollectionItemAndStatusCreateIn(CollectionItemCreateIn):
+    read_status: CollectionItemReadStatus | None
+    reader_id: UUID | None
+
+    @root_validator(pre=True)
+    def _validate_logic(cls, values: dict):
+        if not values:
+            return
+
+        # if providing one, must provide both
+        if (
+            values.get("read_status")
+            and not values.get("reader_id")
+            or (values.get("reader_id") and not values.get("read_status"))
+        ):
+            raise ValueError(
+                "Must provide reader_id when providing read_status, and vice versa"
+            )
+
+        return values
+
+
 class CollectionItemInnerCreateIn(CollectionItemCreateIn):
     collection_id: UUID
     info: CollectionItemInfo | None

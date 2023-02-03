@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app import crud
+from app.api.dependencies.collection import get_collection_from_id
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
+from app.models.collection import Collection
 from app.models.user import User
 
 
@@ -57,3 +59,32 @@ def get_reader_from_body(
     session: Session = Depends(get_session),
 ):
     return crud.user.get_or_404(db=session, id=data.reader_id)
+
+
+class MaybeHasReaderId(BaseModel):
+    reader_id: UUID | None
+
+
+def get_and_validate_collection_with_optional_reader(
+    data: MaybeHasReaderId,
+    collection: Collection = Depends(get_collection_from_id),
+    session: Session = Depends(get_session),
+    active_principals=Depends(get_active_principals),
+):
+    reader = (
+        crud.user.get_or_404(db=session, id=data.reader_id) if data.reader_id else None
+    )
+    if reader is not None:
+        if not has_permission(active_principals, "update", reader):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"The current account is not allowed to perform an operation associated with that reader",
+            )
+        reader_principals = get_active_principals(reader)
+        if not has_permission(reader_principals, "read", collection):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"The specified reader is not allowed to read that collection",
+            )
+
+    return collection
