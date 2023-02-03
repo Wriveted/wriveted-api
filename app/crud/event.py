@@ -79,7 +79,15 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                     func.lower(Event.title).contains(query_string.lower())
                 )
         if level is not None:
-            event_query = event_query.where(Event.level == level)
+            # Include levels that are higher as well!
+            logging_levels = ["DEBUG", "NORMAL", "WARNING", "ERROR"]
+            try:
+                level_index = logging_levels.index(level)
+            except ValueError:
+                # If the level is not in the list, just use the highest level
+                level_index = len(logging_levels) - 1
+            included_levels = logging_levels[level_index:]
+            event_query = event_query.where(Event.level.in_(included_levels))
         if school is not None:
             event_query = event_query.where(Event.school == school)
         if user is not None:
