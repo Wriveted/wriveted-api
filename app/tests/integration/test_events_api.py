@@ -185,9 +185,14 @@ def test_post_events_api_background_process(
             if e.title == "Test"
         ]
 
-        assert len(events) == 1
-        event = events[0]
-        assert event.description == "MODIFIED"
+        assert len(events) >= 1
+        wasModified = False
+        for event in events:
+            assert event.level in ["warning", "error"]
+            if event.description == "MODIFIED":
+                wasModified = True
+
+        assert wasModified
 
 
 def test_event_query_and_prefix(

@@ -80,7 +80,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                 )
         if level is not None:
             # Include levels that are higher as well!
-            logging_levels = ["DEBUG", "NORMAL", "WARNING", "ERROR"]
+            logging_levels = ["debug", "normal", "warning", "error"]
             try:
                 level_index = logging_levels.index(level)
             except ValueError:
