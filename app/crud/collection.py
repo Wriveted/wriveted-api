@@ -49,15 +49,15 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         collection_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
         logger.debug(
             "Collection entry created in database",
-            collection_id=collection_orm_object.id,
+            collection_id=str(collection_orm_object.id),
         )
 
         logger.debug(
             f"Adding {len(items)} collection items to collection",
-            collection_id=collection_orm_object.id,
+            collection_id=str(collection_orm_object.id),
         )
         for item in items:
-            self._add_item_to_collection(
+            self.add_item_to_collection(
                 db=db,
                 collection_orm_object=collection_orm_object,
                 item=item,
