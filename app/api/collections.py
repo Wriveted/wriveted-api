@@ -220,7 +220,7 @@ async def create_collection(
     except IntegrityError as e:
         raise HTTPException(
             status_code=409,
-            detail=e,
+            detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
         )
 
 
@@ -265,7 +265,7 @@ async def set_collection(
     except IntegrityError as e:
         raise HTTPException(
             status_code=409,
-            detail=e,
+            detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
         )
 
 
@@ -365,7 +365,7 @@ async def add_collection_item(
     except IntegrityError as e:
         raise HTTPException(
             status_code=409,
-            detail=e,
+            detail=f"ISBN {data.edition_isbn} already in collection",
         )
 
     if read_status_data:
@@ -482,7 +482,7 @@ async def update_collection(
     except IntegrityError as e:
         raise HTTPException(
             status_code=409,
-            detail=e.statement,
+            detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
         )
 
     logger.debug("Committing transaction")
