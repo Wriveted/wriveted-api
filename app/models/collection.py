@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
+from typing import List
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.collection_item import CollectionItem
@@ -14,7 +15,7 @@ from app.models.collection_item import CollectionItem
 
 class Collection(Base):
 
-    id = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
@@ -24,12 +25,13 @@ class Collection(Base):
         nullable=False,
     )
 
-    name = mapped_column(String(200), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
 
-    items = relationship(
+    items: Mapped[List["CollectionItem"]] = relationship(
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
 
+    # TODO check whether typing required here
     editions = association_proxy("items", "edition")
     works = association_proxy("items", "work")
 

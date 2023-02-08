@@ -1,6 +1,7 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import List, Optional
 
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, func, select, text
@@ -62,7 +63,7 @@ class BookList(Base):
         nullable=False,
     )
 
-    items: Mapped["BookListItem"] = relationship(
+    items: Mapped[List["BookListItem"]] = relationship(
         "BookListItem",
         lazy="dynamic",
         cascade="all, delete, delete-orphan",
@@ -78,24 +79,24 @@ class BookList(Base):
         .scalar_subquery()
     )
 
-    works: Mapped["Work"] = relationship(
+    works: Mapped[List["Work"]] = relationship(
         "Work", secondary=BookListItem.__tablename__, viewonly=True
     )
 
-    school_id: Mapped[int] = mapped_column(
+    school_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("schools.id", name="fk_booklist_school", ondelete="CASCADE"),
         nullable=True,
     )
 
-    school: Mapped["School"] = relationship(
+    school: Mapped[Optional["School"]] = relationship(
         "School", back_populates="booklists", foreign_keys=[school_id]
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
         nullable=True,
     )
-    user: Mapped["User"] = relationship(
+    user: Mapped[Optional["User"]] = relationship(
         "User", back_populates="booklists", foreign_keys=[user_id], lazy="joined"
     )
 
