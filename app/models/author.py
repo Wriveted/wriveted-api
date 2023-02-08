@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from sqlalchemy import JSON, Computed, Integer, String, and_, func, select
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
@@ -10,7 +12,9 @@ from app.models.work import Work
 class Author(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    first_name: Mapped[str] = mapped_column(String(200), nullable=True, index=True)
+    first_name: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, index=True
+    )
     last_name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
 
     # Building on the assumption of unique full names, an author's full name (sans whitespace and punctuation)
@@ -25,7 +29,7 @@ class Author(Base):
     # TODO check if can we get better typed JSON/dicts
     info: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON))
 
-    books: Mapped["Work"] = relationship(
+    books: Mapped[List["Work"]] = relationship(
         "Work", secondary=author_work_association_table, back_populates="authors"
     )
 
