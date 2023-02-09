@@ -18,6 +18,7 @@ class ReadingPath(BaseModel):
 class SpecialLists(BaseModel):
     read_books: BookListBase | None
     favorite_books: BookListBase | None
+    suggested_books: BookListBase | None
 
 
 class ReaderBase(BaseModel):
