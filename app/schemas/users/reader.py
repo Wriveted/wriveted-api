@@ -67,6 +67,10 @@ class ReaderDetail(ReaderBrief, UserDetail):
             iter([list for list in lists if list.name == "My Favourite Books"] or []),
             None,
         )
+        output["suggested_books"] = next(
+            iter([list for list in lists if list.name == "Suggested Books"] or []),
+            None,
+        )
         return output
 
     @validator("booklists", pre=True)
