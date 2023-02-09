@@ -27,12 +27,12 @@ class CollectionItem(Base):
         index=True,
         nullable=True,
     )
-    edition: Mapped["Edition"] = relationship(
+    edition: Mapped[Optional["Edition"]] = relationship(
         "Edition", lazy="joined", passive_deletes=True
     )
     # Proxy the work from the edition
-    work: Mapped["Work"] = association_proxy("edition", "work")
-    work_id = association_proxy("edition", "work_id")
+    work: Mapped[Optional["Work"]] = association_proxy("edition", "work")
+    work_id: Mapped[Optional[int]] = association_proxy("edition", "work_id")
 
     collection_id: Mapped[UUID] = mapped_column(
         ForeignKey(

@@ -10,6 +10,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db import Base
+from app.db.common_types import user_fk
 from app.models.collection_item import CollectionItem
 
 
@@ -54,7 +55,7 @@ class Collection(Base):
         "School", back_populates="collection"
     )
 
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    user_id: Mapped[user_fk] = mapped_column(
         ForeignKey("users.id", name="fk_user_collection", ondelete="CASCADE"),
         nullable=True,
         index=True,

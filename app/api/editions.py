@@ -46,7 +46,7 @@ async def get_editions(
         statement = crud.edition.get_all_query(session).where(
             Edition.title.match(query)
         )
-        return session.execute(statement).scalars().all()
+        return session.scalars(statement).all()
     else:
         return crud.edition.get_all(
             session, skip=pagination.skip, limit=pagination.limit
