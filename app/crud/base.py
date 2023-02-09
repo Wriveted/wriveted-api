@@ -1,9 +1,9 @@
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, Sequence, Type, TypeVar, Union
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import delete, func, select
+from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
 
@@ -26,7 +26,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         self.model = model
 
-    def get_query(self, db: Session, id: Any) -> Query:
+    def get_query(self, db: Session, id: Any) -> Select[ModelType]:
         return select(self.model).where(self.model.id == id)
 
     def get(self, db: Session, id: Any) -> Optional[ModelType]:
@@ -43,7 +43,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             )
         return thing
 
-    def get_all_query(self, db: Session, *, order_by=None):
+    def get_all_query(self, db: Session, *, order_by=None) -> Select[ModelType]:
         """Return select statement for all objects of this model
 
         Query the model's table returning a sqlalchemy Query object so that
@@ -56,7 +56,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         direction = order_by if order_by is not None else self.model.id.asc()
         return select(self.model).order_by(direction)
 
-    def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
+    def get_multi_query(
+        self, db: Session, ids: List[Any], *, order_by=None
+    ) -> Select[ModelType]:
         """Return Query for objects of this model with given ids
         Query the model's table returning a sqlalchemy Query object so that
         filters can be applied before emitting the final SQL statement.
@@ -68,7 +70,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return self.get_all_query(db, order_by=order_by).where(self.model.id.in_(ids))
 
     @staticmethod
-    def apply_pagination(query: Query, *, skip: int = None, limit: int = None):
+    def apply_pagination(
+        query: Select[ModelType], *, skip: int = None, limit: int = None
+    ) -> Select[ModelType]:
         return query.offset(skip).limit(limit)
 
     def count_query(self, db: Session, query) -> int:
@@ -81,7 +85,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def get_all(
         self, db: Session, *, skip: int = 0, limit: int = 100, order_by=None
-    ) -> List[ModelType]:
+    ) -> Sequence[ModelType]:
         """return all objects of this model"""
         query = self.apply_pagination(
             self.get_all_query(db=db, order_by=order_by), skip=skip, limit=limit
@@ -96,14 +100,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         skip: int = 0,
         limit: int = 100,
         order_by=None,
-    ) -> List[ModelType]:
+    ) -> Sequence[ModelType]:
         """return objects of this model with given ids"""
         query = self.apply_pagination(
             self.get_multi_query(db=db, ids=ids, order_by=order_by),
             skip=skip,
             limit=limit,
         )
-        return db.execute(query).scalars().all()
+        return db.scalars(query).all()
 
     def create(
         self, db: Session, *, obj_in: CreateSchemaType, commit=True
@@ -123,7 +127,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db_obj
 
     def create_in_bulk(self, db: Session, *, bulk_mappings_in):
-        db.bulk_insert_mappings(self.model, bulk_mappings_in)
+        stmt = insert(self.model).values(bulk_mappings_in)
+        db.execute(stmt)
 
     def update(
         self,
