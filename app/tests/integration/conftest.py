@@ -18,6 +18,7 @@ from app.schemas.author import AuthorCreateIn
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
+    CollectionItemCreateIn,
     CollectionItemUpdate,
     CollectionUpdateType,
 )
@@ -400,6 +401,41 @@ def test_unhydrated_editions(client, session, test_isbns):
 
     for e in editions:
         crud.edition.remove(db=session, id=e.isbn)
+
+
+@pytest.fixture()
+def test_user_empty_collection(
+    client,
+    session,
+    test_user_account,
+    test_user_account_headers,
+) -> Collection:
+    collection, created = crud.collection.get_or_create(
+        db=session,
+        collection_data=CollectionCreateIn(
+            name=f"Test Collection {random_lower_string(length=8)}",
+            user_id=test_user_account.id,
+            info={"msg": "Created for test purposes"},
+        ),
+    )
+    yield collection
+    crud.collection.remove(db=session, id=collection.id)
+
+
+@pytest.fixture()
+def test_user_collection(
+    client, session, test_user_empty_collection: Collection, test_unhydrated_editions
+):
+    # Add items to existing collection
+    for edition in test_unhydrated_editions:
+        crud.collection.add_item_to_collection(
+            session,
+            collection_orm_object=test_user_empty_collection,
+            item=CollectionItemCreateIn(edition_isbn=edition.isbn),
+            commit=False,
+        )
+    session.commit()
+    yield test_user_empty_collection
 
 
 @pytest.fixture()

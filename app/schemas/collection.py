@@ -135,15 +135,15 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
     edition_isbn: str
 
 
-class CollectionItemCreateIn(BaseModel):
+class CollectionItemBase(BaseModel):
     edition_isbn: str | None
-    id: int | None
     info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
 
-    class Config:
-        orm_mode = True
+
+class CollectionItemCreateIn(CollectionItemBase):
+    pass
 
 
 class CollectionItemAndStatusCreateIn(CollectionItemCreateIn):
@@ -166,11 +166,6 @@ class CollectionItemAndStatusCreateIn(CollectionItemCreateIn):
             )
 
         return values
-
-
-class CollectionItemInnerCreateIn(CollectionItemCreateIn):
-    collection_id: UUID
-    info: CollectionItemInfo | None
 
 
 class CollectionCreateIn(BaseModel):
@@ -219,6 +214,10 @@ class CollectionUpdateType(str, enum.Enum):
 
 class CollectionItemUpdate(CollectionItemCreateIn):
     action: CollectionUpdateType = CollectionUpdateType.ADD
+    id: int | None = Field(
+        None,
+        description="Item id or edition_isbn required if action is `update` or `remove`",
+    )
 
     class Config:
         orm_mode = True
@@ -226,7 +225,7 @@ class CollectionItemUpdate(CollectionItemCreateIn):
 
 class CollectionUpdateIn(BaseModel):
     name: str | None
-    info: CollectionInfo | None = None
+    info: dict[str, Any] | None
 
 
 class CollectionAndItemsUpdateIn(CollectionUpdateIn):

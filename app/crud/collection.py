@@ -22,7 +22,6 @@ from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
     CollectionItemCreateIn,
-    CollectionItemInnerCreateIn,
     CollectionItemUpdate,
     CollectionUpdateType,
 )
@@ -102,6 +101,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
     ) -> Collection:
         if item_changes := getattr(obj_in, "items", []):
             del obj_in.items
+        if item_changes is None:
+            item_changes = []
 
         # Update the collection object
         collection_orm_object = super().update(
@@ -268,7 +269,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     info_dict["cover_image"],
                 )
 
-        new_orm_item = CollectionItem(
+        new_orm_item_data = dict(
             collection_id=collection_orm_object.id,
             edition_isbn=isbn,
             copies_available=item.copies_available or 1,
@@ -287,12 +288,12 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         try:
             result = db.execute(
                 stmt.returning(CollectionItem.id),
-                CollectionItemInnerCreateIn.from_orm(new_orm_item).dict(),
+                [new_orm_item_data],
             )
             new_id = result.scalar()
         except IntegrityError as e:
             raise IntegrityError(
-                statement=f"Isbn {new_orm_item.edition_isbn} already exists in collection",
+                statement=f"Isbn {isbn} already exists in collection",
                 params={},
                 orig=e,
             ) from None
@@ -311,7 +312,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     "collection_id": str(collection_orm_object.id),
                     "title": item.info.title if item.info else None,
                     "author": item.info.author if item.info else None,
-                    "item_id": str(new_orm_item.id),
+                    "item_id": str(new_id),
                 },
                 school=collection_orm_object.school,
                 account=collection_orm_object.user,

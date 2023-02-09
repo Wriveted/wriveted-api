@@ -5,9 +5,7 @@ LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
 WORKDIR /app/
 SHELL ["/bin/bash", "-c"]
 
-# Allow statements and log messages to immediately appear in the Knative logs
-ENV PYTHONUNBUFFERED=True \
-    PIP_NO_CACHE_DIR=1 \
+ENV PIP_NO_CACHE_DIR=1 \
     POETRY_NO_INTERACTION=1 \
     PYTHONPATH=/app \
     PORT=8000 \
