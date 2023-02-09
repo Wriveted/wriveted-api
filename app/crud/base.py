@@ -43,7 +43,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             )
         return thing
 
-    def get_all_query(self, db: Session, *, order_by=None) -> Query:
+    def get_all_query(self, db: Session, *, order_by=None):
         """Return select statement for all objects of this model
 
         Query the model's table returning a sqlalchemy Query object so that
