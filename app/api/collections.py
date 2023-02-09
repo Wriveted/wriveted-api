@@ -25,7 +25,6 @@ from app.db.session import get_session
 from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
 from app.models.collection_item_activity import CollectionItemReadStatus
-from app.models.reader import Reader
 from app.permissions import Permission
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
@@ -458,6 +457,9 @@ async def update_collection(
     ```json
     { "isbn": "XYZ", "action": "add" }
     ```
+
+    Existing collection items can be referred to by their ISBN, or by
+    their `id`.
 
     Note: any unknown editions will be created as unhydrated, empty objects in the db.
     To provide metadata for new books, please use the `POST /editions` endpoint.

@@ -137,6 +137,7 @@ class CoverImageUpdateIn(CollectionItemInfoCreateIn):
 
 class CollectionItemCreateIn(BaseModel):
     edition_isbn: str | None
+    id: int | None
     info: CollectionItemInfoCreateIn | None
     copies_total: Optional[conint(ge=0)] = None
     copies_available: Optional[conint(ge=0)] = None
