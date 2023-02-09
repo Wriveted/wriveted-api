@@ -168,11 +168,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         item_update: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
-        item_orm_object = db.scalar(
-            select(CollectionItem)
-            .where(CollectionItem.collection_id == collection_id)
-            .where(CollectionItem.edition_isbn == item_update.edition_isbn)
+        base_query = select(CollectionItem).where(
+            CollectionItem.collection_id == collection_id
         )
+        if item_update.id is not None:
+            select_query = base_query.where(CollectionItem.id == item_update.id)
+        else:
+            select_query = base_query.where(
+                CollectionItem.edition_isbn == item_update.edition_isbn
+            )
+        item_orm_object = db.scalar(select_query)
         if item_orm_object is None:
             logger.warning("Skipping update of missing item in collection")
             return
@@ -212,11 +217,18 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         item_to_remove: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
-        db.execute(
-            delete(CollectionItem)
-            .where(CollectionItem.collection_id == collection_orm_object.id)
-            .where(CollectionItem.edition_isbn == item_to_remove.edition_isbn)
+        base_query = delete(CollectionItem).where(
+            CollectionItem.collection_id == collection_orm_object.id
         )
+        if item_to_remove.id is not None:
+            # Prefer the case where the item id is provided instead of the isbn
+            query = base_query.where(CollectionItem.id == item_to_remove.id)
+        else:
+            query = base_query.where(
+                CollectionItem.edition_isbn == item_to_remove.edition_isbn
+            )
+
+        db.execute(query)
 
         if commit:
             db.commit()
