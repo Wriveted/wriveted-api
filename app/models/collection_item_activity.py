@@ -1,8 +1,9 @@
 import enum
+import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
@@ -19,9 +20,11 @@ class CollectionItemReadStatus(str, enum.Enum):
 class CollectionItemActivity(Base):
     __tablename__ = "collection_item_activity_log"
 
-    id = mapped_column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
 
-    collection_item_id = mapped_column(
+    collection_item_id: Mapped[int] = mapped_column(
         ForeignKey(
             "collection_items.id",
             name="fk_collection_item_activity_collection_item_id",
@@ -30,28 +33,31 @@ class CollectionItemActivity(Base):
         index=True,
         nullable=False,
     )
-    collection_item = relationship(
+
+    collection_item: Mapped["CollectionItem"] = relationship(
         "CollectionItem", lazy="joined", passive_deletes=True
     )
 
-    reader_id = mapped_column(
+    reader_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("readers.id", name="fk_collection_item_activity_reader"),
         nullable=False,
     )
-    reader = relationship(
+    reader: Mapped["Reader"] = relationship(
         "Reader",
         back_populates="collection_item_activity_log",
         foreign_keys=[reader_id],
     )
 
-    status = mapped_column(
+    status: Mapped[CollectionItemReadStatus] = mapped_column(
         Enum(CollectionItemReadStatus, name="enum_collection_item_read_status"),
         default=CollectionItemReadStatus.UNREAD,
         nullable=False,
         index=True,
     )
 
-    timestamp = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
 
     # index the timestamp and reader_id together to allow for fast "current status" lookups
     Index(

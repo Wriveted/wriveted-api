@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Optional
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, DateTime, ForeignKey, String, func, select, text
@@ -31,18 +31,17 @@ class Collection(Base):
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
 
-    # TODO check whether typing required here
-    editions = association_proxy("items", "edition")
-    works = association_proxy("items", "work")
+    editions: Mapped[List["Editions"]] = association_proxy("items", "edition")
+    works: Mapped[List["Work"]] = association_proxy("items", "work")
 
-    book_count = column_property(
+    book_count: Mapped[int] = column_property(
         select(func.count(CollectionItem.id))
         .where(CollectionItem.collection_id == id)
         .correlate_except(CollectionItem)
         .scalar_subquery()
     )
 
-    school_id = mapped_column(
+    school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey(
             "schools.wriveted_identifier",
             name="fk_school_collection",
@@ -51,20 +50,22 @@ class Collection(Base):
         nullable=True,
         index=True,
     )
-    school = relationship("School", back_populates="collection")
+    school: Mapped[Optional["School"]] = relationship(
+        "School", back_populates="collection"
+    )
 
-    user_id = mapped_column(
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", name="fk_user_collection", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
-    user = relationship("User", back_populates="collection")
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="collection")
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
-    created_at = mapped_column(
+    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
+    created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,

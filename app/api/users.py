@@ -69,6 +69,7 @@ async def get_users(
         skip=pagination.skip,
         limit=pagination.limit,
     )
+    logger.info("Fetching related data to populate user briefs", type=type)
 
     return UserListsResponse(
         data=page_of_users,
