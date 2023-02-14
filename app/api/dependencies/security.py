@@ -5,7 +5,7 @@ import secrets
 from datetime import timedelta
 from typing import Optional, Union
 
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Body, Depends, Header, HTTPException, Request
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -23,7 +23,9 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
+from app.schemas.feedback import HasReaderFeedbackOtp, ReaderFeedbackOtpData
 from app.services.security import (
+    ALGORITHM,
     TokenPayload,
     create_access_token,
     get_payload_from_access_token,
@@ -284,3 +286,20 @@ async def verify_shopify_hmac(
     valid = secrets.compare_digest(computed_hmac, x_shopify_hmac_sha256.encode("utf-8"))
     if not valid:
         raise HTTPException(status_code=403, detail="Invalid SHA-256 HMAC")
+
+
+def validate_reader_feedback_otp(
+    data: HasReaderFeedbackOtp = Body(
+        ...,
+        "Encoded data given to a friend/family member when alerted by some logged reading. Acts as a sort of one time password to be able to provide feedback.",
+    ),
+) -> ReaderFeedbackOtpData:
+    settings = get_settings()
+    try:
+        decoded = jwt.decode(data.otp, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        return ReaderFeedbackOtpData(**decoded)
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired reader feedback code",
+        )

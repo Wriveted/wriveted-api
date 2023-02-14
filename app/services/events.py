@@ -1,5 +1,6 @@
 import json
 from typing import Optional, Union
+from fastapi import HTTPException
 
 from pydantic import ValidationError
 from slack_sdk import WebClient
@@ -8,10 +9,12 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.api.internal import SendSmsPayload
 from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
+from app.models.collection_item import CollectionItem
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
 from app.models.service_account import ServiceAccount
@@ -25,6 +28,8 @@ from app.schemas.booklist import (
 )
 from app.schemas.collection import CollectionItemActivityBase
 from app.schemas.events.special_events import ReadingLogEvent
+from app.schemas.sendgrid import SendGridEmailData
+from app.schemas.users.huey_attributes import AlertRecipient
 from app.services.background_tasks import queue_background_task
 
 logger = get_logger()
@@ -261,7 +266,7 @@ def process_book_review_event(session: Session, event: Event):
 
 def process_reading_logged_event(session: Session, event: Event):
     """
-    Process a reading logged event, creating a CollectionItemActivity of the appropriate status.
+    Process a reading logged event, creating a CollectionItemActivity of the appropriate status, and optionally alert the reader's parent.
     """
     logger.info("Processing reading logged event")
 
@@ -285,6 +290,59 @@ def process_reading_logged_event(session: Session, event: Event):
         status=status,
     )
     crud.collection_item_activity.create(session, obj_in=activity)
+
+    try:
+        item: CollectionItem = crud.collection.get_collection_item_or_404(
+            session, id=log_data.collection_item_id
+        )
+    except HTTPException:
+        logger.warning(
+            "Collection item not found", collection_item_id=log_data.collection_item_id
+        )
+        return
+
+    if reader := crud.user.get(session, id=event.user_id):
+        recipients: list[AlertRecipient] = reader.huey_attributes.get(
+            "alert_recipients", []
+        )
+
+        for recipient in recipients:
+            if recipient.type == "email":
+                logger.info("Sending email alert")
+                email_data = SendGridEmailData(
+                    to_emails=[recipient.email],
+                    subject=f"{reader.name} has done some reading!",
+                    template_data={
+                        "nickname": recipient.nickname,
+                        "reader_name": reader.name,
+                        "book_title": item.get_display_title(),
+                        "event_id": str(event.id),
+                        "token": "The email should contain a magic link, so we need to include a token for the parent or reader",
+                        "emoji": log_data.emoji,
+                        "descriptor": log_data.descriptor,
+                    },
+                    template_id="xxx",
+                )
+                queue_background_task(
+                    "send-email", {"email_data": email_data, "user_id": str(reader.id)}
+                )
+
+            elif recipient.type == "phone":
+                logger.info("Sending sms alert")
+                magic_feedback_code = {
+                    "event_id": str(event.id),
+                    "token": "Some kind of jwt token? Encoded with the secret, containing the event id and recipient's phone number / email?",
+                }
+                sms_data = SendSmsPayload(
+                    to=recipient.phone,
+                    body=f"{reader.name} read some of {item.get_display_title()}, and described it as '{log_data.descriptor} {log_data.emoji}'.\nChoose a one-tap response: https://hueybooks.com/reader-feedback/{magic_feedback_code}\nReply STOP to unsub.",
+                    shorten_urls=True,
+                )
+
+                queue_background_task(
+                    "send-sms",
+                    sms_data,
+                )
 
 
 def update_or_create_liked_books(
