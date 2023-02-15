@@ -1,6 +1,6 @@
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import AnyHttpUrl, BaseModel, constr
 
 
 class ReadingLogEventDetail(BaseModel):
@@ -34,8 +34,8 @@ class ReaderFeedbackOtpData(BaseModel):
 
 class ReadingLogEventFeedback(BaseModel):
     emoji: str
-    comment: str
-    gif_url: str
+    comment: constr(min_length=5, max_length=100)
+    gif_url: AnyHttpUrl
 
 
 class HasReaderFeedbackOtp(BaseModel):
