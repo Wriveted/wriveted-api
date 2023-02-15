@@ -10,7 +10,6 @@ from app import crud
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
 from app.schemas.feedback import SendEmailPayload, SendSmsPayload
-from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import (
