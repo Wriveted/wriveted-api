@@ -28,15 +28,11 @@ class ReaderFeedbackOtpData(BaseModel):
 
     nickname: str | None
     email: str | None
-    phone: str | None
+    phone_number: str | None
     event_id: UUID | None
 
 
 class ReadingLogEventFeedback(BaseModel):
-    emoji: str
+    emoji: constr(min_length=1, max_length=1)
     comment: constr(min_length=5, max_length=100)
     gif_url: AnyHttpUrl
-
-
-class HasReaderFeedbackOtp(BaseModel):
-    otp: ReaderFeedbackOtpData

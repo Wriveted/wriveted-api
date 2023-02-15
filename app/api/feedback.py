@@ -5,7 +5,7 @@ from structlog import get_logger
 from app import crud
 from app.api.dependencies.security import (
     ReaderFeedbackOtpData,
-    validate_reader_feedback_otp,
+    validate_and_decode_reader_feedback_otp,
 )
 from app.db.session import get_session
 from app.models.collection_item import CollectionItem
@@ -21,13 +21,13 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/reader-feedback/validate",
+@router.get(
+    "/reader-feedback/{otp}",
     response_model=ReadingLogEventDetail,
     include_in_schema=False,
 )
 async def validate(
-    data: ReaderFeedbackOtpData = Depends(validate_reader_feedback_otp),
+    data: ReaderFeedbackOtpData = Depends(validate_and_decode_reader_feedback_otp),
     session: Session = Depends(get_session),
 ):
     """
@@ -72,12 +72,12 @@ async def validate(
 
 
 @router.post(
-    "/reader-feedback/submit",
+    "/reader-feedback/{otp}",
     include_in_schema=False,
 )
 async def submit(
     feedback: ReadingLogEventFeedback,
-    otp: ReaderFeedbackOtpData = Depends(validate_reader_feedback_otp),
+    otp: ReaderFeedbackOtpData = Depends(validate_and_decode_reader_feedback_otp),
     session: Session = Depends(get_session),
 ):
     reading_logged_event = crud.event.get(session, otp.event_id)

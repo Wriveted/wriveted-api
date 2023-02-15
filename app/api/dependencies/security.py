@@ -23,12 +23,13 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
-from app.schemas.feedback import HasReaderFeedbackOtp, ReaderFeedbackOtpData
+from app.schemas.feedback import ReaderFeedbackOtpData
 from app.services.security import (
     ALGORITHM,
     TokenPayload,
     create_access_token,
     get_payload_from_access_token,
+    get_raw_payload_from_access_token,
 )
 
 settings = get_settings()
@@ -288,15 +289,9 @@ async def verify_shopify_hmac(
         raise HTTPException(status_code=403, detail="Invalid SHA-256 HMAC")
 
 
-def validate_reader_feedback_otp(
-    data: HasReaderFeedbackOtp = Body(
-        ...,
-        "Encoded data given to a friend/family member when alerted by some logged reading. Acts as a sort of one time password to be able to provide feedback.",
-    ),
-) -> ReaderFeedbackOtpData:
-    settings = get_settings()
+def validate_and_decode_reader_feedback_otp(otp: str) -> ReaderFeedbackOtpData:
     try:
-        decoded = jwt.decode(data.otp, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        decoded = get_raw_payload_from_access_token(otp)
         return ReaderFeedbackOtpData(**decoded)
     except jwt.JWTError:
         raise HTTPException(

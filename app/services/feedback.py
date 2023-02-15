@@ -51,7 +51,7 @@ def process_reader_feedback_alerts(
             }
             sms_data = SendSmsPayload(
                 to=recipient.phone,
-                body=f"{reader.name} read some of {item.get_display_title()}, and described it as '{log_data.descriptor} {log_data.emoji}'.\nChoose a one-tap response: https://hueybooks.com/reader-feedback/{magic_feedback_code}\nReply STOP to unsub.",
+                body=f"{reader.name} read some of {item.get_display_title()}, and described it as '{log_data.descriptor} {log_data.emoji}'.\nChoose a one-tap response: https://hueybooks.com/reader-feedback/{magic_feedback_code}\nHuey Books",
                 shorten_urls=True,
             )
 
@@ -64,7 +64,7 @@ def process_reader_feedback_alerts(
             session,
             EventCreateIn(
                 title="Alert Sent: Reading Logged",
-                description=f"Alert re: {reader.name}'s reading was sent to {recipient.type} {recipient.email or recipient.phone}",
+                description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
                 user_id=reader.id,
                 info={
                     "type": "Reading Log Feedback: Alert Sent",
