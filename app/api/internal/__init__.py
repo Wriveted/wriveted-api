@@ -9,6 +9,7 @@ from structlog import get_logger
 from app import crud
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
+from app.schemas.feedback import SendEmailPayload, SendSmsPayload
 from app.schemas.sendgrid import SendGridEmailData
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
@@ -107,12 +108,6 @@ def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     return {"msg": "ok"}
 
 
-class SendEmailPayload(BaseModel):
-    email_data: SendGridEmailData
-    user_id: str | None
-    service_account_id: str | None
-
-
 @router.post("/send-email")
 def handle_send_email(
     data: SendEmailPayload,
@@ -124,12 +119,6 @@ def handle_send_email(
     svc_account = crud.service_account.get(db=session, id=data.service_account_id)
     account = user_account or svc_account
     send_sendgrid_email(data.email_data, session, sg, account=account)
-
-
-class SendSmsPayload(BaseModel):
-    to: str | list[str]
-    body: str
-    shorten_urls: bool = False
 
 
 @router.post("/send-sms")

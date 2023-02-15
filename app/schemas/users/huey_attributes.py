@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Literal
 import phonenumbers
 
 from pydantic import BaseModel, EmailStr, constr, root_validator
@@ -32,7 +33,7 @@ class AlertRecipient(BaseModel):
 
     email: EmailStr | None
     phone: PhoneNumber | None
-    type: "email" | "phone"
+    type: Literal["email", "phone"]
 
     @root_validator(pre=True)
     def validate(cls, values):

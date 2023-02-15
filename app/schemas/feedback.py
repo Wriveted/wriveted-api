@@ -2,6 +2,20 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import AnyHttpUrl, BaseModel, constr
 
+from app.schemas.sendgrid import SendGridEmailData
+
+
+class SendEmailPayload(BaseModel):
+    email_data: SendGridEmailData
+    user_id: str | None
+    service_account_id: str | None
+
+
+class SendSmsPayload(BaseModel):
+    to: str | list[str]
+    body: str
+    shorten_urls: bool = False
+
 
 class ReadingLogEventDetail(BaseModel):
     """
