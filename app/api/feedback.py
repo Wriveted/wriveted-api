@@ -30,27 +30,18 @@ async def validate(
     data: ReaderFeedbackOtpData = Depends(validate_reader_feedback_otp),
     session: Session = Depends(get_session),
 ):
+    """
+    Validate an encoded reader-feedback OTP, returning the reading log event details if valid.
+    """
+
     # ---check for event integrity---
-    event = crud.event.get(session, data.event_id)
-    if not event:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Event not found",
-        )
+    event = crud.event.get_or_404(session, data.event_id)
 
-    reader = crud.user.get(session, event.user_id)
-    if not reader:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Reader not found",
-        )
+    reader = crud.user.get_or_404(session, event.user_id)
 
-    item: CollectionItem = crud.item.get(session, event.info.get("collection_item_id"))
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Collection item not found",
-        )
+    item: CollectionItem = crud.collection.get_collection_item_or_404(
+        session, collection_item_id=event.info.get("collection_item_id")
+    )
 
     reading_logged: ReadingLogEvent = event.info.get("reading_logged")
     if not reading_logged:
@@ -96,7 +87,7 @@ async def submit(
             detail="Event not found",
         )
     reader = crud.user.get(session, reading_logged_event.user_id)
-    item = crud.item.get(
+    item = crud.collection.get_collection_item_or_404(
         session, reading_logged_event.info.get("reading_logged").collection_item_id
     )
 
