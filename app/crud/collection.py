@@ -346,6 +346,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
         ).scalar_one_or_none()
 
+    def get_collection_item(
+        self, db: Session, *, collection_item_id: int
+    ) -> CollectionItem:
+        return db.execute(
+            select(CollectionItem).where(CollectionItem.id == collection_item_id)
+        ).scalar_one_or_none()
+
     def get_collection_item_or_404(
         self, db: Session, *, collection_item_id: int
     ) -> CollectionItem:
