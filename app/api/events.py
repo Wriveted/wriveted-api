@@ -186,3 +186,18 @@ async def get_events(
     return EventListsResponse(
         pagination=Pagination(**pagination.to_dict(), total=None), data=filtered_events
     )
+
+
+@router.get("/event/{event_id}", response_model=EventDetail)
+async def get_event(
+    event_id: UUID,
+    principals: List = Depends(get_active_principals),
+    session: Session = Depends(get_session),
+):
+    event = crud.event.get_or_404(db=session, id=event_id)
+    if not has_permission(principals, "read", event):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"The current account is not allowed to read that event",
+        )
+    return event
