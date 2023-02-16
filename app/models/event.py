@@ -83,4 +83,7 @@ class Event(Base):
 
             acl.append((Allow, f"parent:{self.user_id}", "read"))
 
+        if self.title.startswith("Reader timeline event:"):
+            acl.append((Allow, f"supporter:{self.user_id}", "read"))
+
         return acl

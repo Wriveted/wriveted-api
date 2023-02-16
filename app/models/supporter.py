@@ -3,46 +3,47 @@ from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
-
+from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.models.user import User, UserAccountType
 
 
-class Parent(User):
+class Supporter(User):
     """
-    A concrete Parent of Students or PublicReaders.
+    A concrete Supporter of a Reader.
     """
 
     id = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", name="fk_parent_inherits_user", ondelete="CASCADE"),
+        ForeignKey("users.id", name="fk_supporter_inherits_user", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": UserAccountType.PARENT}
+    __mapper_args__ = {"polymorphic_identity": UserAccountType.SUPPORTER}
 
-    subscription = relationship(
-        "Subscription",
-        back_populates="parent",
-        uselist=False,
-        cascade="all, delete-orphan",
+    parent_id = mapped_column(
+        UUID,
+        ForeignKey("parents.id", name="fk_supporter_parent"),
+        nullable=False,
+        index=True,
+    )
+    parent = relationship(
+        "Parent", back_populates="supporters", foreign_keys=[parent_id]
     )
 
     readers = relationship(
         "Reader",
-        back_populates="parent",
-    )
-
-    reader_supporters = relationship(
-        "Supporter",
-        back_populates="parent",
+        secondary=SupporterReaderAssociation.__table__,
+        back_populates="supporters",
     )
 
     # misc
-    parent_info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    supporter_info = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=True, default={}
+    )
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
-        return f"<Parent {self.name} - {self.children} - {active}>"
+        return f"<Supporter {self.name} - {active}>"
 
     def __acl__(self):
         """defines who can do what to the instance
@@ -52,8 +53,12 @@ class Parent(User):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
+        roles = [
             (Allow, f"user:{self.id}", All),
+            (Allow, f"user:{self.parent_id}", "All"),
             (Allow, "role:admin", All),
-            (Allow, f"child:{self.id}", "read"),
         ]
+        if self.parent_id:
+            roles.append((Allow, f"user:{self.parent_id}", All))
+
+        return roles

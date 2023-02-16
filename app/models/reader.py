@@ -2,6 +2,7 @@ from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
+from app.models.supporter_reader_association import SupporterReaderAssociation
 
 from app.models.user import User
 
@@ -34,6 +35,12 @@ class Reader(User):
         index=True,
     )
     parent = relationship("Parent", backref="children", foreign_keys=[parent_id])
+
+    supporters = relationship(
+        "Supporter",
+        secondary=SupporterReaderAssociation.__table__,
+        back_populates="readers",
+    )
 
     # reading_ability, age, last_visited, etc
     huey_attributes = mapped_column(

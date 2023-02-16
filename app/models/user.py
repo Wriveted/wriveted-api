@@ -17,6 +17,7 @@ class UserAccountType(str, enum.Enum):
     EDUCATOR = "educator"
     SCHOOL_ADMIN = "school_admin"
     PARENT = "parent"
+    SUPPORTER = "supporter"
 
 
 class User(Base):

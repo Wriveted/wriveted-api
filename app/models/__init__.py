@@ -24,6 +24,7 @@ from .school_admin import SchoolAdmin
 from .series import Series
 from .service_account import ServiceAccount, ServiceAccountType
 from .student import Student
+from .supporter import Supporter
 from .subscription import Subscription
 from .user import User
 from .work import Work
