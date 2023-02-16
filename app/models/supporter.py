@@ -8,6 +8,7 @@ from app.models.parent import Parent
 from app.models.reader import Reader
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.models.user import User, UserAccountType
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class Supporter(User):
@@ -22,6 +23,10 @@ class Supporter(User):
     )
 
     __mapper_args__ = {"polymorphic_identity": UserAccountType.SUPPORTER}
+
+    @hybrid_property
+    def phone(self):
+        return self.info["phone"]
 
     parent_id: Mapped[uuid.UUID] = mapped_column(
         UUID,

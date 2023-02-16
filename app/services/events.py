@@ -15,6 +15,7 @@ from app.models.booklist import ListType
 from app.models.collection_item import CollectionItem
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
+from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
@@ -294,13 +295,8 @@ def process_reading_logged_event(session: Session, event: Event):
     )
 
     if reader := crud.user.get(session, id=event.user_id):
-        recipients: list[AlertRecipient] = reader.huey_attributes.get(
-            "alert_recipients", []
-        )
 
-        process_reader_feedback_alerts(
-            session, reader, item, event, log_data, recipients
-        )
+        process_reader_feedback_alerts(session, reader, item, event, log_data)
 
 
 def update_or_create_liked_books(
