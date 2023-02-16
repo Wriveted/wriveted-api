@@ -32,11 +32,13 @@ class Parent(User):
     readers = relationship(
         "Reader",
         back_populates="parent",
+        foreign_keys="Reader.parent_id",
     )
 
     reader_supporters = relationship(
         "Supporter",
         back_populates="parent",
+        foreign_keys="Supporter.parent_id",
     )
 
     # @property
