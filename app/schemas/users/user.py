@@ -4,7 +4,6 @@ from uuid import UUID
 import phonenumbers
 from pydantic import AnyHttpUrl, BaseModel
 from pydantic.validators import strict_str_validator
-from app.schemas.users.huey_attributes import PhoneNumber
 from app.schemas.users.user_identity import UserBrief
 
 # thanks https://github.com/pydantic/pydantic/issues/1551

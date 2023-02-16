@@ -27,7 +27,6 @@ from app.schemas.booklist import (
 )
 from app.schemas.collection import CollectionItemActivityBase
 from app.schemas.events.special_events import ReadingLogEvent
-from app.schemas.users.huey_attributes import AlertRecipient
 from app.services.background_tasks import queue_background_task
 from app.services.feedback import process_reader_feedback_alerts
 

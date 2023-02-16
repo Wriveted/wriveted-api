@@ -1,10 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.supporter import Supporter
+
 from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship, Mapped
-from app.models.supporter import Supporter
 from app.models.supporter_reader_association import SupporterReaderAssociation
-
 from app.models.user import User
 
 
@@ -37,7 +41,7 @@ class Reader(User):
     )
     parent = relationship("Parent", backref="children", foreign_keys=[parent_id])
 
-    supporters: Mapped[list["Supporter"]] = relationship(
+    supporters: Mapped[list[Supporter]] = relationship(
         "Supporter",
         secondary=SupporterReaderAssociation.__table__,
         back_populates="readers",
