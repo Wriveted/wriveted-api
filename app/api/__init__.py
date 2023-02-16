@@ -9,7 +9,6 @@ from app.api.commerce import router as commerce_router
 from app.api.dashboards import router as dashboard_router
 from app.api.editions import router as edition_router
 from app.api.events import router as events_router
-from app.api.feedback import router as feedback_router
 from app.api.illustrators import router as illustrator_router
 from app.api.labelset import router as labelset_router
 from app.api.recommendations import router as recommendations_router
@@ -33,7 +32,6 @@ api_router.include_router(commerce_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(edition_router)
 api_router.include_router(events_router)
-api_router.include_router(feedback_router)
 api_router.include_router(illustrator_router)
 api_router.include_router(labelset_router)
 api_router.include_router(school_router)
