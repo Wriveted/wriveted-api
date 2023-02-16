@@ -1,11 +1,30 @@
 from __future__ import annotations
-
 from datetime import datetime
 from uuid import UUID
-
+import phonenumbers
 from pydantic import AnyHttpUrl, BaseModel
-
+from pydantic.validators import strict_str_validator
+from app.schemas.users.huey_attributes import PhoneNumber
 from app.schemas.users.user_identity import UserBrief
+
+# thanks https://github.com/pydantic/pydantic/issues/1551
+class PhoneNumber(str):
+    """Phone Number Pydantic type, using google's phonenumbers"""
+
+    @classmethod
+    def __get_validators__(cls):
+        yield strict_str_validator
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: str):
+        v = v.strip().replace(" ", "")
+        try:
+            pn = phonenumbers.parse(v)
+        except phonenumbers.phonenumberutil.NumberParseException:
+            raise ValueError("invalid phone number format")
+
+        return cls(phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164))
 
 
 class UserPatchOptions(BaseModel):
@@ -14,6 +33,7 @@ class UserPatchOptions(BaseModel):
 
 class UserInfo(BaseModel):
     sign_in_provider: str | None
+    phone_number: PhoneNumber | None
 
     # hoping pictures won't be base64 strings
     picture: AnyHttpUrl | None

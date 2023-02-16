@@ -41,10 +41,6 @@ class Parent(User):
         foreign_keys="Supporter.parent_id",
     )
 
-    # @property
-    # def reader_supporters(self):
-    #     return [supporter for reader in self.readers for supporter in reader.supporters]
-
     # misc
     parent_info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
