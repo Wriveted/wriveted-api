@@ -4,6 +4,10 @@ import os
 import sys
 from logging.config import fileConfig
 
+from alembic_utils.pg_function import PGFunction
+from alembic_utils.pg_grant_table import PGGrantTable
+from alembic_utils.pg_trigger import PGTrigger
+from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import create_engine, engine_from_config, pool
 
 from alembic import context
@@ -29,6 +33,29 @@ sys.path.insert(
 )
 
 from app.db.base_class import Base  # noqa
+from app.db.functions import (
+    update_collections_function,
+    update_edition_title,
+    update_edition_title_from_work,
+)
+from app.db.triggers import (
+    collection_items_update_collections_trigger,
+    editions_update_edition_title_trigger,
+    works_update_edition_title_from_work_trigger,
+)
+
+register_entities(
+    [
+        # Functions
+        update_edition_title,
+        update_edition_title_from_work,
+        update_collections_function,
+        # Triggers
+        editions_update_edition_title_trigger,
+        works_update_edition_title_from_work_trigger,
+        collection_items_update_collections_trigger,
+    ]
+)
 
 target_metadata = Base.metadata
 
@@ -41,6 +68,16 @@ target_metadata = Base.metadata
 
 def get_url():
     return os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
+
+
+def include_object(object, name, type_, reflected, compare_to) -> bool:
+    if isinstance(object, (PGFunction, PGTrigger)):
+        return True
+
+    # Can also bring Grants and Views under alembic:
+    # if isinstance(object, PGGrantTable):
+
+    return False
 
 
 def run_migrations_offline():
@@ -57,7 +94,11 @@ def run_migrations_offline():
     """
     url = get_url()
     context.configure(
-        url=url, target_metadata=target_metadata, literal_binds=True, compare_type=True
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        compare_type=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -83,7 +124,10 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
