@@ -235,6 +235,10 @@ def get_active_principals(
                 for child in user.children:
                     principals.append(f"parent:{child.id}")
 
+            case UserAccountType.SUPPORTER:
+                for reader in user.readers:
+                    principals.append(f"supporter:{reader.id}")
+
         # All users have a user specific role:
         principals.append(f"user:{user.id}")
 
@@ -287,14 +291,3 @@ async def verify_shopify_hmac(
     valid = secrets.compare_digest(computed_hmac, x_shopify_hmac_sha256.encode("utf-8"))
     if not valid:
         raise HTTPException(status_code=403, detail="Invalid SHA-256 HMAC")
-
-
-def validate_and_decode_reader_feedback_otp(otp: str) -> ReaderFeedbackOtpData:
-    try:
-        decoded = get_raw_payload_from_access_token(otp)
-        return ReaderFeedbackOtpData(**decoded)
-    except jwt.JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired reader feedback code",
-        )
