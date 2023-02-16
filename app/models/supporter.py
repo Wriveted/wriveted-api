@@ -4,6 +4,8 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, Mapped, relationship
+from app.models.parent import Parent
+from app.models.reader import Reader
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.models.user import User, UserAccountType
 
@@ -27,11 +29,11 @@ class Supporter(User):
         nullable=False,
         index=True,
     )
-    parent = relationship(
-        "Parent", back_populates="supporters", foreign_keys=[parent_id]
+    parent: Mapped[Parent] = relationship(
+        "Parent", back_populates="reader_supporters", foreign_keys=[parent_id]
     )
 
-    readers = relationship(
+    readers: Mapped[list[Reader]] = relationship(
         "Reader",
         secondary=SupporterReaderAssociation.__table__,
         back_populates="supporters",
