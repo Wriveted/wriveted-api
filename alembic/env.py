@@ -4,7 +4,9 @@ import os
 import sys
 from logging.config import fileConfig
 
+from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_grant_table import PGGrantTable
+from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import create_engine, engine_from_config, pool
 
@@ -32,13 +34,11 @@ sys.path.insert(
 
 from app.db.base_class import Base  # noqa
 from app.db.functions import (
-    WrivetedDBFunction,
     update_collections_function,
     update_edition_title,
     update_edition_title_from_work,
 )
 from app.db.triggers import (
-    WrivetedDBTrigger,
     collection_items_update_collections_trigger,
     editions_update_edition_title_trigger,
     works_update_edition_title_from_work_trigger,
@@ -54,9 +54,7 @@ register_entities(
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
         collection_items_update_collections_trigger,
-    ],
-    entity_types=[WrivetedDBFunction, WrivetedDBTrigger],
-    # exclude_schemas=["alembic_version"],
+    ]
 )
 
 target_metadata = Base.metadata
@@ -73,9 +71,13 @@ def get_url():
 
 
 def include_object(object, name, type_, reflected, compare_to) -> bool:
-    if isinstance(object, PGGrantTable):
-        return False
-    return True
+    if isinstance(object, (PGFunction, PGTrigger)):
+        return True
+
+    # Can also bring Grants and Views under alembic:
+    # if isinstance(object, PGGrantTable):
+
+    return False
 
 
 def run_migrations_offline():
