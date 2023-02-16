@@ -177,15 +177,18 @@ async def create_work_with_editions(
         edition.work = work
         session.add(edition)
 
+    logger.debug(f"Associated {len(edition_ids)} editions with new work", work=work)
     crud.event.create(
         session,
         title=f"Work created",
-        description=f"Added a new work '{work.title}' with {len(edition_ids)} editions",
+        description=f"'{work.title}' created with {len(edition_ids)} editions",
         info={
             "work_id": work.id,
+            "title": work.title,
         },
         account=account,
     )
+    logger.debug(f"Added event and committed new work", work=work)
     return work
 
 
