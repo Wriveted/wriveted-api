@@ -26,7 +26,9 @@ from app.schemas.booklist import (
     ItemUpdateType,
 )
 from app.schemas.collection import CollectionItemActivityBase
+from app.schemas.events.event import EventCreateIn
 from app.schemas.events.special_events import ReadingLogEvent
+from app.schemas.feedback import ReadingLogEventFeedback
 from app.services.background_tasks import queue_background_task
 from app.services.feedback import process_reader_feedback_alerts
 
@@ -201,6 +203,12 @@ def process_events(event_id):
                 return {"msg": "ok"}
             case "Reader timeline event: Reading logged":
                 return process_reading_logged_event(session, event)
+            case "Supporter encouragement: Reading feedback sent":
+                return process_supporter_reading_feedback_event(session, event)
+            # case "Supporter encouragement: Achievement feedback sent":
+            #     # e.g. "Well done for reading 10 books this year!"
+            #     # (not for a specific reading event, but for a milestone or other automated achievement)
+            #     return process_supporter_achievement_feedback_event(session, event)
             case _:
                 return
 
@@ -294,8 +302,46 @@ def process_reading_logged_event(session: Session, event: Event):
     )
 
     if reader := crud.user.get(session, id=event.user_id):
-
         process_reader_feedback_alerts(session, reader, item, event, log_data)
+
+
+def process_supporter_reading_feedback_event(session: Session, event: Event):
+    """
+    Process a supporter feedback event
+    """
+    logger.info("Processing supporter feedback event")
+
+    try:
+        feedback_data = ReadingLogEventFeedback.parse_obj(event.info)
+    except ValidationError as e:
+        logger.warning("Error parsing supporter feedback event", error=e, event=event)
+        return
+
+    log_event = crud.event.get(session, id=feedback_data.event_id)
+    if log_event is None:
+        logger.warning("Log event not found", event_id=feedback_data.event_id)
+        return
+
+    item = crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=log_event.info.get("collection_item_id")
+    )
+
+    # event is good, create a "notification" event for the reader
+    notification_data = EventCreateIn(
+        title="Notification: Supporter feedback received",
+        description=f"Reader {log_event.user.name} received encouragement from {event.user.name}",
+        info={
+            "title": f"{event.user.name} sent you a message!",
+            "extra": {
+                "image": item.edition.cover_url or item.info.get("cover_image"),
+                "message": f"For reading {item.edition.title or item.info.get('title')}",
+            },
+            **feedback_data.dict(),
+        },
+        user_id=log_event.user_id,
+    )
+
+    crud.event.create(session, obj_in=notification_data)
 
 
 def update_or_create_liked_books(

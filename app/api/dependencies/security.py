@@ -5,7 +5,7 @@ import secrets
 from datetime import timedelta
 from typing import Optional, Union
 
-from fastapi import Body, Depends, Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -23,13 +23,10 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
-from app.schemas.feedback import ReaderFeedbackOtpData
 from app.services.security import (
-    ALGORITHM,
     TokenPayload,
     create_access_token,
     get_payload_from_access_token,
-    get_raw_payload_from_access_token,
 )
 
 settings = get_settings()
@@ -110,6 +107,19 @@ def get_current_active_user(
 ) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+def get_current_active_supporter(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    if not (
+        current_user.type == UserAccountType.SUPPORTER
+        or current_user.type == UserAccountType.PARENT
+    ):
+        raise HTTPException(status_code=403, detail="Insufficient privileges")
     return current_user
 
 
