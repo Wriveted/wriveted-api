@@ -27,10 +27,10 @@ class Parent(User):
         cascade="all, delete-orphan",
     )
 
-    readers = relationship(
-        "Reader",
-        back_populates="parent",
-    )
+    # readers = relationship(
+    #     "Reader",
+    #     back_populates="parent",
+    # )
 
     reader_supporters = relationship(
         "Supporter",
