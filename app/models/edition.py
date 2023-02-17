@@ -49,7 +49,7 @@ class Edition(Base):
 
     # TODO computed columns for display_title / sort_title based on the above
 
-    # computed column for edition_title coalesced with work title
+    # "computed" column for edition_title coalesced with work title
     title: Mapped[Optional[str]] = mapped_column(
         String(512),
         index=True,

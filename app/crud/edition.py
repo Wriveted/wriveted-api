@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Any, List
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
 import app.services.editions as editions_service
@@ -21,7 +21,7 @@ from app.schemas.work import WorkCreateIn
 logger = get_logger()
 
 
-class CRUDEdition(CRUDBase[Edition, Any, Any]):
+class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
     """
     We use ISBN in the CRUD layer instead of the database ID
     """
@@ -29,7 +29,7 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
     # These are overrides of CRDUBase. Do not rename.
     # Can be executed by using self.get() and self.get_multi() respectively
 
-    def get_query(self, db: Session, id: Any) -> Query:
+    def get_query(self, db: Session, id: Any) -> Select[Edition]:
         try:
             cleaned_isbn = editions_service.get_definitive_isbn(id)
         except:
@@ -37,7 +37,9 @@ class CRUDEdition(CRUDBase[Edition, Any, Any]):
 
         return select(Edition).where(Edition.isbn == cleaned_isbn)
 
-    def get_multi_query(self, db: Session, ids: List[Any], *, order_by=None) -> Query:
+    def get_multi_query(
+        self, db: Session, ids: List[Any], *, order_by=None
+    ) -> Select[Edition]:
         return self.get_all_query(db, order_by=order_by).where(
             Edition.isbn.in_(editions_service.clean_isbns(ids))
         )
