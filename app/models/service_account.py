@@ -75,4 +75,4 @@ class ServiceAccount(Base):
 
         return [
             (Allow, "role:admin", All),
-        ] + [(Allow, f"teacher:{s.id}", All) for s in self.schools]
+        ] + [(Allow, f"educator:{s.id}", All) for s in self.schools]

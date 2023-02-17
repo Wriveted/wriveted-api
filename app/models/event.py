@@ -89,7 +89,7 @@ class Event(Base):
         ]
 
         if self.school_id is not None:
-            acl.append((Allow, f"teacher:{self.school_id}", "read"))
+            acl.append((Allow, f"educator:{self.school_id}", "read"))
             # acl.append((Allow, f"student:{self.school_id}", "read"))
 
         if self.user_id is not None:
