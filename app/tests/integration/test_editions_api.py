@@ -57,6 +57,8 @@ def test_update_edition_details(client, backend_service_account_headers, works_l
         headers=backend_service_account_headers,
     )
     update_response.raise_for_status()
+
+    # The response should include the new title
     assert update_response.json()["title"] == new_title
     assert update_response.json()["info"]["other"]["foo"] == "bar"
 
