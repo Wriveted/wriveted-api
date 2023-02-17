@@ -8,7 +8,7 @@ update_edition_title = PGFunction(
     BEGIN
     UPDATE editions SET title = COALESCE(editions.edition_title, works.title)
     FROM works
-    WHERE editions.work_id = NEW.id AND (NEW.edition_title IS NOT NULL OR NEW.work_id IS NOT NULL);
+    WHERE editions.id = NEW.id AND (NEW.edition_title IS NOT NULL OR NEW.work_id IS NOT NULL);
     RETURN NULL;
     END;
     $function$

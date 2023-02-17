@@ -1,8 +1,8 @@
 """Alter edition title update functions
 
-Revision ID: 4357602fafb2
-Revises: e5ac1e7a54cd
-Create Date: 2023-02-17 10:37:33.577725
+Revision ID: 90707bbde53a
+Revises: 3cc9f3831b7b
+Create Date: 2023-02-17 13:51:13.443568
 
 """
 import sqlalchemy as sa
@@ -12,7 +12,7 @@ from sqlalchemy import text as sql_text
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "4357602fafb2"
+revision = "90707bbde53a"
 down_revision = "3cc9f3831b7b"
 branch_labels = None
 depends_on = None
@@ -23,7 +23,7 @@ def upgrade():
     public_update_edition_title = PGFunction(
         schema="public",
         signature="update_edition_title()",
-        definition="returns trigger LANGUAGE plpgsql\n    AS $function$\n    BEGIN\n    UPDATE editions SET title = COALESCE(editions.edition_title, works.title)\n    FROM works\n    WHERE editions.work_id = NEW.id AND (NEW.edition_title IS NOT NULL OR NEW.work_id IS NOT NULL);\n    RETURN NULL;\n    END;\n    $function$",
+        definition="returns trigger LANGUAGE plpgsql\n    AS $function$\n    BEGIN\n    UPDATE editions SET title = COALESCE(editions.edition_title, works.title)\n    FROM works\n    WHERE editions.id = NEW.id AND (NEW.edition_title IS NOT NULL OR NEW.work_id IS NOT NULL);\n    RETURN NULL;\n    END;\n    $function$",
     )
     op.replace_entity(public_update_edition_title)
 
