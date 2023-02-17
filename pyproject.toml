@@ -43,7 +43,7 @@ black = {extras = ["jupyter"], version = "22.10.0"}
 google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.8"
-pre-commit = "^2.21"
+pre-commit = "^3.0"
 locust = "^2.14"
 
 [build-system]
