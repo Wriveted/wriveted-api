@@ -8,7 +8,7 @@ from app.schemas.users.user_identity import UserBrief
 
 # thanks https://github.com/pydantic/pydantic/issues/1551
 class PhoneNumber(str):
-    """Phone Number Pydantic type, using google's phonenumbers"""
+    """Phone number string, E164 format (e.g. +61 400 000 000)"""
 
     @classmethod
     def __get_validators__(cls):
