@@ -102,41 +102,37 @@ def process_reader_feedback_alerts(
     event: Event,
     log_data: ReadingLogEvent,
 ):
-    active_supporters = (
-        session.query(Supporter)
-        .join(SupporterReaderAssociation)
-        .filter(SupporterReaderAssociation.reader_id == reader.id)
-        .filter(SupporterReaderAssociation.active == True)
-        .all()
-    )
+    for association in reader.supporter_associations:
+        if association.is_active:
+            recipient = association.supporter
+            if recipient.email:
+                process_reader_feedback_alert_email(
+                    recipient, reader, item, event, log_data
+                )
 
-    for recipient in active_supporters:
-        if recipient.email:
-            process_reader_feedback_alert_email(
-                recipient, reader, item, event, log_data
+            elif recipient.phone:
+                process_reader_feedback_alert_sms(
+                    recipient, reader, item, event, log_data
+                )
+
+            else:
+                logger.warning(
+                    "Supporter has no email or phone number",
+                    supporter_id=recipient.id,
+                    reader_id=reader.id,
+                )
+                return
+
+            crud.event.create(
+                session,
+                EventCreateIn(
+                    title="Alert Sent: Reading Logged",
+                    description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
+                    user_id=reader.id,
+                    info={
+                        "type": "Reading Log Feedback: Alert Sent",
+                        "recipient": recipient,
+                        "event_id": str(event.id),
+                    },
+                ),
             )
-
-        elif recipient.phone:
-            process_reader_feedback_alert_sms(recipient, reader, item, event, log_data)
-
-        else:
-            logger.warning(
-                "Supporter has no email or phone number",
-                supporter_id=recipient.id,
-                reader_id=reader.id,
-            )
-            return
-
-        crud.event.create(
-            session,
-            EventCreateIn(
-                title="Alert Sent: Reading Logged",
-                description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
-                user_id=reader.id,
-                info={
-                    "type": "Reading Log Feedback: Alert Sent",
-                    "recipient": recipient,
-                    "event_id": str(event.id),
-                },
-            ),
-        )
