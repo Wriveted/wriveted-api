@@ -208,49 +208,11 @@ def get_active_principals(
     if maybe_user is not None and maybe_user.is_active:
         user = maybe_user
         principals.append(Authenticated)
-
-        match user.type:
-            case UserAccountType.WRIVETED:
-                principals.append("role:admin")
-
-            case UserAccountType.EDUCATOR:
-                principals.append("role:educator")
-                principals.append("role:school")
-                principals.append(f"school:{user.school_id}")
-                principals.append(f"educator:{user.school_id}")
-
-            case UserAccountType.SCHOOL_ADMIN:
-                principals.append("role:educator")
-                principals.append("role:school")
-                principals.append(f"school:{user.school_id}")
-                principals.append(f"educator:{user.school_id}")
-                principals.append(f"schooladmin:{user.school_id}")
-
-            case UserAccountType.STUDENT:
-                principals.append("role:reader")
-                principals.append("role:student")
-                principals.append("role:school")
-                principals.append(f"school:{user.school_id}")
-                principals.append(f"student:{user.school_id}")
-                if user.parent:
-                    principals.append(f"child:{user.parent_id}")
-
-            case UserAccountType.PUBLIC:
-                principals.append("role:reader")
-                if user.parent:
-                    principals.append(f"child:{user.parent_id}")
-
-            case UserAccountType.PARENT:
-                principals.append("role:parent")
-                for child in user.children:
-                    principals.append(f"parent:{child.id}")
-
-            case UserAccountType.SUPPORTER:
-                for reader in user.readers:
-                    principals.append(f"supporter:{reader.id}")
-
-        # All users have a user specific role:
-        principals.append(f"user:{user.id}")
+        # since the user type being returned from crud is dynamic based on type,
+        # we can call the get_principals method on the user object to get a cascading
+        # list of principals.
+        # i.e. a student will have calculated principals of a user, a reader, and a student
+        principals.extend(user.get_principals())
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account

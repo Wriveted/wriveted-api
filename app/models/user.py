@@ -2,13 +2,16 @@ import enum
 import uuid
 from datetime import datetime
 
+from fastapi_permissions import All, Allow
+
 from sqlalchemy import JSON, Boolean, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from app.db import Base
+from app.models.supporter_reader_association import SupporterReaderAssociation
 
 
 class UserAccountType(str, enum.Enum):
@@ -87,3 +90,35 @@ class User(Base):
     )
 
     newsletter = mapped_column(Boolean(), nullable=False, server_default="false")
+
+    # targeting the association instead of the users directly to
+    # include the "active" status in any outputs
+    supportee_associations: Mapped[list[SupporterReaderAssociation]] = relationship(
+        SupporterReaderAssociation,
+        back_populates="supporter",
+    )
+
+    def get_principals(self):
+        principals = [f"user:{self.id}"]
+
+        for association in self.supportee_associations:
+            if association.is_active:
+                principals.append(f"supporter:{association.id}")
+
+        return principals
+
+    def __acl__(self):
+        """defines who can do what to the instance
+        the function returns a list containing tuples in the form of
+        (Allow or Deny, principal identifier, permission name)
+        If a role is not listed (like "role:user") the access will be
+        automatically denied.
+        (Deny, Everyone, All) is automatically appended at the end.
+        """
+        acl = [
+            (Allow, f"user:{self.id}", All),
+            (Allow, "role:admin", All),
+            (Allow, f"supportee:{self.id}", "notify"),
+        ]
+
+        return acl

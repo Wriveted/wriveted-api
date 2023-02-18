@@ -35,18 +35,20 @@ class Parent(User):
         foreign_keys="Reader.parent_id",
     )
 
-    reader_supporters = relationship(
-        "Supporter",
-        back_populates="parent",
-        foreign_keys="Supporter.parent_id",
-    )
-
     # misc
     parent_info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
         return f"<Parent {self.name} - {self.children} - {active}>"
+
+    def get_principals(self):
+        principals = super().get_principals()
+
+        if self.children:
+            principals.extend([f"parent:{child.id}" for child in self.children])
+
+        return principals
 
     def __acl__(self):
         """defines who can do what to the instance
@@ -56,8 +58,12 @@ class Parent(User):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-            (Allow, f"child:{self.id}", "read"),
-        ]
+        acl = super().__acl__()
+
+        acl.extend(
+            [
+                (Allow, f"child:{self.id}", "read"),
+            ]
+        )
+
+        return acl

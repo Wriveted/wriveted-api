@@ -32,6 +32,10 @@ class PublicReader(Reader):
         active = "Active" if self.is_active else "Inactive"
         return f"<Public Reader {self.name} - {active}>"
 
+    def get_principals(self):
+        principals = super().get_principals()
+        return principals
+
     def __acl__(self):
         """defines who can do what to the instance
         the function returns a list containing tuples in the form of
@@ -40,8 +44,5 @@ class PublicReader(Reader):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-            (Allow, f"parent:{self.id}", All),
-        ]
+        acl = super().__acl__()
+        return acl

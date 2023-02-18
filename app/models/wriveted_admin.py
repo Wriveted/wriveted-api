@@ -33,6 +33,11 @@ class WrivetedAdmin(User):
         active = "Active" if self.is_active else "Inactive"
         return f"<Wriveted Admin {self.name} - {active}>"
 
+    def get_principals(self):
+        principals = super().get_principals()
+        principals.append("role:admin")
+        return principals
+
     def __acl__(self):
         """defines who can do what to the instance
         the function returns a list containing tuples in the form of
@@ -41,7 +46,5 @@ class WrivetedAdmin(User):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-        ]
+        acl = super().__acl__()
+        return acl

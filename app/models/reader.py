@@ -1,15 +1,10 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
-from app.models.parent import Parent
-
-if TYPE_CHECKING:
-    from app.models.supporter import Supporter
-
+from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship, Mapped
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.parent import Parent
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.models.user import User
 
@@ -41,15 +36,39 @@ class Reader(User):
         nullable=True,
         index=True,
     )
-    parent = relationship("Parent", backref="children", foreign_keys=[parent_id])
+    parent: Mapped["Parent"] = relationship(
+        "Parent", backref="children", foreign_keys=[parent_id]
+    )
 
-    supporters: Mapped[list[Supporter | Parent]] = relationship(
-        "User",
-        secondary=SupporterReaderAssociation.__table__,
-        backref="supporting",
+    # targeting the association instead of the users directly to
+    # include the "active" status in any outputs
+    supporter_associations: Mapped[list[SupporterReaderAssociation]] = relationship(
+        SupporterReaderAssociation,
+        back_populates="reader",
     )
 
     # reading_ability, age, last_visited, etc
     huey_attributes = mapped_column(
         MutableDict.as_mutable(JSON), nullable=True, default={}
     )
+
+    def get_principals(self):
+        principals = super().get_principals()
+
+        principals.append("role:reader")
+        if self.parent:
+            principals.append(f"child:{self.parent_id}")
+
+        return principals
+
+    def __acl__(self):
+        acl = super().__acl__()
+
+        acl.extend(
+            [
+                (Allow, f"parent:{self.id}", All),
+                (Allow, f"supporter:{self.id}", "support"),
+            ]
+        )
+
+        return acl

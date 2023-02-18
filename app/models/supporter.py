@@ -1,4 +1,3 @@
-from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -9,7 +8,7 @@ from app.models.user import User, UserAccountType
 
 class Supporter(User):
     """
-    A concrete Supporter of a Reader.
+    A user who supports and encourages reader(s).
     """
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -37,12 +36,6 @@ class Supporter(User):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        roles = [
-            (Allow, f"user:{self.id}", All),
-            (Allow, f"user:{self.parent_id}", "All"),
-            (Allow, "role:admin", All),
-        ]
-        if self.parent_id:
-            roles.append((Allow, f"user:{self.parent_id}", All))
+        acls = super().__acl__()
 
-        return roles
+        return acls
