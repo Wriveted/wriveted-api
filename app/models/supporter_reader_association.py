@@ -30,4 +30,7 @@ class SupporterReaderAssociation(Base):
         foreign_keys=[reader_id],
     )
 
+    allow_phone = mapped_column(Boolean(), nullable=False, default=False)
+    allow_email = mapped_column(Boolean(), nullable=False, default=True)
+
     is_active = mapped_column(Boolean(), nullable=False, default=True)
