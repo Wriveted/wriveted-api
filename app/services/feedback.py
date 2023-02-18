@@ -15,6 +15,8 @@ from app import crud
 
 from urllib.parse import urlencode
 
+from app.services.util import truncate_to_full_word_with_ellipsis
+
 logger = get_logger()
 
 
@@ -61,16 +63,27 @@ def process_reader_feedback_alert_sms(
     log_data: ReadingLogEvent,
 ):
     logger.info("Sending sms alert")
+
     base_url = "https://hueybooks.com/reader-feedback/"
     data = {
         "event_id": str(event.id),
         "token": create_user_access_token(recipient),
     }
-    url = f"{base_url}?{urlencode(data)}"
+    encoded_url = f"{base_url}?{urlencode(data)}"
+
+    template_data = {
+        "name": reader.name,
+        "title": truncate_to_full_word_with_ellipsis(item.get_display_title(), 30),
+        "descriptor": log_data.descriptor,
+        "emoji": log_data.emoji,
+        "url": encoded_url,
+    }
+
+    template = "{name} read some of {title}, and described it as '{descriptor} {emoji}'.\nChoose a one-tap response: {url}\nHuey Books"
 
     sms_data = SendSmsPayload(
         to=recipient.phone,
-        body=f"{reader.name} read some of {item.get_display_title()}, and described it as '{log_data.descriptor} {log_data.emoji}'.\nChoose a one-tap response: {url}\nHuey Books",
+        body=template.format(**template_data),
         shorten_urls=True,
     )
 
