@@ -89,6 +89,15 @@ class CollectionItem(Base):
             else None
         )
 
+    def get_cover_url(self) -> str:
+        return (
+            self.edition.cover_url
+            if self.edition
+            else self.info.get("cover_image")
+            if self.info
+            else None
+        )
+
     def __repr__(self):
         return f"<CollectionItem '{self.get_display_title()}' @ '{self.collection.name}' ({self.copies_available}/{self.copies_total} available)>"
 

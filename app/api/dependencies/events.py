@@ -15,7 +15,7 @@ def get_event_by_id(
     event_id: str = Path(..., description="UUID string representing a unique event"),
     session: Session = Depends(get_session),
 ):
-    return crud.edition.get_or_404(db=session, id=event_id)
+    return crud.event.get_or_404(db=session, id=event_id)
 
 
 def get_and_validate_reading_log_event_by_id(

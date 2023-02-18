@@ -31,13 +31,15 @@ async def get_reading_log_event_for_support(
     session: Session = Depends(get_session),
 ):
     reader = event.user
-    item = crud.item.get_or_404(db=session, id=event.info["item_id"])
+    item = crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=event.info.get("collection_item_id")
+    )
 
     return ReadingLogEventDetail(
         reader_name=reader.name,
         book_title=item.get_display_title(),
-        cover_url=item.edition.cover_url or item.info.get("cover_image"),
-        **event.info.dict(),
+        cover_url=item.get_cover_url(),
+        **event.info,
     )
 
 

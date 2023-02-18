@@ -277,7 +277,7 @@ def process_reading_logged_event(session: Session, event: Event):
     logger.info("Processing reading logged event")
 
     try:
-        log_data = ReadingLogEvent.parse_obj(event.info.get("reading_logged"))
+        log_data = ReadingLogEvent.parse_obj(event.info)
     except ValidationError as e:
         logger.warning("Error parsing reading logged event", error=e, event=event)
         return

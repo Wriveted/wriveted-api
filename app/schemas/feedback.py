@@ -25,7 +25,7 @@ class ReadingLogEventDetail(BaseModel):
     reader_name: str
 
     book_title: str
-    cover_url: str
+    cover_url: str | None
 
     emoji: str
     descriptor: str
