@@ -1,9 +1,12 @@
+from urllib.parse import urlencode
+
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from app.api.dependencies.security import create_user_access_token
+
+from app import crud
 from app.models.collection_item import CollectionItem
-from app.models.reader import Reader
 from app.models.event import Event
+from app.models.reader import Reader
 from app.models.supporter import Supporter
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.schemas.events.event import EventCreateIn
@@ -11,10 +14,6 @@ from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import SendSmsPayload
 from app.schemas.sendgrid import SendGridEmailData
 from app.services.background_tasks import queue_background_task
-from app import crud
-
-from urllib.parse import urlencode
-
 from app.services.util import truncate_to_full_word_with_ellipsis
 
 logger = get_logger()
@@ -62,6 +61,9 @@ def process_reader_feedback_alert_sms(
     event: Event,
     log_data: ReadingLogEvent,
 ):
+    # cannot wrestle with the circular imports, and this is a background process anyway
+    from app.api.dependencies.security import create_user_access_token
+
     logger.info("Sending sms alert")
 
     base_url = "https://hueybooks.com/reader-feedback/"

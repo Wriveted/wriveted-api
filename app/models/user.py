@@ -68,7 +68,9 @@ class User(Base):
     # overall "name" string, most likely provided by SSO
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
+    info: Mapped[Dict] = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=True, default={}
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
@@ -96,7 +98,9 @@ class User(Base):
         order_by="desc(Event.timestamp)",
     )
 
-    newsletter: Mapped[bool] = mapped_column(Boolean(), nullable=False, server_default="false")
+    newsletter: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, server_default="false"
+    )
 
     # targeting the association instead of the users directly to
     # include the "active" status in any outputs
