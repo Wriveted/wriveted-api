@@ -37,5 +37,5 @@ class ReadingLogEventDetail(BaseModel):
 class ReadingLogEventFeedback(BaseModel):
     event_id: UUID
     emoji: constr(min_length=1, max_length=1)
-    comment: constr(min_length=5, max_length=100)
+    comment: constr(min_length=5, max_length=140)
     gif_url: AnyHttpUrl
