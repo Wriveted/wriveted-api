@@ -2,9 +2,10 @@ import enum
 
 from sqlalchemy import JSON, Enum, Integer, String
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.db.common_types import intpk
 from app.models.author_work_association import author_work_association_table
 from app.models.booklist_work_association import BookListItem
 from app.models.series_works_association import series_works_association_table
@@ -17,7 +18,7 @@ class WorkType(str, enum.Enum):
 
 class Work(Base):
 
-    id = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     type = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
 

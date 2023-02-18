@@ -46,7 +46,7 @@ async def get_editions(
         statement = crud.edition.get_all_query(session).where(
             Edition.title.match(query)
         )
-        return session.execute(statement).scalars().all()
+        return session.scalars(statement).all()
     else:
         return crud.edition.get_all(
             session, skip=pagination.skip, limit=pagination.limit
@@ -108,6 +108,7 @@ async def update_edition(
         default=False,
         description="Whether or not to *merge* the data in info dict, i.e. if adding new or updating existing individual fields (but want to keep previous data)",
     ),
+    account=Depends(get_current_active_user_or_service_account),
 ):
     update_data = edition_data.dict(exclude_unset=True)
 
@@ -133,22 +134,48 @@ async def update_edition(
                 )
     update_data["illustrators"] = new_illustrators
 
-    return crud.edition.update(
+    updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
     )
+    crud.event.create(
+        session,
+        title=f"Edition updated",
+        description=f"Made a change to '{updated_edition.title}'",
+        info={
+            "changes": edition_data.dict(exclude_unset=True, exclude_defaults=True),
+            "title": updated_edition.title,
+            "isbn": updated_edition.isbn,
+        },
+        account=account,
+    )
+    return updated_edition
 
 
 @router.post("/editions")
 async def bulk_add_editions(
-    bulk_edition_data: List[EditionCreateIn], session: Session = Depends(get_session)
+    bulk_edition_data: List[EditionCreateIn],
+    session: Session = Depends(get_session),
+    account=Depends(get_current_active_user_or_service_account),
 ):
     isbns, created, existing = await create_missing_editions(
         session, new_edition_data=bulk_edition_data
     )
+    msg = (
+        f"Bulk load of {len(isbns)} editions complete. Created {created} new editions."
+    )
 
-    return {
-        "msg": f"Bulk load of {len(isbns)} editions complete. Created {created} new editions."
-    }
+    crud.event.create(
+        session,
+        title=f"Bulk editions added",
+        description=msg,
+        info={
+            "created": created,
+            "processed": len(isbns),
+        },
+        account=account,
+    )
+
+    return {"msg": msg}
 
 
 @router.get("/editions/to_hydrate", response_model=List[EditionBrief])

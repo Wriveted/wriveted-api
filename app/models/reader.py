@@ -1,4 +1,7 @@
 from fastapi_permissions import All, Allow
+import uuid
+from typing import List, Optional
+
 from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
@@ -6,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.parent import Parent
 from app.models.supporter_reader_association import SupporterReaderAssociation
+from app.db.common_types import user_fk
 from app.models.user import User
 
 
@@ -17,26 +21,26 @@ class Reader(User):
 
     __mapper_args__ = {"polymorphic_identity": "reader"}
 
-    id = mapped_column(
+    id: Mapped[user_fk] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_reader_inherits_user", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    first_name = mapped_column(String, nullable=True)
-    last_name_initial = mapped_column(String, nullable=True)
+    first_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_name_initial: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
-    collection_item_activity_log = relationship(
+    collection_item_activity_log: Mapped[List["CollectionItemActivity"]] = relationship(
         "CollectionItemActivity", back_populates="reader"
     )
 
-    parent_id = mapped_column(
+    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID,
         ForeignKey("parents.id", name="fk_reader_parent"),
         nullable=True,
         index=True,
     )
-    parent: Mapped["Parent"] = relationship(
+    parent: Mapped[Optional["Parent"]] = relationship(
         "Parent", backref="children", foreign_keys=[parent_id]
     )
 

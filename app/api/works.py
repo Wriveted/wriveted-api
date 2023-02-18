@@ -177,15 +177,18 @@ async def create_work_with_editions(
         edition.work = work
         session.add(edition)
 
+    logger.debug(f"Associated {len(edition_ids)} editions with new work", work=work)
     crud.event.create(
         session,
         title=f"Work created",
-        description=f"Added a new work '{work.title}' with {len(edition_ids)} editions",
+        description=f"'{work.title}' created with {len(edition_ids)} editions",
         info={
             "work_id": work.id,
+            "title": work.title,
         },
         account=account,
     )
+    logger.debug(f"Added event and committed new work", work=work)
     return work
 
 
@@ -217,12 +220,23 @@ async def update_work(
                     exclude_unset=True, exclude_defaults=True
                 ),
                 "work_id": work_orm.id,
+                "labelset_id": labelset.id,
             },
             account=account,
         )
         del changes.labelset
     updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
     logger.info("Updated work", updated=updated)
+    crud.event.create(
+        session,
+        title=f"Work updated",
+        description=f"Made a change to '{work_orm.title}'",
+        info={
+            "changes": changes.dict(exclude_unset=True, exclude_defaults=True),
+            "work_id": work_orm.id,
+        },
+        account=account,
+    )
     return updated
 
 

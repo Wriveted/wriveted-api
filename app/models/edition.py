@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Dict, List, Optional
+
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -12,9 +15,10 @@ from sqlalchemy import (
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db import Base
+from app.db.common_types import intpk
 from app.models.collection_item import CollectionItem
 from app.models.illustrator_edition_association import (
     illustrator_edition_association_table,
@@ -22,64 +26,68 @@ from app.models.illustrator_edition_association import (
 
 
 class Edition(Base):
-    id = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    isbn = mapped_column(String(200), nullable=False, index=True, unique=True)
+    isbn: Mapped[str] = mapped_column(
+        String(200), nullable=False, index=True, unique=True
+    )
 
-    work_id = mapped_column(
+    work_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("works.id", name="fk_editions_works"),
         index=True,
         nullable=True,
     )
-    work = relationship("Work", back_populates="editions", lazy="joined")
+    work: Mapped[Optional["Work"]] = relationship(
+        "Work", back_populates="editions", lazy="joined"
+    )
 
     # this might be a localized title
-    edition_title = mapped_column(String(512), nullable=True)
-    edition_subtitle = mapped_column(String(512), nullable=True)
-    leading_article = mapped_column(String(20), nullable=True)
+    edition_title: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    edition_subtitle: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    leading_article: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     # TODO computed columns for display_title / sort_title based on the above
 
-    # computed column for edition_title coallesced with work title
-    title = mapped_column(
+    # "computed" column for edition_title coalesced with work title
+    title: Mapped[Optional[str]] = mapped_column(
         String(512),
         index=True,
         nullable=True,
     )
 
-    date_published = mapped_column(Integer, nullable=True)
+    date_published: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    cover_url = mapped_column(String(200), nullable=True)
+    cover_url: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
     # Info contains stuff like edition number, language
     # media (paperback/hardback/audiobook), number of pages.
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
-    authors = association_proxy("work", "authors")
+    authors: Mapped[List["Author"]] = association_proxy("work", "authors")
 
-    hydrated_at = mapped_column(DateTime, nullable=True)
-    hydrated = mapped_column(
+    hydrated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    hydrated: Mapped[bool] = mapped_column(
         Boolean,
         Computed("hydrated_at is not null"),
         index=True,
     )
 
-    illustrators = relationship(
+    illustrators: Mapped[List["Illustrator"]] = relationship(
         "Illustrator",
         secondary=illustrator_edition_association_table,
         back_populates="editions",
         lazy="subquery",
     )
 
-    collections = relationship(
+    collections: Mapped[List["Collection"]] = relationship(
         "Collection",
         secondary=CollectionItem.__table__,
         lazy="selectin",
         viewonly=True,
     )
-    collection_count = column_property(
+    collection_count: Mapped[int] = column_property(
         select(func.count(CollectionItem.id))
         .where(CollectionItem.edition_isbn == isbn)
         .correlate_except(CollectionItem)

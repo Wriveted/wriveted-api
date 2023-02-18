@@ -1,12 +1,13 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import List, Optional
 
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import column_property, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db import Base
 from app.models.booklist_work_association import BookListItem
@@ -30,7 +31,7 @@ class BookList(Base):
 
     __tablename__ = "book_lists"
 
-    id = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
@@ -40,8 +41,8 @@ class BookList(Base):
         nullable=False,
     )
 
-    name = mapped_column(String(200), nullable=False, index=True)
-    type = mapped_column(
+    name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    type: Mapped[ListType] = mapped_column(
         Enum(ListType, name="enum_book_list_type"), nullable=False, index=True
     )
     # sharing = mapped_column(
@@ -49,11 +50,12 @@ class BookList(Base):
     #     default=ListSharingOptions.PRIVATE
     # )
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
-    created_at = mapped_column(
+    info: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON))
+
+    created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
@@ -61,7 +63,7 @@ class BookList(Base):
         nullable=False,
     )
 
-    items = relationship(
+    items: Mapped[List["BookListItem"]] = relationship(
         "BookListItem",
         lazy="dynamic",
         cascade="all, delete, delete-orphan",
@@ -70,32 +72,35 @@ class BookList(Base):
         order_by="asc(BookListItem.order_id)",
     )
 
-    book_count = column_property(
+    book_count: Mapped[int] = column_property(
         select(func.count(BookListItem.work_id))
         .where(BookListItem.booklist_id == id)
         .correlate_except(BookListItem)
         .scalar_subquery()
     )
 
-    works = relationship("Work", secondary=BookListItem.__tablename__, viewonly=True)
+    works: Mapped[List["Work"]] = relationship(
+        "Work", secondary=BookListItem.__tablename__, viewonly=True
+    )
 
-    school_id = mapped_column(
+    school_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("schools.id", name="fk_booklist_school", ondelete="CASCADE"),
         nullable=True,
     )
-    school = relationship(
+
+    school: Mapped[Optional["School"]] = relationship(
         "School", back_populates="booklists", foreign_keys=[school_id]
     )
 
-    user_id = mapped_column(
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", name="fk_booklist_user", ondelete="CASCADE"),
         nullable=True,
     )
-    user = relationship(
+    user: Mapped[Optional["User"]] = relationship(
         "User", back_populates="booklists", foreign_keys=[user_id], lazy="joined"
     )
 
-    service_account_id = mapped_column(
+    service_account_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(
             "service_accounts.id",
             name="fk_booklist_service_account",
@@ -103,7 +108,7 @@ class BookList(Base):
         ),
         nullable=True,
     )
-    service_account = relationship(
+    service_account: Mapped["ServiceAccount"] = relationship(
         "ServiceAccount", back_populates="booklists", foreign_keys=[service_account_id]
     )
 

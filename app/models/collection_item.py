@@ -1,10 +1,12 @@
 from datetime import datetime
+from typing import Dict, List, Optional
+from uuid import UUID
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
@@ -12,9 +14,11 @@ from app.db import Base
 class CollectionItem(Base):
     __tablename__ = "collection_items"
 
-    id = mapped_column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
+    )
 
-    edition_isbn = mapped_column(
+    edition_isbn: Mapped[Optional[str]] = mapped_column(
         ForeignKey(
             "editions.isbn",
             name="fk_collection_items_edition_isbn",
@@ -23,12 +27,14 @@ class CollectionItem(Base):
         index=True,
         nullable=True,
     )
-    edition = relationship("Edition", lazy="joined", passive_deletes=True)
+    edition: Mapped[Optional["Edition"]] = relationship(
+        "Edition", lazy="joined", passive_deletes=True
+    )
     # Proxy the work from the edition
-    work = association_proxy("edition", "work")
-    work_id = association_proxy("edition", "work_id")
+    work: Mapped[Optional["Work"]] = association_proxy("edition", "work")
+    work_id: Mapped[Optional[int]] = association_proxy("edition", "work_id")
 
-    collection_id = mapped_column(
+    collection_id: Mapped[UUID] = mapped_column(
         ForeignKey(
             "collections.id",
             name="fk_collection_items_collection_id",
@@ -38,7 +44,7 @@ class CollectionItem(Base):
         index=True,
         nullable=False,
     )
-    collection = relationship(
+    collection: Mapped["Collection"] = relationship(
         "Collection",
         back_populates="items",
         foreign_keys=[collection_id],
@@ -46,21 +52,21 @@ class CollectionItem(Base):
         passive_deletes=True,
     )
 
-    activity_log = relationship(
+    activity_log: Mapped[List["CollectionItemActivity"]] = relationship(
         "CollectionItemActivity",
         back_populates="collection_item",
         cascade="all, delete-orphan",
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
 
-    copies_total = mapped_column(Integer, default=1, nullable=False)
-    copies_available = mapped_column(Integer, default=1, nullable=False)
+    copies_total: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    copies_available: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
-    created_at = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    updated_at = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,

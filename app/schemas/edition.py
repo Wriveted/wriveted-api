@@ -7,6 +7,7 @@ from pydantic import AnyHttpUrl, BaseModel, validator
 from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
+from app.schemas.link import LinkBrief
 
 
 class Genre(BaseModel):
@@ -42,6 +43,8 @@ class EditionInfo(BaseModel):
 
     medium_tags: Optional[list[str]]
     image_flag: Optional[bool]
+
+    links: Optional[list[LinkBrief]]
 
     other: Optional[dict]
 
