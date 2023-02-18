@@ -33,9 +33,9 @@ google-cloud-storage = "^2.6.0"
 pillow = "^9.4.0"
 stripe = "^5.0.0"
 slack-sdk = "^3.19.5"
-twilio = "^7.16.3"
 phonenumbers = "^8.13.6"
 alembic-utils = "^0.8.1"
+twilio = "^7.16.3"
 
 
 [tool.poetry.dev-dependencies]

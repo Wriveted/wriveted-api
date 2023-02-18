@@ -1,8 +1,8 @@
 """add supporter table and relationships
 
-Revision ID: 285383bc2a2c
-Revises: f99ef8f753ac
-Create Date: 2023-02-18 14:24:27.026450
+Revision ID: 40c5b7fae8e1
+Revises: fd903b0deff7
+Create Date: 2023-02-18 21:41:11.637712
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "285383bc2a2c"
-down_revision = "f99ef8f753ac"
+revision = "40c5b7fae8e1"
+down_revision = "fd903b0deff7"
 branch_labels = None
 depends_on = None
 

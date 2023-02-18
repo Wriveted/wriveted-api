@@ -1,8 +1,8 @@
-"""Add supporter to user enum
+"""add supporter to user enum
 
-Revision ID: f99ef8f753ac
-Revises: 3cc9f3831b7b
-Create Date: 2023-02-16 17:16:40.035250
+Revision ID: fd903b0deff7
+Revises: 6af537b94a8a
+Create Date: 2023-02-18 21:36:22.634027
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "f99ef8f753ac"
-down_revision = "3cc9f3831b7b"
+revision = "fd903b0deff7"
+down_revision = "6af537b94a8a"
 branch_labels = None
 depends_on = None
 
