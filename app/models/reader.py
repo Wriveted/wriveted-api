@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+from app.models.parent import Parent
+
 if TYPE_CHECKING:
     from app.models.supporter import Supporter
 
@@ -41,10 +43,10 @@ class Reader(User):
     )
     parent = relationship("Parent", backref="children", foreign_keys=[parent_id])
 
-    supporters: Mapped[list[Supporter]] = relationship(
-        "Supporter",
+    supporters: Mapped[list[Supporter | Parent]] = relationship(
+        "User",
         secondary=SupporterReaderAssociation.__table__,
-        back_populates="readers",
+        backref="supporting",
     )
 
     # reading_ability, age, last_visited, etc

@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import JSON, Boolean, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import mapped_column, relationship
 
 from app.db import Base
@@ -52,10 +53,13 @@ class User(Base):
 
     email = mapped_column(String, unique=True, index=True, nullable=True)
 
+    @hybrid_property
+    def phone(self):
+        return self.info.get("phone")
+
     # overall "name" string, most likely provided by SSO
     name = mapped_column(String, nullable=False)
 
-    # Social stuff: Twitter, Goodreads
     info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
