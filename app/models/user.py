@@ -114,7 +114,7 @@ class User(Base):
 
         for association in self.supportee_associations:
             if association.is_active:
-                principals.append(f"supporter:{association.id}")
+                principals.append(f"supporter:{association.reader_id}")
 
         return principals
 
