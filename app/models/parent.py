@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, Optional
 
 from fastapi_permissions import All, Allow
@@ -6,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.common_types import user_fk
 from app.models.user import User, UserAccountType
 
 
@@ -15,7 +15,7 @@ class Parent(User):
     A concrete Parent of Students or PublicReaders.
     """
 
-    id: Mapped[user_fk] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_parent_inherits_user", ondelete="CASCADE"),
         primary_key=True,

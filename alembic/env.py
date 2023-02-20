@@ -8,7 +8,7 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_grant_table import PGGrantTable
 from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import register_entities
-from sqlalchemy import create_engine, engine_from_config, pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from alembic.ddl import DefaultImpl
@@ -20,12 +20,6 @@ config = context.config
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-# target_metadata = None
 
 # Add project root directory to python path
 sys.path.insert(
@@ -70,17 +64,20 @@ def get_url():
     return os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
 
 
-def include_object(object, name, type_, reflected, compare_to) -> bool:
-    if isinstance(object, (PGFunction, PGTrigger)):
-        return True
+# def include_object(object, name, type_, reflected, compare_to) -> bool:
+#     if type_ == "table":
+#         return object.schema == "public"
+#
+#     if isinstance(object, (PGFunction, PGTrigger)):
+#         return True
+#
+#     if isinstance(object, PGGrantTable):
+#         return False
+#
+#     return True
 
-    # Can also bring Grants and Views under alembic:
-    # if isinstance(object, PGGrantTable):
 
-    return False
-
-
-def run_migrations_offline():
+def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
     This configures the context with just a URL
@@ -97,8 +94,8 @@ def run_migrations_offline():
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        compare_type=True,
-        include_object=include_object,
+        # compare_type=True,
+        # include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -126,8 +123,8 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,
-            include_object=include_object,
+            # compare_type=True,
+            # include_object=include_object,
         )
 
         with context.begin_transaction():

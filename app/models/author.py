@@ -27,7 +27,7 @@ class Author(Base):
     )
 
     # TODO check if can we get better typed JSON/dicts
-    info: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSON))
 
     books: Mapped[List["Work"]] = relationship(
         "Work", secondary=author_work_association_table, back_populates="authors"
