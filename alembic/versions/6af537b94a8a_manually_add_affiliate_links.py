@@ -115,5 +115,5 @@ def downgrade():
                 '[]'::jsonb)
             where isbn in ('%s');
         """
-        % isbns
+        % ",".join(isbns)
     )

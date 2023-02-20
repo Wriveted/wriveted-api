@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict
 
 from fastapi_permissions import All, Allow
@@ -6,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.common_types import user_fk
 from app.models.user import User, UserAccountType
 
 
@@ -17,7 +17,7 @@ class WrivetedAdmin(User):
 
     __tablename__ = "wriveted_admins"
 
-    id: Mapped[user_fk] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "users.id", name="fk_wriveted_admin_inherits_user", ondelete="CASCADE"

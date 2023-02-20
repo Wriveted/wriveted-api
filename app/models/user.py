@@ -9,7 +9,6 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
-from app.db.common_types import user_fk
 
 
 class UserAccountType(str, enum.Enum):
@@ -29,7 +28,7 @@ class User(Base):
     Note: only functionally abstract (has db tables for ORM purposes, but no meaningful instantiation).
     """
 
-    id: Mapped[user_fk] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         unique=True,
