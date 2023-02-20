@@ -8,7 +8,7 @@ from app.models.collection_item import CollectionItem
 from app.models.event import Event
 from app.models.reader import Reader
 from app.models.supporter import Supporter
-from app.models.supporter_reader_association import SupporterReaderAssociation
+from app.models.user import User
 from app.schemas.events.event import EventCreateIn
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import SendSmsPayload
@@ -17,6 +17,20 @@ from app.services.background_tasks import queue_background_task
 from app.services.util import truncate_to_full_word_with_ellipsis
 
 logger = get_logger()
+
+
+def generate_supporter_feedback_url(supporter: User, event: Event):
+    # cannot wrestle with the circular imports, and this is a background process anyway
+    from app.api.dependencies.security import create_user_access_token
+
+    base_url = "https://hueybooks.com/reader-feedback/"
+    data = {
+        "event_id": str(event.id),
+        "token": create_user_access_token(supporter),
+    }
+    encoded_url = f"{base_url}?{urlencode(data)}"
+
+    return encoded_url
 
 
 def process_supporter_feedback_submission(
@@ -33,8 +47,10 @@ def process_reader_feedback_alert_email(
     item: CollectionItem,
     event: Event,
     log_data: ReadingLogEvent,
+    encoded_url: str,
 ):
     logger.info("Sending email alert")
+
     email_data = SendGridEmailData(
         to_emails=[recipient.email],
         subject=f"{reader.name} has done some reading!",
@@ -46,6 +62,7 @@ def process_reader_feedback_alert_email(
             "token": "The email should contain a magic link, so we need to include a token for the parent or reader",
             "emoji": log_data.emoji,
             "descriptor": log_data.descriptor,
+            "encoded_url": encoded_url,
         },
         template_id="xxx",
     )
@@ -58,20 +75,10 @@ def process_reader_feedback_alert_sms(
     recipient: Supporter,
     reader: Reader,
     item: CollectionItem,
-    event: Event,
     log_data: ReadingLogEvent,
+    encoded_url: str,
 ):
-    # cannot wrestle with the circular imports, and this is a background process anyway
-    from app.api.dependencies.security import create_user_access_token
-
     logger.info("Sending sms alert")
-
-    base_url = "https://hueybooks.com/reader-feedback/"
-    data = {
-        "event_id": str(event.id),
-        "token": create_user_access_token(recipient),
-    }
-    encoded_url = f"{base_url}?{urlencode(data)}"
 
     template_data = {
         "name": reader.name,
@@ -104,15 +111,18 @@ def process_reader_feedback_alerts(
 ):
     for association in reader.supporter_associations:
         if association.is_active:
-            recipient = association.supporter
-            if recipient.email:
+            recipient: User = association.supporter
+
+            encoded_url = generate_supporter_feedback_url(recipient, event)
+
+            if association.allow_email and recipient.email:
                 process_reader_feedback_alert_email(
-                    recipient, reader, item, event, log_data
+                    recipient, reader, item, event, log_data, encoded_url
                 )
 
-            elif recipient.phone:
+            if association.allow_phone and recipient.phone:
                 process_reader_feedback_alert_sms(
-                    recipient, reader, item, event, log_data
+                    recipient, reader, item, log_data, encoded_url
                 )
 
             else:
