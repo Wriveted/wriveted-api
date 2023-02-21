@@ -106,6 +106,7 @@ class User(Base):
     supportee_associations: Mapped[list[SupporterReaderAssociation]] = relationship(
         SupporterReaderAssociation,
         back_populates="supporter",
+        lazy="dynamic",
     )
 
     def get_principals(self):

@@ -45,7 +45,6 @@ def process_reader_feedback_alert_email(
     recipient: Supporter,
     reader: Reader,
     item: CollectionItem,
-    event: Event,
     log_data: ReadingLogEvent,
     encoded_url: str,
 ):
@@ -55,19 +54,17 @@ def process_reader_feedback_alert_email(
         to_emails=[recipient.email],
         subject=f"{reader.name} has done some reading!",
         template_data={
-            "nickname": recipient.name,
+            "supporter_name": recipient.name,
             "reader_name": reader.name,
             "book_title": item.get_display_title(),
-            "event_id": str(event.id),
-            "token": "The email should contain a magic link, so we need to include a token for the parent or reader",
             "emoji": log_data.emoji,
             "descriptor": log_data.descriptor,
             "encoded_url": encoded_url,
         },
-        template_id="xxx",
+        template_id="d-841938d74d9142509af934005ad6e3ed",
     )
     queue_background_task(
-        "send-email", {"email_data": email_data, "user_id": str(reader.id)}
+        "send-email", {"email_data": email_data.dict(), "user_id": str(reader.id)}
     )
 
 

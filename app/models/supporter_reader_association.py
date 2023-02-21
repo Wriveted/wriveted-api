@@ -1,6 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey
+from sqlalchemy import Boolean, ForeignKey, String
 from app.db import Base
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 
 class SupporterReaderAssociation(Base):
@@ -17,6 +17,7 @@ class SupporterReaderAssociation(Base):
         back_populates="supportee_associations",
         foreign_keys=[supporter_id],
     )
+    supporter_nickname: Mapped[str] = mapped_column(String, nullable=False)
 
     reader_id = mapped_column(
         "reader_id",

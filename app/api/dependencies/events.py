@@ -1,12 +1,11 @@
 from fastapi import Depends, HTTPException, Path
 from sqlalchemy.orm import Session
-from app.api.dependencies.security import get_current_active_supporter
+from app.api.dependencies.security import get_current_active_user
 
 from app.db.session import get_session
 from app import crud
-from app.models.parent import Parent
-from app.models.supporter import Supporter
 from app.models.supporter_reader_association import SupporterReaderAssociation
+from app.models.user import User
 from app.permissions import Permission
 from starlette import status
 
@@ -20,7 +19,7 @@ def get_event_by_id(
 
 def get_and_validate_reading_log_event_by_id(
     event=Permission("read", get_event_by_id),
-    supporter: Parent | Supporter = Depends(get_current_active_supporter),
+    supporter: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ):
     if not event.title.startswith("Reader timeline event:"):
@@ -47,7 +46,7 @@ def get_and_validate_reading_log_event_by_id(
     # check if feedback for the event has already been submitted by this supporter
     if crud.event.get_all_with_optional_filters(
         session,
-        query_string="Reading Log Feedback: Submitted",
+        query_string="Supporter encouragement: Reading feedback sent",
         user=supporter,
         info_jsonpath_match=f'($.event_id == "{event.id}")',
     ):
