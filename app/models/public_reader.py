@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict
 
 from fastapi_permissions import All, Allow
@@ -6,7 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.common_types import user_fk
 from app.models.reader import Reader
 from app.models.user import UserAccountType
 
@@ -18,7 +18,7 @@ class PublicReader(Reader):
 
     __tablename__ = "public_readers"
 
-    id: Mapped[user_fk] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "readers.id", name="fk_public_reader_inherits_reader", ondelete="CASCADE"

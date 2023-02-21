@@ -58,7 +58,7 @@ class CollectionItem(Base):
         cascade="all, delete-orphan",
     )
 
-    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
 
     copies_total: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     copies_available: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

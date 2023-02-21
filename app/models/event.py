@@ -11,7 +11,6 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
-from app.db.common_types import user_fk
 
 
 class EventLevel(str, enum.Enum):
@@ -58,7 +57,7 @@ class Event(Base):
         "School", back_populates="events", foreign_keys=[school_id]
     )
 
-    user_id: Mapped[Optional[user_fk]] = mapped_column(
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", name="fk_event_user"), nullable=True
     )
     user: Mapped[Optional["User"]] = relationship(

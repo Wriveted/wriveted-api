@@ -7,9 +7,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.parent import Parent
-from app.models.supporter_reader_association import SupporterReaderAssociation
-from app.db.common_types import user_fk
 from app.models.user import User
 
 
@@ -21,7 +18,7 @@ class Reader(User):
 
     __mapper_args__ = {"polymorphic_identity": "reader"}
 
-    id: Mapped[user_fk] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", name="fk_reader_inherits_user", ondelete="CASCADE"),
         primary_key=True,
@@ -46,8 +43,8 @@ class Reader(User):
 
     # targeting the association instead of the users directly to
     # include the "active" status in any outputs
-    supporter_associations: Mapped[list[SupporterReaderAssociation]] = relationship(
-        SupporterReaderAssociation,
+    supporter_associations: Mapped[list["SupporterReaderAssociation"]] = relationship(
+        "SupporterReaderAssociation",
         back_populates="reader",
     )
 

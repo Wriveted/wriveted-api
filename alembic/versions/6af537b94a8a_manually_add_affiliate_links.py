@@ -106,7 +106,6 @@ def downgrade():
         "9781921564925",
         "9781743628638",
     ]
-    placeholders = ",".join(["%s"] * len(isbns))
     op.execute(
         """
         update editions
@@ -115,5 +114,5 @@ def downgrade():
                 '[]'::jsonb)
             where isbn in ('%s');
         """
-        % placeholders
+        % ",".join(isbns)
     )

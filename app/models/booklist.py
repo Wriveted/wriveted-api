@@ -50,7 +50,7 @@ class BookList(Base):
     #     default=ListSharingOptions.PRIVATE
     # )
 
-    info: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSON))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()

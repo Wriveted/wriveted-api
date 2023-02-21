@@ -10,7 +10,6 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db import Base
-from app.db.common_types import user_fk
 from app.models.collection_item import CollectionItem
 
 
@@ -55,14 +54,14 @@ class Collection(Base):
         "School", back_populates="collection"
     )
 
-    user_id: Mapped[user_fk] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", name="fk_user_collection", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
     user: Mapped[Optional["User"]] = relationship("User", back_populates="collection")
 
-    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )

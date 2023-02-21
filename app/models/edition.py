@@ -62,7 +62,7 @@ class Edition(Base):
 
     # Info contains stuff like edition number, language
     # media (paperback/hardback/audiobook), number of pages.
-    info: Mapped[Dict] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
 
     # Proxy the authors from the related work
     authors: Mapped[List["Author"]] = association_proxy("work", "authors")
