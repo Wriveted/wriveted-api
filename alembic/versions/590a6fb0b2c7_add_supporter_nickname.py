@@ -1,7 +1,7 @@
 """add supporter nickname
 
 Revision ID: 590a6fb0b2c7
-Revises: 1b27c6358f8e
+Revises: c82cfb47da40
 Create Date: 2023-02-21 16:31:05.873767
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy import text as sql_text
 
 # revision identifiers, used by Alembic.
 revision = "590a6fb0b2c7"
-down_revision = "1b27c6358f8e"
+down_revision = "c82cfb47da40"
 branch_labels = None
 depends_on = None
 
