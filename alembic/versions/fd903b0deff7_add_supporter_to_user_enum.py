@@ -1,7 +1,7 @@
 """add supporter to user enum
 
 Revision ID: fd903b0deff7
-Revises: 6af537b94a8a
+Revises: 4f7496e524b6
 Create Date: 2023-02-18 21:36:22.634027
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "fd903b0deff7"
-down_revision = "6af537b94a8a"
+down_revision = "4f7496e524b6"
 branch_labels = None
 depends_on = None
 
