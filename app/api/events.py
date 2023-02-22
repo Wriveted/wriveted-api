@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Union
 from uuid import UUID
 
@@ -99,6 +100,10 @@ async def get_events(
         description="Filter events using a JSONPath over the info field. The resulting value must be a boolean expression.",
         example='($.reading_logged.emoji == "🤪")',
     ),
+    since: datetime = Query(
+        None,
+        description="Filter events that occurred after the provided datetime (format RFC 3339)",
+    ),
     pagination: PaginatedQueryParams = Depends(),
     account: Union[ServiceAccount, User] = Depends(
         get_current_active_user_or_service_account
@@ -170,6 +175,7 @@ async def get_events(
             user=user,
             service_account=service_account,
             info_jsonpath_match=info_jsonpath_match,
+            since=since,
             skip=pagination.skip,
             limit=pagination.limit,
         )

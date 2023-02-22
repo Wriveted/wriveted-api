@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Union
 
 from sqlalchemy import cast, func
@@ -65,6 +66,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         user: User | None = None,
         service_account: ServiceAccount | None = None,
         info_jsonpath_match: str = None,
+        since: datetime | None = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
@@ -101,6 +103,8 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                     True
                 )
             )
+        if since is not None:
+            event_query = event_query.where(Event.timestamp >= since)
 
         return event_query
 
@@ -114,6 +118,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         user: User | None = None,
         service_account: ServiceAccount | None = None,
         info_jsonpath_match: str | None = None,
+        since: datetime | None = None,
         skip: int = 0,
         limit: int = 100,
     ):
@@ -125,6 +130,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             "user": user,
             "service_account": service_account,
             "info_jsonpath_match": info_jsonpath_match,
+            "since": since,
         }
         logger.debug("Querying events", **optional_filters)
         query = self.apply_pagination(
