@@ -114,7 +114,7 @@ def process_reader_feedback_alerts(
         if association.is_active and association.allow_email or association.allow_phone
     ]
     logger.info(
-        f"About to alert {active_associations.len} Supporters",
+        f"About to alert {len(active_associations)} Supporters",
         reader=reader,
     )
     for association in active_associations:
