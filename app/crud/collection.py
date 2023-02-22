@@ -293,7 +293,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         ).returning(CollectionItem.id)
 
         try:
-            logger.debug("Insert query", stmt=stmt)
+            logger.debug("Insert query", stmt=str(stmt))
             result = db.execute(
                 stmt,
                 [new_orm_item_data],

@@ -491,7 +491,9 @@ async def update_collection(
             description=f"Updates made to collection",
             info={
                 "collection_id": str(collection.id),
-                "updated_count": len(collection_update_data.items),
+                "updated_count": 0
+                if collection_update_data.items is None
+                else len(collection_update_data.items),
             },
             school=collection.school,
             account=account,
