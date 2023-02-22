@@ -136,7 +136,7 @@ def process_reader_feedback_alerts(
             session,
             EventCreateIn(
                 title="Alert Sent: Reading Logged",
-                level=EventLevel.INFO,
+                level=EventLevel.NORMAL,
                 description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
                 user_id=reader.id,
                 info={
