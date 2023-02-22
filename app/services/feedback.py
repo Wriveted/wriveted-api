@@ -5,7 +5,7 @@ from structlog import get_logger
 
 from app import crud
 from app.models.collection_item import CollectionItem
-from app.models.event import Event
+from app.models.event import Event, EventLevel
 from app.models.reader import Reader
 from app.models.supporter import Supporter
 from app.models.user import User
@@ -136,7 +136,7 @@ def process_reader_feedback_alerts(
             session,
             EventCreateIn(
                 title="Alert Sent: Reading Logged",
-                level="info",
+                level=EventLevel.INFO,
                 description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
                 user_id=reader.id,
                 info={
