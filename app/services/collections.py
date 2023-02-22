@@ -178,7 +178,7 @@ def reset_collection(session, collection: Collection, account):
     """
     Reset a collection to its initial state, removing all items
     """
-    crud.collection.delete_all_items(db=session, db_obj=collection)
+    crud.collection.delete_all_items(db=session, db_obj=collection, commit=False)
 
     crud.event.create(
         session=session,

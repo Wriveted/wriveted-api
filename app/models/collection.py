@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
@@ -30,9 +29,6 @@ class Collection(Base):
     items: Mapped[List["CollectionItem"]] = relationship(
         "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
     )
-
-    editions: Mapped[List["Editions"]] = association_proxy("items", "edition")
-    works: Mapped[List["Work"]] = association_proxy("items", "work")
 
     book_count: Mapped[int] = column_property(
         select(func.count(CollectionItem.id))
