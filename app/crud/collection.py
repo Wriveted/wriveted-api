@@ -242,6 +242,38 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             db.commit()
             db.refresh(collection_orm_object)
 
+    def add_items_to_collection(
+        self,
+        db: Session,
+        *,
+        collection_orm_object: Collection,
+        items: list[CollectionItemUpdate | CollectionItemCreateIn],
+        commit: bool = True,
+    ):
+        item_data = [
+            {
+                "collection_id": collection_orm_object.id,
+                "edition_isbn": item.edition_isbn,
+                "copies_available": item.copies_available or 1,
+                "copies_total": item.copies_total or 1,
+                "info": item.info or {},
+            }
+            for item in items
+        ]
+
+        stmt = insert(CollectionItem).on_conflict_do_nothing(
+            constraint="unique_editions_per_collection"
+        )
+
+        try:
+            db.execute(stmt, item_data)
+        except IntegrityError as e:
+            logger.warning("Integrity Error while replacing collection")
+            raise e
+
+        if commit:
+            db.commit()
+
     def add_item_to_collection(
         self,
         db: Session,
