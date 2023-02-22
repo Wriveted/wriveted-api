@@ -23,7 +23,7 @@ def generate_supporter_feedback_url(supporter: User, event: Event):
     # cannot wrestle with the circular imports, and this is a background process anyway
     from app.api.dependencies.security import create_user_access_token
 
-    base_url = "https://hueybooks.com/reader-feedback/"
+    base_url = "https://huey-books--pr32-feature-supporter-fe-chu7p98q.web.app/reader-feedback/"
     data = {
         "event_id": str(event.id),
         "token": create_user_access_token(supporter),
@@ -53,6 +53,7 @@ def process_reader_feedback_alert_email(
     email_data = SendGridEmailData(
         to_emails=[recipient.email],
         subject=f"{reader.name} has done some reading!",
+        from_name="Huey Books",
         template_data={
             "supporter_name": recipient.name,
             "reader_name": reader.name,
@@ -63,6 +64,7 @@ def process_reader_feedback_alert_email(
         },
         template_id="d-841938d74d9142509af934005ad6e3ed",
     )
+
     queue_background_task(
         "send-email", {"email_data": email_data.dict(), "user_id": str(reader.id)}
     )
@@ -111,20 +113,23 @@ def process_reader_feedback_alerts(
             recipient: User = association.supporter
 
             encoded_url = generate_supporter_feedback_url(recipient, event)
+            sent = False
 
             if association.allow_email and recipient.email:
                 process_reader_feedback_alert_email(
-                    recipient, reader, item, event, log_data, encoded_url
+                    recipient, reader, item, log_data, encoded_url
                 )
+                sent = True
 
             if association.allow_phone and recipient.phone:
                 process_reader_feedback_alert_sms(
                     recipient, reader, item, log_data, encoded_url
                 )
+                sent = True
 
-            else:
+            if not sent:
                 logger.warning(
-                    "Supporter has no email or phone number",
+                    "Supporter has no active email or phone number to accept alerts",
                     supporter_id=recipient.id,
                     reader_id=reader.id,
                 )
