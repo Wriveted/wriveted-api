@@ -134,15 +134,11 @@ def process_reader_feedback_alerts(
 
         crud.event.create(
             session,
-            EventCreateIn(
-                title="Alert Sent: Reading Logged",
-                level=EventLevel.NORMAL,
-                description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
-                user_id=reader.id,
-                info={
-                    "type": "Reading Log Feedback: Alert Sent",
-                    "recipient": recipient,
-                    "event_id": str(event.id),
-                },
-            ),
+            title="Alert Sent: Reading Logged",
+            level=EventLevel.NORMAL,
+            description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
+            account=reader,
+            info={
+                "event_id": str(event.id),
+            },
         )
