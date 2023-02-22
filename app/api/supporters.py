@@ -55,11 +55,40 @@ async def submit_reader_feedback(
     supporter: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ):
+    # crud.event.create(
+    #     session=session,
+    #     title="Supporter encouragement: Reading feedback sent",
+    #     description=f"Supporter {supporter.name} sent feedback to reader {event.user.name}",
+    #     level=EventLevel.NORMAL,
+    #     account=supporter,
+    #     info=feedback.dict(),
+    # )
+
+    # create a "notification" event for the reader
+    item = crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=event.info.get("collection_item_id")
+    )
+
+    reader_association = supporter.supportee_associations.filter(
+        SupporterReaderAssociation.reader_id == event.user.id
+    ).first()
+
     return crud.event.create(
-        session=session,
-        title="Supporter encouragement: Reading feedback sent",
-        description=f"Supporter {supporter.name} sent feedback to reader {event.user.name}",
+        session,
+        title="Notification: Supporter feedback received",
+        description=f"Reader {event.user.name} received encouragement from {supporter.name}",
         level=EventLevel.NORMAL,
-        account=supporter,
-        info=feedback.dict(),
+        info={
+            "event_id": str(event.id),
+            "notification_title": f"{reader_association.supporter_nickname} sent you a message!",
+            "notification_type": "supporter_feedback",
+            "notification_extra": {
+                "image": item.get_cover_url(),
+                "message": f"For reading {item.get_display_title()}",
+            },
+            "notification_body_text": feedback.comment,
+            "notification_body_image": feedback.gif_url,
+            "notification_from_name": reader_association.supporter_nickname,
+        },
+        account=event.user,
     )

@@ -203,8 +203,6 @@ def process_events(event_id):
                 return {"msg": "ok"}
             case "Reader timeline event: Reading logged":
                 return process_reading_logged_event(session, event)
-            case "Supporter encouragement: Reading feedback sent":
-                return process_supporter_reading_feedback_event(session, event)
             # case "Supporter encouragement: Achievement feedback sent":
             #     # e.g. "Well done for reading 10 books this year!"
             #     # (not for a specific reading event, but for a milestone or other automated achievement)
