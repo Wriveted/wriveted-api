@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import asc, delete, func, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased
 from structlog import get_logger
@@ -261,7 +261,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             for item in items
         ]
 
-        stmt = insert(CollectionItem).on_conflict_do_nothing(
+        stmt = pg_upsert(CollectionItem).on_conflict_do_nothing(
             constraint="unique_editions_per_collection"
         )
 
@@ -309,28 +309,31 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 )
 
         new_orm_item_data = dict(
-            collection_id=collection_orm_object.id,
+            collection_id=str(collection_orm_object.id),
             edition_isbn=isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
             info=info_dict,
         )
 
+        # Supposed to be adding new items, but if the item exists
+        # we just update it.
         stmt = (
-            insert(CollectionItem).on_conflict_do_nothing(
-                constraint="unique_editions_per_collection"
+            pg_upsert(CollectionItem).on_conflict_do_update(
+                constraint="unique_editions_per_collection",
+                set_=new_orm_item_data,
             )
             if ignore_conflicts
-            else insert(CollectionItem)
-        ).returning(CollectionItem.id)
+            else pg_upsert(CollectionItem)
+        )
 
         try:
-
             result = db.execute(
-                stmt,
+                stmt.returning(CollectionItem.id),
                 [new_orm_item_data],
             )
             new_id = result.scalar()
+
         except IntegrityError as e:
             raise IntegrityError(
                 statement=f"Isbn {isbn} already exists in collection",
