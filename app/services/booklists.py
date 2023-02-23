@@ -113,6 +113,7 @@ def generate_reading_pathway_lists(
             account=crud.user.get(session, user_id),
             commit=commit,
             info={
+                "attributes": attributes.dict(),
                 "read_now_count": len(list(read_now_orm.items)),
                 "read_next_count": len(list(read_next_orm.items)),
             },
