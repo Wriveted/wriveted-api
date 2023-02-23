@@ -27,15 +27,3 @@ class Supporter(User):
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
         return f"<Supporter {self.name} - {active}>"
-
-    def __acl__(self):
-        """defines who can do what to the instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-        If a role is not listed (like "role:user") the access will be
-        automatically denied.
-        (Deny, Everyone, All) is automatically appended at the end.
-        """
-        acls = super().__acl__()
-
-        return acls

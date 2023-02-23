@@ -36,18 +36,3 @@ class PublicReader(Reader):
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
         return f"<Public Reader {self.name} - {active}>"
-
-    def get_principals(self):
-        principals = super().get_principals()
-        return principals
-
-    def __acl__(self):
-        """defines who can do what to the instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-        If a role is not listed (like "role:user") the access will be
-        automatically denied.
-        (Deny, Everyone, All) is automatically appended at the end.
-        """
-        acl = super().__acl__()
-        return acl

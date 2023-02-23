@@ -40,14 +40,3 @@ class WrivetedAdmin(User):
         principals = super().get_principals()
         principals.append("role:admin")
         return principals
-
-    def __acl__(self):
-        """defines who can do what to the instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-        If a role is not listed (like "role:user") the access will be
-        automatically denied.
-        (Deny, Everyone, All) is automatically appended at the end.
-        """
-        acl = super().__acl__()
-        return acl
