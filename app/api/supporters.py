@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 
-@router.get("/supporters/event/{event_id}", response_model=ReadingLogEventDetail)
+@router.get("/feedback/{event_id}", response_model=ReadingLogEventDetail)
 async def get_reading_log_event_for_support(
     event: Event = Depends(get_and_validate_reading_log_event_by_id),
     supporter: User = Depends(get_current_active_user),
@@ -48,20 +48,23 @@ async def get_reading_log_event_for_support(
     )
 
 
-@router.post("/supporters/event/{event_id}", response_model=EventDetail)
+@router.post("/feedback/{event_id}", response_model=EventDetail)
 async def submit_reader_feedback(
     feedback: ReadingLogEventFeedback,
     event: Event = Depends(get_and_validate_reading_log_event_by_id),
     supporter: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ):
+    info = feedback.dict()
+    info["supporter_id"] = supporter.id
+    info["targeted_event_id"] = event.id
     crud.event.create(
         session=session,
         title="Supporter encouragement: Reading feedback sent",
         description=f"Supporter {supporter.name} sent feedback to reader {event.user.name}",
         level=EventLevel.NORMAL,
         account=supporter,
-        info=feedback.dict(),
+        info=info,
     )
 
     # create a "notification" event for the reader
@@ -75,7 +78,7 @@ async def submit_reader_feedback(
 
     return crud.event.create(
         session,
-        title="Notification: Supporter feedback received",
+        title="Notification: Supporter left feedback",
         description=f"Reader {event.user.name} received encouragement from {supporter.name}",
         level=EventLevel.NORMAL,
         info={

@@ -326,7 +326,7 @@ def process_supporter_reading_feedback_event(session: Session, event: Event):
 
     # event is good, create a "notification" event for the reader
     notification_data = EventCreateIn(
-        title="Notification: Supporter feedback received",
+        title="Notification: Supporter left feedback",
         description=f"Reader {log_event.user.name} received encouragement from {event.user.name}",
         info={
             "title": f"{event.user.name} sent you a message!",
