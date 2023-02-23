@@ -261,8 +261,12 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             for item in items
         ]
 
-        stmt = pg_upsert(CollectionItem).on_conflict_do_nothing(
-            constraint="unique_editions_per_collection"
+        stmt = pg_upsert(CollectionItem)
+        stmt = stmt.on_conflict_do_update(
+            constraint="unique_editions_per_collection",
+            set_={
+                "copies_available": stmt.excluded.copies_available,
+            },
         )
 
         try:
