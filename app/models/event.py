@@ -40,7 +40,7 @@ class Event(Base):
 
     @hybrid_property
     def description(self):
-        return self.info["description"]
+        return self.info.get("description") if self.info else None
 
     level: Mapped[EventLevel] = mapped_column(
         Enum(EventLevel), nullable=False, default=EventLevel.NORMAL

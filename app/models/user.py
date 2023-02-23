@@ -62,7 +62,7 @@ class User(Base):
 
     @hybrid_property
     def phone(self):
-        return self.info.get("phone")
+        return self.info.get("phone") if self.info else None
 
     # overall "name" string, most likely provided by SSO
     name: Mapped[str] = mapped_column(String, nullable=False)
