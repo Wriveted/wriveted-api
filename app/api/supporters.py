@@ -55,14 +55,14 @@ async def submit_reader_feedback(
     supporter: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ):
-    # crud.event.create(
-    #     session=session,
-    #     title="Supporter encouragement: Reading feedback sent",
-    #     description=f"Supporter {supporter.name} sent feedback to reader {event.user.name}",
-    #     level=EventLevel.NORMAL,
-    #     account=supporter,
-    #     info=feedback.dict(),
-    # )
+    crud.event.create(
+        session=session,
+        title="Supporter encouragement: Reading feedback sent",
+        description=f"Supporter {supporter.name} sent feedback to reader {event.user.name}",
+        level=EventLevel.NORMAL,
+        account=supporter,
+        info=feedback.dict(),
+    )
 
     # create a "notification" event for the reader
     item = crud.collection.get_collection_item_or_404(
