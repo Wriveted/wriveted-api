@@ -358,9 +358,10 @@ async def add_collection_item(
     del data.reader_id
 
     try:
-        item = crud.collection.add_item_to_collection(
+        item_id = crud.collection.add_item_to_collection(
             session, item=data, collection_orm_object=collection
         )
+        item = session.get(CollectionItem, item_id)
     except IntegrityError as e:
         raise HTTPException(
             status_code=409,
@@ -450,12 +451,14 @@ async def update_collection(
     changes of different types can be added in a single call to this
     API, they must however all refer to one collection.
 
-    If the edition are already in the Wriveted database only the ISBN
-    and `"action"` is required. For example adding known editions to a
-    collection can be achieved with entries of this form:
+    If the edition are already in the Wriveted database an `"action"`
+    and identifier is required. The identifier can be either `isbn` or
+    `id` (the Wriveted internal Collection Item ID). For example adding
+    known editions to a collection can be achieved with entries of this
+    form:
 
     ```json
-    { "isbn": "XYZ", "action": "add" }
+    { "isbn": "978...", "action": "add" }
     ```
 
     Existing collection items can be referred to by their ISBN, or by
@@ -468,7 +471,7 @@ async def update_collection(
 
     - `add`
     - `remove`
-    - `update` - change the `copies_total` and `copies_available`
+    - `update` - e.g. used to change the `copies_total` and `copies_available`
 
     """
     logger.info("Updating collection", collection=collection, account=account)
@@ -480,6 +483,18 @@ async def update_collection(
             obj_in=collection_update_data,
             merge_dicts=merge_dicts,
             ignore_conflicts=ignore_conflicts,
+        )
+
+        crud.event.create(
+            session=session,
+            title="Collection Update",
+            description=f"Updates made to collection",
+            info={
+                "collection_id": str(collection.id),
+            },
+            school=collection.school,
+            account=account,
+            commit=False,
         )
     except IntegrityError as e:
         raise HTTPException(

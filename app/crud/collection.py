@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import asc, delete, func, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased
 from structlog import get_logger
@@ -116,7 +116,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     try:
                         self.add_item_to_collection(
                             db=db,
-                            collection_orm_object=db_obj,
+                            collection_orm_object=collection_orm_object,
                             item=change,
                             commit=False,
                             ignore_conflicts=ignore_conflicts,
@@ -126,14 +126,14 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 case CollectionUpdateType.UPDATE:
                     self._update_item_in_collection(
                         db=db,
-                        collection_id=db_obj.id,
+                        collection_id=collection_orm_object.id,
                         item_update=change,
                         commit=False,
                     )
                 case CollectionUpdateType.REMOVE:
                     self._remove_item_from_collection(
                         db=db,
-                        collection_orm_object=db_obj,
+                        collection_orm_object=collection_orm_object,
                         item_to_remove=change,
                         commit=False,
                     )
@@ -188,6 +188,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             info_update_dict = item_update.info.dict(exclude_unset=True)
 
             if "cover_image" in info_update_dict:
+                logger.debug(
+                    "Updating cover image for collection item",
+                    collection_item_id=item_orm_object.id,
+                )
                 info_update_dict[
                     "cover_image"
                 ] = handle_collection_item_cover_image_update(
@@ -205,6 +209,9 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             item_orm_object.copies_total = item_update.copies_total
 
         if commit:
+            logger.debug(
+                "Committing item update", collection_item_id=item_orm_object.id
+            )
             db.commit()
             db.refresh(item_orm_object)
 
@@ -233,8 +240,43 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         if commit:
             db.commit()
+            db.refresh(collection_orm_object)
 
-        db.refresh(collection_orm_object)
+    def add_items_to_collection(
+        self,
+        db: Session,
+        *,
+        collection_orm_object: Collection,
+        items: list[CollectionItemUpdate | CollectionItemCreateIn],
+        commit: bool = True,
+    ):
+        item_data = [
+            {
+                "collection_id": collection_orm_object.id,
+                "edition_isbn": item.edition_isbn,
+                "copies_available": item.copies_available or 1,
+                "copies_total": item.copies_total or 1,
+                "info": item.info or {},
+            }
+            for item in items
+        ]
+
+        stmt = pg_upsert(CollectionItem)
+        stmt = stmt.on_conflict_do_update(
+            constraint="unique_editions_per_collection",
+            set_={
+                "copies_available": stmt.excluded.copies_available,
+            },
+        )
+
+        try:
+            db.execute(stmt, item_data)
+        except IntegrityError as e:
+            logger.warning("Integrity Error while replacing collection")
+            raise e
+
+        if commit:
+            db.commit()
 
     def add_item_to_collection(
         self,
@@ -263,6 +305,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             info_dict = item.info.dict(exclude_unset=True)
 
             if "cover_image" in info_dict:
+                logger.debug("Processing cover image for new collection item")
                 info_dict["cover_image"] = handle_new_collection_item_cover_image(
                     str(collection_orm_object.id),
                     item.edition_isbn,
@@ -270,19 +313,22 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 )
 
         new_orm_item_data = dict(
-            collection_id=collection_orm_object.id,
+            collection_id=str(collection_orm_object.id),
             edition_isbn=isbn,
             copies_available=item.copies_available or 1,
             copies_total=item.copies_total or 1,
             info=info_dict,
         )
 
+        # Supposed to be adding new items, but if the item exists
+        # we just update it.
         stmt = (
-            insert(CollectionItem).on_conflict_do_nothing(
-                constraint="unique_editions_per_collection"
+            pg_upsert(CollectionItem).on_conflict_do_update(
+                constraint="unique_editions_per_collection",
+                set_=new_orm_item_data,
             )
             if ignore_conflicts
-            else insert(CollectionItem)
+            else pg_upsert(CollectionItem)
         )
 
         try:
@@ -291,6 +337,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 [new_orm_item_data],
             )
             new_id = result.scalar()
+
         except IntegrityError as e:
             raise IntegrityError(
                 statement=f"Isbn {isbn} already exists in collection",
@@ -298,14 +345,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 orig=e,
             ) from None
 
-        db.refresh(collection_orm_object)
-
-        if not isbn:
+        if not isbn and collection_orm_object.school is not None:
             logger.warning(
-                f"Item with no isbn added to collection #{collection_orm_object.id}"
+                f"Item with no isbn added to a school collection #{collection_orm_object.id}"
             )
             crud.event.create(
                 session=db,
+                level="warning",
                 title="Unknown Book added to Collection",
                 description=f"Book with no isbn added to collection #{collection_orm_object.id}",
                 info={
@@ -322,7 +368,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         if commit:
             db.commit()
 
-        return db.get(CollectionItem, new_id)
+        # return db.get(CollectionItem, new_id)
+        return new_id
 
     def get_collection_items_by_collection_id(
         self, db: Session, *, collection_id: UUID

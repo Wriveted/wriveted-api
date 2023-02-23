@@ -61,6 +61,7 @@ def init_logging(settings: Settings):
             "app": {"level": settings.LOGGING_LEVEL},
             "app.api.auth": {"level": settings.AUTH_LOGGING_LEVEL},
             "app.api.works": {"level": "DEBUG"},
+            "app.crud.collection": {"level": "DEBUG"},
             "app.services": {"level": "DEBUG"},
             "app.services.recommendations": {"level": "DEBUG"},
             "uvicorn.error": {

@@ -14,7 +14,7 @@ from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
-from app.schemas.collection import CollectionAndItemsUpdateIn, CollectionItemCreateIn
+from app.schemas.collection import CollectionItemCreateIn
 from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
@@ -48,6 +48,7 @@ async def add_editions_to_collection_by_isbn(
         items[item.edition_isbn] = item
 
     isbn_list = list(items.keys())
+
     # Insert the entire list of isbns, ignoring conflicts, returning a list of the pk's for the CollectionItem binding
     (
         final_primary_keys,
@@ -64,32 +65,28 @@ async def add_editions_to_collection_by_isbn(
     # Using len(final_primary_keys) as length may be different now that it's a set
     logger.info(f"Syncing {len(final_primary_keys)} editions with collection")
 
-    collection_items = []
-    for isbn in final_primary_keys:
-        collection_items.append(items[isbn])
-
-    updated = crud.collection.update(
-        db=session,
-        db_obj=collection,
-        obj_in=CollectionAndItemsUpdateIn(items=collection_items),
+    crud.collection.add_items_to_collection(
+        session,
+        collection_orm_object=collection,
+        items=[items[isbn] for isbn in final_primary_keys],
+        commit=False,
     )
 
-    num_collection_items_created = len(updated.items) - existing_collection_count
-    num_existing_editions = len(final_primary_keys) - num_editions_created
+    num_collection_items_created = len(final_primary_keys)
 
     crud.event.create(
         session=session,
         title="Collection Update",
-        description=f"Adding {num_existing_editions} existing editions, adding {num_editions_created} new, unhydrated editions",
+        description=f"Adding {num_collection_items_created} editions to collection",
         info={
             "collection_items_created_count": num_collection_items_created,
-            "existing_edition_count": num_existing_editions,
             "unhydrated_edition_count": num_editions_created,
             "collection_id": str(collection.id),
         },
         account=account,
         commit=False,
     )
+    logger.debug("Committing changes to collection")
 
     try:
         session.commit()
@@ -178,7 +175,7 @@ def reset_collection(session, collection: Collection, account):
     """
     Reset a collection to its initial state, removing all items
     """
-    crud.collection.delete_all_items(db=session, db_obj=collection)
+    crud.collection.delete_all_items(db=session, db_obj=collection, commit=False)
 
     crud.event.create(
         session=session,
