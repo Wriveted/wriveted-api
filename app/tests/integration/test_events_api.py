@@ -1,8 +1,10 @@
+import datetime
 import time
 
 from starlette import status
 
 from app import crud
+from app.tests.util.random_strings import random_lower_string
 
 
 def test_filter_school_events_as_wriveted_admin(
@@ -389,3 +391,41 @@ def test_event_crud_optional_filtering_bool_attribute(
     for e in events:
         assert "boolean" in e.info
         assert e.info["boolean"] == True
+
+
+def test_event_api_filter_since_timestamp(
+    session,
+    client,
+    backend_service_account_headers,
+):
+    # create an event before the timestamp
+    unwanted_title = f"unwanted_{random_lower_string(6)}"
+    crud.event.create(
+        session,
+        title=unwanted_title,
+        level="normal",
+    )
+
+    cutoff_time = datetime.datetime.utcnow()
+
+    # create some events after the timestamp
+    wanted_title = f"wanted_{random_lower_string(6)}"
+    crud.event.create(
+        session,
+        title=wanted_title,
+        level="normal",
+    )
+
+    # test that we can filter events using since
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"limit": 2, "since": cutoff_time.isoformat()},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+
+    all_titles = [e["title"] for e in events]
+
+    assert unwanted_title not in all_titles
+    assert wanted_title in all_titles
