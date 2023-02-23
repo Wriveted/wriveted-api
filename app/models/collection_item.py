@@ -80,7 +80,7 @@ class CollectionItem(Base):
         ),
     )
 
-    def get_display_title(self) -> str:
+    def get_display_title(self) -> str | None:
         return (
             self.edition.get_display_title()
             if self.edition
@@ -89,7 +89,7 @@ class CollectionItem(Base):
             else None
         )
 
-    def get_cover_url(self) -> str:
+    def get_cover_url(self) -> str | None:
         return (
             self.edition.cover_url
             if self.edition
