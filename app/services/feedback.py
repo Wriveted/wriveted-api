@@ -22,7 +22,7 @@ def generate_supporter_feedback_url(supporter: User, event: Event):
     # cannot wrestle with the circular imports, and this is a background process anyway
     from app.api.dependencies.security import create_user_access_token
 
-    base_url = "https://wriveted-api-lg5ntws4da-ts.a.run.app/reader-feedback/"
+    base_url = "https://wriveted-api-lg5ntws4da-ts.a.run.app/feedback/"
     data = {
         "event_id": str(event.id),
         "token": create_user_access_token(supporter),
