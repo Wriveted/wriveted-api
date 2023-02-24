@@ -325,7 +325,8 @@ def process_supporter_reading_feedback_event(session: Session, event: Event):
     )
 
     # event is good, create a "notification" event for the reader
-    notification_data = EventCreateIn(
+    crud.event.create(
+        session,
         title="Notification: Supporter left feedback",
         description=f"Reader {log_event.user.name} received encouragement from {event.user.name}",
         info={
@@ -336,10 +337,8 @@ def process_supporter_reading_feedback_event(session: Session, event: Event):
             },
             **feedback_data.dict(),
         },
-        user_id=log_event.user_id,
+        account=log_event.user,
     )
-
-    crud.event.create(session, obj_in=notification_data)
 
 
 def update_or_create_liked_books(

@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy import Boolean, ForeignKey, String
 from app.db import Base
 from sqlalchemy.orm import mapped_column, relationship, Mapped
@@ -6,12 +7,12 @@ from sqlalchemy.orm import mapped_column, relationship, Mapped
 class SupporterReaderAssociation(Base):
     __tablename__ = "supporter_reader_association"
 
-    supporter_id = mapped_column(
+    supporter_id: Mapped[UUID] = mapped_column(
         "supporter_id",
         ForeignKey("users.id", name="fk_supporter_reader_assoc_supporter_id"),
         primary_key=True,
     )
-    supporter = relationship(
+    supporter: Mapped["User"] = relationship(
         "User",
         viewonly=True,
         back_populates="supportee_associations",

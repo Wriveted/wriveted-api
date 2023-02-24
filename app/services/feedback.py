@@ -9,7 +9,6 @@ from app.models.event import Event, EventLevel
 from app.models.reader import Reader
 from app.models.supporter import Supporter
 from app.models.user import User
-from app.schemas.events.event import EventCreateIn
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import SendSmsPayload
 from app.schemas.sendgrid import SendGridEmailData
@@ -23,7 +22,7 @@ def generate_supporter_feedback_url(supporter: User, event: Event):
     # cannot wrestle with the circular imports, and this is a background process anyway
     from app.api.dependencies.security import create_user_access_token
 
-    base_url = "https://huey-books--pr32-feature-supporter-fe-chu7p98q.web.app/reader-feedback/"
+    base_url = "https://wriveted-api-lg5ntws4da-ts.a.run.app/reader-feedback/"
     data = {
         "event_id": str(event.id),
         "token": create_user_access_token(supporter),
@@ -31,14 +30,6 @@ def generate_supporter_feedback_url(supporter: User, event: Event):
     encoded_url = f"{base_url}?{urlencode(data)}"
 
     return encoded_url
-
-
-def process_supporter_feedback_submission(
-    session: Session,
-    reader: Reader,
-    event: Event,
-):
-    pass
 
 
 def process_reader_feedback_alert_email(
@@ -134,11 +125,13 @@ def process_reader_feedback_alerts(
 
         crud.event.create(
             session,
-            title="Alert Sent: Reading Logged",
-            level=EventLevel.NORMAL,
-            description=f"Alert re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
+            title="Notification Sent: Reading Logged",
+            level=EventLevel.DEBUG,
+            description=f"Notification re: {reader.name}'s reading was sent to {recipient.type}: {recipient.email or recipient.phone}",
             account=reader,
             info={
+                "recipient_id": str(recipient.id),
+                "recipient_type": recipient.type,
                 "event_id": str(event.id),
             },
         )

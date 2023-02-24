@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, Path
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.api.dependencies.security import get_current_active_user
 
@@ -31,13 +32,14 @@ def get_and_validate_reading_log_event_by_id(
     reader = crud.user.get_or_404(db=session, id=event.user_id)
 
     # check if the supporter is -actively- associated with the reader
-    exists_stmt = (select(SupporterReaderAssociation)
-            .where(SupporterReaderAssociation.reader_id == reader.id)
-            .where(SupporterReaderAssociation.supporter_id == supporter.id)
-            .where(SupporterReaderAssociation.is_active == True)
-            .exists()
-        )
-    if session.scalar(select(True).where(exists_stmt):
+    exists_stmt = (
+        select(SupporterReaderAssociation)
+        .where(SupporterReaderAssociation.reader_id == reader.id)
+        .where(SupporterReaderAssociation.supporter_id == supporter.id)
+        .where(SupporterReaderAssociation.is_active == True)
+        .exists()
+    )
+    if not session.scalar(select(True).where(exists_stmt)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Supporter not currently associated with reader",

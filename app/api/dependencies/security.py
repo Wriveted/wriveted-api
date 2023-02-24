@@ -162,19 +162,20 @@ def get_active_principals(
     Principals:
     - role:admin
     - role:educator
-    - role:school
+    - role:schooladmin
     - role:student
     - role:kiosk
+    - role:lms
     - role:reader
     - role:parent
 
     - user:{id}
-    - school:{id}  (this just means associated with this school)
     - student:{school-id}
     - educator:{school-id}
     - schooladmin:{school-id}
-    - parent:{child-id}
+    - parent:{reader-id}
     - child:{parent-id}
+    - supporter:{reader-id}
 
     - Authenticated
     - Everyone
