@@ -56,8 +56,8 @@ async def submit_reader_feedback(
     session: Session = Depends(get_session),
 ):
     info = feedback.dict()
-    info["supporter_id"] = supporter.id
-    info["targeted_event_id"] = event.id
+    info["supporter_id"] = str(supporter.id)
+    info["targeted_event_id"] = str(event.id)
     crud.event.create(
         session=session,
         title="Supporter encouragement: Reading feedback sent",
