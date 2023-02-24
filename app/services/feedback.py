@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.config import get_settings
 from app.models.collection_item import CollectionItem
 from app.models.event import Event, EventLevel
 from app.models.reader import Reader
@@ -16,13 +17,14 @@ from app.services.background_tasks import queue_background_task
 from app.services.util import truncate_to_full_word_with_ellipsis
 
 logger = get_logger()
+settings = get_settings()
 
 
 def generate_supporter_feedback_url(supporter: User, event: Event):
     # cannot wrestle with the circular imports, and this is a background process anyway
     from app.api.dependencies.security import create_user_access_token
 
-    base_url = "https://wriveted-api-lg5ntws4da-ts.a.run.app/feedback/"
+    base_url = f"{settings.HUEY_BOOKS_APP_URL}/reader-feedback/"
     data = {
         "event_id": str(event.id),
         "token": create_user_access_token(supporter),
