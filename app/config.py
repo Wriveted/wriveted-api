@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     SLACK_BOT_TOKEN: str = ""
 
+    HUEY_BOOKS_APP_URL: str = "https://hueybooks.com"
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
         cls, v: Optional[str], values: dict[str, Any]

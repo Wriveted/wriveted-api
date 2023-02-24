@@ -8,3 +8,14 @@ def oxford_comma_join(l):
         return l[0] + " and " + l[1]
     else:
         return ", ".join(l[:-1]) + ", and " + l[-1]
+
+
+# thanks chatgpt
+def truncate_to_full_word_with_ellipsis(s, max_len):
+    if len(s) <= max_len:
+        return s
+    else:
+        s = s[: max_len - 3]  # leave room for the ellipsis
+        if " " in s[-3:]:
+            s = s[: s.rfind(" ")]  # truncate after last full word
+        return s + "..."

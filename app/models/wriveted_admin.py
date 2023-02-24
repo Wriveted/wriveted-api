@@ -36,15 +36,7 @@ class WrivetedAdmin(User):
         active = "Active" if self.is_active else "Inactive"
         return f"<Wriveted Admin {self.name} - {active}>"
 
-    def __acl__(self):
-        """defines who can do what to the instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-        If a role is not listed (like "role:user") the access will be
-        automatically denied.
-        (Deny, Everyone, All) is automatically appended at the end.
-        """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-        ]
+    def get_principals(self):
+        principals = super().get_principals()
+        principals.append("role:admin")
+        return principals

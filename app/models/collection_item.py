@@ -80,11 +80,20 @@ class CollectionItem(Base):
         ),
     )
 
-    def get_display_title(self) -> str:
+    def get_display_title(self) -> str | None:
         return (
             self.edition.get_display_title()
             if self.edition
             else self.info.get("title")
+            if self.info
+            else None
+        )
+
+    def get_cover_url(self) -> str | None:
+        return (
+            self.edition.cover_url
+            if self.edition
+            else self.info.get("cover_image")
             if self.info
             else None
         )

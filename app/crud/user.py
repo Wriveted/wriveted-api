@@ -22,6 +22,7 @@ from app.models import (
 )
 from app.models.school import School
 from app.models.subscription import SubscriptionType
+from app.models.supporter import Supporter
 from app.models.user import UserAccountType
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.user_update import InternalUserUpdateIn, UserUpdateIn
@@ -56,6 +57,8 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 return select(SchoolAdmin).where(SchoolAdmin.id == id)
             case UserAccountType.PARENT:
                 return select(Parent).where(Parent.id == id)
+            case UserAccountType.SUPPORTER:
+                return select(Supporter).where(Supporter.id == id)
             case _:
                 return query
 
@@ -98,6 +101,8 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 model = WrivetedAdmin
             case UserAccountType.PARENT:
                 model = Parent
+            case UserAccountType.SUPPORTER:
+                model = Supporter
             case _:
                 model = User
 
@@ -168,6 +173,7 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
                 UserAccountType.SCHOOL_ADMIN: SchoolAdmin,
                 UserAccountType.PARENT: Parent,
                 UserAccountType.WRIVETED: WrivetedAdmin,
+                UserAccountType.SUPPORTER: Supporter,
             }
             trimmed_data = {
                 k: combined_data[k]

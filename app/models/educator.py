@@ -38,6 +38,13 @@ class Educator(User):
         active = "Active" if self.is_active else "Inactive"
         return f"<Educator {self.name} - {self.school} - {active}>"
 
+    def get_principals(self):
+        principals = super().get_principals()
+
+        principals.extend(["role:educator", f"educator:{self.school_id}"])
+
+        return principals
+
     def __acl__(self):
         """defines who can do what to the instance
         the function returns a list containing tuples in the form of
@@ -46,9 +53,13 @@ class Educator(User):
         automatically denied.
         (Deny, Everyone, All) is automatically appended at the end.
         """
-        return [
-            (Allow, f"user:{self.id}", All),
-            (Allow, "role:admin", All),
-            (Allow, f"schooladmin:{self.school_id}", All),
-            (Allow, f"educator:{self.school_id}", "read"),
-        ]
+        acl = super().__acl__()
+
+        acl.extend(
+            [
+                (Allow, f"schooladmin:{self.school_id}", All),
+                (Allow, f"educator:{self.school_id}", "read"),
+            ]
+        )
+
+        return acl

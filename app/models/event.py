@@ -40,7 +40,7 @@ class Event(Base):
 
     @hybrid_property
     def description(self):
-        return self.info["description"]
+        return self.info.get("description") if self.info else None
 
     level: Mapped[EventLevel] = mapped_column(
         Enum(EventLevel), nullable=False, default=EventLevel.NORMAL
@@ -95,5 +95,8 @@ class Event(Base):
             acl.append((Allow, f"user:{self.user_id}", "read"))
 
             acl.append((Allow, f"parent:{self.user_id}", "read"))
+
+        if self.title.startswith("Reader timeline event:"):
+            acl.append((Allow, f"supporter:{self.user_id}", "read"))
 
         return acl

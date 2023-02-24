@@ -94,7 +94,6 @@ def upgrade():
 
 
 def downgrade():
-
     isbns = [
         "9781760150426",
         "9780141354828",

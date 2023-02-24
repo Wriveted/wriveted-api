@@ -12,8 +12,10 @@ from app.config import get_settings
 from app.db.session import get_session_maker
 from app.models import Event, School
 from app.models.booklist import ListType
+from app.models.collection_item import CollectionItem
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
+from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
@@ -24,8 +26,11 @@ from app.schemas.booklist import (
     ItemUpdateType,
 )
 from app.schemas.collection import CollectionItemActivityBase
+from app.schemas.events.event import EventCreateIn
 from app.schemas.events.special_events import ReadingLogEvent
+from app.schemas.feedback import ReadingLogEventFeedback
 from app.services.background_tasks import queue_background_task
+from app.services.feedback import process_reader_feedback_alerts
 
 logger = get_logger()
 config = get_settings()
@@ -198,6 +203,10 @@ def process_events(event_id):
                 return {"msg": "ok"}
             case "Reader timeline event: Reading logged":
                 return process_reading_logged_event(session, event)
+            # case "Supporter encouragement: Achievement feedback sent":
+            #     # e.g. "Well done for reading 10 books this year!"
+            #     # (not for a specific reading event, but for a milestone or other automated achievement)
+            #     return process_supporter_achievement_feedback_event(session, event)
             case _:
                 return
 
@@ -261,12 +270,12 @@ def process_book_review_event(session: Session, event: Event):
 
 def process_reading_logged_event(session: Session, event: Event):
     """
-    Process a reading logged event, creating a CollectionItemActivity of the appropriate status.
+    Process a reading logged event, creating a CollectionItemActivity of the appropriate status, and optionally alert the reader's parent.
     """
     logger.info("Processing reading logged event")
 
     try:
-        log_data = ReadingLogEvent.parse_obj(event.info.get("reading_logged"))
+        log_data = ReadingLogEvent.parse_obj(event.info)
     except ValidationError as e:
         logger.warning("Error parsing reading logged event", error=e, event=event)
         return
@@ -285,6 +294,51 @@ def process_reading_logged_event(session: Session, event: Event):
         status=status,
     )
     crud.collection_item_activity.create(session, obj_in=activity)
+
+    item: CollectionItem = crud.collection.get_collection_item(
+        db=session, collection_item_id=log_data.collection_item_id
+    )
+
+    if reader := crud.user.get(session, id=event.user_id):
+        process_reader_feedback_alerts(session, reader, item, event, log_data)
+
+
+def process_supporter_reading_feedback_event(session: Session, event: Event):
+    """
+    Process a supporter feedback event
+    """
+    logger.info("Processing supporter feedback event")
+
+    try:
+        feedback_data = ReadingLogEventFeedback.parse_obj(event.info)
+    except ValidationError as e:
+        logger.warning("Error parsing supporter feedback event", error=e, event=event)
+        return
+
+    log_event = crud.event.get(session, id=feedback_data.event_id)
+    if log_event is None:
+        logger.warning("Log event not found", event_id=feedback_data.event_id)
+        return
+
+    item = crud.collection.get_collection_item_or_404(
+        db=session, collection_item_id=log_event.info.get("collection_item_id")
+    )
+
+    # event is good, create a "notification" event for the reader
+    crud.event.create(
+        session,
+        title="Notification: Supporter left feedback",
+        description=f"Reader {log_event.user.name} received encouragement from {event.user.name}",
+        info={
+            "title": f"{event.user.name} sent you a message!",
+            "extra": {
+                "image": item.edition.cover_url or item.info.get("cover_image"),
+                "message": f"For reading {item.edition.title or item.info.get('title')}",
+            },
+            **feedback_data.dict(),
+        },
+        account=log_event.user,
+    )
 
 
 def update_or_create_liked_books(

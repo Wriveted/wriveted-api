@@ -9,12 +9,17 @@ from structlog import get_logger
 from app import crud
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
-from app.schemas.sendgrid import SendGridEmailData
+from app.schemas.feedback import SendEmailPayload, SendSmsPayload
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.booklists import generate_reading_pathway_lists
-from app.services.commerce import get_sendgrid_api, send_sendgrid_email
+from app.services.commerce import (
+    get_sendgrid_api,
+    get_twilio_client,
+    send_sendgrid_email,
+)
 from app.services.events import handle_event_to_slack_alert, process_events
 from app.services.stripe_events import process_stripe_event
+from twilio.rest import Client as TwilioClient
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -102,12 +107,6 @@ def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     return {"msg": "ok"}
 
 
-class SendEmailPayload(BaseModel):
-    email_data: SendGridEmailData
-    user_id: str | None
-    service_account_id: str | None
-
-
 @router.post("/send-email")
 def handle_send_email(
     data: SendEmailPayload,
@@ -119,3 +118,12 @@ def handle_send_email(
     svc_account = crud.service_account.get(db=session, id=data.service_account_id)
     account = user_account or svc_account
     send_sendgrid_email(data.email_data, session, sg, account=account)
+
+
+@router.post("/send-sms")
+def handle_send_sms(
+    data: SendSmsPayload,
+    client: TwilioClient = Depends(get_twilio_client),
+):
+    logger.info("Internal API sending sms", data=data)
+    return client.messages.create(**data)

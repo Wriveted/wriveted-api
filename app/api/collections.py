@@ -167,7 +167,7 @@ async def get_collection_info(
     "/collection/{collection_id}/{isbn}",
     response_model=CollectionItemDetail,
 )
-async def get_collection_item(
+async def get_collection_item_by_isbn(
     collection: Collection = Permission("read", get_collection_from_id),
     edition: Edition = Depends(get_edition_from_isbn),
     session: Session = Depends(get_session),

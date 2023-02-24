@@ -1,3 +1,4 @@
+from fastapi_permissions import All, Allow
 import uuid
 from typing import List, Optional
 
@@ -40,7 +41,35 @@ class Reader(User):
         "Parent", backref="children", foreign_keys=[parent_id]
     )
 
+    # targeting the association instead of the users directly to
+    # include the "active" status in any outputs
+    supporter_associations: Mapped[list["SupporterReaderAssociation"]] = relationship(
+        "SupporterReaderAssociation",
+        back_populates="reader",
+    )
+
     # reading_ability, age, last_visited, etc
     huey_attributes = mapped_column(
         MutableDict.as_mutable(JSON), nullable=True, default={}
     )
+
+    def get_principals(self):
+        principals = super().get_principals()
+
+        principals.append("role:reader")
+        if self.parent:
+            principals.append(f"child:{self.parent_id}")
+
+        return principals
+
+    def __acl__(self):
+        acl = super().__acl__()
+
+        acl.extend(
+            [
+                (Allow, f"parent:{self.id}", All),
+                (Allow, f"supporter:{self.id}", "support"),
+            ]
+        )
+
+        return acl

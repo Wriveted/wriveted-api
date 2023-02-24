@@ -23,6 +23,7 @@ from app.schemas.sendgrid import (
     SendGridEmailData,
 )
 from app.schemas.shopify import ShopifyEventRoot
+from twilio.rest import Client as TwilioClient
 
 logger = get_logger()
 config = get_settings()
@@ -30,6 +31,10 @@ config = get_settings()
 
 def get_sendgrid_api() -> SendGridAPIClient:
     return SendGridAPIClient(config.SENDGRID_API_KEY)
+
+
+def get_twilio_client() -> TwilioClient:
+    return TwilioClient(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN)
 
 
 def get_sendgrid_custom_field_id_from_name(
