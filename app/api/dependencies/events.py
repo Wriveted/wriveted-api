@@ -31,13 +31,13 @@ def get_and_validate_reading_log_event_by_id(
     reader = crud.user.get_or_404(db=session, id=event.user_id)
 
     # check if the supporter is -actively- associated with the reader
-    if (
-        session.query(SupporterReaderAssociation)
-        .filter(SupporterReaderAssociation.reader_id == reader.id)
-        .filter(SupporterReaderAssociation.supporter_id == supporter.id)
-        .filter(SupporterReaderAssociation.is_active == True)
-        .one_or_none()
-    ) is None:
+    exists_stmt = (select(SupporterReaderAssociation)
+            .where(SupporterReaderAssociation.reader_id == reader.id)
+            .where(SupporterReaderAssociation.supporter_id == supporter.id)
+            .where(SupporterReaderAssociation.is_active == True)
+            .exists()
+        )
+    if session.scalar(select(True).where(exists_stmt):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Supporter not currently associated with reader",
