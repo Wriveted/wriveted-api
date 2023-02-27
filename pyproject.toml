@@ -35,7 +35,7 @@ stripe = "^5.0.0"
 slack-sdk = "^3.19.5"
 alembic-utils = "^0.8.1"
 phonenumbers = "^8.13.6"
-twilio = "^7.16.3"
+twilio = "^7.16.4"
 
 
 [tool.poetry.dev-dependencies]
