@@ -20,7 +20,8 @@ jobs:
         with:
           filter_mode: file
 
-  black:
+  lint:
+    name: Code Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -35,17 +36,10 @@ jobs:
       - name: Install dependencies
         if: steps.python.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
-
       - name: Check formatting
         uses: psf/black@stable
         with:
           version: "22.10.0"
-
-  lint:
-    name: Code Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
       - uses: dciborow/action-pylint@0.0.7
         with:
           github_token: ${{ secrets.github_token }}
