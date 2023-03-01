@@ -18,34 +18,22 @@ jobs:
       SECRET_KEY: unused
     steps:
     - uses: actions/checkout@v3
-    - name: 🐍 Set up Python 3.10
-      uses: actions/setup-python@v4
+    - name: ➕ Install poetry
+      uses: snok/install-poetry@v1
+    - name: 🐍 Set up Python
+      id: python
+      uses: actions/setup-python@v4.5.0
       with:
         python-version: "3.10"
+        cache: 'poetry'
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
       with:
         postgresql version: '14'  # See https://hub.docker.com/_/postgres for available versions
         postgresql user: postgres
         postgresql password: secret
-    - name: ➕ Install poetry
-      shell: bash
-      run: |
-        curl -sSL https://install.python-poetry.org | python -
-        # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#adding-a-system-path
-        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-    - name: 🔧 Configure poetry
-      shell: bash
-      run: poetry config virtualenvs.in-project true
-
-    - name: 🔧 Set up cache
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: ➕ Install dependencies
+    - name: 🔧 Install dependencies
+      if: steps.python.outputs.cache-hit != 'true'
       run: |
         poetry install
     - name: ⚡ Run forward migrations
