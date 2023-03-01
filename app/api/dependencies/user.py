@@ -20,7 +20,7 @@ def get_user_from_id(
     ),
     session: Session = Depends(get_session),
 ):
-    return crud.user.get(db=session, id=user_id)
+    return crud.user.get_or_404(db=session, id=user_id)
 
 
 class MaybeHasUserId(BaseModel):

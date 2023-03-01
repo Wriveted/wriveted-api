@@ -21,7 +21,6 @@ from app.models.user import User
 from app.permissions import Permission
 from app.schemas.school import (
     SchoolBookbotInfo,
-    SchoolBrief,
     SchoolCreateIn,
     SchoolDetail,
     SchoolPatchOptions,
@@ -325,7 +324,7 @@ async def add_school(
         )
 
 
-@router.delete("/school/{wriveted_identifier}", response_model=SchoolBrief)
+@router.delete("/school/{wriveted_identifier}")
 async def delete_school(
     school: School = Permission("delete", get_school_from_wriveted_id),
     account=Depends(get_current_active_user_or_service_account),
@@ -337,5 +336,7 @@ async def delete_school(
         title="School Deleted",
         description=f"School {school.name} in {school.country.name} deleted.",
         account=account,
+        commit=False,
     )
-    return crud.school.remove(db=session, obj_in=school)
+    crud.school.remove(db=session, obj_in=school)
+    return {"msg": "School deleted"}

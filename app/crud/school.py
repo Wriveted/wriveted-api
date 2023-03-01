@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+from structlog import get_logger
 
 from app.crud import CRUDBase
 from app.models import ClassGroup, Event, School, Student
@@ -12,6 +13,8 @@ from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.models.user import User, UserAccountType
 from app.schemas.school import SchoolCreateIn, SchoolPatchOptions
+
+logger = get_logger()
 
 
 class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
@@ -68,7 +71,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         official_identifier: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[School]:
+    ) -> Sequence[School]:
         query = self.apply_pagination(
             self.get_all_query_with_optional_filters(
                 db,
@@ -175,9 +178,9 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         # Delete any events that were linked to this school
         stmt = delete(Event).where(Event.school_id == obj_in.id)
         db.execute(stmt)
-        print("Deleting database objects related to the school")
+        logger.info("Deleting database objects related to the school")
         db.commit()
-        print("Deleting the school", obj_in)
+        logger.info("Deleting the school", obj_in)
         # Now delete the school
         db.execute(
             delete(School)
