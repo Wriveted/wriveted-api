@@ -54,7 +54,12 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         method.
         """
         direction = order_by if order_by is not None else self.model.id.asc()
-        return select(self.model).order_by(direction)
+        stmt = select(self.model)
+        if isinstance(direction, list):
+            stmt = stmt.order_by(*direction)
+        else:
+            stmt = stmt.order_by(direction)
+        return stmt
 
     def get_multi_query(
         self, db: Session, ids: List[Any], *, order_by=None
