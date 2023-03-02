@@ -233,7 +233,9 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
         students_of: Optional["School"] = None,
         active_subscription_type: Optional[SubscriptionType] = None,
     ):
-        user_query = self.get_all_query(db=db, order_by=User.name.asc())
+        user_query = self.get_all_query(
+            db=db, order_by=[User.is_active.desc(), User.name.asc()]
+        )
 
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
