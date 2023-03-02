@@ -1,14 +1,15 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
+from starlette import status
 from structlog import get_logger
 
 from app import crud
-from app.api.common.pagination import PaginatedQueryParams
+from app.api.common.pagination import PaginatedQueryParams, PaginationOrderingError
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Author, Work
@@ -78,15 +79,26 @@ async def get_works(
         # Ensure there is one or more editions...
         works_query = works_query.where(Work.editions.any())
 
-    works = (
-        session.execute(
-            crud.work.apply_pagination(
-                works_query, skip=pagination.skip, limit=pagination.limit
+    try:
+        works = (
+            session.execute(
+                crud.work.apply_pagination(
+                    works_query,
+                    skip=pagination.skip,
+                    limit=pagination.limit,
+                    order_by=pagination.order_by,
+                    order_direction=pagination.order_direction,
+                )
             )
+            .scalars()
+            .all()
         )
-        .scalars()
-        .all()
-    )
+    except PaginationOrderingError as e:
+        logger.error(str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
     output = []
     for work in works:

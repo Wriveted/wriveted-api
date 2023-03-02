@@ -4,13 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
 from sqlalchemy import and_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import (
+    IntegrityError,
+)
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
 from app import crud
-from app.api.common.pagination import PaginatedQueryParams
+from app.api.common.pagination import PaginatedQueryParams, PaginationOrderingError
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.security import (
     get_active_principals,
@@ -22,6 +24,7 @@ from app.models.booklist import ListType
 from app.models.edition import Edition
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
+from app.models.work import Work
 from app.permissions import Permission
 from app.schemas.booklist import (
     BookListBrief,
@@ -222,12 +225,25 @@ async def get_booklist_detail(
     session: Session = Depends(get_session),
 ):
     logger.debug("Getting booklist", booklist=booklist)
-    # item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
-    # logger.debug("Item query", query=str(item_query))
-    # booklist_items = session.scalars(item_query).all()
-    booklist_items: list[BookListItem] = list(booklist.items)[
-        pagination.skip : pagination.limit + pagination.skip
-    ]
+
+    # include Work in the select to allow order_by on Work columns
+    booklist_items_query = select(BookListItem, Work).where(
+        BookListItem.booklist_id == booklist.id
+    )
+
+    try:
+        booklist_items_query = crud.booklist.apply_pagination(
+            booklist_items_query, **pagination.to_dict()
+        )
+    except PaginationOrderingError as e:
+        logger.warning(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    print(booklist_items_query)
+    booklist_items = session.execute(booklist_items_query).scalars().all()
 
     if enriched:
         booklist_items = [

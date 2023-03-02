@@ -422,6 +422,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         read_status: Optional[CollectionItemReadStatus] = None,
         skip: int = 0,
         limit: int = 1000,
+        order_by: str = None,
+        order_direction: str = None,
     ):
         statement = (
             select(CollectionItem)
@@ -483,7 +485,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         aliased_model = aliased(CollectionItem, cte)
         matching_count = db.scalar(select(func.count(aliased_model.id)))
 
-        paginated_items_query = self.apply_pagination(statement, skip=skip, limit=limit)
+        paginated_items_query = self.apply_pagination(
+            statement,
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_direction=order_direction,
+        )
 
         return matching_count, db.scalars(paginated_items_query).all()
 

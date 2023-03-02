@@ -1,3 +1,4 @@
+import random
 from starlette import status
 
 from app.models.booklist import ListType
@@ -633,3 +634,116 @@ def test_enriched_booklist_response(
     assert get_enriched_booklist_response.status_code == 200
     json = get_enriched_booklist_response.json()
     assert "isbn" in json["data"][0]["edition"]
+
+
+def test_arbitrary_booklist_item_ordering(
+    client, backend_service_account_headers, works_list
+):
+    shuffled_works = works_list[:]
+    random.shuffle(shuffled_works)
+
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=backend_service_account_headers,
+        json={
+            "name": "bookies",
+            "type": ListType.OTHER_LIST,
+            "info": {"foo": 42},
+            "items": [
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(shuffled_works[:30])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 200
+    booklist_id = create_booklist_response.json()["id"]
+
+    # creation_order_asc_response = client.get(
+    #     f"v1/list/{booklist_id}",
+    #     headers=backend_service_account_headers,
+    #     params={"order_by": "created_at", "order_direction": "asc", "limit": 30},
+    # )
+    # creation_order_asc_data = creation_order_asc_response.json()["data"]
+    # assert (
+    #     sorted(creation_order_asc_data, key=lambda x: x["created_at"])
+    #     == creation_order_asc_data
+    # )
+
+    # creation_order_desc_response = client.get(
+    #     f"v1/list/{booklist_id}",
+    #     headers=backend_service_account_headers,
+    #     params={"order_by": "created_at", "order_direction": "desc", "limit": 30},
+    # )
+    # creation_order_desc_data = creation_order_desc_response.json()["data"]
+    # assert (
+    #     sorted(creation_order_desc_data, key=lambda x: x["created_at"])
+    #     == creation_order_desc_data
+    # )
+
+    # test the joined load for Work
+    work_title_asc_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={
+            "order_by": "title",
+            "order_by_table": "works",
+            "order_direction": "asc",
+            "limit": 30,
+        },
+    )
+    work_title_asc_data = work_title_asc_response.json()
+    assert (
+        sorted(work_title_asc_data["data"], key=lambda x: x["work"]["title"])
+        == work_title_asc_data["data"]
+    )
+
+    work_title_desc_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={"order_by": "title", "order_direction": "desc", "limit": 30},
+    )
+    work_title_desc_data = work_title_desc_response.json()
+    assert (
+        sorted(work_title_desc_data["data"], key=lambda x: x["work"]["title"])
+        == work_title_desc_data["data"]
+    )
+
+    order_id_asc_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={"order_by": "id", "order_direction": "asc", "limit": 30},
+    )
+    order_id_asc_data = order_id_asc_response.json()
+    assert (
+        sorted(order_id_asc_data["data"], key=lambda x: int(x["order_id"]))
+        == order_id_asc_data["data"]
+    )
+
+    order_id_desc_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={"order_by": "id", "order_direction": "desc", "limit": 30},
+    )
+    order_id_desc_data = order_id_desc_response.json()
+    assert (
+        sorted(order_id_desc_data["data"], key=lambda x: int(x["order_id"]))
+        == order_id_desc_data["data"]
+    )
+
+    invalid_order_by_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={"order_by": "invalid", "order_direction": "asc", "limit": 30},
+    )
+    assert invalid_order_by_response.status_code == 400
+
+    existing_but_invalid_order_by_response = client.get(
+        f"v1/list/{booklist_id}",
+        headers=backend_service_account_headers,
+        params={"order_by": "info", "order_direction": "asc", "limit": 30},
+    )
+    assert existing_but_invalid_order_by_response.status_code == 400

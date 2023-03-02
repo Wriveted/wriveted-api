@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
+from app.api.common.pagination import PaginationOrderingError
 
 from app.db import Base
 
@@ -43,7 +44,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             )
         return thing
 
-    def get_all_query(self, db: Session, *, order_by=None) -> Select[ModelType]:
+    def get_all_query(self, db: Session) -> Select[ModelType]:
         """Return select statement for all objects of this model
 
         Query the model's table returning a sqlalchemy Query object so that
@@ -53,12 +54,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         after all filters. You can't call filters after the ``apply_pagination`` static
         method.
         """
-        direction = order_by if order_by is not None else self.model.id.asc()
-        return select(self.model).order_by(direction)
+        return select(self.model)
 
-    def get_multi_query(
-        self, db: Session, ids: List[Any], *, order_by=None
-    ) -> Select[ModelType]:
+    def get_multi_query(self, db: Session, ids: List[Any]) -> Select[ModelType]:
         """Return Query for objects of this model with given ids
         Query the model's table returning a sqlalchemy Query object so that
         filters can be applied before emitting the final SQL statement.
@@ -67,12 +65,47 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         after all filters. You can't call filters after the ``apply_pagination`` static
         method.
         """
-        return self.get_all_query(db, order_by=order_by).where(self.model.id.in_(ids))
+        return self.get_all_query(db).where(self.model.id.in_(ids))
 
     @staticmethod
     def apply_pagination(
-        query: Select[ModelType], *, skip: int = None, limit: int = None
+        query: Select[ModelType],
+        *,
+        skip: int = None,
+        limit: int = None,
+        order_by: str = None,
+        order_by_table: str = None,
+        order_direction: str = None,
     ) -> Select[ModelType]:
+        """Apply pagination (limit, skip, order_by, order_by_table, order_direction) to a query.
+        Raises: [`PaginationOrderingError` if order_by is not a column of the constructed query, the specified table is not part of the constructed query, or the specified column exists, but is not sortable]
+        """
+        if order_by_table is not None:
+            # check if the table name has been included in the query
+            if order_by_table not in [col.table.name for col in query.selected_columns]:
+                raise PaginationOrderingError(
+                    f"No such table {order_by_table} in query"
+                )
+
+        if order_by is not None:
+            # check if the column name is in the query, with the correct table name if specified
+            for col in query.selected_columns:
+                if (
+                    col.table.name == order_by_table or not order_by_table
+                ) and col.name == order_by:
+                    col_clause = col.expression
+                    # if not col_clause.comparator.type.sort_key_function:
+                    #     raise PaginationOrderingError(
+                    #         f"Column {order_by} is not sortable in query"
+                    #     )
+                    if order_direction.lower() == "desc":
+                        query = query.order_by(col_clause.desc())
+                    else:
+                        query = query.order_by(col_clause.asc())
+                    break
+            else:
+                raise PaginationOrderingError(f"No such column {order_by} in query")
+
         return query.offset(skip).limit(limit)
 
     def count_query(self, db: Session, query) -> int:
@@ -84,11 +117,21 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.scalar(select(func.count(self.model.id)))
 
     def get_all(
-        self, db: Session, *, skip: int = 0, limit: int = 100, order_by=None
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        order_by: str = None,
+        order_direction: str = None,
     ) -> Sequence[ModelType]:
         """return all objects of this model"""
         query = self.apply_pagination(
-            self.get_all_query(db=db, order_by=order_by), skip=skip, limit=limit
+            self.get_all_query(db=db, order_by=order_by),
+            skip=skip,
+            limit=limit,
+            order_by=order_by,
+            order_direction=order_direction,
         )
         return db.scalars(query).all()
 
@@ -99,13 +142,16 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         *,
         skip: int = 0,
         limit: int = 100,
-        order_by=None,
+        order_by: str = None,
+        order_direction: str = None,
     ) -> Sequence[ModelType]:
         """return objects of this model with given ids"""
         query = self.apply_pagination(
-            self.get_multi_query(db=db, ids=ids, order_by=order_by),
+            self.get_multi_query(db=db, ids=ids),
             skip=skip,
             limit=limit,
+            order_by=order_by,
+            order_direction=order_direction,
         )
         return db.scalars(query).all()
 

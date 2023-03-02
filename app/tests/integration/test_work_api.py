@@ -236,3 +236,59 @@ def test_move_edition_to_existing_work(
     assert edition_data["work_id"] == str(
         new_work.id
     ), "Edition's work id hasn't updated"
+
+
+def test_arbitrary_works_ordering(client, backend_service_account_headers, works_list):
+    title_order_asc_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "title", "order_direction": "asc", "limit": 30},
+    )
+    title_order_asc_data = title_order_asc_response.json()
+    assert (
+        sorted(title_order_asc_data, key=lambda x: x["title"]) == title_order_asc_data
+    )
+
+    title_order_desc_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "title", "order_direction": "desc", "limit": 30},
+    )
+    title_order_desc_data = title_order_desc_response.json()
+    assert (
+        sorted(title_order_desc_data, key=lambda x: x["title"], reverse=True)
+        == title_order_desc_data
+    )
+
+    id_order_asc_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "id", "order_direction": "asc", "limit": 30},
+    )
+    id_order_asc_data = id_order_asc_response.json()
+    assert sorted(id_order_asc_data, key=lambda x: int(x["id"])) == id_order_asc_data
+
+    id_order_desc_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "id", "order_direction": "desc", "limit": 30},
+    )
+    id_order_desc_data = id_order_desc_response.json()
+    assert (
+        sorted(id_order_desc_data, key=lambda x: int(x["id"]), reverse=True)
+        == id_order_desc_data
+    )
+
+    nonexisting_order_by_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "invalid", "order_direction": "asc", "limit": 30},
+    )
+    assert nonexisting_order_by_response.status_code == 400
+
+    existing_but_invalid_order_by_response = client.get(
+        "v1/works",
+        headers=backend_service_account_headers,
+        params={"order_by": "info", "order_direction": "asc", "limit": 30},
+    )
+    assert existing_but_invalid_order_by_response.status_code == 400

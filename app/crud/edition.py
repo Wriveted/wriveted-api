@@ -37,10 +37,8 @@ class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
 
         return select(Edition).where(Edition.isbn == cleaned_isbn)
 
-    def get_multi_query(
-        self, db: Session, ids: List[Any], *, order_by=None
-    ) -> Select[Edition]:
-        return self.get_all_query(db, order_by=order_by).where(
+    def get_multi_query(self, db: Session, ids: List[Any]) -> Select[Edition]:
+        return self.get_all_query(db).where(
             Edition.isbn.in_(editions_service.clean_isbns(ids))
         )
 

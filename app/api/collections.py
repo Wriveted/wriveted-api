@@ -107,6 +107,8 @@ async def get_collection_items(
         read_status=read_status,
         skip=pagination.skip,
         limit=pagination.limit,
+        order_by=pagination.order_by,
+        order_direction=pagination.order_direction,
     )
 
     logger.debug(

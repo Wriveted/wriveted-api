@@ -1,13 +1,15 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import (
+    IntegrityError,
+)
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
 from app import crud
-from app.api.common.pagination import PaginatedQueryParams
+from app.api.common.pagination import PaginatedQueryParams, PaginationOrderingError
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
@@ -39,17 +41,25 @@ async def get_editions(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    if work_id is not None:
-        work = crud.work.get_or_404(session, id=work_id)
-        return work.editions[pagination.skip : pagination.skip + pagination.limit]
-    elif query is not None:
-        statement = crud.edition.get_all_query(session).where(
-            Edition.title.match(query)
-        )
+
+    statement = crud.edition.get_all_query(session)
+
+    if work_id:
+        statement = statement.filter(Edition.work_id == work_id)
+
+    if query:
+        statement = statement.filter(Edition.title.ilike(f"%{query}%"))
+
+    statement = crud.edition.apply_pagination(statement, **pagination.to_dict())
+
+    try:
         return session.scalars(statement).all()
-    else:
-        return crud.edition.get_all(
-            session, skip=pagination.skip, limit=pagination.limit
+
+    except PaginationOrderingError as e:
+        logger.warning(str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
 
 
