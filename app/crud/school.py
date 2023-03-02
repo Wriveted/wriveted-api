@@ -180,7 +180,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         db.execute(stmt)
         logger.info("Deleting database objects related to the school")
         db.commit()
-        logger.info("Deleting the school", obj_in)
+        logger.info("Deleting a school", wriveted_id=obj_in.wriveted_identifier)
         # Now delete the school
         db.execute(
             delete(School)
