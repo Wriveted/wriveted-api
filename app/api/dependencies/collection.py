@@ -78,6 +78,6 @@ async def validate_collection_creation(
                 status_code=409,
                 detail={
                     "msg": "User already has a collection. If intending to replace it, please use the PUT /collection/{collection_id} endpoint.",
-                    "collection_id": user.collection.id,
+                    "collection_id": str(user.collection.id),
                 },
             )
