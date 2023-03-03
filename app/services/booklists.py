@@ -14,7 +14,7 @@ logger = get_logger()
 
 
 def generate_reading_pathway_lists(
-    user_id: str, attributes: HueyAttributes, limit: int = 10, commit: bool = True
+    user_id: str, attributes: HueyAttributes, limit: int = 100, commit: bool = True
 ):
     """
     Generate booklists `Books to read now` and `Books to read next` for the provided user,
