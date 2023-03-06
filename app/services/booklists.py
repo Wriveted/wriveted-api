@@ -167,10 +167,10 @@ def handle_booklist_feature_image_update(
         if image_data
         else None
     )
-    if booklist.info["image_url"] != new_url:
+    if booklist.info.get("image_url") != new_url:
         delete_blob(
             settings.GCP_IMAGE_BUCKET,
-            url_to_blob_name(booklist.info["image_url"]),
+            url_to_blob_name(booklist.info.get("image_url")),
         )
     return new_url
 
