@@ -170,7 +170,7 @@ def handle_booklist_feature_image_update(
     current_url = booklist.info.get("image_url")
     if current_url and current_url != new_url:
         delete_blob(
-            settings.GCP_IMAGE_BUCKET,
+            settings.GCP_HUEY_MEDIA_BUCKET,
             url_to_blob_name(current_url),
         )
     return new_url
