@@ -1,8 +1,13 @@
 import enum
+from base64 import b64decode
+from binascii import Error as BinasciiError
 from datetime import datetime
+from io import BytesIO
 from typing import Optional
 
-from pydantic import UUID4, BaseModel, Field
+from PIL import Image
+from pydantic import UUID4, BaseModel, Field, validator
+from structlog import get_logger
 
 from app.models.booklist import ListType
 from app.schemas.edition import EditionBrief
@@ -10,6 +15,8 @@ from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkBrief
+
+logger = get_logger()
 
 
 class BookFeedbackChoice(str, enum.Enum):
@@ -59,6 +66,46 @@ class BookListBase(BaseModel):
 
 class BookListOptionalInfo(BaseModel):
     description: Optional[str]
+    image_url: Optional[str]
+
+
+class BookListOptionalInfoCreateIn(BookListOptionalInfo):
+    image_url: str | None
+
+    @validator("image_url", pre=True)
+    def _validate_image_url(cls, v, values: dict):
+        if not v:
+            return
+
+        logger.info(f"Validating image_url `{v[0:100]}...`")
+
+        # base64 image string validity
+        try:
+            # remove the metadata from the base64 string before decoding
+            raw_image_bytes = b64decode(v.split(",")[1])
+            img = Image.open(BytesIO(raw_image_bytes))
+        except (BinasciiError, IOError) as e:
+            raise ValueError(
+                "image_url must be a valid base64 image string, properly formed"
+            )
+
+        # image filesize
+        if len(raw_image_bytes) > 512_000:
+            raise ValueError("Maximum image_url size is 500kb")
+
+        # image formats
+        if img.format.lower() not in ["jpg", "jpeg", "png"]:
+            raise ValueError("image_url must be either `jpg`, `jpeg`, or `png` format")
+
+        # image dimensions
+        width, height = img.size
+        if (width < 100) or (height < 100) or (width > 2000) or (height > 2000):
+            raise ValueError(
+                "Minimum image_url dimensions are 100x100 and maximum dimensions are 2000x2000"
+            )
+
+        # we now have a valid base64 string that claims to be an image
+        return v
 
 
 class BookListCreateIn(BaseModel):
@@ -68,7 +115,7 @@ class BookListCreateIn(BaseModel):
     school_id: Optional[str]
     user_id: Optional[str]
 
-    info: Optional[BookListOptionalInfo] = None
+    info: Optional[BookListOptionalInfoCreateIn] = None
     items: Optional[list[BookListItemCreateIn]]
 
 
@@ -88,7 +135,7 @@ class BookListItemUpdateIn(BaseModel):
 class BookListUpdateIn(BaseModel):
     name: Optional[str]
     type: Optional[ListType]
-    info: Optional[BookListOptionalInfo] = None
+    info: Optional[BookListOptionalInfoCreateIn] = None
     items: Optional[list[BookListItemUpdateIn]]
 
 
@@ -97,6 +144,7 @@ class BookListBrief(BookListBase):
     updated_at: datetime
     user: Optional[UserIdentity]
     school: Optional[SchoolWrivetedIdentity]
+    info: Optional[BookListOptionalInfo]
 
 
 class BookListsResponse(PaginatedResponse):
@@ -104,7 +152,6 @@ class BookListsResponse(PaginatedResponse):
 
 
 class BookListDetail(PaginatedResponse, BookListBrief):
-    info: Optional[BookListOptionalInfo]
     data: list[BookListItemDetail]
 
 

@@ -32,6 +32,7 @@ def _handle_upload_collection_item_cover_image(
         data=image_data,
         folder=folder,
         filename=filename,
+        bucket_name=settings.GCP_IMAGE_BUCKET,
     )
 
     return public_url
@@ -43,16 +44,25 @@ def handle_collection_item_cover_image_update(
     """
     Handle a cover image update for an existing collection item.
     If image_data is empty, purges any existing image from gcp and the db object.
+    If the image is new, deletes the old image from gcp.
     """
-    if not image_data:
-        if collection_item.cover_image_url:
-            delete_blob(url_to_blob_name(collection_item.cover_image_url))
-        return None
-
-    else:
-        return _handle_upload_collection_item_cover_image(
-            image_data, str(collection_item.collection_id), collection_item.edition_isbn
+    new_url = (
+        _handle_upload_collection_item_cover_image(
+            image_data,
+            str(collection_item.collection_id),
+            collection_item.edition_isbn,
         )
+        if image_data
+        else None
+    )
+    if collection_item.cover_image_url != new_url:
+        delete_blob(
+            settings.GCP_IMAGE_BUCKET,
+            url_to_blob_name(
+                settings.GCP_IMAGE_BUCKET, collection_item.cover_image_url
+            ),
+        )
+    return new_url
 
 
 def handle_new_collection_item_cover_image(
@@ -82,6 +92,7 @@ def _handle_upload_edition_cover_image(
         data=image_data,
         folder=folder,
         filename=filename,
+        bucket_name=settings.GCP_IMAGE_BUCKET,
     )
 
     return public_url
@@ -91,11 +102,19 @@ def handle_edition_cover_image_update(edition: Edition, image_data: str) -> str 
     """
     Handle a cover image update for an existing edition.
     If image_data is empty, purges any existing image from gcp and the db object.
+    If the image is new, deletes the old image from gcp.
     """
-    if not image_data:
-        if edition.cover_url:
-            delete_blob(url_to_blob_name(edition.cover_url))
-        return None
-
-    else:
-        return _handle_upload_edition_cover_image(image_data, edition.isbn)
+    new_url = (
+        _handle_upload_edition_cover_image(
+            image_data,
+            edition.isbn,
+        )
+        if image_data
+        else None
+    )
+    if edition.cover_url != new_url:
+        delete_blob(
+            settings.GCP_IMAGE_BUCKET,
+            url_to_blob_name(settings.GCP_IMAGE_BUCKET, edition.cover_url),
+        )
+    return new_url

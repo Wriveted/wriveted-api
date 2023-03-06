@@ -9,24 +9,17 @@ settings = get_settings()
 logger = get_logger()
 
 # setup gcp bucket
-def get_cover_image_bucket():
-
+def get_gcp_bucket(bucket_name: str):
     """
-    Get the google bucket for cover images.
+    Populate a google bucket object from the bucket name.
     """
-    # get the bucket name
-    bucket_name = settings.GCP_IMAGE_BUCKET
-
     # get the bucket
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
-
-    # return the bucket
-    return bucket
+    return storage_client.get_bucket(bucket_name)
 
 
 # upload base64 image string to google bucket
-def base64_string_to_bucket(data: str, folder: str, filename: str):
+def base64_string_to_bucket(data: str, folder: str, filename: str, bucket_name: str):
     """
     Upload a base64 image string to the environment's google bucket, returning the public url
     """
@@ -42,7 +35,7 @@ def base64_string_to_bucket(data: str, folder: str, filename: str):
     blob_name = f"{folder}/{full_filename}" if folder else full_filename
 
     # upload the image to the bucket
-    bucket = get_cover_image_bucket()
+    bucket = get_gcp_bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.upload_from_string(data_bytes, content_type=f"image/{filetype}")
 
@@ -52,15 +45,20 @@ def base64_string_to_bucket(data: str, folder: str, filename: str):
 
 def url_to_blob_name(url: str) -> str:
     """
-    Convert a wriveted cover image url to a blob name.
+    Convert a gcp storage url to a blob name.
+    We can just find "the slash after 'storage.googleapis.com/'" and split on that.
     """
-    return url.split(settings.GCP_IMAGE_BUCKET + "/")[1]
+    anchor = "storage.googleapis.com/"
+    try:
+        return url.split(anchor, 1)[-1].split("/", 1)[-1]
+    except IndexError:
+        return None
 
 
-def delete_blob(blob_name: str):
+def delete_blob(bucket_name: str, blob_name: str):
     """
     Delete a blob from the bucket.
     """
-    bucket = get_cover_image_bucket()
+    bucket = get_gcp_bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.delete()
