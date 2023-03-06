@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     GCP_LOCATION: str = "australia-southeast1"
 
     GCP_IMAGE_BUCKET: str = "wriveted-cover-images"
+    GCP_HUEY_MEDIA_BUCKET: str = "wriveted-huey-media"
 
     GCP_CLOUD_TASKS_NAME: Optional[str] = None  # 'background-tasks'
     GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = (
