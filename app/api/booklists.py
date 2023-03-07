@@ -3,7 +3,6 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -233,21 +232,14 @@ async def get_booklist_detail(
                 session,
                 i.info["edition"] if i.info and i.info["edition"] else None,
             )
-            if edition_result:
-                edition_detail = EditionDetail.from_orm(edition_result)
-            else:
-                edition_detail = EditionDetail.from_orm(
-                    session.scalar(
-                        select(Edition)
-                        .where(Edition.work_id == i.work_id)
-                        .order_by(
-                            desc(Edition.cover_url.isnot(None)),
-                            desc(Edition.date_published),
-                        )
-                    )
-                )
+
+            edition_detail = EditionDetail.from_orm(
+                edition_result or i.work.get_feature_edition(session)
+            )
+
             enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
             enriched_booklist_items.append(enriched_item)
+
         return enriched_booklist_items
 
     if enriched:
@@ -277,7 +269,7 @@ async def update_booklist(
     """
     Update a booklist.
 
-    Can be used to alter the list metadat as well as to add, edit and remove items from the list.
+    Can be used to alter the list metadata as well as to add, edit and remove items from the list.
     """
     logger.debug("Updating booklist", booklist=booklist)
     try:

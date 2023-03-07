@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import JSON, Enum, Integer, String
+from sqlalchemy import JSON, Enum, Integer, String, desc, nulls_last, select
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -8,6 +8,7 @@ from app.db import Base
 from app.db.common_types import intpk
 from app.models.author_work_association import author_work_association_table
 from app.models.booklist_work_association import BookListItem
+from app.models.edition import Edition
 from app.models.series_works_association import series_works_association_table
 
 
@@ -74,6 +75,20 @@ class Work(Base):
             if self.leading_article is not None
             else self.title
         )
+
+    def get_feature_edition(self, session):
+        """
+        Get the best edition to feature for this work.
+        Looks for cover images first, then falls back to the most recent edition.
+        """
+        return session.scalars(
+            select(Edition)
+            .where(Edition.work_id == self.id)
+            .order_by(
+                nulls_last(desc(Edition.cover_url)), Edition.date_published.desc()
+            )
+            .limit(1)
+        ).first()
 
     def get_authors_string(self):
         return ", ".join(map(str, self.authors))
