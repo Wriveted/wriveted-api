@@ -23,6 +23,7 @@ class EventLevel(str, enum.Enum):
 class EventSlackChannel(str, enum.Enum):
     GENERAL = "#api-alerts"
     MEMBERSHIPS = "#memberships"
+    EDITORIAL = "#editorial-adjustments"
 
 
 class Event(Base):

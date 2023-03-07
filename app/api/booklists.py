@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -16,10 +17,10 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import BookList, BookListItem, ServiceAccount, User
+from app.models import BookList, BookListItem, EventLevel, ServiceAccount, User
 from app.models.booklist import ListType
-from app.models.edition import Edition
 from app.models.educator import Educator
+from app.models.event import EventSlackChannel
 from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
 from app.schemas.booklist import (
@@ -33,6 +34,7 @@ from app.schemas.booklist import (
 )
 from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
+from app.services.events import create_event
 
 logger = get_logger()
 
@@ -221,9 +223,12 @@ async def get_booklist_detail(
     session: Session = Depends(get_session),
 ):
     logger.debug("Getting booklist", booklist=booklist)
-    booklist_items: list[BookListItem] = list(booklist.items)[
-        pagination.skip : pagination.limit + pagination.skip
-    ]
+    booklist_items: list[BookListItem] = session.scalars(
+        select(BookListItem)
+        .where(BookListItem.booklist == booklist)
+        .offset(pagination.skip)
+        .limit(pagination.limit)
+    ).all()
 
     def get_enriched_booklist_items() -> list[BookListItemEnriched]:
         enriched_booklist_items = []
@@ -233,10 +238,27 @@ async def get_booklist_detail(
                 i.info["edition"] if i.info and i.info["edition"] else None,
             )
 
-            edition_detail = EditionDetail.from_orm(
-                edition_result or i.work.get_feature_edition(session)
-            )
+            edition = edition_result or i.work.get_feature_edition(session)
+            if edition is None:
+                create_event(
+                    session=session,
+                    level=EventLevel.WARNING,
+                    title="Work referenced by a booklist has no editions",
+                    description=f"The booklist '{booklist.name}' has an item referencing work {i.work.title} which has no editions",
+                    info={
+                        "booklist_id": booklist.id,
+                        "booklist_name": booklist.name,
+                        "work_id": i.work_id,
+                        "work_title": i.work.title,
+                    },
+                    slack_channel=EventSlackChannel.EDITORIAL,
+                )
+                # Skip this item
+                continue
 
+            edition_detail = EditionDetail.from_orm(
+                edition,
+            )
             enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
             enriched_booklist_items.append(enriched_item)
 
