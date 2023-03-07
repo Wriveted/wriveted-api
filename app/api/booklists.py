@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import and_, select
+from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -222,41 +222,41 @@ async def get_booklist_detail(
     session: Session = Depends(get_session),
 ):
     logger.debug("Getting booklist", booklist=booklist)
-    # item_query = booklist.items.statement.offset(pagination.skip).limit(pagination.limit)
-    # logger.debug("Item query", query=str(item_query))
-    # booklist_items = session.scalars(item_query).all()
     booklist_items: list[BookListItem] = list(booklist.items)[
         pagination.skip : pagination.limit + pagination.skip
     ]
 
-    if enriched:
-        booklist_items = [
-            BookListItemEnriched(
-                **i.__dict__,
-                edition=EditionDetail.from_orm(edition_result)
-                if (
-                    edition_result := crud.edition.get(
-                        session,
-                        i.info["edition"] if i.info and i.info["edition"] else None,
-                    )
-                )
-                else EditionDetail.from_orm(
+    def get_enriched_booklist_items() -> list[BookListItemEnriched]:
+        enriched_booklist_items = []
+        for i in booklist_items:
+            edition_result = crud.edition.get(
+                session,
+                i.info["edition"] if i.info and i.info["edition"] else None,
+            )
+            if edition_result:
+                edition_detail = EditionDetail.from_orm(edition_result)
+            else:
+                edition_detail = EditionDetail.from_orm(
                     session.scalar(
-                        select(Edition).where(
-                            and_(
-                                Edition.cover_url.isnot(None),
-                                Edition.work_id == i.work_id,
-                            )
+                        select(Edition)
+                        .where(Edition.work_id == i.work_id)
+                        .order_by(
+                            desc(Edition.cover_url.isnot(None)),
+                            desc(Edition.date_published),
                         )
                     )
-                ),
-            )
-            for i in booklist_items
-        ]
+                )
+            enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
+            enriched_booklist_items.append(enriched_item)
+        return enriched_booklist_items
+
+    if enriched:
+        booklist_items = get_enriched_booklist_items()
 
     logger.debug("Returning paginated booklist", item_count=len(booklist_items))
     booklist.data = booklist_items
     booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
+
     return (
         BookListDetail.from_orm(booklist)
         if not enriched
