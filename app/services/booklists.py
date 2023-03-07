@@ -1,16 +1,23 @@
 from structlog import get_logger
 
 import app.services as services
+from app.config import get_settings
 from app.db.session import get_session_maker
-from app.models.booklist import ListType
+from app.models.booklist import BookList, ListType
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListItemCreateIn,
     BookListItemInfo,
 )
 from app.schemas.users.huey_attributes import HueyAttributes
+from app.services.gcp_storage import (
+    base64_string_to_bucket,
+    delete_blob,
+    url_to_blob_name,
+)
 
 logger = get_logger()
+settings = get_settings()
 
 
 def generate_reading_pathway_lists(
@@ -120,3 +127,57 @@ def generate_reading_pathway_lists(
         )
 
         return read_now_orm, read_next_orm
+
+
+def _handle_upload_booklist_feature_image(
+    image_data: str,
+    booklist_id: str,
+) -> str:
+    """
+    Handle a feature image upload for a public booklist.
+    """
+    # generate folder and filename
+    folder = f"booklist-feature-images"
+    filename = booklist_id
+
+    # upload the image to the bucket
+    public_url = base64_string_to_bucket(
+        data=image_data,
+        folder=folder,
+        filename=filename,
+        bucket_name=settings.GCP_HUEY_MEDIA_BUCKET,
+    )
+
+    return public_url
+
+
+def handle_booklist_feature_image_update(
+    booklist: BookList, image_data: str
+) -> str | None:
+    """
+    Handle a feature image update for an existing booklist.
+    If image_data is empty, purges any existing image from gcp and the db object.
+    If the image is new, deletes the old image from gcp.
+    """
+    new_url = (
+        _handle_upload_booklist_feature_image(
+            image_data,
+            str(booklist.id),
+        )
+        if image_data
+        else None
+    )
+    current_url = booklist.info.get("image_url")
+    if current_url and current_url != new_url:
+        delete_blob(
+            settings.GCP_HUEY_MEDIA_BUCKET,
+            url_to_blob_name(current_url),
+        )
+    return new_url
+
+
+def handle_new_booklist_feature_image(booklist_id: str, image_data: str) -> str | None:
+    """
+    Handle a feature image upload for a new booklist.
+    """
+    return _handle_upload_booklist_feature_image(image_data, booklist_id)

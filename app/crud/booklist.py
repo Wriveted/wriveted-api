@@ -15,6 +15,10 @@ from app.schemas.booklist import (
     BookListUpdateIn,
     ItemUpdateType,
 )
+from app.services.booklists import (
+    handle_booklist_feature_image_update,
+    handle_new_booklist_feature_image,
+)
 
 logger = get_logger()
 
@@ -23,10 +27,26 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
     def create(self, db: Session, *, obj_in: BookListCreateIn, commit=True) -> BookList:
         items = obj_in.items
         obj_in.items = []
+
+        image_url_data = None
+        if obj_in.info and obj_in.info.image_url:
+            image_url_data = obj_in.info.image_url
+            del obj_in.info.image_url
+
         booklist_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
         logger.debug(
             "Booklist entry created in database", booklist_id=booklist_orm_object.id
         )
+
+        if image_url_data:
+            image_url = handle_new_booklist_feature_image(
+                booklist_id=str(booklist_orm_object.id), image_url_data=image_url_data
+            )
+            if image_url:
+                booklist_orm_object.info = deep_merge_dicts(
+                    booklist_orm_object.info, {"image_url": image_url}
+                )
+                db.commit()
 
         for item in items:
             self._add_item_to_booklist(
@@ -69,6 +89,10 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         item_changes = obj_in.items if obj_in.items is not None else []
         del obj_in.items
         # Update the book list object
+        if obj_in.info and "image_url" in obj_in.info.dict(exclude_unset=True):
+            obj_in.info.image_url = handle_booklist_feature_image_update(
+                booklist=db_obj, image_data=obj_in.info.image_url
+            )
         booklist_orm_object = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
         # Now update the items one by one
