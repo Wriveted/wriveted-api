@@ -101,9 +101,17 @@ async def add_edition(
     session: Session = Depends(get_session),
 ):
     try:
-        return crud.edition.create_new_edition(session, edition_data)
+        edition = crud.edition.create_new_edition(session, edition_data)
     except ValueError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+
+    if edition:
+        return edition
+    else:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Edition already exists with ISBN {edition_data.isbn}. Use the PATCH method to update.",
+        )
 
 
 @router.patch("/edition/{isbn}", response_model=EditionDetail)
