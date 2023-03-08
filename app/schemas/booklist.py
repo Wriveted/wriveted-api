@@ -67,8 +67,8 @@ class BookListOptionalInfo(BaseModel):
 class BookListOptionalInfoCreateIn(BookListOptionalInfo):
     image_url: str | None
 
-    _validate_image_url = validator("image_url", pre=True, allow_reuse=True)(
-        validate_image_url_or_base64_string(field_name="image_url")
+    _validate_image_url = validator("image_url", allow_reuse=True)(
+        lambda v: validate_image_url_or_base64_string(v, field_name="image_url")
     )
 
 

@@ -74,7 +74,7 @@ class CollectionItemInfoCreateIn(CollectionItemInfo):
     cover_image: str | None
 
     _validate_cover_image = validator("cover_image", pre=True, allow_reuse=True)(
-        validate_image_url_or_base64_string(field_name="cover_image")
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_image")
     )
 
     class Config:

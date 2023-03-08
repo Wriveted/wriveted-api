@@ -92,8 +92,8 @@ class EditionCreateIn(BaseModel):
     illustrators: Optional[list[IllustratorCreateIn]]
 
     cover_url: str | None
-    _validate_cover_url = validator("cover_url", pre=True, allow_reuse=True)(
-        validate_image_url_or_base64_string(field_name="cover_url")
+    _validate_cover_url = validator("cover_url", allow_reuse=True)(
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
     )
 
     date_published: Optional[int]
@@ -115,7 +115,7 @@ class EditionUpdateIn(BaseModel):
 
     cover_url: str | None
     _validate_cover_url = validator("cover_url", pre=True, allow_reuse=True)(
-        validate_image_url_or_base64_string(field_name="cover_url")
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
     )
 
     work_id: int | None

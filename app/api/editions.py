@@ -101,7 +101,10 @@ async def add_edition(
     edition_data: EditionCreateIn,
     session: Session = Depends(get_session),
 ):
-    return crud.edition.create_new_edition(session, edition_data)
+    try:
+        return crud.edition.create_new_edition(session, edition_data)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
 
 
 @router.patch("/edition/{isbn}", response_model=EditionDetail)
@@ -155,12 +158,18 @@ async def update_edition(
     updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
     )
+
+    changes_dict = edition_data.dict(exclude_unset=True, exclude_defaults=True)
+    if new_url := changes_dict["cover_url"]:
+        if not is_url(new_url):
+            changes_dict["cover_url"] = "[BASE64 IMAGE]"
+
     crud.event.create(
         session,
         title=f"Edition updated",
         description=f"Made a change to '{updated_edition.title}'",
         info={
-            "changes": edition_data.dict(exclude_unset=True, exclude_defaults=True),
+            "changes": changes_dict,
             "title": updated_edition.title,
             "isbn": updated_edition.isbn,
         },
