@@ -12,6 +12,7 @@ from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
+from app.schemas import is_url
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,
@@ -20,6 +21,10 @@ from app.schemas.edition import (
     KnownAndTaggedEditionCounts,
 )
 from app.schemas.illustrator import IllustratorCreateIn
+from app.services.cover_images import (
+    handle_edition_cover_image_update,
+    handle_new_edition_cover_image,
+)
 from app.services.editions import (
     compare_known_editions,
     create_missing_editions,
@@ -133,6 +138,19 @@ async def update_edition(
                     detail=f"Illustrator {illustrator_data.first_name} {illustrator_data.last_name} already exists",
                 )
     update_data["illustrators"] = new_illustrators
+
+    # handle any provided cover image
+    cover_url_data = edition_data.cover_url
+    cover_url = (
+        cover_url
+        if is_url(cover_url_data)
+        else handle_edition_cover_image_update(
+            edition,
+            image_url_data=cover_url_data,
+        )
+    )
+    if cover_url:
+        update_data.cover_url = cover_url
 
     updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts

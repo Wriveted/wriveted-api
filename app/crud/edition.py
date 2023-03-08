@@ -5,6 +5,8 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from app.schemas import is_url
+from app.services.cover_images import handle_new_edition_cover_image
 
 import app.services.editions as editions_service
 from app import crud
@@ -60,6 +62,18 @@ class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
         See `create_new_edition` to also get_or_create the related Author/Work/Illustrator
         objects.
         """
+        cover_url_data = edition_data.cover_url
+        cover_url = (
+            cover_url
+            if is_url(cover_url_data)
+            else handle_new_edition_cover_image(
+                edition_isbn=edition_data.isbn,
+                image_url_data=cover_url_data,
+            )
+        )
+        if cover_url:
+            edition_data.cover_url = cover_url
+
         edition = Edition(
             leading_article=edition_data.leading_article,
             edition_title=edition_data.title,

@@ -55,7 +55,7 @@ def handle_collection_item_cover_image_update(
         if image_data
         else None
     )
-    if collection_item.cover_image_url != new_url:
+    if collection_item.cover_image_url and collection_item.cover_image_url != new_url:
         delete_blob(
             settings.GCP_IMAGE_BUCKET,
             url_to_blob_name(
@@ -98,6 +98,13 @@ def _handle_upload_edition_cover_image(
     return public_url
 
 
+def handle_new_edition_cover_image(edition_isbn: str, image_data: str) -> str | None:
+    """
+    Handle a cover image upload for a new edition.
+    """
+    return _handle_upload_edition_cover_image(image_data, edition_isbn)
+
+
 def handle_edition_cover_image_update(edition: Edition, image_data: str) -> str | None:
     """
     Handle a cover image update for an existing edition.
@@ -112,7 +119,7 @@ def handle_edition_cover_image_update(edition: Edition, image_data: str) -> str 
         if image_data
         else None
     )
-    if edition.cover_url != new_url:
+    if edition.cover_url and edition.cover_url != new_url:
         delete_blob(
             settings.GCP_IMAGE_BUCKET,
             url_to_blob_name(settings.GCP_IMAGE_BUCKET, edition.cover_url),
