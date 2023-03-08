@@ -108,10 +108,6 @@ async def create_user(
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user", user=user)
-    try:
-        logger.info("User sub", sub=user.subscription)
-    except AttributeError:
-        logger.info("No sub")
     return user
 
 
@@ -129,7 +125,7 @@ async def update_user(
     if user_update.type == UserAccountType.WRIVETED and "role:admin" not in principals:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Insufficient privileges to create a user with that account type.",
+            detail="Insufficient privileges to modify that account type.",
         )
 
     try:
