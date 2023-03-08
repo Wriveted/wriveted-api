@@ -18,6 +18,7 @@ from app.models.collection_item_activity import (
     CollectionItemActivity,
     CollectionItemReadStatus,
 )
+from app.schemas import is_url
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
@@ -187,17 +188,20 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             info_dict = dict(item_orm_object.info)
             info_update_dict = item_update.info.dict(exclude_unset=True)
 
-            if "cover_image" in info_update_dict:
+            if image_data := info_update_dict.get("cover_image"):
                 logger.debug(
                     "Updating cover image for collection item",
                     collection_item_id=item_orm_object.id,
                 )
-                info_update_dict[
-                    "cover_image"
-                ] = handle_collection_item_cover_image_update(
-                    item_orm_object,
-                    info_update_dict["cover_image"],
-                )
+                if is_url(image_data):
+                    info_update_dict["cover_image"] = image_data
+                else:
+                    info_update_dict[
+                        "cover_image"
+                    ] = handle_collection_item_cover_image_update(
+                        item_orm_object,
+                        image_data,
+                    )
 
             deep_merge_dicts(info_dict, info_update_dict)
             item_orm_object.info = info_dict
@@ -304,13 +308,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         if item.info is not None:
             info_dict = item.info.dict(exclude_unset=True)
 
-            if "cover_image" in info_dict:
+            if cover_image_data := info_dict.get("cover_image"):
                 logger.debug("Processing cover image for new collection item")
-                info_dict["cover_image"] = handle_new_collection_item_cover_image(
-                    str(collection_orm_object.id),
-                    item.edition_isbn,
-                    info_dict["cover_image"],
-                )
+                if is_url(cover_image_data):
+                    info_dict["cover_image"] = cover_image_data
+                else:
+                    info_dict["cover_image"] = handle_new_collection_item_cover_image(
+                        str(collection_orm_object.id),
+                        item.edition_isbn,
+                        info_dict["cover_image"],
+                    )
 
         new_orm_item_data = dict(
             collection_id=str(collection_orm_object.id),

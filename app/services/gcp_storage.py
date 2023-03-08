@@ -21,7 +21,7 @@ def get_gcp_bucket(bucket_name: str):
 # upload base64 image string to google bucket
 def base64_string_to_bucket(data: str, folder: str, filename: str, bucket_name: str):
     """
-    Upload a base64 image string to the environment's google bucket, returning the public url
+    Upload a base64 image string to the specified google bucket, returning the public url.
     """
     # get the image type
     filetype = data.split(";")[0].split("/")[1]

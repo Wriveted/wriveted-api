@@ -9,6 +9,7 @@ from app.crud.base import deep_merge_dicts
 from app.models import School, User
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
+from app.schemas import is_url
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListItemUpdateIn,
@@ -28,6 +29,8 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         items = obj_in.items
         obj_in.items = []
 
+        # we need the resulting orm object to get the id for the image url,
+        # so we need to store this to handle after the object is created
         image_url_data = None
         if obj_in.info and obj_in.info.image_url:
             image_url_data = obj_in.info.image_url
@@ -38,9 +41,15 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             "Booklist entry created in database", booklist_id=booklist_orm_object.id
         )
 
+        # now that the booklist is created, we can handle the image url
         if image_url_data:
-            image_url = handle_new_booklist_feature_image(
-                booklist_id=str(booklist_orm_object.id), image_url_data=image_url_data
+            image_url = (
+                image_url_data
+                if is_url(image_url_data)
+                else handle_new_booklist_feature_image(
+                    booklist_id=str(booklist_orm_object.id),
+                    image_url_data=image_url_data,
+                )
             )
             if image_url:
                 booklist_orm_object.info = deep_merge_dicts(
@@ -90,8 +99,12 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         del obj_in.items
         # Update the book list object
         if obj_in.info and "image_url" in obj_in.info.dict(exclude_unset=True):
-            obj_in.info.image_url = handle_booklist_feature_image_update(
-                booklist=db_obj, image_data=obj_in.info.image_url
+            obj_in.info.image_url = (
+                obj_in.info.image_url
+                if is_url(obj_in.info.image_url)
+                else handle_booklist_feature_image_update(
+                    booklist=db_obj, image_data=obj_in.info.image_url
+                )
             )
         booklist_orm_object = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
