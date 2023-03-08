@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import UUID4, BaseModel, Field, validator
 
-from app.models.booklist import ListType
+from app.models.booklist import ListSharingType, ListType
 from app.schemas import validate_image_url_or_base64_string
 from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
@@ -74,12 +74,14 @@ class BookListOptionalInfoCreateIn(BookListOptionalInfo):
 class BookListCreateIn(BaseModel):
     name: str
     type: ListType
+    slug: str | None
+    sharing: ListSharingType | None
 
-    school_id: Optional[str]
-    user_id: Optional[str]
+    school_id: str | None
+    user_id: str | None
 
-    info: Optional[BookListOptionalInfo] = None
-    items: Optional[list[BookListItemCreateIn]]
+    info: BookListOptionalInfo | None = None
+    items: list[BookListItemCreateIn] | None
 
 
 class ItemUpdateType(str, enum.Enum):
@@ -114,6 +116,8 @@ class BookListsResponse(PaginatedResponse):
 
 
 class BookListDetail(PaginatedResponse, BookListBrief):
+    slug: Optional[str]
+    sharing: Optional[ListSharingType]
     info: Optional[BookListOptionalInfo]
     data: list[BookListItemDetail]
 

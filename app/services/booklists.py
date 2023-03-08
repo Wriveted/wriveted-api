@@ -1,15 +1,28 @@
+from pydantic import ValidationError
+from sqlalchemy import select
 from structlog import get_logger
 
 import app.services as services
+from app import crud
 from app.config import get_settings
+from app.crud.base import deep_merge_dicts
 from app.db.session import get_session_maker
-from app.models.booklist import BookList, ListType
+from app.models.booklist import BookList, ListSharingType, ListType
+from app.models.booklist_work_association import BookListItem
+from app.models.event import EventLevel, EventSlackChannel
 from app.schemas.booklist import (
     BookListCreateIn,
+    BookListDetail,
+    BookListDetailEnriched,
     BookListItemCreateIn,
+    BookListItemEnriched,
     BookListItemInfo,
+    BookListUpdateIn,
 )
+from app.schemas.edition import EditionDetail
+from app.schemas.pagination import Pagination
 from app.schemas.users.huey_attributes import HueyAttributes
+from app.services.events import create_event
 from app.services.gcp_storage import (
     base64_string_to_bucket,
     delete_blob,
@@ -181,3 +194,98 @@ def handle_new_booklist_feature_image(booklist_id: str, image_data: str) -> str 
     Handle a feature image upload for a new booklist.
     """
     return _handle_upload_booklist_feature_image(image_data, booklist_id)
+
+
+def validate_booklist_publicity(
+    new_data: BookListUpdateIn | BookListCreateIn, old_data: BookList = None
+) -> None:
+    new_data_dict = new_data.dict(exclude_unset=True)
+    old_data_dict = (
+        {
+            "slug": old_data.slug,
+            "list_type": old_data.type,
+            "sharing": old_data.sharing,
+        }
+        if old_data
+        else {}
+    )
+    deep_merge_dicts(new_data_dict, old_data_dict)
+
+    slug = new_data_dict.get("slug")
+    list_type = new_data_dict.get("type")
+    sharing = new_data_dict.get("sharing")
+
+    is_public_huey_list = (
+        list_type == ListType.HUEY and sharing == ListSharingType.PUBLIC
+    )
+    has_slug = slug is not None
+
+    if has_slug:
+        if not is_public_huey_list:
+            raise ValidationError("A slug can only be provided for a Public Huey list")
+    elif is_public_huey_list:
+        if not has_slug:
+            raise ValidationError("A slug must be provided for a Public Huey list")
+
+
+def populate_booklist_object(
+    booklist: BookList,
+    session,
+    pagination,
+    enriched: bool = False,
+):
+    logger.debug("Getting booklist", booklist=booklist)
+    booklist_items: list[BookListItem] = session.scalars(
+        select(BookListItem)
+        .where(BookListItem.booklist == booklist)
+        .offset(pagination.skip)
+        .limit(pagination.limit)
+        .order_by(BookListItem.order_id)
+    ).all()
+
+    def get_enriched_booklist_items() -> list[BookListItemEnriched]:
+        enriched_booklist_items = []
+        for i in booklist_items:
+            edition_result = crud.edition.get(
+                session,
+                i.info["edition"] if i.info and i.info["edition"] else None,
+            )
+
+            edition = edition_result or i.work.get_feature_edition(session)
+            if edition is None:
+                create_event(
+                    session=session,
+                    level=EventLevel.WARNING,
+                    title="Work referenced by a booklist has no editions",
+                    description=f"The booklist '{booklist.name}' has an item referencing work {i.work.title} which has no editions",
+                    info={
+                        "booklist_id": booklist.id,
+                        "booklist_name": booklist.name,
+                        "work_id": i.work_id,
+                        "work_title": i.work.title,
+                    },
+                    slack_channel=EventSlackChannel.EDITORIAL,
+                )
+                # Skip this item
+                continue
+
+            edition_detail = EditionDetail.from_orm(
+                edition,
+            )
+            enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
+            enriched_booklist_items.append(enriched_item)
+
+        return enriched_booklist_items
+
+    if enriched:
+        booklist_items = get_enriched_booklist_items()
+
+    logger.debug("Returning paginated booklist", item_count=len(booklist_items))
+    booklist.data = booklist_items
+    booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
+
+    return (
+        BookListDetail.from_orm(booklist)
+        if not enriched
+        else BookListDetailEnriched.from_orm(booklist)
+    )

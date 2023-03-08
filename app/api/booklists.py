@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
-from sqlalchemy import select
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -11,16 +11,18 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.booklist import get_booklist_from_wriveted_id
+from app.api.dependencies.booklist import (
+    get_booklist_from_wriveted_id,
+    get_public_huey_booklist_from_slug,
+)
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
 )
 from app.db.session import get_session
-from app.models import BookList, BookListItem, EventLevel, ServiceAccount, User
+from app.models import BookList, ServiceAccount, User
 from app.models.booklist import ListType
 from app.models.educator import Educator
-from app.models.event import EventSlackChannel
 from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
 from app.schemas.booklist import (
@@ -28,13 +30,11 @@ from app.schemas.booklist import (
     BookListCreateIn,
     BookListDetail,
     BookListDetailEnriched,
-    BookListItemEnriched,
     BookListsResponse,
     BookListUpdateIn,
 )
-from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
-from app.services.events import create_event
+from app.services.booklists import populate_booklist_object, validate_booklist_publicity
 
 logger = get_logger()
 
@@ -42,6 +42,8 @@ router = APIRouter(
     tags=["Booklists"],
     dependencies=[Security(get_current_active_user_or_service_account)],
 )
+
+public_router = APIRouter(tags=["Booklists"])
 
 """
 Bulk access control rules apply to calling the create and get lists endpoints.
@@ -79,6 +81,14 @@ async def add_booklist(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users may create that type of book list",
+        )
+
+    try:
+        validate_booklist_publicity(booklist)
+    except ValidationError as e:
+        return JSONResponse(
+            status_code=422,
+            content={"message": e},
         )
 
     if booklist.type == ListType.SCHOOL:
@@ -222,61 +232,7 @@ async def get_booklist_detail(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    logger.debug("Getting booklist", booklist=booklist)
-    booklist_items: list[BookListItem] = session.scalars(
-        select(BookListItem)
-        .where(BookListItem.booklist == booklist)
-        .offset(pagination.skip)
-        .limit(pagination.limit)
-        .order_by(BookListItem.order_id)
-    ).all()
-
-    def get_enriched_booklist_items() -> list[BookListItemEnriched]:
-        enriched_booklist_items = []
-        for i in booklist_items:
-            edition_result = crud.edition.get(
-                session,
-                i.info["edition"] if i.info and i.info["edition"] else None,
-            )
-
-            edition = edition_result or i.work.get_feature_edition(session)
-            if edition is None:
-                create_event(
-                    session=session,
-                    level=EventLevel.WARNING,
-                    title="Work referenced by a booklist has no editions",
-                    description=f"The booklist '{booklist.name}' has an item referencing work {i.work.title} which has no editions",
-                    info={
-                        "booklist_id": booklist.id,
-                        "booklist_name": booklist.name,
-                        "work_id": i.work_id,
-                        "work_title": i.work.title,
-                    },
-                    slack_channel=EventSlackChannel.EDITORIAL,
-                )
-                # Skip this item
-                continue
-
-            edition_detail = EditionDetail.from_orm(
-                edition,
-            )
-            enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
-            enriched_booklist_items.append(enriched_item)
-
-        return enriched_booklist_items
-
-    if enriched:
-        booklist_items = get_enriched_booklist_items()
-
-    logger.debug("Returning paginated booklist", item_count=len(booklist_items))
-    booklist.data = booklist_items
-    booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
-
-    return (
-        BookListDetail.from_orm(booklist)
-        if not enriched
-        else BookListDetailEnriched.from_orm(booklist)
-    )
+    return populate_booklist_object(booklist, session, pagination, enriched)
 
 
 @router.patch(
@@ -288,6 +244,7 @@ async def update_booklist(
     changes: BookListUpdateIn,
     booklist: BookList = Permission("update", get_booklist_from_wriveted_id),
     session: Session = Depends(get_session),
+    principals: List = Depends(get_active_principals),
 ):
     """
     Update a booklist.
@@ -295,6 +252,25 @@ async def update_booklist(
     Can be used to alter the list metadata as well as to add, edit and remove items from the list.
     """
     logger.debug("Updating booklist", booklist=booklist)
+
+    logger.debug("Checking permissions", principals=principals)
+    if (
+        booklist.type in {ListType.OTHER_LIST, ListType.HUEY, ListType.REGION}
+        and "role:admin" not in principals
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin users may create that type of book list",
+        )
+
+    try:
+        validate_booklist_publicity(changes, booklist)
+    except ValidationError as e:
+        return JSONResponse(
+            status_code=422,
+            content={"message": e},
+        )
+
     try:
         updated_booklist = crud.booklist.update(
             db=session, db_obj=booklist, obj_in=changes
@@ -323,3 +299,27 @@ async def delete_booklist(
     logger.debug("Removing a booklist", booklist=booklist)
     crud.booklist.remove(db=session, id=booklist.id)
     return booklist
+
+
+@public_router.get(
+    "/public-list/{booklist_slug}",
+    response_model=(BookListDetailEnriched | BookListDetail),
+)
+async def get_public_booklist_detail(
+    enriched: bool = Query(
+        default=False,
+        title="Enrich items in response",
+        description="""
+            If enabled, will include fully-enriched editions and labels for each booklist item
+            i.e. including cover image, summary, and other metadata that may be desired for displaying each book. 
+            Will grab a suitable edition if none is specified in the booklist item.
+        """,
+    ),
+    booklist: BookList = Depends(get_public_huey_booklist_from_slug),
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+):
+    """
+    Retrieve a public booklist.
+    """
+    return populate_booklist_object(booklist, session, pagination, enriched)

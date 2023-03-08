@@ -1,6 +1,6 @@
 from starlette import status
 
-from app.models.booklist import ListType
+from app.models.booklist import ListSharingType, ListType
 
 
 def test_backend_service_account_can_list_booklists_empty(
@@ -633,3 +633,88 @@ def test_enriched_booklist_response(
     assert get_enriched_booklist_response.status_code == 200
     json = get_enriched_booklist_response.json()
     assert "isbn" in json["data"][0]["edition"]
+
+
+def test_create_public_huey_booklist(
+    client, backend_service_account_headers, test_user_account_headers, works_list
+):
+    # test that a public huey booklist can't be created with user rights
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=test_user_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.HUEY,
+            "slug": "wizard-wishes",
+            "sharing": ListSharingType.PUBLIC,
+            "info": {"foo": 42},
+            "items": [
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 403
+
+    # test that a public huey booklist can be created with admin rights
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=backend_service_account_headers,
+        json={
+            "name": "wizard wishes",
+            "type": ListType.HUEY,
+            "slug": "wizard-wishes",
+            "sharing": ListSharingType.PUBLIC,
+            "info": {"foo": 42},
+            "items": [
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 200
+
+
+def test_get_public_huey_booklist_without_auth(
+    client, backend_service_account_headers, works_list
+):
+    # create a public huey booklist
+    create_booklist_response = client.post(
+        "v1/list",
+        headers=backend_service_account_headers,
+        json={
+            "name": "top 20 ultra cool books",
+            "type": ListType.HUEY,
+            "slug": "top-20-ultra-cool-books",
+            "sharing": ListSharingType.PUBLIC,
+            "info": {"foo": 42},
+            "items": [
+                {
+                    "work_id": w.id,
+                    "order_id": i,
+                    "info": {"edition": w.editions[0].isbn},
+                }
+                for i, w in enumerate(works_list[:20])
+            ],
+        },
+    )
+    assert create_booklist_response.status_code == 200
+
+    # get the public huey booklist without auth
+    get_booklist_response = client.get(
+        "v1/public-list/top-20-ultra-cool-books",
+    )
+    assert get_booklist_response.status_code == 200
+    json = get_booklist_response.json()
+    assert json["name"] == "top 20 ultra cool books"
+    assert json["type"] == ListType.HUEY
+    assert json["slug"] == "top-20-ultra-cool-books"
+    assert json["sharing"] == ListSharingType.PUBLIC

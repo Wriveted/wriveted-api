@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.authors import router as author_router
 from app.api.booklists import router as booklist_router
+from app.api.booklists import public_router as booklist_router_public
 from app.api.classes import router as class_group_router
 from app.api.collections import router as collections_router
 from app.api.commerce import router as commerce_router
@@ -27,6 +28,7 @@ api_router.include_router(auth_router)
 api_router.include_router(user_router)
 api_router.include_router(author_router)
 api_router.include_router(booklist_router)
+api_router.include_router(booklist_router_public)
 api_router.include_router(class_group_router)
 api_router.include_router(collections_router)
 api_router.include_router(commerce_router)
