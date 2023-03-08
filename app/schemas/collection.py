@@ -1,16 +1,13 @@
 import enum
-from base64 import b64decode
-from binascii import Error as BinasciiError
 from datetime import datetime
-from io import BytesIO
 from typing import Any, Optional
 from uuid import UUID
 
-from PIL import Image
 from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
 from structlog import get_logger
 
 from app.models.collection_item_activity import CollectionItemReadStatus
+from app.schemas import validate_image_url_or_base64_string
 from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.work import WorkBrief
@@ -53,14 +50,6 @@ class CollectionInfo(BaseModel):
     )
 
 
-class CollectionItemSentiment(BaseModel):
-    # Thanks to text-processing.com
-    pos: float
-    neg: float
-    neutral: float
-    polar: float
-
-
 class CollectionItemFeedback(BaseModel):
     """
     Feedback about a collection item.
@@ -69,7 +58,6 @@ class CollectionItemFeedback(BaseModel):
 
     emojis: list[str] | None
     descriptor: str | None
-    sentiment: CollectionItemSentiment | None
 
 
 class CollectionItemInfo(BaseModel):
@@ -85,42 +73,9 @@ class CollectionItemInfo(BaseModel):
 class CollectionItemInfoCreateIn(CollectionItemInfo):
     cover_image: str | None
 
-    @validator("cover_image", pre=True)
-    def _validate_cover_image(cls, v, values: dict):
-        if not v:
-            return
-
-        logger.info(f"Validating cover_image `{v[0:100]}...`")
-
-        # base64 image string validity
-        try:
-            # remove the metadata from the base64 string before decoding
-            raw_image_bytes = b64decode(v.split(",")[1])
-            img = Image.open(BytesIO(raw_image_bytes))
-        except (BinasciiError, IOError) as e:
-            raise ValueError(
-                "cover_image must be a valid base64 image string, properly formed"
-            )
-
-        # image filesize
-        if len(raw_image_bytes) > 512_000:
-            raise ValueError("Maximum cover_image size is 500kb")
-
-        # image formats
-        if img.format.lower() not in ["jpg", "jpeg", "png"]:
-            raise ValueError(
-                "cover_image must be either `jpg`, `jpeg`, or `png` format"
-            )
-
-        # image dimensions
-        width, height = img.size
-        if (width < 100) or (height < 100) or (width > 1000) or (height > 1000):
-            raise ValueError(
-                "Minimum cover_image dimensions are 100x100 and maximum dimensions are 1000x1000"
-            )
-
-        # we now have a valid base64 string that claims to be an image
-        return v
+    _validate_cover_image = validator("cover_image", pre=True, allow_reuse=True)(
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_image")
+    )
 
     class Config:
         max_anystr_length = (

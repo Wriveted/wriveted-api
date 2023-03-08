@@ -5,6 +5,8 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from app.schemas import is_url
+from app.services.cover_images import handle_new_edition_cover_image
 
 import app.services.editions as editions_service
 from app import crud
@@ -60,14 +62,27 @@ class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
         See `create_new_edition` to also get_or_create the related Author/Work/Illustrator
         objects.
         """
+        try:
+            clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
+        except AssertionError:
+            raise ValueError("Invalid ISBN")
+
+        cover_url_data = edition_data.cover_url
+        if cover_url_data and not is_url(cover_url_data):
+            cover_url = handle_new_edition_cover_image(
+                edition_isbn=clean_isbn,
+                image_url_data=cover_url_data,
+            )
+            edition_data.cover_url = cover_url
+
         edition = Edition(
             leading_article=edition_data.leading_article,
             edition_title=edition_data.title,
             edition_subtitle=edition_data.subtitle,
-            isbn=editions_service.get_definitive_isbn(edition_data.isbn),
+            isbn=clean_isbn,
             cover_url=edition_data.cover_url,
             date_published=edition_data.date_published,
-            info=edition_data.info.dict(),
+            info=edition_data.info.dict() if edition_data.info else {},
             work=work,
             illustrators=illustrators,
             hydrated_at=datetime.utcnow() if edition_data.hydrated else None,
@@ -168,8 +183,11 @@ class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
     def create_new_edition(
         self, session: Session, edition_data: EditionCreateIn, commit=True
     ):
+        try:
+            clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
+        except AssertionError:
+            raise ValueError("Invalid ISBN")
 
-        clean_isbn = editions_service.get_definitive_isbn(edition_data.isbn)
         other_isbns = editions_service.clean_isbns(
             edition_data.other_isbns if edition_data.other_isbns is not None else []
         )

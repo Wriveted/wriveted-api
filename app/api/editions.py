@@ -12,6 +12,7 @@ from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
+from app.schemas import is_url
 from app.schemas.edition import (
     EditionBrief,
     EditionCreateIn,
@@ -20,6 +21,9 @@ from app.schemas.edition import (
     KnownAndTaggedEditionCounts,
 )
 from app.schemas.illustrator import IllustratorCreateIn
+from app.services.cover_images import (
+    handle_edition_cover_image_update,
+)
 from app.services.editions import (
     compare_known_editions,
     create_missing_editions,
@@ -96,7 +100,18 @@ async def add_edition(
     edition_data: EditionCreateIn,
     session: Session = Depends(get_session),
 ):
-    return crud.edition.create_new_edition(session, edition_data)
+    try:
+        edition = crud.edition.create_new_edition(session, edition_data)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+
+    if edition:
+        return edition
+    else:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Edition already exists with ISBN {edition_data.isbn}. Use the PATCH method to update.",
+        )
 
 
 @router.patch("/edition/{isbn}", response_model=EditionDetail)
@@ -134,15 +149,35 @@ async def update_edition(
                 )
     update_data["illustrators"] = new_illustrators
 
+    # handle any provided cover image
+    cover_url_data = edition_data.cover_url
+    if cover_url_data:
+        cover_url = (
+            cover_url_data
+            if is_url(cover_url_data)
+            else handle_edition_cover_image_update(
+                edition,
+                cover_url_data,
+            )
+        )
+        if cover_url:
+            update_data["cover_url"] = cover_url
+
     updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
     )
+
+    changes_dict = edition_data.dict(exclude_unset=True, exclude_defaults=True)
+    if new_url := changes_dict.get("cover_url"):
+        if not is_url(new_url):
+            changes_dict["cover_url"] = "[BASE64 IMAGE]"
+
     crud.event.create(
         session,
         title=f"Edition updated",
         description=f"Made a change to '{updated_edition.title}'",
         info={
-            "changes": edition_data.dict(exclude_unset=True, exclude_defaults=True),
+            "changes": changes_dict,
             "title": updated_edition.title,
             "isbn": updated_edition.isbn,
         },

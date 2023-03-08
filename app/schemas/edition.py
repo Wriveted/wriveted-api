@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import AnyHttpUrl, BaseModel, validator
+from app.schemas import validate_image_url_or_base64_string
 
 from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
@@ -90,7 +91,11 @@ class EditionCreateIn(BaseModel):
     authors: Optional[list[AuthorCreateIn]]
     illustrators: Optional[list[IllustratorCreateIn]]
 
-    cover_url: Optional[AnyHttpUrl]
+    cover_url: str | None
+    _validate_cover_url = validator("cover_url", allow_reuse=True)(
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
+    )
+
     date_published: Optional[int]
 
     labelset: Optional[LabelSetCreateIn]
@@ -107,6 +112,11 @@ class EditionUpdateIn(BaseModel):
     date_published: str | None
 
     illustrators: list[ContributorBase | int] | None
+
+    cover_url: str | None
+    _validate_cover_url = validator("cover_url", pre=True, allow_reuse=True)(
+        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
+    )
 
     work_id: int | None
 

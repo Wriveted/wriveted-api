@@ -172,7 +172,13 @@ async def create_work_with_editions(
     logger.debug("Created new work", work=work)
 
     for unsanitized_isbn in edition_ids:
-        isbn = get_definitive_isbn(unsanitized_isbn)
+        try:
+            isbn = get_definitive_isbn(unsanitized_isbn)
+        except AssertionError:
+            logger.debug(
+                f"Skipping edition with invalid ISBN: {unsanitized_isbn}", work=work
+            )
+            continue
         edition = crud.edition.get_or_create_unhydrated(db=session, isbn=isbn)
         edition.work = work
         session.add(edition)
