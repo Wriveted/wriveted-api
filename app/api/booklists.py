@@ -228,6 +228,7 @@ async def get_booklist_detail(
         .where(BookListItem.booklist == booklist)
         .offset(pagination.skip)
         .limit(pagination.limit)
+        .order_by(BookListItem.order_id)
     ).all()
 
     def get_enriched_booklist_items() -> list[BookListItemEnriched]:
