@@ -21,7 +21,7 @@ class ListType(str, enum.Enum):
     OTHER_LIST = "Other"
 
 
-class ListSharingOptions(str, enum.Enum):
+class ListSharingType(str, enum.Enum):
     PRIVATE = "private"
     RESTRICTED = "restricted"  # Some other mechanism will determine who can view..
     PUBLIC = "public"
@@ -45,10 +45,16 @@ class BookList(Base):
     type: Mapped[ListType] = mapped_column(
         Enum(ListType, name="enum_book_list_type"), nullable=False, index=True
     )
-    # sharing = mapped_column(
-    #     Enum(ListSharingOptions, name="enum_book_list_sharing"), nullable=False, index=True,
-    #     default=ListSharingOptions.PRIVATE
-    # )
+    sharing: Mapped[ListSharingType] = mapped_column(
+        Enum(ListSharingType, name="enum_book_list_sharing"),
+        nullable=False,
+        index=True,
+        default=ListSharingType.PRIVATE,
+    )
+
+    slug: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, index=True, unique=True
+    )
 
     info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSON))
 
