@@ -68,9 +68,7 @@ class CRUDEdition(CRUDBase[Edition, EditionCreateIn, EditionUpdateIn]):
             raise ValueError("Invalid ISBN")
 
         cover_url_data = edition_data.cover_url
-        # for the image data to have made it this far,
-        # the value is either a url or an ostensibly valid b64 string
-        if not is_url(cover_url_data):
+        if cover_url_data and not is_url(cover_url_data):
             cover_url = handle_new_edition_cover_image(
                 edition_isbn=clean_isbn,
                 image_url_data=cover_url_data,

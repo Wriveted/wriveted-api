@@ -144,16 +144,17 @@ async def update_edition(
 
     # handle any provided cover image
     cover_url_data = edition_data.cover_url
-    cover_url = (
-        cover_url
-        if is_url(cover_url_data)
-        else handle_edition_cover_image_update(
-            edition,
-            image_url_data=cover_url_data,
+    if cover_url_data:
+        cover_url = (
+            cover_url_data
+            if is_url(cover_url_data)
+            else handle_edition_cover_image_update(
+                edition,
+                cover_url_data,
+            )
         )
-    )
-    if cover_url:
-        update_data.cover_url = cover_url
+        if cover_url:
+            update_data.cover_url = cover_url
 
     updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
