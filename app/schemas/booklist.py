@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, Field, validator
-from structlog import get_logger
 
 from app.models.booklist import ListType
 from app.schemas import validate_image_url_or_base64_string
