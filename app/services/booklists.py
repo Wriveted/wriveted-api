@@ -200,7 +200,15 @@ def validate_booklist_publicity(
     new_data: BookListUpdateIn | BookListCreateIn, old_data: BookList = None
 ) -> None:
     new_data_dict = new_data.dict(exclude_unset=True)
-    old_data_dict = old_data.dict() if old_data else {}
+    old_data_dict = (
+        {
+            "slug": old_data.slug,
+            "list_type": old_data.type,
+            "sharing": old_data.sharing,
+        }
+        if old_data
+        else {}
+    )
     deep_merge_dicts(new_data_dict, old_data_dict)
 
     slug = new_data_dict.get("slug")
