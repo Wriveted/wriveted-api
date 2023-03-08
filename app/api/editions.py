@@ -23,7 +23,6 @@ from app.schemas.edition import (
 from app.schemas.illustrator import IllustratorCreateIn
 from app.services.cover_images import (
     handle_edition_cover_image_update,
-    handle_new_edition_cover_image,
 )
 from app.services.editions import (
     compare_known_editions,
@@ -161,7 +160,7 @@ async def update_edition(
     )
 
     changes_dict = edition_data.dict(exclude_unset=True, exclude_defaults=True)
-    if new_url := changes_dict["cover_url"]:
+    if new_url := changes_dict.get("cover_url"):
         if not is_url(new_url):
             changes_dict["cover_url"] = "[BASE64 IMAGE]"
 
