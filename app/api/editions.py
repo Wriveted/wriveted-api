@@ -161,7 +161,7 @@ async def update_edition(
             )
         )
         if cover_url:
-            update_data.cover_url = cover_url
+            update_data["cover_url"] = cover_url
 
     updated_edition = crud.edition.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
