@@ -61,6 +61,8 @@ class BookListBase(BaseModel):
 class BookListOptionalInfo(BaseModel):
     description: Optional[str]
     image_url: Optional[str]
+    subheading: Optional[str]
+    colour: Optional[str]
 
 
 class BookListOptionalInfoCreateIn(BookListOptionalInfo):
@@ -100,6 +102,8 @@ class BookListItemUpdateIn(BaseModel):
 class BookListUpdateIn(BaseModel):
     name: Optional[str]
     type: Optional[ListType]
+    sharing: Optional[ListSharingType]
+    slug: Optional[str]
     info: Optional[BookListOptionalInfo] = None
     items: Optional[list[BookListItemUpdateIn]]
 
@@ -109,6 +113,9 @@ class BookListBrief(BookListBase):
     updated_at: datetime
     user: Optional[UserIdentity]
     school: Optional[SchoolWrivetedIdentity]
+    sharing: Optional[ListSharingType]
+    slug: Optional[str]
+    info: Optional[BookListOptionalInfo]
 
 
 class BookListsResponse(PaginatedResponse):
@@ -116,9 +123,6 @@ class BookListsResponse(PaginatedResponse):
 
 
 class BookListDetail(PaginatedResponse, BookListBrief):
-    slug: Optional[str]
-    sharing: Optional[ListSharingType]
-    info: Optional[BookListOptionalInfo]
     data: list[BookListItemDetail]
 
 
