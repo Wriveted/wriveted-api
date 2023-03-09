@@ -70,6 +70,10 @@ class ClassGroup(Base):
         nullable=False,
     )
 
+    # Optional association with primary teacher
+    # Info blob where we can store the ordered class level, e.g. Year 0, 1 - 13 in NZ
+    # and K1, K2 ... in Aus.
+
     def __repr__(self):
         return f"<Class '{self.name}' ({self.school.name} - {self.student_count} students)>"
 
