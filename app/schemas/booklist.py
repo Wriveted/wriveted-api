@@ -6,11 +6,11 @@ from pydantic import UUID4, BaseModel, Field, validator
 
 from app.models.booklist import ListSharingType, ListType
 from app.schemas import validate_image_url_or_base64_string
-from app.schemas.edition import EditionBrief
+from app.schemas.edition import EditionBrief, EditionDetail
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
-from app.schemas.work import WorkBrief
+from app.schemas.work import WorkEnriched
 
 
 class BookFeedbackChoice(str, enum.Enum):
@@ -34,14 +34,14 @@ class BookListItemBase(BaseModel):
 
 class BookListItemDetail(BookListItemBase):
     # id: UUID
-    work: WorkBrief
+    work: WorkEnriched
 
     class Config:
         orm_mode = True
 
 
 class BookListItemEnriched(BookListItemDetail):
-    edition: EditionBrief
+    edition: EditionDetail
 
 
 class BookListItemCreateIn(BookListItemBase):

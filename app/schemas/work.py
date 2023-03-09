@@ -41,9 +41,6 @@ class WorkDetail(WorkBrief):
     labelset: Optional[LabelSetDetail]
     info: Optional[WorkInfo]
 
-    class Config:
-        orm_mode = True
-
 
 class WorkCreateIn(BaseModel):
     type: WorkType
