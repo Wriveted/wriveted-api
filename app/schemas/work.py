@@ -32,7 +32,7 @@ class WorkBrief(BaseModel):
 
 
 class WorkEnriched(WorkBrief):
-    labelset: LabelSetBasic
+    labelset: LabelSetBasic | None
     cover_url: str | None
 
 
