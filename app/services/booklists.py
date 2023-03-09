@@ -218,14 +218,11 @@ def validate_booklist_publicity(
     is_public_huey_list = (
         list_type == ListType.HUEY and sharing == ListSharingType.PUBLIC
     )
-    has_slug = slug is not None
 
-    if has_slug:
-        if not is_public_huey_list:
-            raise ValidationError("A slug can only be provided for a Public Huey list")
-    elif is_public_huey_list:
-        if not has_slug:
-            raise ValidationError("A slug must be provided for a Public Huey list")
+    if slug and list_type != ListType.HUEY:
+        raise ValidationError("A slug can only be provided for a Huey list")
+    if is_public_huey_list and not slug:
+        raise ValidationError("A slug must be provided for a Public Huey list")
 
 
 def populate_booklist_object(
