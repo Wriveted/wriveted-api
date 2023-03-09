@@ -88,7 +88,7 @@ async def add_booklist(
     except ValueError as e:
         raise HTTPException(
             status_code=422,
-            detail=e,
+            detail=str(e),
         )
 
     if booklist.type == ListType.SCHOOL:
@@ -269,7 +269,7 @@ async def update_booklist(
     except ValueError as e:
         raise HTTPException(
             status_code=422,
-            detail=e,
+            detail=str(e),
         )
 
     try:

@@ -202,7 +202,7 @@ def validate_booklist_publicity(
     old_data_dict = (
         {
             "slug": old_data.slug,
-            "list_type": old_data.type,
+            "type": old_data.type,
             "sharing": old_data.sharing,
         }
         if old_data
