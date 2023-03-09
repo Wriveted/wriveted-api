@@ -86,7 +86,7 @@ async def add_booklist(
     try:
         validate_booklist_publicity(booklist)
     except ValueError as e:
-        return HTTPException(
+        raise HTTPException(
             status_code=422,
             detail=e,
         )
@@ -267,7 +267,7 @@ async def update_booklist(
     try:
         validate_booklist_publicity(changes, booklist)
     except ValueError as e:
-        return HTTPException(
+        raise HTTPException(
             status_code=422,
             detail=e,
         )
@@ -278,9 +278,7 @@ async def update_booklist(
         )
     except IntegrityError as e:
         logger.warning("Couldn't alter the booklist", exc_info=e)
-        return JSONResponse(
-            status_code=422, content={"message": "Booklist update wasn't possible"}
-        )
+        raise HTTPException(status_code=422, detail="Booklist update wasn't possible")
 
     return updated_booklist
 
