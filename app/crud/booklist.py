@@ -73,6 +73,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         self,
         db: Session,
         list_type: Optional[str] = None,
+        sharing_type: Optional[str] = None,
         school: Optional[School] = None,
         user: Optional[User] = None,
         query_string: Optional[str] = None,
@@ -81,6 +82,8 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
 
         if list_type is not None:
             booklists_query = booklists_query.where(BookList.type == list_type)
+        if sharing_type is not None:
+            booklists_query = booklists_query.where(BookList.sharing == sharing_type)
         if school is not None:
             booklists_query = booklists_query.where(BookList.school == school)
         if user is not None:

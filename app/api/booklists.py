@@ -21,7 +21,7 @@ from app.api.dependencies.security import (
 )
 from app.db.session import get_session
 from app.models import BookList, ServiceAccount, User
-from app.models.booklist import ListType
+from app.models.booklist import ListSharingType, ListType
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
@@ -175,6 +175,7 @@ async def add_booklist(
 )
 async def get_booklists(
     list_type: Optional[ListType] = None,
+    sharing_type: Optional[ListSharingType] = None,
     pagination: PaginatedQueryParams = Depends(),
     principals: List = Depends(get_active_principals),
     session: Session = Depends(get_session),
@@ -193,7 +194,7 @@ async def get_booklists(
         "Getting list of booklists", list_type=list_type, pagination=pagination
     )
     booklists_query = crud.booklist.get_all_query_with_optional_filters(
-        db=session, list_type=list_type
+        db=session, list_type=list_type, sharing_type=sharing_type
     )
 
     booklists = [
@@ -299,6 +300,36 @@ async def delete_booklist(
     logger.debug("Removing a booklist", booklist=booklist)
     crud.booklist.remove(db=session, id=booklist.id)
     return booklist
+
+
+@public_router.get(
+    "/public-lists",
+    response_model=BookListsResponse,
+)
+async def get_public_booklists(
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+):
+    """
+    Retrieve a paginated list of Public Huey Book Lists.
+    Requires no authentication.
+    """
+    booklists_query = crud.booklist.get_all_query_with_optional_filters(
+        db=session, list_type=ListType.HUEY, sharing_type=ListSharingType.PUBLIC
+    )
+
+    booklists = session.scalars(
+        crud.booklist.apply_pagination(
+            query=booklists_query, skip=pagination.skip, limit=pagination.limit
+        )
+    ).all()
+
+    booklist_count = crud.booklist.count_query(db=session, query=booklists_query)
+
+    return BookListsResponse(
+        pagination=Pagination(**pagination.to_dict(), total=booklist_count),
+        data=booklists,
+    )
 
 
 @public_router.get(
