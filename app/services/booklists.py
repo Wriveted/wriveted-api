@@ -1,4 +1,3 @@
-from pydantic import ValidationError
 from sqlalchemy import select
 from structlog import get_logger
 
@@ -220,9 +219,9 @@ def validate_booklist_publicity(
     )
 
     if slug and list_type != ListType.HUEY:
-        raise ValidationError("A slug can only be provided for a Huey list")
+        raise ValueError("A slug can only be provided for a Huey list")
     if is_public_huey_list and not slug:
-        raise ValidationError("A slug must be provided for a Public Huey list")
+        raise ValueError("A slug must be provided for a Public Huey list")
 
 
 def populate_booklist_object(

@@ -85,10 +85,10 @@ async def add_booklist(
 
     try:
         validate_booklist_publicity(booklist)
-    except ValidationError as e:
-        return JSONResponse(
+    except ValueError as e:
+        return HTTPException(
             status_code=422,
-            content={"message": e},
+            detail=e,
         )
 
     if booklist.type == ListType.SCHOOL:
@@ -266,10 +266,10 @@ async def update_booklist(
 
     try:
         validate_booklist_publicity(changes, booklist)
-    except ValidationError as e:
-        return JSONResponse(
+    except ValueError as e:
+        return HTTPException(
             status_code=422,
-            content={"message": e},
+            detail=e,
         )
 
     try:
