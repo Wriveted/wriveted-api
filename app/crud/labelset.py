@@ -180,7 +180,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     for key in data.reading_ability_keys
                 ]
                 if reading_abilities:
-                    labelset.reading_abilities.extend(reading_abilities)
+                    labelset.reading_abilities = reading_abilities
                     labelset.reading_ability_origin = data.reading_ability_origin
                     updated = True
 
