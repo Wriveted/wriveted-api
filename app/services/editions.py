@@ -1,15 +1,22 @@
+import json
 from random import randint
 from typing import List
+from fastapi import HTTPException
+
+from google.api_core.exceptions import NotFound
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.config import get_settings
 from app.models import Edition
 from app.schemas.edition import EditionCreateIn
+from app.services.gcp_storage import get_blob
 
 logger = get_logger()
+settings = get_settings()
 
 
 async def compare_known_editions(session, isbn_list: List[str]):
@@ -197,3 +204,24 @@ def convert_10_to_13(isbn):
 def generate_random_valid_isbn13():
     base = "978" + str(randint(0, 999999999)).zfill(9)
     return base + check_digit_13(base)
+
+
+def get_nielsen_data(
+    isbn: str, use_cache: bool = True, include_image: bool = False
+) -> dict:
+    try:
+        isbn = get_definitive_isbn(isbn)
+    except AssertionError:
+        raise HTTPException(status_code=422, detail="Invalid ISBN")
+
+    if use_cache:
+        # look for existing data in the book data gcp bucket, with the blob name = nielsen/{isbn}.json
+        try:
+            blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json")
+            return json.loads(blob.download_as_string())
+        except NotFound:
+            logger.debug(f"Nielsen data for {isbn} not found in cache")
+
+    nielsen_data = get_nielsen_data_from_api(isbn)
+
+    return nielsen_data

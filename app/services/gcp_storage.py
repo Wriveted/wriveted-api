@@ -1,6 +1,7 @@
 from base64 import b64decode
 
 from google.cloud import storage
+from google.api_core.exceptions import NotFound
 from structlog import get_logger
 
 from app.config import get_settings
@@ -62,3 +63,16 @@ def delete_blob(bucket_name: str, blob_name: str):
     bucket = get_gcp_bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.delete()
+
+
+def get_blob(bucket_name: str, blob_name: str) -> Blob:
+    """
+    Get a blob from the bucket. Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist.
+    """
+    bucket = get_gcp_bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    if not blob.exists():
+        raise NotFound(f"Blob {blob_name} doesn't exist")
+
+    return blob

@@ -9,7 +9,10 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.editions import get_edition_from_isbn
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import (
+    get_current_active_superuser_or_backend_service_account,
+    get_current_active_user_or_service_account,
+)
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas import is_url
@@ -28,6 +31,7 @@ from app.services.editions import (
     compare_known_editions,
     create_missing_editions,
     get_definitive_isbn,
+    get_nielsen_data,
 )
 
 logger = get_logger()
@@ -93,6 +97,20 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid isbn")
 
     return crud.edition.get_or_404(db=session, id=isbn)
+
+
+@router.get(
+    "/edition/{isbn}/nielsen",
+    dependencies=[Depends(get_current_active_superuser_or_backend_service_account)],
+)
+async def get_edition_nielsen_data(
+    isbn: str,
+    use_cache: bool = Query(True, description="Use cached data if available"),
+    include_image: bool = Query(
+        False, description="Include cover image in response (if available)"
+    ),
+):
+    return get_nielsen_data(isbn, use_cache, include_image)
 
 
 @router.post("/edition", response_model=EditionDetail)
