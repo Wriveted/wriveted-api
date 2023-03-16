@@ -8,6 +8,7 @@ from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
 from app.schemas.link import LinkBrief
+from app.schemas.work import WorkBrief
 
 
 class Genre(BaseModel):
@@ -21,32 +22,30 @@ class Genre(BaseModel):
 
     name: str
     source: GenreSource
+    code: str | None
 
 
 class EditionInfo(BaseModel):
-    pages: Optional[int]
-    summary_short: Optional[str]
-    summary_long: Optional[str]
+    # nielsen fields
+    pages: str | None = None  # PAGNUM
+    summary_short: str | None = None  # AUSFSD
+    summary_long: str | None = None  # AUSFLD
+    genres: list[Genre] = []  # BISACT/C{n}, BIC2ST/C{n}, THEMAST/C{n}, LOCSH{n}
+    bic_qualifiers: list[str] = []  # BIC2QC{n}
+    thema_qualifiers: list[str] = []  # THEMAQC{n}
+    keywords: str | None = None  # KEYWORDS (comes as a delimited string, not a list)
+    prodct: str | None = None  # PRODCT
+    prodcc: str | None = None  # PRODCC
+    cbmctext: str | None = None  # CBMCTEXT
+    cbmccode: str | None = None  # CBMCCODE
+    interest_age: str | None = None  # IA
+    reading_age: str | None = None  # RA
+    country: str | None = None  # COP
+    medium_tags: list[str] = []  # PFCT, PCTCT{n}
+    image_flag: bool  # IMAGFLAG
 
-    genres: Optional[list[Genre]]
-    bic_qualifiers: Optional[list[str]]
-    thema_qualifiers: Optional[list[str]]
-    keywords: Optional[str]  # comes as a delimited string, not a list
-    prodct: Optional[str]
-    prodcc: Optional[str]
-    cbmctext: Optional[str]
-    cbmccode: Optional[str]
-    interest_age: Optional[str]
-    reading_age: Optional[str]
-
-    country: Optional[str]
-
-    medium_tags: Optional[list[str]]
-    image_flag: Optional[bool]
-
-    links: Optional[list[LinkBrief]]
-
-    other: Optional[dict]
+    links: list[LinkBrief] = []
+    other: dict | None = None
 
 
 class EditionBrief(BaseModel):
@@ -74,6 +73,17 @@ class EditionDetail(EditionBrief):
     @validator("authors", "illustrators", pre=True)
     def contributors_not_none(cls, v):
         return v or []
+
+
+class EditionNielsen(BaseModel):
+    expected_work: WorkBrief | None
+
+    isbn: str
+    title: str
+    subtitle: str
+    publisher: str
+
+    raw: dict
 
 
 class EditionCreateIn(BaseModel):

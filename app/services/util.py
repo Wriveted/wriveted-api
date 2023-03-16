@@ -19,3 +19,9 @@ def truncate_to_full_word_with_ellipsis(s, max_len):
         if " " in s[-3:]:
             s = s[: s.rfind(" ")]  # truncate after last full word
         return s + "..."
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]

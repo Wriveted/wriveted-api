@@ -79,33 +79,34 @@ def handle_new_collection_item_cover_image(
 def _handle_upload_edition_cover_image(
     image_data: str,
     edition_isbn: str,
+    folder: str = "wriveted",
 ) -> str:
     """
     Handle a cover image upload for a public edition.
     """
-    # generate folder and filename
-    folder = f"wriveted"
-    filename = edition_isbn
-
     # upload the image to the bucket
     public_url = base64_string_to_bucket(
         data=image_data,
         folder=folder,
-        filename=filename,
+        filename=edition_isbn,
         bucket_name=settings.GCP_IMAGE_BUCKET,
     )
 
     return public_url
 
 
-def handle_new_edition_cover_image(edition_isbn: str, image_data: str) -> str | None:
+def handle_new_edition_cover_image(
+    edition_isbn: str, image_data: str, folder: str | None
+) -> str | None:
     """
     Handle a cover image upload for a new edition.
     """
-    return _handle_upload_edition_cover_image(image_data, edition_isbn)
+    return _handle_upload_edition_cover_image(image_data, edition_isbn, folder)
 
 
-def handle_edition_cover_image_update(edition: Edition, image_data: str) -> str | None:
+def handle_edition_cover_image_update(
+    edition: Edition, image_data: str, folder: str | None
+) -> str | None:
     """
     Handle a cover image update for an existing edition.
     If image_data is empty, purges any existing image from gcp and the db object.
@@ -115,6 +116,7 @@ def handle_edition_cover_image_update(edition: Edition, image_data: str) -> str 
         _handle_upload_edition_cover_image(
             image_data,
             edition.isbn,
+            folder,
         )
         if image_data
         else None

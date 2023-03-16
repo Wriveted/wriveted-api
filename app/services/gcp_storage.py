@@ -1,7 +1,11 @@
 from base64 import b64decode
+import base64
+import mimetypes
+import sys
 
 from google.cloud import storage
 from google.api_core.exceptions import NotFound
+import requests
 from structlog import get_logger
 
 from app.config import get_settings
@@ -44,6 +48,22 @@ def base64_string_to_bucket(data: str, folder: str, filename: str, bucket_name: 
     return blob.public_url
 
 
+def img_url_to_b64_string(url: str) -> str:
+    img_response = requests.get(url)
+    image_data = img_response.content
+
+    # if it's less than 2kb something may have gone wrong
+    if sys.getsizeof(image_data) < 2048:
+        return None
+
+    content_type = img_response.headers["content-type"]
+
+    base64_data = base64.b64encode(image_data)
+    decoded = base64_data.decode("utf-8")
+
+    return f"data:{content_type};base64,{decoded}"
+
+
 def url_to_blob_name(url: str) -> str:
     """
     Convert a gcp storage url to a blob name.
@@ -65,7 +85,7 @@ def delete_blob(bucket_name: str, blob_name: str):
     blob.delete()
 
 
-def get_blob(bucket_name: str, blob_name: str) -> Blob:
+def get_blob(bucket_name: str, blob_name: str):
     """
     Get a blob from the bucket. Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist.
     """
@@ -76,3 +96,16 @@ def get_blob(bucket_name: str, blob_name: str) -> Blob:
         raise NotFound(f"Blob {blob_name} doesn't exist")
 
     return blob
+
+
+def get_first_blob_by_prefix(bucket_name: str, prefix: str):
+    """
+    Useful for getting a blob if the name is known, but not the filetype.
+    """
+    bucket = get_gcp_bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=prefix, max_results=1)
+
+    for blob in blobs:
+        return blob
+
+    return None
