@@ -69,7 +69,7 @@ def batch(iterable, n=1):
 api_token = settings.WRIVETED_API_TOKEN
 
 start_time = time.time()
-for school_data_batch in batch(school_data, 5):
+for school_data_batch in batch(school_data, 500):
     print(f"Uploading {len(school_data_batch)} schools in bulk to Wriveted API")
 
     response = httpx.post(
@@ -80,6 +80,7 @@ for school_data_batch in batch(school_data, 5):
     )
     response.raise_for_status()
     print(response.json())
+
 end_time = time.time()
 
 print("Finished")

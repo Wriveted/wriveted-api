@@ -48,6 +48,17 @@ google-auth-oauthlib = "^0.8"
 pre-commit = "^2.21"
 locust = "^2.14"
 
+[tool.poetry.group.embedding]
+optional = true
+
+[tool.poetry.group.embedding.dependencies]
+pypdf = "^3.5.2"
+beautifulsoup4 = "^4.11.2"
+httpx = "^0.23.3"
+unstructured = "^0.5.4"
+openai = "^0.27.2"
+chromadb = "^0.3.11"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
