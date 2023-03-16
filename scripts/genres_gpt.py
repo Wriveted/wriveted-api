@@ -39,7 +39,7 @@ Optionally include:
 - a 'series' key with the name of the series the book is part of,
 - a 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won, 
-- 'notes' with any other information you think is relevant for parents such as a content advisory and adult themes.
+- 'notes' with any other brief information you think is relevant for parents and other librarians such as content advisory. Adult themes, heavy emotional content, religion and LGBTQ themes should also be noted. Similar to movie and streaming classification systems.
  
 Don't add any other keys to the output.
 """
