@@ -75,7 +75,7 @@ async def hydrate_single(
         raise HTTPException(status_code=404, detail="No results found")
     except NielsenException:
         raise HTTPException(
-            status_code=503, detail="Something went wrong witht the Nielsen API"
+            status_code=503, detail="Something went wrong with the Nielsen API"
         )
 
     if not dry:

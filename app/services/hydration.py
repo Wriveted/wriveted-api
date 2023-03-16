@@ -78,13 +78,13 @@ def check_result(isbn, result_code, hits):
         )
 
 
-def data_query(self, isbn) -> dict:
+def data_query(isbn) -> dict:
     # retrieve all the book data for a given isbn, in xml format
     response = requests.get(
-        self.api,
+        settings.NIELSEN_API_URL,
         params={
-            "clientId": self.client_id,
-            "password": self.client_password,
+            "clientId": settings.NIELSEN_CLIENT_ID,
+            "password": settings.NIELSEN_PASSWORD,
             "from": 0,
             "to": 1,
             "indexType": 0,  # 0: "Main Book Database"
@@ -107,7 +107,7 @@ def data_query(self, isbn) -> dict:
 
     result_code = xml_tree.find("resultCode").text
     hits = xml_tree.find("hits")
-    self.check_result(isbn, result_code, hits)
+    check_result(isbn, result_code, hits)
 
     data = xml_tree.find("data/data/record")
     # convert to dict
