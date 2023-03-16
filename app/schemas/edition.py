@@ -41,7 +41,7 @@ class EditionInfo(BaseModel):
     reading_age: str | None = None  # RA
     country: str | None = None  # COP
     medium_tags: list[str] = []  # PFCT, PCTCT{n}
-    image_flag: bool  # IMAGFLAG
+    image_flag: bool | None  # IMAGFLAG
 
     links: list[LinkBrief] = []
     other: dict | None = None
