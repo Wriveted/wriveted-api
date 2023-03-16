@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.hue import Hue
-from app.schemas.recommendations import ReadingAbilityKey
 
 
 class WritingStyleKey(CaseInsensitiveStringEnum):
@@ -156,7 +155,7 @@ class LabelSetCreateIn(BaseModel):
     min_age: Optional[int]
     max_age: Optional[int]
     age_origin: Optional[LabelOrigin]
-    reading_ability_keys: Optional[list[ReadingAbilityKey]]
+    reading_ability_keys: Optional[list[str]]
     reading_ability_origin: Optional[LabelOrigin]
 
     huey_summary: Optional[str]

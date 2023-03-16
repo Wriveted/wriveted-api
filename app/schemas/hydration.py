@@ -1,14 +1,14 @@
-from enum import Enum
 import html
 import re
-from math import floor, ceil
+from math import ceil, floor
 from textwrap import shorten
+
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, root_validator
+
 from app.models.labelset import RecommendStatus
 from app.schemas.edition import EditionInfo, Genre
 from app.schemas.labelset import LabelSetDetail
-
 from app.schemas.recommendations import ReadingAbilityKey
 
 # http://docplayer.net/212150627-Bookscan-product-classes.html
@@ -256,7 +256,7 @@ class HydratedBookData(BaseModel):
         if "PFCT" in blob:
             instance.info.medium_tags.append(blob.get("PFCT"))
 
-        # short summary good for landbot, long summary good for generating hues (or as a backup)self
+        # short summary good for landbot, long summary good for generating hues (or as a backup)
         # sometimes contain encoded html in the string, which we don't need
         instance.info.summary_short = blob.get("AUSFSD")
         if instance.info.summary_short:

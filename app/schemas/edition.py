@@ -8,7 +8,6 @@ from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
 from app.schemas.link import LinkBrief
-from app.schemas.work import WorkBrief
 
 
 class Genre(BaseModel):
@@ -73,17 +72,6 @@ class EditionDetail(EditionBrief):
     @validator("authors", "illustrators", pre=True)
     def contributors_not_none(cls, v):
         return v or []
-
-
-class EditionNielsen(BaseModel):
-    expected_work: WorkBrief | None
-
-    isbn: str
-    title: str
-    subtitle: str
-    publisher: str
-
-    raw: dict
 
 
 class EditionCreateIn(BaseModel):
