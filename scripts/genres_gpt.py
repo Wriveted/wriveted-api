@@ -28,19 +28,26 @@ The language should appeal to a 9 year old. Example short description:
 
 The long description should be friendly and aimed at an adult reader. Don't mention the title or the fact that it is a story or a book. It is okay to mention any awards in the long description.
 Pay attention to the title of the book for clues as to what is important to mention, a good long description might mention the characters, their relationships, and the events that take place.
-Start with the protagonist, do not actually say they are the protagonist.
 
 Both descriptions should not be patronising. Do not try to sell or use sales language e.g. 'bestseller', 'must read'. Don't mention books by other authors.
 Don't use US or UK specific language - e.g. don't mention middle grade. Don't mention the number of pages.
 
-Your output should be JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age'. 
+The reading ability should be a number between 1 and 5. Examples for each level including lexiles are:
+- 1 easy picture book such as "Where's Spot" by Eric Hill. 160L
+- 2 "Cat in the Hat" by Dr. Seuss. 430L
+- 3 "Treehouse" by Andy Griffiths. 560L
+- 4 "Charlie and the Chocolate Factory" by Roald Dahl. 810L
+- 5 "Harry Potter and the Philosopher's Stone". 880L
+
+Your output should be JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'reading-ability', 'reading-ability-rational'
 
 Optionally include:
+- 'lexile' with the lexile score of the book,
 - a 'series' key with the name of the series the book is part of,
 - a 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won, 
 - 'notes' with any other brief information you think is relevant for parents and other librarians such as content advisory. Adult themes, heavy emotional content, religion and LGBTQ themes should also be noted. Similar to movie and streaming classification systems.
- 
+- 'reading-ability-rational' a description of why you chose the reading ability level. For example: "The book is written in a simple style and has a lot of illustrations. It is suitable for children who are just learning to read."
 Don't add any other keys to the output.
 """
 
@@ -84,8 +91,8 @@ def extract_genre_labels(edition: Edition, related_editions: List[Edition]):
     
     {genre_data}
     
-    Remember your output should only contain JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age',
-    and the following optional keys: 'series', 'series-number', 'awards', 'notes'.
+    Remember your output should only contain JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'lexile',
+    'reading-ability' and the following optional keys: 'series', 'series-number', 'awards', 'notes', 'reading-ability-rational'
     """)
 
     response = openai.ChatCompletion.create(
@@ -130,13 +137,15 @@ with Session(engine) as session:
 
 
     recently_liked_isbns = [
-        "9781760150426",
-        "9780141354828",
-        "9780143303831",
-        "9780064407663",
-        "9781925163131",
-        "9780340999073",
-        "9780141359786",
+
+
+        # "9781760150426",
+        # "9780141354828",
+        # "9780143303831",
+        # "9780064407663",
+        # "9781925163131",
+        # "9780340999073",
+        # "9780141359786",
         "9781742837581",
         "9781921564925",
         "9781743628638",
