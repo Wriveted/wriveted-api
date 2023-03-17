@@ -1,6 +1,5 @@
 from base64 import b64decode
 import base64
-import mimetypes
 import sys
 
 from google.cloud import storage
@@ -85,14 +84,14 @@ def delete_blob(bucket_name: str, blob_name: str):
     blob.delete()
 
 
-def get_blob(bucket_name: str, blob_name: str):
+def get_blob(bucket_name: str, blob_name: str, create: bool = False):
     """
-    Get a blob from the bucket. Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist.
+    Get a blob from the bucket. Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist and create is False.
     """
     bucket = get_gcp_bucket(bucket_name)
     blob = bucket.blob(blob_name)
 
-    if not blob.exists():
+    if not create and not blob.exists():
         raise NotFound(f"Blob {blob_name} doesn't exist")
 
     return blob
@@ -100,12 +99,12 @@ def get_blob(bucket_name: str, blob_name: str):
 
 def get_first_blob_by_prefix(bucket_name: str, prefix: str):
     """
-    Useful for getting a blob if the name is known, but not the filetype.
+    Useful for getting a blob if the name is known, but not the filetype. Raises a google.api_core.exceptions.NotFound exception if no blob exists.
     """
     bucket = get_gcp_bucket(bucket_name)
     blobs = bucket.list_blobs(prefix=prefix, max_results=1)
 
-    for blob in blobs:
-        return blob
+    if not blobs:
+        raise NotFound(f"No blobs found with prefix {prefix}")
 
-    return None
+    return next(blobs)

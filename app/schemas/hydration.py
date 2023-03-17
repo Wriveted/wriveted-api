@@ -6,10 +6,9 @@ from textwrap import shorten
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, root_validator
 
-from app.models.labelset import RecommendStatus
+from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas.edition import EditionInfo, Genre
-from app.schemas.labelset import LabelSetDetail
-from app.schemas.recommendations import ReadingAbilityKey
+from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 # http://docplayer.net/212150627-Bookscan-product-classes.html
 REFERENCE_PRODCC = [
@@ -163,6 +162,26 @@ class Contributor(BaseModel):
         return values
 
 
+class EstimatedLabelSet(BaseModel):
+    hues: list[HueKeys] = []
+    hue_origin: LabelOrigin | None
+
+    min_age: int | None
+    max_age: int | None
+    age_origin: LabelOrigin | None
+
+    reading_abilities: list[ReadingAbilityKey] = []
+    reading_ability_origin: LabelOrigin | None
+
+    huey_summary: str | None
+    summary_origin: LabelOrigin | None
+
+    info: dict | None
+
+    recommend_status: RecommendStatus | None
+    recommend_status_origin: LabelOrigin | None
+
+
 class HydratedBookData(BaseModel):
     isbn: str = None
     other_isbns: list[str] = []
@@ -181,7 +200,7 @@ class HydratedBookData(BaseModel):
     date_published: int | None = None  # PUBPD
 
     info: EditionInfo | None = None
-    labelset: LabelSetDetail | None = None
+    labelset: EstimatedLabelSet | None = None
 
     hydrated_on: bool = True
 
@@ -191,6 +210,7 @@ class HydratedBookData(BaseModel):
     def from_nielsen_blob(cls, blob: dict):
         instance = cls()
         instance.raw = blob
+        instance.info = EditionInfo()
 
         # get the basics out of the way
         instance.isbn = blob.get("ISBN13")
@@ -216,28 +236,48 @@ class HydratedBookData(BaseModel):
                 # http://www.onix-codelists.io/codelist/17
                 if blob.get(f"CR{i}") in ["A01", "A02"]:
                     instance.authors.append(
-                        Contributor(blob.get(f"ICFN{i}"), blob.get(f"ICKN{i}"))
+                        Contributor(
+                            first_name=blob.get(f"ICFN{i}"),
+                            last_name=blob.get(f"ICKN{i}"),
+                        )
                     )
                 elif blob.get(f"CR{i}") in ["A12", "A35"]:
                     instance.illustrators.append(
-                        Contributor(blob.get(f"ICFN{i}"), blob.get(f"ICKN{i}"))
+                        Contributor(
+                            first_name=blob.get(f"ICFN{i}"),
+                            last_name=blob.get(f"ICKN{i}"),
+                        )
                     )
 
             # look for "genres"
             if f"BISACT{i}" in blob:
                 instance.info.genres.append(
-                    Genre(blob.get(f"BISACT{i}"), "BISAC", blob.get(f"BISACC{i}")),
+                    Genre(
+                        name=blob.get(f"BISACT{i}"),
+                        source="BISAC",
+                        code=blob.get(f"BISACC{i}"),
+                    ),
                 )
             if f"BIC2ST{i}" in blob:
                 instance.info.genres.append(
-                    Genre(blob.get(f"BIC2ST{i}"), "BIC", blob.get(f"BIC2SC{i}")),
+                    Genre(
+                        name=blob.get(f"BIC2ST{i}"),
+                        source="BIC",
+                        code=blob.get(f"BIC2SC{i}"),
+                    ),
                 )
             if f"THEMAST{i}" in blob:
                 instance.info.genres.append(
-                    Genre(blob.get(f"THEMAST{i}"), "THEMA", blob.get(f"THEMASC{i}")),
+                    Genre(
+                        name=blob.get(f"THEMAST{i}"),
+                        source="THEMA",
+                        code=blob.get(f"THEMASC{i}"),
+                    ),
                 )
             if f"LOCSH{i}" in blob:
-                instance.info.genres.append(Genre(blob.get(f"LOCSH{i}"), "LOCSH", None))
+                instance.info.genres.append(
+                    Genre(name=blob.get(f"LOCSH{i}"), source="LOCSH", code=None)
+                )
 
             # look for "qualifiers" (misc. but can be useful for determining age)
             if f"BIC2QC{i}" in blob:
@@ -286,13 +326,13 @@ class HydratedBookData(BaseModel):
             )
 
         # keywords maybe also good for generating hues
-        instance.keywords = blob.get("KEYWORDS")
+        instance.info.keywords = blob.get("KEYWORDS")
 
         # backup age calc
         instance.info.interest_age = blob.get("IA")
         instance.info.reading_age = blob.get("RA")
 
-        instance.image_flag = blob.get("IMAGFLAG") == "Y"
+        instance.info.image_flag = blob.get("IMAGFLAG") == "Y"
 
         return instance
 
@@ -302,7 +342,7 @@ class HydratedBookData(BaseModel):
         reading ability, and recommendability. Stores result in the HydratedBookData's `labelset` object.
         """
 
-        self.labelset = LabelSetDetail()
+        self.labelset = EstimatedLabelSet()
 
         def calculate_min_age() -> int | None:
             # CBMC code
@@ -585,7 +625,7 @@ class HydratedBookData(BaseModel):
         reading_abilities = estimate_reading_abilities(min_age, max_age)
         if reading_abilities:
             self.labelset.reading_ability_origin = "PREDICTED_NIELSEN"
-            self.labelset.reading_ability_keys = [ra.name for ra in reading_abilities]
+            self.labelset.reading_abilities = [ra.name for ra in reading_abilities]
 
         recommend_status = estimate_recommendability()
         if recommend_status:

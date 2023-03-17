@@ -1,9 +1,10 @@
 import json
-from typing import Tuple
 import xml.etree.ElementTree as ET
-import isbnlib
+from datetime import datetime
 
+import isbnlib
 import requests
+from google.api_core.exceptions import NotFound
 from structlog import get_logger
 
 from app.config import get_settings
@@ -160,16 +161,18 @@ def get_nielsen_data(isbn, use_cache=True):
         return
 
     if use_cache:
-        data_blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json")
-        if data_blob.exists():
+        try:
+            data_blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json")
             # download the raw data from gcp storage as json, converting to dict
             return json.loads(data_blob.download_as_string().decode("utf-8"))
+        except NotFound:
+            pass  # cache miss, continue to make the request
 
     # populate object with the nielsen data
     raw_data = data_query(isbn)
 
     # save the raw data to gcp storage/cache
-    blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json")
+    blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json", create=True)
     blob.upload_from_string(data=json.dumps(raw_data), content_type="application/json")
 
     return raw_data
@@ -198,13 +201,15 @@ def hydrate(isbn: str, use_cache: bool = True):
     cover_url = None
 
     # start with Nielsen
-    if book_data.image_flag:
+    if book_data.info.image_flag:
         if use_cache:
-            existing_blob = get_first_blob_by_prefix(
-                settings.GCP_IMAGE_BUCKET, f"nielsen/{isbn}"
-            )
-            if existing_blob and existing_blob.exists():
+            try:
+                existing_blob = get_first_blob_by_prefix(
+                    settings.GCP_IMAGE_BUCKET, f"nielsen/{isbn}"
+                )
                 cover_url = existing_blob.public_url
+            except NotFound:
+                pass
 
         if not cover_url:
             if image_data := image_query(isbn, retries=2):
@@ -213,11 +218,13 @@ def hydrate(isbn: str, use_cache: bool = True):
     # fallback to OpenLibrary
     else:
         if use_cache:
-            existing_blob = get_first_blob_by_prefix(
-                settings.GCP_IMAGE_BUCKET, f"open/{isbn}"
-            )
-            if existing_blob and existing_blob.exists():
+            try:
+                existing_blob = get_first_blob_by_prefix(
+                    settings.GCP_IMAGE_BUCKET, f"open/{isbn}"
+                )
                 cover_url = existing_blob.public_url
+            except NotFound:
+                pass
 
         api_url = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
         if not cover_url and requests.get(api_url).status_code == 200:
@@ -231,7 +238,7 @@ def hydrate(isbn: str, use_cache: bool = True):
     other_isbns = list(set(isbnlib.editions(isbn)) - {isbn})
     book_data.other_isbns = other_isbns
 
-    book_data.hydrated = True
+    book_data.hydrated_on = datetime.utcnow()
 
     return book_data
 
@@ -298,7 +305,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                 not_found += 1
                 logger.warning(f"No results found for {isbn}. Skipping")
                 # return the book to the Wriveted API so it knows not to produce it as a candidate again
-                book_data.hydrated = True
+                book_data.hydrated_on = datetime.utcnow()
                 book_batch.append(book_data)
                 continue
             except NielsenException:
