@@ -39,7 +39,22 @@ The reading ability should be a number between 1 and 5. Examples for each level 
 - 4 "Charlie and the Chocolate Factory" by Roald Dahl. 810L
 - 5 "Harry Potter and the Philosopher's Stone". 880L
 
-Your output should be JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'reading-ability', 'reading-ability-rational'
+'hues' should contain a list of these and only these labels:
+- "hue01_dark_suspense" for Dark/Suspense
+- "hue02_beautiful_whimsical" for Beautiful/Whimsical
+- "hue03_dark_beautiful" for Dark/Beautiful
+- "hue05_funny_comic" for Funny/Comic
+- "hue06_dark_gritty" for Dark/Gritty
+- "hue07_silly_charming" for Silly/Charming
+- "hue08_charming_inspiring" for Charming/Inspiring
+- "hue09_charming_playful" for Charming/Playful
+- "hue10_inspiring" for Inspiring
+- "hue11_realistic_hope" for Realistic/Hope
+- "hue12_funny_quirky" for Funny/Quirky
+- "hue13_straightforward" for Straightforward very little tone, just straightforward explanations.
+
+
+Your output should be JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'reading-ability', 'hues'
 
 Optionally include:
 - 'lexile' with the lexile score of the book,
@@ -47,8 +62,7 @@ Optionally include:
 - a 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won, 
 - 'notes' with any other brief information you think is relevant for parents and other librarians such as content advisory. Adult themes, heavy emotional content, religion and LGBTQ themes should also be noted. Similar to movie and streaming classification systems.
-- 'reading-ability-rational' a description of why you chose the reading ability level. For example: "The book is written in a simple style and has a lot of illustrations. It is suitable for children who are just learning to read."
-Don't add any other keys to the output.
+- 'hues' a list of hues as described above.
 """
 
 
@@ -92,7 +106,7 @@ def extract_genre_labels(edition: Edition, related_editions: List[Edition]):
     {genre_data}
     
     Remember your output should only contain JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'lexile',
-    'reading-ability' and the following optional keys: 'series', 'series-number', 'awards', 'notes', 'reading-ability-rational'
+    'reading-ability' and the following optional keys: 'series', 'series-number', 'awards', 'notes'
     """)
 
     response = openai.ChatCompletion.create(
@@ -138,7 +152,7 @@ with Session(engine) as session:
 
     recently_liked_isbns = [
 
-
+        '9780571191475',
         # "9781760150426",
         # "9780141354828",
         # "9780143303831",
@@ -170,10 +184,10 @@ with Session(engine) as session:
         tokens, output = extract_genre_labels(e, related_editions)
 
         total_tokens += tokens
-        output['huey_min_age'] = e.work.labelset.min_age
-        output['huey_max_age'] = e.work.labelset.max_age
-        output['huey_existing_summary'] = e.work.labelset.huey_summary
-        output['huey_existing_long_summary'] = e.info.get('summary_long')
+        #output['huey_min_age'] = e.work.labelset.min_age
+        #output['huey_max_age'] = e.work.labelset.max_age
+        #output['huey_existing_summary'] = e.work.labelset.huey_summary
+        #output['huey_existing_long_summary'] = e.info.get('summary_long')
 
         print(f"[green] {tokens} tokens used, {total_tokens} total tokens")
         print(f"[blue]", output)
