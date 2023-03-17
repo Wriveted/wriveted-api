@@ -1,3 +1,4 @@
+from datetime import datetime
 import html
 import re
 from math import ceil, floor
@@ -202,7 +203,7 @@ class HydratedBookData(BaseModel):
     info: EditionInfo | None = None
     labelset: EstimatedLabelSet | None = None
 
-    hydrated_on: bool = True
+    hydrated_on: datetime | None = None
 
     raw: dict | None = None
 

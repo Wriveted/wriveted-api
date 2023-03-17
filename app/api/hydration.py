@@ -5,6 +5,7 @@ from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
 )
 from app.api.editions import add_edition, get_editions_to_hydrate
+from app.schemas.hydration import HydratedBookData
 from app.services.background_tasks import queue_background_task
 from app.services.hydration import (
     NielsenException,
@@ -48,7 +49,7 @@ async def hydrate_bulk(
     )
 
 
-@router.get("/hydrate/{isbn}")
+@router.get("/hydrate/{isbn}", response_model=HydratedBookData)
 async def hydrate_single(
     isbn: str,
     use_cache: bool = Query(
