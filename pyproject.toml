@@ -37,6 +37,7 @@ alembic-utils = "^0.8.1"
 phonenumbers = "^8.13.6"
 twilio = "^7.16.3"
 rich = "^13.3.2"
+openai = "^0.27.2"
 
 
 [tool.poetry.dev-dependencies]
