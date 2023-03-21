@@ -6,49 +6,50 @@ WORKDIR /app/
 SHELL ["/bin/bash", "-c"]
 
 ENV PIP_NO_CACHE_DIR=1 \
-    POETRY_NO_INTERACTION=1 \
-    PYTHONPATH=/app \
-    PORT=8000 \
-    POETRY_HOME=/opt/poetry \
-    VIRTUAL_ENV=/poetry-env \
-    PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
+  POETRY_NO_INTERACTION=1 \
+  PYTHONPATH=/app \
+  PORT=8000 \
+  POETRY_HOME=/opt/poetry \
+  VIRTUAL_ENV=/poetry-env \
+  PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
 
 # Install Poetry
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
-    && python3 -m venv "${POETRY_HOME}" \
-    && "${POETRY_HOME}/bin/pip" install poetry --no-cache-dir
+  && python3 -m venv "${POETRY_HOME}" \
+  && "${POETRY_HOME}/bin/pip" install poetry --no-cache-dir \
+  && "${POETRY_HOME}/bin/poetry" config installer.modern-installation false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
 COPY \
-     ./pyproject.toml \
-     ./poetry.lock* \
-     alembic.ini  \
-     /app/
+  ./pyproject.toml \
+  ./poetry.lock* \
+  alembic.ini  \
+  /app/
 
 # Allow installing dev dependencies to run tests
 ARG INSTALL_DEV=false
 
 # We install the dependencies in a separate step from installing the app to take advantage of docker caching
 RUN python3 -m venv ${VIRTUAL_ENV} \
-      && if [ $INSTALL_DEV == 'true' ] ; then \
-           poetry install --no-root --no-interaction --no-ansi -vvv; \
-         else \
-           poetry install --no-root --only main --no-interaction --no-ansi -vvv; \
-         fi \
-      && rm -rf ~/.cache/pypoetry/{cache,artifacts}
+  && if [ $INSTALL_DEV == 'true' ] ; then \
+  poetry install --no-root --no-interaction --no-ansi -vvv; \
+  else \
+  poetry install --no-root --only main --no-interaction --no-ansi -vvv; \
+  fi \
+  && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
 COPY scripts/ /app/scripts
 COPY alembic/ /app/alembic
 COPY app/ /app/app
 
 RUN python3 -m venv ${VIRTUAL_ENV} \
-      && if [ $INSTALL_DEV == 'true' ] ; then \
-           poetry install --no-interaction --no-ansi; \
-         else \
-           poetry install --no-interaction --no-ansi --only main; \
-         fi \
-      && rm -rf ~/.cache/pypoetry/{cache,artifacts}
+  && if [ $INSTALL_DEV == 'true' ] ; then \
+  poetry install --no-interaction --no-ansi; \
+  else \
+  poetry install --no-interaction --no-ansi --only main; \
+  fi \
+  && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
 # Port is set via the env var `UVICORN_PORT`
 #CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0"]
