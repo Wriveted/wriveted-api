@@ -78,6 +78,8 @@ class EditionCreateIn(BaseModel):
     isbn: str
     other_isbns: Optional[list[str]]
 
+    work_id: int | None
+
     leading_article: Optional[str]
     title: Optional[str]
     subtitle: Optional[str]

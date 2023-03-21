@@ -44,7 +44,7 @@ class WorkEnriched(WorkBrief):
     cover_url: str | None
 
 
-class WorkDetail(WorkBrief):
+class WorkDetail(WorkEnriched):
     editions: List[EditionBrief]
     labelset: Optional[LabelSetDetail]
     info: Optional[WorkInfo]
