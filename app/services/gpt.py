@@ -230,4 +230,4 @@ def extract_labels(work: Work):
                 "error": "Could not extract JSON from response string"
             }
 
-    return response["usage"], user_content, json_data
+    return {"prompt": user_content, "output": json_data, "usage": response["usage"]}
