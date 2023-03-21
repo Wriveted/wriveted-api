@@ -16,7 +16,7 @@ from app.schemas.booklist import BookListItemEnriched
 from app.schemas.edition import EditionDetail
 
 logging.basicConfig()
-#logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 from app.schemas.class_group import ClassGroupCreateIn
 
@@ -55,49 +55,48 @@ target_genres = """🤓 Factual / Non fiction
 """.splitlines()
 
 
-
 def extract_genre_labels(info: dict) -> list[str]:
     genres = []
-    if 'genres' in info:
-        for genre in info['genres']:
-            if genre['source'] == 'BISAC':
+    if "genres" in info:
+        for genre in info["genres"]:
+            if genre["source"] == "BISAC":
                 # 'JUVENILE FICTION / Social Themes / Emigration & Immigration'
                 # 'JUVENILE FICTION / Animals / Dogs'
                 # 'JUVENILE FICTION / Historical / Military & Wars'
-                if 'Action & Adventure' in genre['name']:
-                    genres.append('🏞️ Adventure and Action')
-                if 'Animals' in genre['name']:
-                    genres.append('🐒 Animals')
-                if 'Legends, Myths' in genre['name']:
+                if "Action & Adventure" in genre["name"]:
+                    genres.append("🏞️ Adventure and Action")
+                if "Animals" in genre["name"]:
+                    genres.append("🐒 Animals")
+                if "Legends, Myths" in genre["name"]:
                     genres.append("✨ Fantasy & Magic")
-                if 'Science Fiction' in genre['name']:
-                    genres.append('👾 Science fiction')
-                if 'biographical' in genre['name']:
-                    genres.append('✍️ Biographical')
-                if 'Historical' in genre['name']:
-                    genres.append('🏛️ Historical')
-                if 'Wars' in genre['name']:
-                    genres.append('🎖️ War')
+                if "Science Fiction" in genre["name"]:
+                    genres.append("👾 Science fiction")
+                if "biographical" in genre["name"]:
+                    genres.append("✍️ Biographical")
+                if "Historical" in genre["name"]:
+                    genres.append("🏛️ Historical")
+                if "Wars" in genre["name"]:
+                    genres.append("🎖️ War")
 
-            if genre['source'] == 'THEMA':
+            if genre["source"] == "THEMA":
                 # "Children's / Teenage fiction: Action and adventure stories"
-                if "Fantasy" in genre['name']:
+                if "Fantasy" in genre["name"]:
                     genres.append("✨ Fantasy & Magic")
-                if "Action and adventure" in genre['name']:
+                if "Action and adventure" in genre["name"]:
                     genres.append("🏞️ Adventure and Action")
 
-                if "Humorous stories" in genre['name']:
+                if "Humorous stories" in genre["name"]:
                     genres.append("😂 Funny")
 
-            if genre['source'] == 'LOCSH':
-                if 'Fantasy' in genre['name']:
-                    genres.append('✨ Fantasy & Magic')
+            if genre["source"] == "LOCSH":
+                if "Fantasy" in genre["name"]:
+                    genres.append("✨ Fantasy & Magic")
 
-            if genre['source'] == 'BIC':
-                if 'Mysteries' in genre['name']:
-                    genres.append('🧐 Mystery & Suspense')
-                if 'Humorous stories' in genre['name']:
-                    genres.append('😂 Funny')
+            if genre["source"] == "BIC":
+                if "Mysteries" in genre["name"]:
+                    genres.append("🧐 Mystery & Suspense")
+                if "Humorous stories" in genre["name"]:
+                    genres.append("😂 Funny")
 
     return list(set(genres))
 
@@ -111,7 +110,9 @@ engine, SessionLocal = database_connection(
 
 with Session(engine) as session:
     # sample recently liked editions
-    recently_liked_isbns = session.scalars(text("""
+    recently_liked_isbns = session.scalars(
+        text(
+            """
     with recently_liked_isbns as (
     SELECT
         value->>'isbn' as "isbn",
@@ -122,18 +123,19 @@ with Session(engine) as session:
     )
 
     select isbn from recently_liked_isbns where length(isbn) > 1 limit 50;
-    """)).all()
+    """
+        )
+    ).all()
 
     editions: List[Edition] = session.scalars(
         select(Edition).where(Edition.isbn.in_(recently_liked_isbns))
     ).all()
-
 
     for e in editions[:10]:
         existing_labelset = e.work.labelset
 
         genres = extract_genre_labels(e.info)
 
-        print(e.title, ' - ', e.work.get_authors_string())
-        print(','.join(genres))
+        print(e.title, " - ", e.work.get_authors_string())
+        print(",".join(genres))
         print()

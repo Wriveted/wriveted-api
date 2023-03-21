@@ -2,6 +2,7 @@ import json
 import os
 from textwrap import dedent
 from typing import List
+
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
 import openai
 from rich import print
@@ -72,17 +73,18 @@ def extract_genre_labels(edition: Edition, related_editions: List[Edition]):
     genre_data = set()
     for e in related_editions:
 
-        for g in e.info.get('genres', []):
+        for g in e.info.get("genres", []):
             genre_data.add(f"{g['source']};{g['name']}")
-    genre_data = '\n'.join(genre_data)
+    genre_data = "\n".join(genre_data)
 
     short_summaries = set()
     for e in related_editions:
-        short_summaries.add(e.info.get('summary_short'))
+        short_summaries.add(e.info.get("summary_short"))
 
-    short_summaries = '\n'.join(f"- {s}" for s in short_summaries if s is not None)
+    short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
 
-    user_content = dedent(f"""The book is called '{edition.title}' by {edition.work.get_authors_string()}. 
+    user_content = dedent(
+        f"""The book is called '{edition.title}' by {edition.work.get_authors_string()}. 
     
     Current short descriptions:
     
@@ -107,7 +109,8 @@ def extract_genre_labels(edition: Edition, related_editions: List[Edition]):
     
     Remember your output should only contain JSON with the following keys: 'long-description', 'short-description', 'minimum-age', 'maximum-age', 'lexile',
     'reading-ability' and the following optional keys: 'series', 'series-number', 'awards', 'notes'
-    """)
+    """
+    )
 
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -123,8 +126,9 @@ def extract_genre_labels(edition: Edition, related_editions: List[Edition]):
     # print(response['usage']['total_tokens'])
     # print(response['choices'][0]['message']['content'])
 
-    return response['usage']['total_tokens'], json.loads(response['choices'][0]['message']['content'].strip())
-
+    return response["usage"]["total_tokens"], json.loads(
+        response["choices"][0]["message"]["content"].strip()
+    )
 
 
 settings = get_settings()
@@ -149,10 +153,8 @@ with Session(engine) as session:
     # select isbn from recently_liked_isbns where length(isbn) > 1 limit 50;
     # """)).all()
 
-
     recently_liked_isbns = [
-
-        '9780571191475',
+        "9780571191475",
         # "9781760150426",
         # "9780141354828",
         # "9780143303831",
@@ -179,15 +181,19 @@ with Session(engine) as session:
         print()
         print(f"[red] {e.title} by {e.work.get_authors_string()} (ISBN: {e.isbn})")
 
-        related_editions = [ed for ed in e.work.editions[:20] if ed.info is not None and ed.title == e.title]
+        related_editions = [
+            ed
+            for ed in e.work.editions[:20]
+            if ed.info is not None and ed.title == e.title
+        ]
 
         tokens, output = extract_genre_labels(e, related_editions)
 
         total_tokens += tokens
-        #output['huey_min_age'] = e.work.labelset.min_age
-        #output['huey_max_age'] = e.work.labelset.max_age
-        #output['huey_existing_summary'] = e.work.labelset.huey_summary
-        #output['huey_existing_long_summary'] = e.info.get('summary_long')
+        # output['huey_min_age'] = e.work.labelset.min_age
+        # output['huey_max_age'] = e.work.labelset.max_age
+        # output['huey_existing_summary'] = e.work.labelset.huey_summary
+        # output['huey_existing_long_summary'] = e.info.get('summary_long')
 
         print(f"[green] {tokens} tokens used, {total_tokens} total tokens")
         print(f"[blue]", output)
