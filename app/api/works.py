@@ -23,6 +23,7 @@ from app.schemas.work import (
     WorkUpdateIn,
 )
 from app.services.editions import get_definitive_isbn
+from app.services.gpt import extract_labels
 
 """
 Access control rules applying to all Works endpoints.
@@ -135,6 +136,11 @@ async def get_work_by_id(
         )
 
         return output
+
+
+@router.get("/work/{work_id}/labels")
+async def get_work_by_id(work: Work = Depends(get_work)):
+    return extract_labels(work)
 
 
 @router.post(
