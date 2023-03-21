@@ -70,6 +70,30 @@ The higher the value, the more strongly the book fits the tone expressed by the 
 
 -----
 
+'genres' should be a list of any of the following keys that apply to the text. Consider the provided data, and the title of the book for clues as to what is important to mention.
+- Factual / Non-Fiction
+- Funny
+- Romance
+- Science Fiction
+- Historical
+- Fantasy
+- Horror / Spooky
+- Mystery & Suspense
+- Adventure and Action
+- Crime
+- Rhymes & Poetry
+- Biographical
+- Graphic Novels
+- War
+- Dystopian
+- Australian
+- Indigenous
+- Sports
+
+only these keys may be used.
+
+-----
+
 'gender' should be whichever of the following keys is most appropriate, relating to the main character(s) of the book. If it is unclear, leave it blank.
 - "male"
 - "female"
@@ -162,15 +186,15 @@ def extract_labels(work: Work):
             Remember your output should only contain JSON with the following keys: 
             'long-description', 
             'short-description', 
-            'minimum-age', 
-            'maximum-age', 
             'lexile',
             'reading-ability',
-            'genres',
             and the following optional keys: 
             'series', 
             'series-number', 
             'awards', 
+            'genres',
+            'characters',
+            'gender',
             'notes'
             """
     )
@@ -206,4 +230,4 @@ def extract_labels(work: Work):
                 "error": "Could not extract JSON from response string"
             }
 
-    return response["usage"], json_data
+    return response["usage"], user_content, json_data
