@@ -28,21 +28,20 @@ def extract_labels(work: Work, prompt: str = None):
     huey_summary = work.labelset.huey_summary
 
     genre_data = set()
+    short_summaries = set()
+    page_numbers = set()
+
     for e in editions[:20]:
         for g in e.info.get("genres", []):
             genre_data.add(f"{g['source']};{g['name']}")
-    genre_data = "\n".join(genre_data)
 
-    short_summaries = set()
-    for e in editions:
         short_summaries.add(e.info.get("summary_short"))
 
-    page_numbers = set()
-    for e in editions:
         if pages := e.info.get("pages"):
             page_numbers.add(pages)
-    median_page_number = median(page_numbers)
 
+    genre_data = "\n".join(genre_data)
+    median_page_number = median(page_numbers)
     short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
 
     display_title = work.get_display_title()
@@ -55,19 +54,19 @@ def extract_labels(work: Work, prompt: str = None):
     - {main_edition.info.get('prodct')}
     """
     )
-
-    user_content = user_prompt_template.format(
-        display_title=display_title,
-        authors_string=authors_string,
-        huey_summary=huey_summary,
-        short_summaries=short_summaries,
-        long_summary=long_summary,
-        keywords=keywords,
-        other_info=other_info,
-        number_of_pages=median_page_number,
-        genre_data=genre_data,
-    )
-    logger.debug("User prompt prepared, sending to OpenAI", user_content=user_content)
+    user_provided_values = {
+        "display_title": display_title,
+        "authors_string": authors_string,
+        "huey_summary": huey_summary,
+        "short_summaries": short_summaries,
+        "long_summary": long_summary,
+        "keywords": keywords,
+        "other_info": other_info,
+        "number_of_pages": median_page_number,
+        "genre_data": genre_data,
+    }
+    user_content = user_prompt_template.format(**user_provided_values)
+    logger.debug("User prompt prepared, sending to OpenAI")
 
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
