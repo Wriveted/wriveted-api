@@ -3,9 +3,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
-from google.oauth2.service_account import Credentials
-
-from googleapiclient.discovery import build
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -27,6 +24,7 @@ from app.schemas.work import (
     WorkUpdateIn,
 )
 from app.services.editions import get_definitive_isbn
+from app.services.google_drive import get_labeling_prompt_from_drive
 from app.services.gpt import extract_labels
 
 settings = get_settings()
@@ -145,15 +143,8 @@ async def get_work_by_id(
 
 
 @router.get("/work/{work_id}/labels")
-async def get_work_by_id(work: Work = Depends(get_work)):
-    service = build("drive", "v3")
-    prompt_document_id = "13jFCrp0hVeRWGneh1NLicJM_-mK92495IohR_kEXnEo"
-    content = (
-        service.files()
-        .export(fileId=prompt_document_id, mimeType="text/plain")
-        .execute()
-    )
-    prompt = content.decode("utf-8")
+async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = False):
+    prompt = get_labeling_prompt_from_drive() if experimental else None
 
     return extract_labels(work, prompt)
 
