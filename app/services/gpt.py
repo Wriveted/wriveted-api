@@ -60,7 +60,7 @@ Adult themes, heavy emotional content, religion and LGBTQ themes should also be 
 
 -----
 
-'Styles':
+'styles':
 
 Below is a list of writing style and tone labels. You must look at every label and apply any of the labels that match the book you are describing. 
 - DARK,
@@ -85,7 +85,7 @@ Consider the 'notes' you have already written to help decide on the right styles
 
 -----
 
-'Hues':
+'hues':
 
 Hues describe a complex set of writing styles that are all present within a book. 
 Use the 'Styles' you have already applied to help decide on the right Hues.
@@ -193,20 +193,19 @@ Your output should be valid JSON with the following keys:
 'long-description', 
 'short-description', 
 'lexile', 
-'lexile-rationale': a brief explanation of why the lexile was chosen,
-'styles': a list of styles as described above,
-'style-rationale': a brief explanation of why the styles were chosen,
+'reading-ability',
+'styles',
 'hues',
-'hue-rationale': an explanation of how the particular hue mapping was chosen,
+'genres'
+'characters',
 
 Optionally include:
 - a 'series' key with the name of the series the book is part of,
 - a 'series-number' key with the number of the book in the series,
-- 'awards' with a list of awards the book has won, 
-- 'hues' a mapping of hues as described above.
+- 'awards' with a list of awards the book has won,
 - 'gender' a single key as described above.
-- 'characters' a list of character types exclusively from the list above.
-- 'character-rationale' a brief explanation of why the character tags were chosen.
+- 'notes' as described earlier; similar to movie and streaming classification systems.
+
 """
 
 
@@ -267,17 +266,11 @@ def extract_labels(work: Work, prompt: str = None):
             'long-description', 
             'short-description', 
             'lexile', 
-            'lexile-rationale',
             'reading-ability',
-            'reading-ability-rationale',
             'styles',
-            'style-rationale',
             'hues',
             'genres',
-            'genre-rationale',
-            'hue-rationale',
             'characters',
-            'character-rationale',
             
             and the following optional keys:
             'series',
