@@ -271,12 +271,12 @@ def extract_labels(work: Work, prompt: str = None):
             'hues',
             'genres',
             'characters',
+            'gender'
             
             and the following optional keys:
             'series',
             'series-number',
             'awards',
-            'gender',
             'notes',
             """
     )
