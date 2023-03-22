@@ -311,9 +311,7 @@ def extract_labels(work: Work, prompt: str = None):
             json_end = response_string.rindex("}") + 1
             json_data = json.loads(response_string[json_start:json_end])
         except ValueError:
-            return response["usage"], {
-                "error": "Could not extract JSON from response string"
-            }
+            json_data = {"error": "Could not parse JSON", "response": response_string}
 
     return {
         "system_prompt": prompt or system_prompt,
