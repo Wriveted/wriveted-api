@@ -1,12 +1,3 @@
-import json
-from statistics import median
-from textwrap import dedent
-from app.config import get_settings
-from app.models.work import Work
-import openai
-
-settings = get_settings()
-
 system_prompt = """
 You are a children's librarian assistant. 
 You are given book data and you need to provide a summary suitable for children and parents.
@@ -208,112 +199,43 @@ Optionally include:
 
 """
 
+user_prompt_template = """The book is called '{display_title}' by {authors_string}.
 
-def extract_labels(work: Work, prompt: str = None):
-    editions = [
-        ed
-        for ed in work.editions[:20]
-        if ed.info is not None and ed.title == work.title
-    ]
-    main_edition = editions[0]
+Current short descriptions:
 
-    huey_summary = work.labelset.huey_summary
+- {huey_summary}
+{short_summaries}
 
-    genre_data = set()
-    for e in editions[:20]:
-        for g in e.info.get("genres", []):
-            genre_data.add(f"{g['source']};{g['name']}")
-    genre_data = "\n".join(genre_data)
+Detailed Description:
+{long_summary}
 
-    short_summaries = set()
-    for e in editions:
-        short_summaries.add(e.info.get("summary_short"))
+Keywords:
+{keywords}
 
-    page_numbers = set()
-    for e in editions:
-        if pages := e.info.get("pages"):
-            page_numbers.add(pages)
-    median_page_number = median(page_numbers)
+Other info:
+{other_info}
 
-    short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
+- Number of pages: {number_of_pages}
 
-    user_content = dedent(
-        f"""The book is called '{work.get_display_title()}' by {work.get_authors_string()}.
-    
-            Current short descriptions:
-            
-            - {huey_summary}
-            {short_summaries}
-            
-            Detailed Description:
-            {main_edition.info.get('summary_long')}
+Current genres:
 
-            Keywords:
-            {main_edition.info.get('keywords')}
-            
-            Other info:
-            - {main_edition.info.get('cbmctext')}
-            - {main_edition.info.get('prodct')}
+{genre_data}
 
-            - Number of pages: {median_page_number}
-            
-            Current genres:
-            
-            {genre_data}
-            
-            Remember your output should only contain valid JSON with the following keys: 
-            'found_description'
-            'long-description', 
-            'short-description', 
-            'lexile', 
-            'reading-ability',
-            'styles',
-            'hues',
-            'genres',
-            'characters',
-            'gender'
-            
-            and the following optional keys:
-            'series',
-            'series-number',
-            'awards',
-            'notes',
-            """
-    )
+Remember your output should only contain valid JSON with the following keys: 
+'found_description'
+'long-description', 
+'short-description', 
+'lexile', 
+'reading-ability',
+'styles',
+'hues',
+'genres',
+'characters',
+'gender'
 
-    openai.api_key = settings.OPENAI_API_KEY
-
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": prompt or system_prompt},
-            {"role": "user", "content": user_content},
-            # {"role": "assistant", "content": "Who's there?"},
-            # {"role": "user", "content": "Orange."},
-        ],
-        temperature=0,
-    )
-
-    # print(response['usage']['total_tokens'])
-    # print(response['choices'][0]['message']['content'])
-
-    try:
-        response_string = response["choices"][0]["message"]["content"].strip()
-        # response_string = response_string.replace("\n", "").replace("'", '"')
-        # Try to parse the response string as JSON
-        json_data = json.loads(response_string)
-    except ValueError:
-        # If the response string is not valid JSON, try to extract the JSON string
-        try:
-            json_start = response_string.index("{")
-            json_end = response_string.rindex("}") + 1
-            json_data = json.loads(response_string[json_start:json_end])
-        except ValueError:
-            json_data = {"error": "Could not parse JSON", "response": response_string}
-
-    return {
-        "system_prompt": prompt or system_prompt,
-        "user_content": user_content,
-        "output": json_data,
-        "usage": response["usage"],
-    }
+and the following optional keys:
+'series',
+'series-number',
+'awards',
+'notes',
+"""
