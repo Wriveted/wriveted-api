@@ -25,7 +25,7 @@ The language should appeal to a 9 year old. Example short description:
 - Something strange is happening in Alfie's town. Instead of shiny coins from the Tooth Fairy, kids are waking up to dead slugs, live spiders, and other dreadfully icky things under their pillows. Who would do something so horrific?
 - Twelve-year-old Percy is sent to a summer camp for demigods like himself, and joins his new friends on a quest to prevent a war between the gods.
 
------
+—--
 
 'long_description':
 
@@ -38,6 +38,7 @@ Don't use US or UK specific language - e.g. don't mention middle grade. Don't me
 -----
 
 'lexile':
+
 You must provide an approximate "Lexile" rating, which is a measure of reading ability.
 The abilities increase in difficulty.
 Below is a list of the abilities with associated approximate lexile levels (e.g. 560L).
@@ -52,11 +53,51 @@ Example reading abilities, with an equivalent book and lexile level:
 
 -----
 
-Hues describe the writing style of the book. 
-'hues' should contain a mapping of these and only these labels, depending on how strongly the book fits the tones expressed by the label:
+'notes':
+
+An optional field with any other brief information you think is relevant for parents and other librarians such as content advisory. 
+Adult themes, heavy emotional content, religion and LGBTQ themes should also be noted. Similar to movie and streaming classification systems.
+
+-----
+
+'Styles':
+
+Below is a list of writing style and tone labels. You must look at every label and apply any of the labels that match the book you are describing. 
+- DARK,
+- LIGHT,
+- FUNNY,
+- SERIOUS,
+- QUIRKY,
+- ACTION_PACKED,
+- WHIMSICAL,
+- BEAUTIFUL,
+- GRIM,
+- INSPIRING,
+- CALM,
+- SUSPENSEFUL,
+- SILLY,
+- PLAYFUL,
+- REALISTIC,
+- INFORMATIVE
+
+`styles` should only contain exact keys from this list.
+Consider the 'notes' you have already written to help decide on the right styles.
+
+-----
+
+'Hues':
+
+Hues describe a complex set of writing styles that are all present within a book. 
+Use the 'Styles' you have already applied to help decide on the right Hues.
+
+The values should be between 0 and 1 to two decimal places.
+The most prominent hue(s) should score 1, with the other hues scored proportionally.
+Each hue must be scored, but hues may be 0.
+
+Below is a list of Hues, you must map these Hues and only these Hues depending on how strongly they apply the book fits the tones expressed by the Hue:
 
 - "hue01_dark_suspense": 
-Dark, often mysterious, these books are suspenseful and adventurous.
+Dark, often suspenseful or mysterious, these books are suspenseful and adventurous.
 - "hue02_beautiful_whimsical": 
 Beautiful stories with whimsical or offbeat characters.
 - "hue03_dark_beautiful": 
@@ -68,7 +109,7 @@ Purely funny books! Often have a comic illustration style, but are not just comi
 - "hue06_dark_gritty": 
 Grim, serious books that take you to the dark side of humanity. Usually for older readers.
 - "hue07_silly_charming": 
-Charming , funny books that are a little bit slapstick and active. Often for preschoolers.
+Charming, funny books that are a little bit slapstick and active. Often for preschoolers.
 - "hue08_charming_courageous": 
 Winsome, whimsical and resilient characters set in adventurous, charming, and sometimes funny stories.
 - "hue09_charming_playful": 
@@ -82,33 +123,33 @@ Funny and a little offbeat. These books have a quirk that is a little witty or s
 - "hue13_informative": 
 Informative/Factual books with very little tone. Encyclopaedic or factual books.
 
-The values should be between 0 and 1. 
-The higher the value, the more strongly the book fits the tone expressed by the label.
-Each hue must be scored, but hues may be 0.
-
 -----
 
-'genres' should be a list of any of the following keys that apply to the text. Consider the provided data, and the title of the book for clues as to what is important to mention.
-- Factual / Non-Fiction
-- Funny
-- Romance
-- Science Fiction
-- Historical
-- Fantasy
-- Horror / Spooky
-- Mystery & Suspense
-- Adventure and Action
-- Crime
-- Rhymes & Poetry
-- Biographical
-- Graphic Novels
-- War
-- Dystopian
-- Australian
-- Indigenous
-- Sports
+'genres' should be a list of any of the following keys that apply to the text.
 
-only these keys may be used.
+- FACTUAL_NON_FICTION,
+- FUNNY,
+- ROMANCE,
+- SCIENCE_FICTION,
+- CLASSIC_FICTION,
+- HISTORICAL,
+- FANTASY,
+- HORROR_SPOOKY,
+- MYSTERY_SUSPENSE,
+- ADVENTURE_AND_ACTION,
+- CRIME,
+- RHYMES_POETRY,
+- BIOGRAPHICAL,
+- GRAPHIC_NOVELS,
+- WAR,
+- DYSTOPIAN,
+- AUSTRALIAN,
+- AMERICAN,
+- BRITISH,
+- INDIGENOUS,
+- SPORTS
+
+`genres` should only contain exact keys from this list.
 
 -----
 
@@ -123,24 +164,28 @@ Pronouns in the assorted descriptions and genres may be valuable clues.
 
 'characters' should contain a list of these and only these labels, relating to the main character(s) of the book. 
 A reasonable number of labels should be used, but not too many.
-- "Bugs"
-- "Cats, Dogs and Mics"
-- "Horses and farm animals"
-- "Ocean creatures"
-- "Wolves and Wild animals"
-- "Australian Animals"
-- "Dinosaurs"
-- "Princesses, Fairies, Mermaids"
-- "Unicorns"
-- "Superheroes"
-- "Families and friends"
-- "Monsters, Ghosts and Vampires"
-- "Aliens"
-- "Trains, Cars and Trucks"
-- "Misfits and underdogs"
-- "Pirates"
-- "Robots"
-- "Athletes and sport stars"
+- BUGS,
+- CATS_DOGS_AND_MICE,
+- HORSES_AND_FARM_ANIMALS,
+- OCEAN_CREATURES,
+- WOLVES_AND_WILD_ANIMALS,
+- AUSTRALIAN_ANIMALS,
+- BRITISH_ANIMALS,
+- AMERICAN_ANIMALS,
+- DINOSAURS,
+- PRINCESSES_FAIRIES_MERMAIDS,
+- UNICORNS,
+- SUPERHEROES,
+- FAMILIES_AND_FRIENDS,
+- MONSTERS_GHOSTS_AND_VAMPIRES,
+- ALIENS,
+- TRAINS_CARS_AND_TRUCKS,
+- MISFITS_AND_UNDERDOGS,
+- PIRATES,
+- ROBOTS,
+- ATHLETES_AND_SPORT_STARS
+
+`characters` should only contain exact keys from this list.
 
 -----
 
@@ -149,6 +194,8 @@ Your output should be valid JSON with the following keys:
 'short-description', 
 'lexile', 
 'lexile-rationale': a brief explanation of why the lexile was chosen,
+'styles': a list of styles as described above,
+'style-rationale': a brief explanation of why the styles were chosen,
 'hues',
 'hue-rationale': an explanation of how the particular hue mapping was chosen,
 
@@ -156,7 +203,6 @@ Optionally include:
 - a 'series' key with the name of the series the book is part of,
 - a 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won, 
-- 'notes' with any other brief information you think is relevant for parents and other librarians such as content advisory. Adult themes, heavy emotional content, religion and LGBTQ themes should also be noted. Similar to movie and streaming classification systems.
 - 'hues' a mapping of hues as described above.
 - 'gender' a single key as described above.
 - 'characters' a list of character types exclusively from the list above.
@@ -220,6 +266,11 @@ def extract_labels(work: Work, prompt: str = None):
             'long-description', 
             'short-description', 
             'lexile',
+            'lexile-rationale',
+            'styles',
+            'style-rationale',
+            'hues',
+            'hue-rationale',
             and the following optional keys: 
             'series', 
             'series-number', 
@@ -264,4 +315,9 @@ def extract_labels(work: Work, prompt: str = None):
                 "error": "Could not extract JSON from response string"
             }
 
-    return {"prompt": user_content, "output": json_data, "usage": response["usage"]}
+    return {
+        "system_prompt": prompt or system_prompt,
+        "user_content": user_content,
+        "output": json_data,
+        "usage": response["usage"],
+    }
