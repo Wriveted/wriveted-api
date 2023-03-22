@@ -18,6 +18,9 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
   && python3 -m venv "${POETRY_HOME}" \
   && "${POETRY_HOME}/bin/pip" install poetry --no-cache-dir \
+  # https://python-poetry.org/blog/announcing-poetry-1.4.0/#faster-installation-of-packages
+  # a somewhat breaking change was introduced in 1.4.0 that requires this config or else certain packages fail to install
+  # in our case it was the openai package
   && "${POETRY_HOME}/bin/poetry" config installer.modern-installation false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
