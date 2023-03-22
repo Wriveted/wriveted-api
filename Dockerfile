@@ -16,7 +16,7 @@ ENV PIP_NO_CACHE_DIR=1 \
 # Install Poetry
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
-    /usr/local/bin/python -m pip install --upgrade setuptools --no-cache-dir \
+  && /usr/local/bin/python -m pip install --upgrade setuptools --no-cache-dir \
   && python3 -m venv "${POETRY_HOME}" \
   && "${POETRY_HOME}/bin/pip" install poetry --no-cache-dir \
   # https://python-poetry.org/blog/announcing-poetry-1.4.0/#faster-installation-of-packages

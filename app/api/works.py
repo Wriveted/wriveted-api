@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Security
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import and_, func, select
@@ -9,7 +9,10 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import (
+    get_current_active_superuser_or_backend_service_account,
+    get_current_active_user_or_service_account,
+)
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
@@ -139,7 +142,10 @@ async def get_work_by_id(
         return output
 
 
-@router.get("/work/{work_id}/labels")
+@router.get(
+    "/work/{work_id}/labels",
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
 async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = False):
     prompt = get_labeling_prompt_from_drive() if experimental else None
 
