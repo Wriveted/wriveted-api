@@ -28,19 +28,23 @@ Don't use US or UK specific language - e.g. don't mention middle grade. Don't me
 
 -----
 
-'lexile':
+'lexile' 
 
-You must provide an approximate "Lexile" rating, which is a measure of reading ability.
-The abilities increase in difficulty.
-Below is a list of the abilities with associated approximate lexile levels (e.g. 560L).
-The lexile and number of pages may help to determine the reading ability.
-Example reading abilities, with an equivalent book and lexile level:
+If there is a Lexile for the book from a reliable source, record the value.
 
-1 = Beginner readers who are just starting to read independently. Example book: "Where's Spot" by Eric Hill. (Lexile: 160L)
-2 = Early readers who have basic reading skills. Example book: "Cat in the Hat" by Dr. Seuss. (Lexile: 430L)
-3 = Developing readers who can handle longer and more complex sentences. Example book: "Treehouse" series by Andy Griffiths. (Lexile: 560L)
-4 = Proficient readers who can read more challenging books with complex plots and themes. Example book: "Charlie and the Chocolate Factory" by Roald Dahl. (Lexile: 810L)
-5 = Advanced readers who are comfortable reading complex texts with sophisticated vocabulary and ideas. Example book: "Harry Potter and the Philosopher's Stone" by J.K. Rowling. (Lexile: 880L)
+-----
+'reading-ability'
+
+Below is a list of keys, with a corresponding example book, and a general guide to its difficulty.
+You must look at every key and apply up to two that match the book you are describing.
+
+SPOT: Picture books or board books for children who do not know how to read yet. These books have full page illustrations. (e.g. Where’s Spot by Eric Hill)
+CAT_HAT: Simple books, more complex than a picture book for early child readers who have basic reading skills. These books often have an illustration on every page. (e.g. Cat in the Hat by Dr. Seuss)
+TREEHOUSE: Early chapter books for developing child readers who can handle longer sentences and can read independently  (e.g. 13 Story Treehouse by Andy Griffiths)
+CHARLIE_CHOCOLATE: Chapter books for proficient child readers who can independently read more challenging books with complex plots and themes. (e.g. Charlie and the Chocolate Factory by Roald Dahl)
+HARRY_POTTER: Advanced Chapter books for children who are comfortable independently reading complex texts with sophisticated vocabulary and ideas. (e.g. Harry Potter by JK Rowling)
+
+You must only include 1-2 keys from this list.
 
 -----
 
@@ -81,9 +85,9 @@ Consider the 'notes' you have already written to help decide on the right styles
 Hues describe a complex set of writing styles that are all present within a book. 
 Use the 'Styles' you have already applied to help decide on the right Hues.
 
-The values should be between 0 and 1 to two decimal places.
-The most prominent hue(s) should score 1, with the other hues scored proportionally.
-Each hue must be scored, but hues may be 0.
+The values should be a number between 0.0 and 1.0 to two decimal places.
+The most prominent hue(s) should score 1.0, with the other hues scored proportionally.
+Each hue must be scored, but hues may be 0.0.
 
 Below is a list of Hues, you must map these Hues and only these Hues depending on how strongly they apply the book fits the tones expressed by the Hue:
 
@@ -220,6 +224,9 @@ Other info:
 Current genres:
 
 {genre_data}
+"""
+
+suffix = """-----
 
 Remember your output should only contain valid JSON with the following keys: 
 'found_description'
