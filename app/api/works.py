@@ -10,7 +10,6 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.config import get_settings
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
@@ -26,8 +25,6 @@ from app.schemas.work import (
 from app.services.editions import get_definitive_isbn
 from app.services.google_drive import get_labeling_prompt_from_drive
 from app.services.gpt import extract_labels
-
-settings = get_settings()
 
 """
 Access control rules applying to all Works endpoints.
