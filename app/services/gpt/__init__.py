@@ -3,20 +3,26 @@ from statistics import median
 from textwrap import dedent
 
 import openai
+from structlog import get_logger
 
 from app.config import get_settings
 from app.models.work import Work
-from app.services.gpt.prompt import system_prompt, user_prompt_template
+from app.services.gpt.prompt import suffix, system_prompt, user_prompt_template
+
+logger = get_logger()
 
 settings = get_settings()
 
 
 def extract_labels(work: Work, prompt: str = None):
+    logger.info("Requesting completion from OpenAI", work_id=work.id)
+    # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
     editions = [
         ed
         for ed in work.editions[:20]
         if ed.info is not None and ed.title == work.title
     ]
+    editions.sort(key=lambda e: len(e.info), reverse=True)
     main_edition = editions[0]
 
     huey_summary = work.labelset.huey_summary
@@ -61,23 +67,17 @@ def extract_labels(work: Work, prompt: str = None):
         number_of_pages=median_page_number,
         genre_data=genre_data,
     )
-
-    openai.api_key = settings.OPENAI_API_KEY
+    logger.debug("User prompt prepared, sending to OpenAI", user_content=user_content)
 
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": prompt or system_prompt},
-            {"role": "user", "content": user_content},
-            # {"role": "assistant", "content": "Who's there?"},
-            # {"role": "user", "content": "Orange."},
+            {"role": "user", "content": user_content + suffix},
         ],
         temperature=0,
     )
-
-    # print(response['usage']['total_tokens'])
-    # print(response['choices'][0]['message']['content'])
-
+    logger.debug("Response received from OpenAI")
     try:
         response_string = response["choices"][0]["message"]["content"].strip()
         # response_string = response_string.replace("\n", "").replace("'", '"')

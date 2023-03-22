@@ -33,15 +33,17 @@ with Session(engine) as session:
     # """)).all()
 
     recently_liked_isbns = [
+        "9781741758887",
+        "9780261103689",
         "9780571191475",
         "9780001831803",
-        # "9781760150426",
-        # "9780141354828",
-        # "9780143303831",
-        # "9780064407663",
-        # "9781925163131",
-        # "9780340999073",
-        # "9780141359786",
+        "9781760150426",
+        "9780141354828",
+        "9780143303831",
+        "9780064407663",
+        "9781925163131",
+        "9780340999073",
+        "9780141359786",
         "9781742837581",
         "9781921564925",
         "9781743628638",
@@ -50,19 +52,20 @@ with Session(engine) as session:
         "9781760877644",
         "9781922330963",
     ]
+
     editions: List[Edition] = session.scalars(
         select(Edition).where(Edition.isbn.in_(recently_liked_isbns))
     ).all()
 
     total_tokens = 0
 
-    for e in editions[:2]:
+    for e in editions[:10]:
         work = e.work
         print(work)
 
         result = extract_labels(work)
 
         print(result["output"])
-        usage = result["usage"]
+        total_tokens += result["usage"]["total_tokens"]
 
-        # total_tokens += usage['tokens']
+        print(f"Total tokens: {total_tokens}")
