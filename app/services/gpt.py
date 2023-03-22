@@ -263,23 +263,28 @@ def extract_labels(work: Work, prompt: str = None):
             {genre_data}
             
             Remember your output should only contain valid JSON with the following keys: 
+            'found_description'
             'long-description', 
             'short-description', 
-            'lexile',
+            'lexile', 
             'lexile-rationale',
+            'reading-ability',
+            'reading-ability-rationale',
             'styles',
             'style-rationale',
             'hues',
-            'hue-rationale',
-            and the following optional keys: 
-            'series', 
-            'series-number', 
-            'awards', 
             'genres',
+            'genre-rationale',
+            'hue-rationale',
             'characters',
             'character-rationale',
+            
+            and the following optional keys:
+            'series',
+            'series-number',
+            'awards',
             'gender',
-            'notes'
+            'notes',
             """
     )
 
