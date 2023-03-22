@@ -36,7 +36,7 @@ slack-sdk = "^3.19.5"
 alembic-utils = "^0.8.1"
 phonenumbers = "^8.13.6"
 twilio = "^7.16.3"
-rich = "^13.3.2"
+
 openai = "^0.27.2"
 google-api-python-client = "^2.82.0"
 
@@ -50,6 +50,7 @@ google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.8"
 pre-commit = "^2.21"
 locust = "^2.14"
+rich = "^13.3.2"
 
 [tool.poetry.group.embedding]
 optional = true
