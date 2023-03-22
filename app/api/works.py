@@ -3,6 +3,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
+from google.oauth2.service_account import Credentials
+
+from googleapiclient.discovery import build
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -10,6 +13,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.config import get_settings
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
@@ -24,6 +28,8 @@ from app.schemas.work import (
 )
 from app.services.editions import get_definitive_isbn
 from app.services.gpt import extract_labels
+
+settings = get_settings()
 
 """
 Access control rules applying to all Works endpoints.
@@ -140,7 +146,16 @@ async def get_work_by_id(
 
 @router.get("/work/{work_id}/labels")
 async def get_work_by_id(work: Work = Depends(get_work)):
-    return extract_labels(work)
+    service = build("drive", "v3")
+    prompt_document_id = "13jFCrp0hVeRWGneh1NLicJM_-mK92495IohR_kEXnEo"
+    content = (
+        service.files()
+        .export(fileId=prompt_document_id, mimeType="text/plain")
+        .execute()
+    )
+    prompt = content.decode("utf-8")
+
+    return extract_labels(work, prompt)
 
 
 @router.post(

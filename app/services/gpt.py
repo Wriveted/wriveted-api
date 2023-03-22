@@ -13,6 +13,10 @@ You are given book data and you need to provide a summary suitable for children 
 
 You are given structured data from multiple semi-reliable sources, including the book's title, one or more descriptions
 and genre labels. You can use this data to help you describe the book.
+
+-----
+
+'short_description':
  
 The short description should be approximately 1 to 2 sentences long, friendly. 
 Do not mention the title or start with the title in the short description. 
@@ -21,6 +25,10 @@ The language should appeal to a 9 year old. Example short description:
 - Something strange is happening in Alfie's town. Instead of shiny coins from the Tooth Fairy, kids are waking up to dead slugs, live spiders, and other dreadfully icky things under their pillows. Who would do something so horrific?
 - Twelve-year-old Percy is sent to a summer camp for demigods like himself, and joins his new friends on a quest to prevent a war between the gods.
 
+-----
+
+'long_description':
+
 The long description should be friendly and aimed at an adult reader. Don't mention the title or the fact that it is a story or a book. It is okay to mention any awards in the long description.
 Pay attention to the title of the book for clues as to what is important to mention, a good long description might mention the characters, their relationships, and the events that take place.
 
@@ -28,25 +36,24 @@ Both descriptions should not be patronising. Do not try to sell or use sales lan
 Don't use US or UK specific language - e.g. don't mention middle grade. Don't mention the number of pages.
 
 -----
+
+'lexile':
 You must provide an approximate "Lexile" rating, which is a measure of reading ability.
 The abilities increase in difficulty.
 Below is a list of the abilities with associated approximate lexile levels (e.g. 560L).
 The lexile and number of pages may help to determine the reading ability.
 Example reading abilities, with an equivalent book and lexile level:
 
-1 = Beginner readers who are just starting to read independently. Example books: "Where's Spot" by Eric Hill. (Lexile: 160L)
-2 = Early readers who have basic reading skills. Example books: "Cat in the Hat" by Dr. Seuss. (Lexile: 430L)
-3 = Developing readers who can handle longer and more complex sentences. Example books: "Treehouse" series by Andy Griffiths. (Lexile: 560L)
-4 = Proficient readers who can read more challenging books with complex plots and themes. Example books: "Charlie and the Chocolate Factory" by Roald Dahl. (Lexile: 810L)
-5 = Advanced readers who are comfortable reading complex texts with sophisticated vocabulary and ideas. Example books: "Harry Potter and the Philosopher's Stone" by J.K. Rowling. (Lexile: 880L)
+1 = Beginner readers who are just starting to read independently. Example book: "Where's Spot" by Eric Hill. (Lexile: 160L)
+2 = Early readers who have basic reading skills. Example book: "Cat in the Hat" by Dr. Seuss. (Lexile: 430L)
+3 = Developing readers who can handle longer and more complex sentences. Example book: "Treehouse" series by Andy Griffiths. (Lexile: 560L)
+4 = Proficient readers who can read more challenging books with complex plots and themes. Example book: "Charlie and the Chocolate Factory" by Roald Dahl. (Lexile: 810L)
+5 = Advanced readers who are comfortable reading complex texts with sophisticated vocabulary and ideas. Example book: "Harry Potter and the Philosopher's Stone" by J.K. Rowling. (Lexile: 880L)
 
 -----
 
-Hues describe the writing style of the book. You must score a book with each of the Hue labels below. 
-The highest score of 2 means the hue is strong, 
-a score of 1 means the hue is present (but weak),
-and the lowest score of 0 means the hue is not present.
-Consider the name of the hue, and the descriptions given.
+Hues describe the writing style of the book. 
+'hues' should contain a mapping of these and only these labels, depending on how strongly the book fits the tones expressed by the label:
 
 - "hue01_dark_suspense": 
 Dark, often mysterious, these books are suspenseful and adventurous.
@@ -75,7 +82,9 @@ Funny and a little offbeat. These books have a quirk that is a little witty or s
 - "hue13_informative": 
 Informative/Factual books with very little tone. Encyclopaedic or factual books.
 
-Remember: the higher the value, the more strongly the book fits the tone expressed by the label. Each hue must be scored, but hues may be 0.
+The values should be between 0 and 1. 
+The higher the value, the more strongly the book fits the tone expressed by the label.
+Each hue must be scored, but hues may be 0.
 
 -----
 
@@ -155,7 +164,7 @@ Optionally include:
 """
 
 
-def extract_labels(work: Work):
+def extract_labels(work: Work, prompt: str = None):
     editions = [
         ed
         for ed in work.editions[:20]
@@ -228,7 +237,7 @@ def extract_labels(work: Work):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": prompt or system_prompt},
             {"role": "user", "content": user_content},
             # {"role": "assistant", "content": "Who's there?"},
             # {"role": "user", "content": "Orange."},
