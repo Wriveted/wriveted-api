@@ -44,9 +44,13 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
         if ed.info is not None and ed.title == work.title
     ]
     editions.sort(key=lambda e: len(e.info), reverse=True)
+
+    if not editions:
+        raise ValueError("Insufficient edition data to generate labels")
+
     main_edition = editions[0]
 
-    huey_summary = work.labelset.huey_summary
+    huey_summary = work.labelset.huey_summary if work.labelset else ""
 
     genre_data = set()
     short_summaries = set()

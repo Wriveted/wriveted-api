@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     SHOPIFY_HMAC_SECRET: str
 
     OPENAI_API_KEY: str = ""
+    # See https://platform.openai.com/docs/models/model-endpoint-compatibility
+    # e.g. "gpt-3.5-turbo", "gpt-4"
+    OPENAI_MODEL: str = "gpt-4"
     OPENAI_TIMEOUT: float = 60.0
 
     SLACK_BOT_TOKEN: str = ""

@@ -63,7 +63,11 @@ with Session(engine) as session:
         work = e.work
         print(work)
 
-        result = extract_labels(work)
+        try:
+            result = extract_labels(work)
+        except ValueError as e:
+            print(e)
+            continue
 
         print(result["output"])
         total_tokens += result["usage"]["total_tokens"]
