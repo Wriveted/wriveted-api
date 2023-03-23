@@ -14,7 +14,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from app.db import Base
 from app.models.labelset_hue_association import LabelSetHue
@@ -112,15 +112,15 @@ class LabelSet(Base):
         ForeignKey("service_accounts.id", name="fk_labeller-sa_labelset"), nullable=True
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON))
 
-    created_at = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
         nullable=False,
     )
-    updated_at = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         default=datetime.utcnow,
@@ -128,7 +128,8 @@ class LabelSet(Base):
         nullable=False,
     )
 
-    checked = mapped_column(Boolean(), nullable=False, default=False)
+    checked: Mapped[bool] = mapped_column(Boolean(), nullable=True)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     def __repr__(self):
         return f"<LabelSet id={self.id} - '{self.work.title}' ages: {self.min_age}-{self.max_age} >"
