@@ -66,10 +66,10 @@ def extract_labels(work: Work, prompt: str = None):
         "genre_data": genre_data[:1500],
     }
     user_content = user_prompt_template.format(**user_provided_values)
-    logger.debug("User prompt prepared, sending to OpenAI")
+    logger.debug("User prompt prepared, sending to OpenAI", model=settings.OPENAI_MODEL)
 
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=settings.OPENAI_MODEL,
         messages=[
             {"role": "system", "content": prompt or system_prompt},
             {"role": "user", "content": user_content + suffix},
