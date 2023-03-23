@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Path, Security
+from fastapi import APIRouter, Depends, HTTPException, Path, Security
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import and_, func, select
@@ -149,7 +149,10 @@ async def get_work_by_id(
 async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = False):
     prompt = get_labeling_prompt_from_drive() if experimental else None
 
-    return extract_labels(work, prompt)
+    try:
+        return extract_labels(work, prompt)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post(
