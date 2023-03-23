@@ -8,17 +8,16 @@ from structlog import get_logger
 
 from app.config import get_settings
 from app.models.work import Work
-from app.schemas.work import GptWorkData
+from app.schemas.gpt import GptWorkData
 from app.services.gpt.prompt import suffix, system_prompt, user_prompt_template
 
 logger = get_logger()
-
 settings = get_settings()
 
 
 def gpt_query(system_prompt, user_content):
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=settings.OPENAI_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
@@ -115,14 +114,21 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
 
             ------------------------
 
-            But you returned something that did not match the expected format.
+            But you returned something that did not match the expected format:
+
+            ----- your response -----
+
+            {response_string}
+
+            -------------------------
+
             Here is a validation error message encountered when parsing:
 
-            ------ error -----
+            --------- error --------
 
             {e}
 
-            -------------------
+            ------------------------
 
             Please re-generate the requested data, ensuring that it matches the expected format.
             """
@@ -133,7 +139,7 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     # check if the response is valid at this point
     if not json_data or not parsed_data:
         logger.error("GPT response was not valid", work_id=work.id)
-        raise ValueError("GPT response was not valid")
+        raise ValueError("GPT response was not valid", raw=response_string)
 
     return {
         "system_prompt": prompt or system_prompt,

@@ -81,23 +81,3 @@ class WorkUpdateIn(BaseModel):
     subtitle: str | None
 
     labelset: LabelSetCreateIn | None
-
-
-class GptWorkData(BaseModel):
-    short_summary: str | None
-    long_summary: str | None
-
-    lexile: str | None
-    reading_ability: list[ReadingAbilityKey] | None = []
-
-    styles: list[WritingStyleKey] | None = []
-    hues: list[HueKeys] | None = []
-    genres: list[GenreKey] | None = []
-
-    characters: list[CharacterKey] | None = []
-    gender: Literal["male", "female", "nonbinary", "unknown"] | None = None
-
-    series: str | None
-    series_number: int | None
-    awards: list[str] | None = []
-    notes: str | None

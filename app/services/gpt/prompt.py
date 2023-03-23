@@ -184,25 +184,26 @@ A reasonable number of labels should be used, but not too many.
 
 """
 
-user_prompt_template = """The book is called '{display_title}' by {authors_string}.
+user_prompt_template = """
+The book is called '{display_title}' by {authors_string}.
 
-Current short descriptions:
-
-- {huey_summary}
+--- Current short descriptions:
+{huey_summary}
 {short_summaries}
 
-Detailed Description:
+--- Detailed Description:
 {long_summary}
 
-Keywords:
+--- Keywords:
 {keywords}
 
-Other info:
+--- Other info:
 {other_info}
 
-- Number of pages: {number_of_pages}
+--- Number of pages: 
+{number_of_pages}
 
-Current genres:
+--- Current genres:
 
 {genre_data}
 """
@@ -222,5 +223,7 @@ Your output should be valid JSON with the following keys:
 - 'series' key with the name of the series the book is part of,
 - 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won.
+
+British English is preferred where there is a choice.
 
 """
