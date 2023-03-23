@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     SHOPIFY_HMAC_SECRET: str
 
     OPENAI_API_KEY: str = ""
+    OPENAI_TIMEOUT: float = 60.0
 
     SLACK_BOT_TOKEN: str = ""
 

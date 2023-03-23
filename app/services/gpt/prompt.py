@@ -229,7 +229,6 @@ Current genres:
 suffix = """-----
 
 Remember your output should only contain valid JSON with the following keys: 
-'found_description'
 'long-description', 
 'short-description', 
 'lexile', 

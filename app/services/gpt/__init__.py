@@ -33,7 +33,7 @@ def extract_labels(work: Work, prompt: str = None):
 
     for e in editions[:20]:
         for g in e.info.get("genres", []):
-            genre_data.add(f"{g['source']};{g['name']}")
+            genre_data.add(f"{g['name']}")
 
         short_summaries.add(e.info.get("summary_short"))
 
@@ -46,8 +46,8 @@ def extract_labels(work: Work, prompt: str = None):
 
     display_title = work.get_display_title()
     authors_string = work.get_authors_string()
-    long_summary = main_edition.info.get("summary_long")
-    keywords = main_edition.info.get("keywords")
+    long_summary = main_edition.info.get("summary_long", "") or ""
+    keywords = main_edition.info.get("keywords", "") or ""
     other_info = dedent(
         f"""
     - {main_edition.info.get('cbmctext')}
@@ -57,13 +57,13 @@ def extract_labels(work: Work, prompt: str = None):
     user_provided_values = {
         "display_title": display_title,
         "authors_string": authors_string,
-        "huey_summary": huey_summary,
-        "short_summaries": short_summaries,
-        "long_summary": long_summary,
-        "keywords": keywords,
+        "huey_summary": huey_summary[:1500],
+        "short_summaries": short_summaries[:1500],
+        "long_summary": long_summary[:1500],
+        "keywords": keywords[:1500],
         "other_info": other_info,
         "number_of_pages": median_page_number,
-        "genre_data": genre_data,
+        "genre_data": genre_data[:1500],
     }
     user_content = user_prompt_template.format(**user_provided_values)
     logger.debug("User prompt prepared, sending to OpenAI")
@@ -75,6 +75,7 @@ def extract_labels(work: Work, prompt: str = None):
             {"role": "user", "content": user_content + suffix},
         ],
         temperature=0,
+        timeout=settings.OPENAI_TIMEOUT,
     )
     logger.debug("Response received from OpenAI")
     try:
