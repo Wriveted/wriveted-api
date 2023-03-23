@@ -25,7 +25,7 @@ def extract_labels(work: Work, prompt: str = None):
     editions.sort(key=lambda e: len(e.info), reverse=True)
     main_edition = editions[0]
 
-    huey_summary = work.labelset.huey_summary
+    huey_summary = work.labelset.huey_summary if work.labelset else ""
 
     genre_data = set()
     short_summaries = set()
