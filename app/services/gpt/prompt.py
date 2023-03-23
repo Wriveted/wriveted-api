@@ -223,4 +223,6 @@ Your output should be valid JSON with the following keys:
 - 'series-number' key with the number of the book in the series,
 - 'awards' with a list of awards the book has won.
 
+British English is preferred where there is a choice.
+
 """
