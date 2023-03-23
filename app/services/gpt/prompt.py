@@ -182,25 +182,6 @@ A reasonable number of labels should be used, but not too many.
 
 `characters` should only contain exact keys from this list.
 
------
-
-Your output should be valid JSON with the following keys: 
-'long-description', 
-'short-description', 
-'lexile', 
-'reading-ability',
-'styles',
-'hues',
-'genres'
-'characters',
-
-Optionally include:
-- a 'series' key with the name of the series the book is part of,
-- a 'series-number' key with the number of the book in the series,
-- 'awards' with a list of awards the book has won,
-- 'gender' a single key as described above.
-- 'notes' as described earlier; similar to movie and streaming classification systems.
-
 """
 
 user_prompt_template = """The book is called '{display_title}' by {authors_string}.
@@ -227,21 +208,19 @@ Current genres:
 """
 
 suffix = """-----
+Your output should be valid JSON with the following keys: 
+- 'long-description' 
+- 'short-description' 
+- 'lexile'
+- 'reading-ability'
+- 'styles'
+- 'hues'
+- 'genres'
+- 'characters'
+- 'gender'
+- 'notes' as described earlier; similar to movie and streaming classification systems.
+- 'series' key with the name of the series the book is part of,
+- 'series-number' key with the number of the book in the series,
+- 'awards' with a list of awards the book has won.
 
-Remember your output should only contain valid JSON with the following keys: 
-'long-description', 
-'short-description', 
-'lexile', 
-'reading-ability',
-'styles',
-'hues',
-'genres',
-'characters',
-'gender'
-
-and the following optional keys:
-'series',
-'series-number',
-'awards',
-'notes',
 """
