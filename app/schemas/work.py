@@ -1,11 +1,19 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, validator
 
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
-from app.schemas.labelset import LabelSetBasic, LabelSetCreateIn, LabelSetDetail
+from app.schemas.labelset import (
+    CharacterKey,
+    GenreKey,
+    LabelSetBasic,
+    LabelSetCreateIn,
+    LabelSetDetail,
+    WritingStyleKey,
+)
+from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
 class WorkInfo(BaseModel):
@@ -73,3 +81,23 @@ class WorkUpdateIn(BaseModel):
     subtitle: str | None
 
     labelset: LabelSetCreateIn | None
+
+
+class GptWorkData(BaseModel):
+    short_summary: str | None
+    long_summary: str | None
+
+    lexile: str | None
+    reading_ability: list[ReadingAbilityKey] | None = []
+
+    styles: list[WritingStyleKey] | None = []
+    hues: list[HueKeys] | None = []
+    genres: list[GenreKey] | None = []
+
+    characters: list[CharacterKey] | None = []
+    gender: Literal["male", "female", "nonbinary", "unknown"] | None = None
+
+    series: str | None
+    series_number: int | None
+    awards: list[str] | None = []
+    notes: str | None

@@ -3,10 +3,12 @@ from statistics import median
 from textwrap import dedent
 
 import openai
+from pydantic import ValidationError
 from structlog import get_logger
 
 from app.config import get_settings
 from app.models.work import Work
+from app.schemas.work import GptWorkData
 from app.services.gpt.prompt import suffix, system_prompt, user_prompt_template
 
 logger = get_logger()
@@ -14,7 +16,26 @@ logger = get_logger()
 settings = get_settings()
 
 
-def extract_labels(work: Work, prompt: str = None):
+def gpt_query(system_prompt, user_content):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0,
+        timeout=settings.OPENAI_TIMEOUT,
+    )
+
+    return {
+        "usage": response["usage"],
+        "response": response["choices"][0]["message"]["content"].strip(),
+    }
+
+
+def extract_labels(work: Work, prompt: str = None, retries: int = 2):
+    target_prompt = prompt or system_prompt
+
     logger.info("Requesting completion from OpenAI", work_id=work.id)
     # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
     editions = [
@@ -65,36 +86,54 @@ def extract_labels(work: Work, prompt: str = None):
         "number_of_pages": median_page_number,
         "genre_data": genre_data[:1500],
     }
-    user_content = user_prompt_template.format(**user_provided_values)
-    logger.debug("User prompt prepared, sending to OpenAI")
+    user_content = user_prompt_template.format(**user_provided_values) + suffix
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": prompt or system_prompt},
-            {"role": "user", "content": user_content + suffix},
-        ],
-        temperature=0,
-        timeout=settings.OPENAI_TIMEOUT,
-    )
-    logger.debug("Response received from OpenAI")
-    try:
-        response_string = response["choices"][0]["message"]["content"].strip()
-        # response_string = response_string.replace("\n", "").replace("'", '"')
-        # Try to parse the response string as JSON
-        json_data = json.loads(response_string)
-    except ValueError:
-        # If the response string is not valid JSON, try to extract the JSON string
+    logger.debug("User prompt prepared, sending to OpenAI")
+    usage, response_string = gpt_query(target_prompt, user_content)
+
+    # validate the formatting of the response
+    json_data = None
+    parsed_data = None
+    while retries > 0:
         try:
-            json_start = response_string.index("{")
-            json_end = response_string.rindex("}") + 1
-            json_data = json.loads(response_string[json_start:json_end])
-        except ValueError:
-            json_data = {"error": "Could not parse JSON", "response": response_string}
+            json_data = json.loads(response_string)
+            parsed_data = GptWorkData(**json_data)
+            break
+        except (ValidationError, ValueError) as e:
+            logger.warning("GPT response was not valid", work_id=work.id)
+            # tell gpt what is going on
+            new_content = f"""
+            I just asked you to generate some data for a book, with the following prompt and content: 
+
+            ----- user content -----
+
+            {user_content}
+
+            ------------------------
+
+            But you returned something that did not match the expected format.
+            Here is a validation error message encountered when parsing:
+
+            ------ error -----
+
+            {e}
+
+            -------------------
+
+            Please re-generate the requested data, ensuring that it matches the expected format.
+            """
+            usage, response_string = gpt_query(target_prompt, new_content)
+
+            retries -= 1
+
+    # check if the response is valid at this point
+    if not json_data or not parsed_data:
+        logger.error("GPT response was not valid", work_id=work.id)
+        raise ValueError("GPT response was not valid")
 
     return {
         "system_prompt": prompt or system_prompt,
         "user_content": user_content,
-        "output": json_data,
-        "usage": response["usage"],
+        "output": parsed_data,
+        "usage": usage,
     }

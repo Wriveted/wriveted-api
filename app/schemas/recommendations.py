@@ -19,15 +19,16 @@ class HueKeys(str, enum.Enum):
     hue01_dark_suspense = "hue01_dark_suspense"
     hue02_beautiful_whimsical = "hue02_beautiful_whimsical"
     hue03_dark_beautiful = "hue03_dark_beautiful"
+    hue04_joyful_charming = "hue04_joyful_charming"
     hue05_funny_comic = "hue05_funny_comic"
     hue06_dark_gritty = "hue06_dark_gritty"
     hue07_silly_charming = "hue07_silly_charming"
-    hue08_charming_inspiring = "hue08_charming_inspiring"
+    hue08_charming_courageous = "hue08_charming_courageous"
     hue09_charming_playful = "hue09_charming_playful"
     hue10_inspiring = "hue10_inspiring"
     hue11_realistic_hope = "hue11_realistic_hope"
     hue12_funny_quirky = "hue12_funny_quirky"
-    hue13_straightforward = "hue13_straightforward"
+    hue13_informative = "hue13_informative"
 
 
 class HueyRecommendationFilterBase(BaseModel):
