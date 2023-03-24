@@ -14,7 +14,8 @@ from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
 
 ORIGIN_WEIGHTS = {
-    "HUMAN": 4,
+    "HUMAN": 5,
+    "GPT4": 4,
     "CLUSTER_RELEVANCE": 3,
     "CLUSTER_ZAINAB": 2,
     "NIELSEN_CBMC": 1.5,
