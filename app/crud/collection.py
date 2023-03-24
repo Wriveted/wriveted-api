@@ -86,7 +86,17 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             collection = db.execute(q).scalar_one()
             return collection, False
         except NoResultFound:
-            logger.info("Creating new collection", data=collection_data)
+            logger.info(
+                "Creating new collection",
+                user_id=str(collection_data.user_id)
+                if collection_data.user_id
+                else None,
+                school_id=str(collection_data.school_id)
+                if collection_data.school_id
+                else None,
+                name=collection_data.name,
+                num_items=len(collection_data.items or []),
+            )
             collection = self.create(db, obj_in=collection_data, commit=commit)
             return collection, True
 
