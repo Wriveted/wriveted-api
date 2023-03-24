@@ -1,10 +1,10 @@
-from enum import Enum
-
 from pydantic import AnyHttpUrl, BaseModel
+
+from app.schemas import CaseInsensitiveStringEnum
 
 
 class LinkBrief(BaseModel):
-    class LinkType(str, Enum):
+    class LinkType(CaseInsensitiveStringEnum):
         RETAILER = "retailer"
         REVIEW = "review"
 

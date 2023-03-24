@@ -1,15 +1,15 @@
 from datetime import datetime
-import enum
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from app.models.labelset import LabelOrigin, RecommendStatus
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.hue import Hue
 
 
-class WritingStyleKey(str, enum.Enum):
+class WritingStyleKey(CaseInsensitiveStringEnum):
     DARK = "DARK"
     LIGHT = "LIGHT"
     FUNNY = "FUNNY"
@@ -28,7 +28,7 @@ class WritingStyleKey(str, enum.Enum):
     INFORMATIVE = "INFORMATIVE"
 
 
-class GenreKey(str, enum.Enum):
+class GenreKey(CaseInsensitiveStringEnum):
     FACTUAL_NON_FICTION = "FACTUAL_NON_FICTION"
     FUNNY = "FUNNY"
     ROMANCE = "ROMANCE"
@@ -52,7 +52,7 @@ class GenreKey(str, enum.Enum):
     SPORTS = "SPORTS"
 
 
-class CharacterKey(str, enum.Enum):
+class CharacterKey(CaseInsensitiveStringEnum):
     BUGS = "BUGS"
     CATS_DOGS_AND_MICE = "CATS_DOGS_AND_MICE"
     HORSES_AND_FARM_ANIMALS = "HORSES_AND_FARM_ANIMALS"

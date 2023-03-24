@@ -1,5 +1,3 @@
-import enum
-
 from sqlalchemy import JSON, Enum, Integer, String, desc, nulls_last, select
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,9 +8,10 @@ from app.models.author_work_association import author_work_association_table
 from app.models.booklist_work_association import BookListItem
 from app.models.edition import Edition
 from app.models.series_works_association import series_works_association_table
+from app.schemas import CaseInsensitiveStringEnum
 
 
-class WorkType(str, enum.Enum):
+class WorkType(CaseInsensitiveStringEnum):
     BOOK = "book"
     PODCAST = "podcast"
 
