@@ -59,13 +59,14 @@ def work_to_gpt_labelset_update(work: Work):
     labelset_info["hue_map"] = output.hue_map
     labelset_info["series"] = output.series
     labelset_info["series_number"] = output.series_number
+    labelset_info["gender"] = output.gender
     labelset_info["awards"] = output.awards
     labelset_info["notes"] = output.notes
 
     labelset_data["info"] = labelset_info
 
     # mark as needing to be checked
-    labelset_data["checked"] = False
+    labelset_data["checked"] = None
 
     labelset_create = LabelSetCreateIn(**labelset_data)
     return labelset_create

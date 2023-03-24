@@ -111,7 +111,11 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     hue: Hue = self.get_hue_by_key(db, data.hue_primary_key)
                     if hue:
                         primary = next(
-                            (lsh for lsh in labelset_hues if lsh.ordinal == "PRIMARY"),
+                            (
+                                lsh
+                                for lsh in labelset_hues
+                                if lsh.ordinal == Ordinal.PRIMARY
+                            ),
                             None,
                         )
                         if primary:
@@ -128,7 +132,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                             (
                                 lsh
                                 for lsh in labelset_hues
-                                if lsh.ordinal == "SECONDARY"
+                                if lsh.ordinal == Ordinal.SECONDARY
                             ),
                             None,
                         )
@@ -143,7 +147,11 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     hue: Hue = self.get_hue_by_key(db, data.hue_tertiary_key)
                     if hue:
                         tertiary = next(
-                            (lsh for lsh in labelset_hues if lsh.ordinal == "TERTIARY"),
+                            (
+                                lsh
+                                for lsh in labelset_hues
+                                if lsh.ordinal == Ordinal.TERTIARY
+                            ),
                             None,
                         )
                         if tertiary:
@@ -233,7 +241,8 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if data.labelled_by_user_id:
                 labelset.labelled_by_user_id = data.labelled_by_user_id
 
-        labelset.checked = not not data.checked
+        if labelset.checked is not None:
+            labelset.checked = data.checked
 
         if commit:
             db.commit()
