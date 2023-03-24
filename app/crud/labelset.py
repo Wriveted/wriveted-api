@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.crud import CRUDBase
+from app.crud.base import deep_merge_dicts
 from app.models import LabelSetHue
 from app.models.hue import Hue
 from app.models.labelset import LabelSet
@@ -199,8 +200,8 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         # with genres just add the dict to the info blob
         if data.info and data.info["genres"]:
             try:
-                if not data.info:
-                    data.info = {}
+                if not labelset.info:
+                    labelset.info = {}
                 labelset.info["genres"] = data.info["genres"]
             except Exception as e:
                 logger.warning("Some error was ignored", exc_info=e)
@@ -221,7 +222,8 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         if data.info and (
             not labelset.info or (data.info.items() >= labelset.info.items())
         ):
-            labelset.info = data.info
+            labelset.info = labelset.info or {}
+            deep_merge_dicts(labelset.info, data.info)
             updated = True
 
         # TODO: implement a changelog for Labelsets instead of just overwriting everything
