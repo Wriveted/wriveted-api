@@ -1,19 +1,18 @@
-import enum
 from datetime import datetime
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, Field, validator
 
 from app.models.booklist import ListSharingType, ListType
-from app.schemas import validate_image_url_or_base64_string
-from app.schemas.edition import EditionBrief, EditionDetail
+from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
+from app.schemas.edition import EditionDetail
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkEnriched
 
 
-class BookFeedbackChoice(str, enum.Enum):
+class BookFeedbackChoice(CaseInsensitiveStringEnum):
     GOOD = "GOOD"
     BAD = "BAD"
     READ_GOOD = "READ_GOOD"
@@ -86,7 +85,7 @@ class BookListCreateIn(BaseModel):
     items: list[BookListItemCreateIn] | None
 
 
-class ItemUpdateType(str, enum.Enum):
+class ItemUpdateType(CaseInsensitiveStringEnum):
     ADD = "add"
     REMOVE = "remove"
     UPDATE = "update"

@@ -1,7 +1,7 @@
 import datetime
-import enum
 
 from pydantic import BaseModel
+from app.schemas import CaseInsensitiveStringEnum
 
 from app.schemas.service_account import ServiceAccountBrief
 from app.schemas.users.educator import EducatorDetail
@@ -13,7 +13,7 @@ from app.schemas.users.user import UserDetail
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 
 
-class AccountType(str, enum.Enum):
+class AccountType(CaseInsensitiveStringEnum):
     user = "user"
     service_account = "service_account"
 

@@ -1,9 +1,9 @@
-import enum
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.schemas import CaseInsensitiveStringEnum
 
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.users.student import StudentIdentity
@@ -41,7 +41,7 @@ class ClassGroupCreateIn(BaseModel):
     name: str = Field(None, description="Class name")
 
 
-class ClassGroupMemberUpdateType(str, enum.Enum):
+class ClassGroupMemberUpdateType(CaseInsensitiveStringEnum):
     ADD = "add"
     REMOVE = "remove"
     # UPDATE = "update"

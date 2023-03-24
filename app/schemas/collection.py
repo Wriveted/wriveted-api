@@ -1,4 +1,3 @@
-import enum
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
@@ -7,7 +6,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, valid
 from structlog import get_logger
 
 from app.models.collection_item_activity import CollectionItemReadStatus
-from app.schemas import validate_image_url_or_base64_string
+from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
 from app.schemas.edition import EditionBrief
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.work import WorkBrief
@@ -161,7 +160,7 @@ class CollectionItemsResponse(PaginatedResponse):
     data: list[CollectionItemDetail]
 
 
-class CollectionUpdateType(str, enum.Enum):
+class CollectionUpdateType(CaseInsensitiveStringEnum):
     ADD = "add"
     REMOVE = "remove"
     UPDATE = "update"

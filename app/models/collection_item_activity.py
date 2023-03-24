@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 
@@ -6,9 +5,10 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.schemas import CaseInsensitiveStringEnum
 
 
-class CollectionItemReadStatus(str, enum.Enum):
+class CollectionItemReadStatus(CaseInsensitiveStringEnum):
     UNREAD = "UNREAD"
     TO_READ = "TO_READ"
     NOT_INTERESTED = "NOT_INTERESTED"

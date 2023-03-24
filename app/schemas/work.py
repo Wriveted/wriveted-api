@@ -1,11 +1,19 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, validator
 
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
-from app.schemas.labelset import LabelSetBasic, LabelSetCreateIn, LabelSetDetail
+from app.schemas.labelset import (
+    CharacterKey,
+    GenreKey,
+    LabelSetBasic,
+    LabelSetCreateIn,
+    LabelSetDetail,
+    WritingStyleKey,
+)
+from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
 class WorkInfo(BaseModel):

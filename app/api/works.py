@@ -18,6 +18,7 @@ from app.models import Author, Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
+from app.schemas.gpt import GptLabelResponse
 from app.schemas.work import (
     WorkBrief,
     WorkCreateWithEditionsIn,
@@ -145,6 +146,7 @@ async def get_work_by_id(
 @router.get(
     "/work/{work_id}/labels",
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+    response_model=GptLabelResponse,
 )
 async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = False):
     prompt = get_labeling_prompt_from_drive() if experimental else None

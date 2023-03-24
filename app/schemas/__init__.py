@@ -1,5 +1,6 @@
 from base64 import b64decode
 from binascii import Error as BinasciiError
+import enum
 from io import BytesIO
 from urllib import parse
 
@@ -7,6 +8,14 @@ from PIL import Image
 from structlog import get_logger
 
 logger = get_logger()
+
+
+class CaseInsensitiveStringEnum(str, enum.Enum):
+    @classmethod
+    def _missing_(cls, name):
+        for member in cls:
+            if member.name.lower() == name.lower():
+                return member
 
 
 def is_url(value: str) -> bool:
