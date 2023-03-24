@@ -77,7 +77,7 @@ def label_and_update_work(work: Work, session):
     labelset = crud.labelset.get_or_create(session, work, False)
     old_labelset_data = dict(labelset.__dict__)
 
-    new_labelset = crud.labelset.patch(session, labelset, labelset_update, False)
+    new_labelset = crud.labelset.patch(session, labelset, labelset_update, True)
     new_labelset_data = dict(new_labelset.__dict__)
 
     diff = {}

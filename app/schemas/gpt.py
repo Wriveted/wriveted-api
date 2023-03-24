@@ -97,6 +97,15 @@ class GptUsage(BaseModel):
 
         return values
 
+    def __repr__(self) -> str:
+        return (
+            f"Prompt tokens: {self.overall_prompt_tokens}, "
+            f"Completion tokens: {self.overall_completion_tokens}, "
+            f"Total tokens: {self.overall_total_tokens}, "
+            f"Duration: {self.overall_duration}, "
+            f"Prompts: {len(self.usages)}"
+        )
+
 
 class GptLabelResponse(BaseModel):
     system_prompt: str

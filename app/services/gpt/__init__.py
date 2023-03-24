@@ -1,7 +1,7 @@
 import json
+import time
 from statistics import median
 from textwrap import dedent
-import time
 
 import openai
 from pydantic import ValidationError
@@ -17,10 +17,10 @@ from app.schemas.gpt import (
     GptWorkData,
 )
 from app.services.gpt.prompt import (
+    retry_prompt_template,
     suffix,
     system_prompt,
     user_prompt_template,
-    retry_prompt_template,
 )
 
 logger = get_logger()
@@ -142,6 +142,9 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     if not json_data or not parsed_data:
         logger.error("GPT response was not valid", work_id=work.id)
         raise ValueError("GPT response was not valid", raw=gpt_response.output)
+
+    usage = GptUsage(usages=all_usages)
+    logger.info("GPT response was valid", work_id=work.id, usage=usage)
 
     return GptLabelResponse(
         system_prompt=system_prompt,
