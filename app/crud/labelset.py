@@ -63,26 +63,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         db.flush()
         return labelset
 
-    def create_or_update_labelset_hue(
-        self, db: Session, labelset_id: str, hue_id: str, ordinal: Ordinal
-    ):
-        lsh = select(LabelSetHue).where(
-            and_(
-                LabelSetHue.labelset_id == labelset_id,
-                LabelSetHue.hue_id == hue_id,
-                LabelSetHue.ordinal == ordinal,
-            )
-        )
-        existing = db.execute(lsh).scalar_one_or_none()
-        if not existing:
-            db.add(
-                LabelSetHue(
-                    labelset_id=labelset_id,
-                    hue_id=hue_id,
-                    ordinal=ordinal,
-                )
-            )
-
     def patch(
         self, db: Session, labelset: LabelSet, data: LabelSetCreateIn, commit=True
     ) -> LabelSet:
@@ -91,78 +71,50 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         updated = False
 
         if data.hue_origin and (
-            data.hue_primary_key or data.hue_secondary_key or data.hue_tertiary_key
+            labelset.hue_origin is None
+            or ORIGIN_WEIGHTS[labelset.hue_origin]
+            <= ORIGIN_WEIGHTS[data.hue_origin.name]
         ):
-            # we only want to patch the hues if there were previously none, or if the origin of any
-            # new ones holds at least as much authority
-            if (
-                labelset.hue_origin is None
-                or ORIGIN_WEIGHTS[labelset.hue_origin]
-                <= ORIGIN_WEIGHTS[data.hue_origin.name]
-            ):
-                # get any hues currently assigned to this labelset, including ordinal
-                labelset_hues: list[
-                    LabelSetHue
-                ] = self.get_labelset_hues_by_labelset_id(db, labelset.id)
+            labelset.hues = []
 
-                # if primary/secondary/tertiary hues have been specified, replace them in the association table
-                # (provided a hue with that key exists) otherwise, create associations
-                if data.hue_primary_key:
-                    hue: Hue = self.get_hue_by_key(db, data.hue_primary_key)
-                    if hue:
-                        primary = next(
-                            (
-                                lsh
-                                for lsh in labelset_hues
-                                if lsh.ordinal == Ordinal.PRIMARY
-                            ),
-                            None,
+            if data.hue_primary_key:
+                if hue := self.get_hue_by_key(db, data.hue_primary_key):
+                    db.add(
+                        LabelSetHue(
+                            labelset_id=labelset.id,
+                            hue_id=hue.id,
+                            ordinal=Ordinal.PRIMARY,
                         )
-                        if primary:
-                            primary.hue_id = hue.id
-                        else:
-                            self.create_or_update_labelset_hue(
-                                db, labelset.id, hue.id, Ordinal.PRIMARY
-                            )
+                    )
 
-                if data.hue_secondary_key:
-                    hue: Hue = self.get_hue_by_key(db, data.hue_secondary_key)
-                    if hue:
-                        secondary = next(
-                            (
-                                lsh
-                                for lsh in labelset_hues
-                                if lsh.ordinal == Ordinal.SECONDARY
-                            ),
-                            None,
+            if data.hue_secondary_key:
+                if hue := self.get_hue_by_key(db, data.hue_secondary_key):
+                    db.add(
+                        LabelSetHue(
+                            labelset_id=labelset.id,
+                            hue_id=hue.id,
+                            ordinal=Ordinal.SECONDARY,
                         )
-                        if secondary:
-                            secondary.hue_id = hue.id
-                        else:
-                            self.create_or_update_labelset_hue(
-                                db, labelset.id, hue.id, Ordinal.SECONDARY
-                            )
+                    )
 
-                if data.hue_tertiary_key:
-                    hue: Hue = self.get_hue_by_key(db, data.hue_tertiary_key)
-                    if hue:
-                        tertiary = next(
-                            (
-                                lsh
-                                for lsh in labelset_hues
-                                if lsh.ordinal == Ordinal.TERTIARY
-                            ),
-                            None,
+            if data.hue_tertiary_key:
+                if hue := self.get_hue_by_key(db, data.hue_tertiary_key):
+                    db.add(
+                        LabelSetHue(
+                            labelset_id=labelset.id,
+                            hue_id=hue.id,
+                            ordinal=Ordinal.TERTIARY,
                         )
-                        if tertiary:
-                            tertiary.hue_id = hue.id
-                        else:
-                            self.create_or_update_labelset_hue(
-                                db, labelset.id, hue.id, Ordinal.TERTIARY
-                            )
+                    )
 
-                labelset.hue_origin = data.hue_origin
-                updated = True
+            labelset.hue_origin = (
+                data.hue_origin
+                if data.hue_primary_key
+                or data.hue_secondary_key
+                or data.hue_tertiary_key
+                else None
+            )
+            updated = True
 
         # same idea with min/max age, re: authority
         if data.age_origin and (data.min_age or data.max_age):
@@ -241,7 +193,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if data.labelled_by_user_id:
                 labelset.labelled_by_user_id = data.labelled_by_user_id
 
-        if labelset.checked is not None:
+        if data.checked is not None:
             labelset.checked = data.checked
 
         if commit:
