@@ -197,7 +197,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             if data.labelled_by_user_id:
                 labelset.labelled_by_user_id = data.labelled_by_user_id
 
-        if "checked" in data:
+        if data.checked is not None:
             labelset.checked = data.checked
 
         if commit:
