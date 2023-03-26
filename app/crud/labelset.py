@@ -77,7 +77,9 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         ):
             # clear out existing hues before adding/updating
             labelset.hues = []
-            db.query(LabelSetHue).filter(LabelSetHue.labelset_id == labelset.id).delete()
+            db.query(LabelSetHue).filter(
+                LabelSetHue.labelset_id == labelset.id
+            ).delete()
 
             if data.hue_primary_key:
                 if hue := self.get_hue_by_key(db, data.hue_primary_key):
