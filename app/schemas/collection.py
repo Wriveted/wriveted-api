@@ -1,4 +1,5 @@
 from datetime import datetime
+import enum
 from typing import Any, Optional
 from uuid import UUID
 
@@ -160,7 +161,7 @@ class CollectionItemsResponse(PaginatedResponse):
     data: list[CollectionItemDetail]
 
 
-class CollectionUpdateType(CaseInsensitiveStringEnum):
+class CollectionUpdateType(str, enum.Enum):
     ADD = "add"
     REMOVE = "remove"
     UPDATE = "update"

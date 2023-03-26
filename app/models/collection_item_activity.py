@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 
@@ -8,7 +9,7 @@ from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class CollectionItemReadStatus(CaseInsensitiveStringEnum):
+class CollectionItemReadStatus(str, enum.Enum):
     UNREAD = "UNREAD"
     TO_READ = "TO_READ"
     NOT_INTERESTED = "NOT_INTERESTED"

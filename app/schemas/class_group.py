@@ -1,4 +1,5 @@
 from datetime import datetime
+import enum
 from typing import Optional
 from uuid import UUID
 
@@ -41,7 +42,7 @@ class ClassGroupCreateIn(BaseModel):
     name: str = Field(None, description="Class name")
 
 
-class ClassGroupMemberUpdateType(CaseInsensitiveStringEnum):
+class ClassGroupMemberUpdateType(str, enum.Enum):
     ADD = "add"
     REMOVE = "remove"
     # UPDATE = "update"

@@ -1,4 +1,5 @@
 from datetime import datetime
+import enum
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, Field, validator
@@ -12,7 +13,7 @@ from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkEnriched
 
 
-class BookFeedbackChoice(CaseInsensitiveStringEnum):
+class BookFeedbackChoice(str, enum.Enum):
     GOOD = "GOOD"
     BAD = "BAD"
     READ_GOOD = "READ_GOOD"
@@ -85,7 +86,7 @@ class BookListCreateIn(BaseModel):
     items: list[BookListItemCreateIn] | None
 
 
-class ItemUpdateType(CaseInsensitiveStringEnum):
+class ItemUpdateType(str, enum.Enum):
     ADD = "add"
     REMOVE = "remove"
     UPDATE = "update"

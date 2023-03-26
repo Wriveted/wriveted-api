@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 
@@ -14,7 +15,7 @@ from app.models.service_account_school_association import (
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class ServiceAccountType(CaseInsensitiveStringEnum):
+class ServiceAccountType(str, enum.Enum):
     BACKEND = "backend"
     LMS = "lms"
     SCHOOL = "school"

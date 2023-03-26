@@ -1,4 +1,5 @@
 import datetime
+import enum
 
 from pydantic import BaseModel
 from app.schemas import CaseInsensitiveStringEnum
@@ -13,7 +14,7 @@ from app.schemas.users.user import UserDetail
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 
 
-class AccountType(CaseInsensitiveStringEnum):
+class AccountType(str, enum.Enum):
     user = "user"
     service_account = "service_account"
 

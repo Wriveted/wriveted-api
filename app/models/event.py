@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import Dict, Optional
@@ -13,14 +14,14 @@ from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class EventLevel(CaseInsensitiveStringEnum):
+class EventLevel(str, enum.Enum):
     DEBUG = "debug"
     NORMAL = "normal"
     WARNING = "warning"
     ERROR = "error"
 
 
-class EventSlackChannel(CaseInsensitiveStringEnum):
+class EventSlackChannel(str, enum.Enum):
     GENERAL = "#api-alerts"
     MEMBERSHIPS = "#memberships"
     EDITORIAL = "#editorial-adjustments"

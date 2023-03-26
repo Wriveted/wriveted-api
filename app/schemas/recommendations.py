@@ -1,3 +1,4 @@
+import enum
 import uuid
 from typing import Optional
 
@@ -7,7 +8,7 @@ from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.labelset import LabelSetDetail
 
 
-class ReadingAbilityKey(CaseInsensitiveStringEnum):
+class ReadingAbilityKey(str, enum.Enum):
     SPOT = "SPOT"
     CAT_HAT = "CAT_HAT"
     TREEHOUSE = "TREEHOUSE"
@@ -15,7 +16,7 @@ class ReadingAbilityKey(CaseInsensitiveStringEnum):
     HARRY_POTTER = "HARRY_POTTER"
 
 
-class HueKeys(CaseInsensitiveStringEnum):
+class HueKeys(str, enum.Enum):
     hue01_dark_suspense = "hue01_dark_suspense"
     hue02_beautiful_whimsical = "hue02_beautiful_whimsical"
     hue03_dark_beautiful = "hue03_dark_beautiful"

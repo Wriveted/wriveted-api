@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import enum
 
 from fastapi_permissions import All, Allow
 from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String
@@ -10,11 +11,11 @@ from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class SubscriptionProvider(CaseInsensitiveStringEnum):
+class SubscriptionProvider(str, enum.Enum):
     STRIPE = "stripe"
 
 
-class SubscriptionType(CaseInsensitiveStringEnum):
+class SubscriptionType(str, enum.Enum):
     FAMILY = "family"
     LIBRARY = "library"
     SCHOOL = "school"

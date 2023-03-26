@@ -1,4 +1,5 @@
 from datetime import datetime
+import enum
 from typing import Optional
 from uuid import UUID
 
@@ -9,7 +10,7 @@ from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.hue import Hue
 
 
-class WritingStyleKey(CaseInsensitiveStringEnum):
+class WritingStyleKey(str, enum.Enum):
     DARK = "DARK"
     LIGHT = "LIGHT"
     FUNNY = "FUNNY"
@@ -28,7 +29,7 @@ class WritingStyleKey(CaseInsensitiveStringEnum):
     INFORMATIVE = "INFORMATIVE"
 
 
-class GenreKey(CaseInsensitiveStringEnum):
+class GenreKey(str, enum.Enum):
     FACTUAL_NON_FICTION = "FACTUAL_NON_FICTION"
     FUNNY = "FUNNY"
     ROMANCE = "ROMANCE"
@@ -52,7 +53,7 @@ class GenreKey(CaseInsensitiveStringEnum):
     SPORTS = "SPORTS"
 
 
-class CharacterKey(CaseInsensitiveStringEnum):
+class CharacterKey(str, enum.Enum):
     BUGS = "BUGS"
     CATS_DOGS_AND_MICE = "CATS_DOGS_AND_MICE"
     HORSES_AND_FARM_ANIMALS = "HORSES_AND_FARM_ANIMALS"

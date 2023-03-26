@@ -28,12 +28,12 @@ from app.schemas import CaseInsensitiveStringEnum
 
 
 # which type of bookbot the school is currently using
-class SchoolBookbotType(CaseInsensitiveStringEnum):
+class SchoolBookbotType(str, enum.Enum):
     SCHOOL_BOOKS = "school_books"
     HUEY_BOOKS = "huey_books"
 
 
-class SchoolState(CaseInsensitiveStringEnum):
+class SchoolState(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     # Has initiated onboarding, a user has bound themselves to the school, but onboarding isn't yet completed.
