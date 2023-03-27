@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 
@@ -28,12 +27,12 @@ from app.schemas import CaseInsensitiveStringEnum
 
 
 # which type of bookbot the school is currently using
-class SchoolBookbotType(str, enum.Enum):
+class SchoolBookbotType(CaseInsensitiveStringEnum):
     SCHOOL_BOOKS = "school_books"
     HUEY_BOOKS = "huey_books"
 
 
-class SchoolState(str, enum.Enum):
+class SchoolState(CaseInsensitiveStringEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     # Has initiated onboarding, a user has bound themselves to the school, but onboarding isn't yet completed.

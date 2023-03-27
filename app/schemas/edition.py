@@ -1,5 +1,4 @@
 from datetime import datetime
-import enum
 from typing import Optional
 
 from pydantic import AnyHttpUrl, BaseModel, validator
@@ -12,7 +11,7 @@ from app.schemas.link import LinkBrief
 
 
 class Genre(BaseModel):
-    class GenreSource(str, enum.Enum):
+    class GenreSource(CaseInsensitiveStringEnum):
         BISAC = "BISAC"
         BIC = "BIC"
         THEMA = "THEMA"

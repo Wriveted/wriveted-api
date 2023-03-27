@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -14,7 +13,7 @@ from app.models.booklist_work_association import BookListItem
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class ListType(str, enum.Enum):
+class ListType(CaseInsensitiveStringEnum):
     PERSONAL = "Personal"
     SCHOOL = "School"
     REGION = "Regional"
@@ -22,7 +21,7 @@ class ListType(str, enum.Enum):
     OTHER_LIST = "Other"
 
 
-class ListSharingType(str, enum.Enum):
+class ListSharingType(CaseInsensitiveStringEnum):
     PRIVATE = "private"
     RESTRICTED = "restricted"  # Some other mechanism will determine who can view..
     PUBLIC = "public"

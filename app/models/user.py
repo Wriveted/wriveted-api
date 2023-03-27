@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -19,7 +18,7 @@ from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class UserAccountType(str, enum.Enum):
+class UserAccountType(CaseInsensitiveStringEnum):
     WRIVETED = "wriveted"
     STUDENT = "student"
     PUBLIC = "public"

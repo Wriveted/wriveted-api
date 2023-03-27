@@ -1,4 +1,3 @@
-import enum
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -6,7 +5,7 @@ from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
 
 
-class Ordinal(str, enum.Enum):
+class Ordinal(CaseInsensitiveStringEnum):
     PRIMARY = "primary"
     SECONDARY = "secondary"
     TERTIARY = "tertiary"

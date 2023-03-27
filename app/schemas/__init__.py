@@ -12,10 +12,15 @@ logger = get_logger()
 
 class CaseInsensitiveStringEnum(str, enum.Enum):
     @classmethod
-    def _missing_(cls, name):
-        for member in cls:
-            if member.name.lower() == name.lower():
-                return member
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            # attempt case-insensitive lookup
+            for member in cls:
+                if member.name.lower() == value.lower():
+                    return member
+
+        # fallback to default behavior if lookup fails or if value is not a string
+        return None
 
 
 def is_url(value: str) -> bool:
