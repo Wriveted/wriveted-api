@@ -225,12 +225,13 @@ Your output should be valid JSON with the following keys:
 - 'genres'
 - 'characters'
 - 'gender'
+and optionally:
 - 'notes' as described earlier; similar to movie and streaming classification systems.
 - 'series' key with the name of the series the book is part of,
-- 'series_number' key with the number of the book in the series,
+- 'series_number' key with the number of the book in the series (starting at 1),
 - 'awards' with a list of awards the book has won.
 
-British English is preferred where there is a choice.
+In all text output, British English is preferred where there is a choice.
 
 """
 
