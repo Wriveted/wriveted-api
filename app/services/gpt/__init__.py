@@ -30,6 +30,8 @@ settings = get_settings()
 def gpt_query(system_prompt, user_content):
     openai.api_key = settings.OPENAI_API_KEY
 
+    logger.info("Prompts prepared, sending to OpenAI...")
+
     start_time = time.time()
     response = openai.ChatCompletion.create(
         model=settings.OPENAI_MODEL,
@@ -42,6 +44,8 @@ def gpt_query(system_prompt, user_content):
     )
     end_time = time.time()
     duration = end_time - start_time
+
+    logger.debug(f"OpenAI responded after {duration}s")
 
     return GptPromptResponse(
         usage=GptPromptUsage(**response["usage"], duration=duration),
@@ -67,7 +71,11 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
 
     main_edition = editions[0]
 
-    huey_summary = work.labelset.huey_summary if work.labelset else ""
+    huey_summary = (
+        work.labelset.huey_summary
+        if work.labelset and work.labelset.huey_summary
+        else ""
+    )
 
     genre_data = set()
     short_summaries = set()
@@ -83,7 +91,7 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
             page_numbers.add(pages)
 
     genre_data = "\n".join(genre_data)
-    median_page_number = median(page_numbers)
+    median_page_number = median(page_numbers) if page_numbers else "unknown"
     short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
 
     display_title = work.get_display_title()
@@ -109,7 +117,6 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     }
     user_content = user_prompt_template.format(**user_provided_values) + suffix
 
-    logger.debug("User prompt prepared, sending to OpenAI...")
     gpt_response = gpt_query(target_prompt, user_content)
     all_usages.append(gpt_response.usage)
 
@@ -122,15 +129,26 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
             parsed_data = GptWorkData(**json_data)
             break
         except (ValidationError, ValueError) as e:
+            retries -= 1
+            error_string = str(e)
+
+            if isinstance(e, ValidationError):
+                # pydantic. extract the error(s) in more reasonable verbosity
+                error_string = str([str(error.exc) for error in e.raw_errors])
+
             logger.warning(
-                f"GPT response was not valid, {'retrying...' if retries > 0 else 'not retrying'}",
+                "GPT response was not valid",
+                output=gpt_response.output,
+                error=error_string,
+                retrying=retries > 0,
                 work_id=work.id,
             )
+
             # tell gpt what is going on
             new_content = retry_prompt_template.format(
                 user_content=user_content,
                 response_string=gpt_response.output,
-                error_message=str(e),
+                error_message=error_string,
             )
             gpt_response = gpt_query(target_prompt, new_content)
             all_usages.append(gpt_response.usage)
@@ -140,8 +158,7 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
 
     # check if the response is valid at this point
     if not json_data or not parsed_data:
-        logger.error("GPT response was not valid", work_id=work.id)
-        raise ValueError("GPT response was not valid", raw=gpt_response.output)
+        raise ValueError
 
     usage = GptUsage(usages=all_usages)
     logger.info("GPT response was valid", work_id=work.id, usage=usage)

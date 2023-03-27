@@ -1,8 +1,7 @@
-from rich import print
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
+from structlog import get_logger
 from app import crud
-from app.api.works import update_work
 
 from app.config import get_settings
 from app.db.session import database_connection
@@ -10,10 +9,10 @@ from app.models import Edition
 from app.models.labelset import LabelOrigin, LabelSet
 from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
-from app.schemas.work import WorkUpdateIn
 from app.services.gpt import extract_labels
 
 settings = get_settings()
+logger = get_logger()
 
 engine, SessionLocal = database_connection(
     settings.SQLALCHEMY_DATABASE_URI,
@@ -23,11 +22,7 @@ engine, SessionLocal = database_connection(
 
 
 def work_to_gpt_labelset_update(work: Work):
-    try:
-        gpt_data = extract_labels(work, retries=2)
-    except ValueError as e:
-        print(e)
-        exit()
+    gpt_data = extract_labels(work, retries=2)
 
     output = gpt_data.output
 
@@ -76,20 +71,12 @@ def label_and_update_work(work: Work, session):
     labelset_update = work_to_gpt_labelset_update(work)
 
     labelset = crud.labelset.get_or_create(session, work, False)
-    old_labelset_data = dict(labelset.__dict__)
-
     new_labelset = crud.labelset.patch(session, labelset, labelset_update, True)
-    new_labelset_data = dict(new_labelset.__dict__)
 
-    diff = {}
-    for key in old_labelset_data:
-        if key.startswith("_"):  # Ignore private attributes
-            continue
-        if old_labelset_data[key] != new_labelset_data[key]:
-            diff[key] = new_labelset_data[key]
-
-    print(f"Updated labelset for {work.title}. Changes:", diff)
-
+    new_labelset.checked = None
+    session.commit()
+    
+    logger.info(f"Updated labelset for {work.title}")
 
 with Session(engine) as session:
     # select Works where:
@@ -117,4 +104,8 @@ with Session(engine) as session:
     print(f"Found {len(works)} works to label")
 
     for work in works:
-        label_and_update_work(work, session)
+        try:
+            label_and_update_work(work, session)
+        except ValueError:
+            logger.warning(f"Failed to label {work.title}. Skipping...")
+            continue

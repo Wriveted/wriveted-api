@@ -152,7 +152,7 @@ async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = 
     prompt = get_labeling_prompt_from_drive() if experimental else None
 
     try:
-        return extract_labels(work, prompt)
+        return extract_labels(work, prompt, retries=0)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

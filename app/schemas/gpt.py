@@ -167,16 +167,21 @@ class GptUsage(BaseModel):
         overall_total_tokens = 0
         overall_duration = 0
 
-        for usage in values["usages"]:
-            overall_prompt_tokens += usage.get("prompt_tokens") or 0
-            overall_completion_tokens += usage.get("completion_tokens") or 0
-            overall_total_tokens += usage.get("total_tokens") or 0
-            overall_duration += usage.get("duration") or 0
+        for usage_dict in values["usages"]:
+            if isinstance(usage_dict, GptPromptUsage):
+                usage = usage_dict
+            else:
+                usage = GptPromptUsage(**usage_dict)
+
+            overall_prompt_tokens += usage.prompt_tokens
+            overall_completion_tokens += usage.completion_tokens
+            overall_total_tokens += usage.total_tokens
+            overall_duration += usage.duration
 
         values["overall_prompt_tokens"] = overall_prompt_tokens
         values["overall_completion_tokens"] = overall_completion_tokens
         values["overall_total_tokens"] = overall_total_tokens
-        values["overall_duration"] = overall_duration
+        values["overall_duration"] = round(overall_duration, 2)
 
         return values
 
@@ -185,7 +190,7 @@ class GptUsage(BaseModel):
             f"Prompt tokens: {self.overall_prompt_tokens}, "
             f"Completion tokens: {self.overall_completion_tokens}, "
             f"Total tokens: {self.overall_total_tokens}, "
-            f"Duration: {self.overall_duration}, "
+            f"Duration: {self.overall_duration:.2f}, "
             f"Prompts: {len(self.usages)}"
         )
 

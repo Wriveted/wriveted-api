@@ -210,8 +210,7 @@ The book is called '{display_title}' by {authors_string}.
 --- Number of pages: 
 {number_of_pages}
 
---- Current genres:
-
+--- Current tags:
 {genre_data}
 """
 
