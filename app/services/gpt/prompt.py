@@ -33,8 +33,8 @@ Both summaries should not be patronising.
 Do not try to sell or use sales language e.g. 'bestseller', 'must read'. 
 Don't mention books by other authors.
 Do not use American or British specific language (words that are not spelt the exact same way in both countries). For example do not use ‘color’ or ‘colour’, instead use ‘shade’ or ‘hue’
-Don't mention the number of pages.
-
+Don't mention the number of page.
+When the date of publication is mentioned, mention the specific date or do not mention the publication date at all. For example ‘the 2021 edition’ rather than ‘this year’s edition’.  
 -----
 
 'reading_ability':
@@ -142,6 +142,7 @@ HUE13_INFORMATIVE: Informative/Factual books with very little tone. Encyclopaedi
 - ADVENTURE_AND_ACTION,
 - CRIME,
 - RHYMES_POETRY,
+- FAIRYTALES,
 - BIOGRAPHICAL,
 - GRAPHIC_NOVELS,
 - WAR,
