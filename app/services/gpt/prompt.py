@@ -7,25 +7,32 @@ You are given structured data from multiple semi-reliable sources, including the
 
 'long_summary':
 
-The long summary should be friendly and aimed at an adult reader. 
+The long summary should be a friendly, engaging description of the book and its contents.
 Pay attention to the title of the book for clues as to what is important to mention.
 A good long description might mention the characters, their relationships, and the events that take place.
 Don't mention the title or the fact that it is a story or a book. 
-It is okay to mention any awards, but only in the long description.
+It is okay to mention any awards
+Information about the origin or creation of the book should be kept to a minimum, and should not use more words than the description of what happens in the book. 
+
+Example long summaries:
+-“An affectionate, sometimes bashful pig named Wilbur befriends a spider named Charlotte, who lives in the rafters above his pen. A prancing, playful bloke, Wilbur is devastated when he learns of the destiny that befalls all those of porcine persuasion. Determined to save her friend, Charlotte spins a web that reads Some Pig, convincing the farmer and surrounding community that Wilbur is no ordinary animal and should be saved. In this story of friendship, hardship and the passing on into time, E.B. White reminds us to open our eyes to the wonder and miracle often found in the simplest of things.”
+
+-“Andy and Terry's have the most amazing treehouse in the world! It's got a bowling alley, a see-through swimming pool, a tank full of man-eating sharks, a giant catapult, a secret underground laboratory and a marshmallow machine that follows you around and shoots marshmallows into your mouth whenever you're hungry. Well, what are you waiting for? Come on up!”
 
 -----
 
 'short_summary':
- 
-Base the short summary on the long summary.
-The short description should be one to two sentences long.
-Do not mention the title or start with the title in the short description. 
-The language should appeal to a 9 year old, and should be engaging and friendly.
 
-Some example short summaries:
-- Harry and his dog Hopper have done everything together, ever since Hopper was a jumpy little puppy. But one day the unthinkable happens. Harry comes home from school... and Hopper isn't there to greet him.
-- Something strange is happening in Alfie's town. Instead of shiny coins from the Tooth Fairy, kids are waking up to dead slugs, live spiders, and other dreadfully icky things under their pillows. Who would do something so horrific?
-- Twelve-year-old Percy is sent to a summer camp for demigods like himself, and joins his new friends on a quest to prevent a war between the gods.
+Use the long summary to create the short summary, maintain the same phrases and expressions.
+Focus on the content of the book.
+The short description should be one to three sentences long.
+Do not mention the title or start with the title
+The language should appeal to an age-appropriate reader, and should be engaging and friendly.
+
+Example short summaries:
+- “Harry and his dog Hopper have done everything together, ever since Hopper was a jumpy little puppy. But one day the unthinkable happens. Harry comes home from school... and Hopper isn't there to greet him.”
+- “Something strange is happening in Alfie's town. Instead of shiny coins from the Tooth Fairy, kids are waking up to dead slugs, live spiders, and other dreadfully icky things under their pillows. Who would do something so horrific?”
+- “Twelve-year-old Percy is sent to a summer camp for demigods like himself, and joins his new friends on a quest to prevent a war between the gods.”
 
 -----
 
@@ -46,14 +53,14 @@ SPOT:  Picture books or board books for children who do not know how to read yet
 
 CAT_HAT: Simple books, more complex than a picture book for early child readers who have basic reading skills. These books often have an illustration on every page. (e.g. Cat in the Hat by Dr. Seuss)
 
-TREEHOUSE: Early chapter books for developing child readers who can handle longer and slightly more complex sentences and can read independently  (e.g. 13 Story Treehouse by Andy Griffiths)
+TREEHOUSE: Early chapter books for developing child readers who can handle longer and slightly more complex sentences and can read independently  (e.g. the 13-Storey Treehouse, the Captain Underpants series, National Geographic Kids Readers: Rocks and Minerals)
 
 CHARLIE_CHOCOLATE:
 Chapter books for proficient child readers who can independently read more challenging books with complex plots and themes. (e.g. Charlie and the Chocolate Factory by Roald Dahl)
 
-HARRY_POTTER: Advanced Chapter books for children who are comfortable independently reading complex texts with sophisticated vocabulary and ideas. (e.g. Harry Potter and the Philosopher's Stone by JK Rowling, Emma by Jane Austen, )
+HARRY_POTTER: Advanced Chapter books for children who are comfortable independently reading complex texts with sophisticated vocabulary and ideas. (e.g. Harry Potter and the Philosopher's Stone, Emma by Jane Austen)
 
-You must exclusively include 1-2 keys from this list.
+You must exclusively include 1-2 keys from this lis, and the output must be an array.
 
 -----
 
@@ -63,7 +70,7 @@ Any other information you think is relevant for parents when selecting a book fo
 Adult themes, heavy emotional content, religion and LGBTQ themes should be noted. Similar to movie and streaming classification systems.
 
 Below are some examples:
--  This novel contains mature themes and violence, and may not be suitable for all readers. It is recommended for older children and teenagers.
+-  This novel contains mature themes and violence, and may not be suitable for all readers. 
 - The book contains themes of revolution and fighting back against oppression, as well as some violence and danger. It also touches on the relationship between humans and animals, particularly wolves.
 
 -----
@@ -88,7 +95,7 @@ Below is a list of writing styles. You must look at every style and apply all of
 - REALISTIC,
 - INFORMATIVE
 
-`styles` should only contain exact keys from this list.
+`styles` must only contain exact keys from this list.
 Consider the 'notes' you have already written to help decide on the right styles.
 
 -----
@@ -128,19 +135,20 @@ HUE13_INFORMATIVE: Informative/Factual books with very little tone. Encyclopaedi
 
 -----
 
-'genres' should be a list of any of the following keys that apply to the text.
+'genres' must be a list of any of the following keys that apply to the text.
 
 - FACTUAL_NON_FICTION,
-- FUNNY,
+- FUNNY (humorous books),
 - ROMANCE,
-- SCIENCE_FICTION,
-- CLASSIC_FICTION,
-- HISTORICAL,
-- FANTASY,
-- HORROR_SPOOKY,
+- SCIENCE,
+- SCIFI,
+- CLASSIC_FICTION (considered a timeless book that everyone should read),
+- HISTORICAL, 
+- FANTASY, 
+- HORROR_SPOOKY, 
 - MYSTERY_SUSPENSE,
-- ADVENTURE_AND_ACTION,
-- CRIME,
+- ADVENTURE_AND_ACTION, 
+- CRIME, 
 - RHYMES_POETRY,
 - FAIRYTALES,
 - BIOGRAPHICAL,
@@ -152,12 +160,16 @@ HUE13_INFORMATIVE: Informative/Factual books with very little tone. Encyclopaedi
 - BRITISH,
 - INDIGENOUS,
 - SPORTS
+- PICTURE_BOOK
+- YOUNG_ADULT
 
-`genres` should only contain exact keys from this list.
+
+
+`genres` must only contain exact keys from this list.
 
 -----
 
-'gender' should be whichever of the following keys is most appropriate, relating to the main character(s) of the book.
+'gender' must be whichever of the following keys is most appropriate, relating to the main character(s) of the book.
 Pronouns in the assorted summaries and genres may be valuable clues.
 - "male"
 - "female"
@@ -166,7 +178,7 @@ Pronouns in the assorted summaries and genres may be valuable clues.
 
 -----
 
-'characters' should contain a list of these and only these labels, relating to the main character(s) of the book. 
+'characters' must contain a list of these and only these labels, relating to the main character(s) of the book. 
 A reasonable number of labels should be used, but not too many.
 - BUGS,
 - CATS_DOGS_AND_MICE,
@@ -189,7 +201,7 @@ A reasonable number of labels should be used, but not too many.
 - ROBOTS,
 - ATHLETES_AND_SPORT_STARS
 
-`characters` should only contain exact keys from this list.
+`characters` must only contain exact keys from this list.
 """
 
 user_prompt_template = """
@@ -213,6 +225,7 @@ The book is called '{display_title}' by {authors_string}.
 
 --- Current tags:
 {genre_data}
+
 """
 
 suffix = """-----
@@ -226,14 +239,12 @@ Your output should be valid JSON with the following keys:
 - 'genres'
 - 'characters'
 - 'gender'
-and optionally:
 - 'notes' as described earlier; similar to movie and streaming classification systems.
-- 'series' key with the name of the series the book is part of,
-- 'series_number' key with the number of the book in the series (starting at 1),
+- 'series': the name of the series the book is part of (leave blank if unsure),
+- 'series_number': the number of the book in the series (leave blank if unsure),
 - 'awards' with a list of awards the book has won.
 
-In all text output, British English is preferred where there is a choice.
-
+All text output should use UK English.
 """
 
 retry_prompt_template = """
