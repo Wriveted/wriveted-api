@@ -32,7 +32,8 @@ class GenreKey(CaseInsensitiveStringEnum):
     FACTUAL_NON_FICTION = "FACTUAL_NON_FICTION"
     FUNNY = "FUNNY"
     ROMANCE = "ROMANCE"
-    SCIENCE_FICTION = "SCIENCE_FICTION"
+    SCIENCE = "SCIENCE"
+    SCIFI = "SCIFI"
     CLASSIC_FICTION = "CLASSIC_FICTION"
     HISTORICAL = "HISTORICAL"
     FANTASY = "FANTASY"
@@ -51,6 +52,8 @@ class GenreKey(CaseInsensitiveStringEnum):
     BRITISH = "BRITISH"
     INDIGENOUS = "INDIGENOUS"
     SPORTS = "SPORTS"
+    PICTURE_BOOK = "PICTURE_BOOK"
+    YOUNG_ADULT = "YOUNG_ADULT"
 
 
 class CharacterKey(CaseInsensitiveStringEnum):
