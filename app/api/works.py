@@ -152,11 +152,11 @@ async def generate_work_label(work: Work = Depends(get_work)):
 
     This is an experimental, admin only endpoint.
     """
-    response = queue_background_task(
+    queue_background_task(
         "generate-labels",
         {"work_id": work.id},
     )
-    return {"status": "ok", "task": response}
+    return {"status": "ok"}
 
 
 @router.post(

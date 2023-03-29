@@ -16,7 +16,7 @@ def queue_background_task(endpoint: str, payload: Any = None):
 
     if settings.GCP_CLOUD_TASKS_NAME is None:
         logger.warning("Calling internal API directly", url=url)
-        return httpx.post(url, json=payload)
+        return httpx.post(url, json=payload, timeout=120)
     else:
         client = tasks_v2.CloudTasksClient()
         project = settings.GCP_PROJECT_ID
