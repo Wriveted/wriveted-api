@@ -8,10 +8,11 @@ You are given structured data from multiple semi-reliable sources, including the
 'long_summary':
 
 The long summary should be a friendly, engaging description of the book and its contents.
+Aim for between 60 - 200 words.
 Pay attention to the title of the book for clues as to what is important to mention.
 A good long description might mention the characters, their relationships, and the events that take place.
 Don't mention the title or the fact that it is a story or a book. 
-It is okay to mention any awards
+It is okay to mention any awards.
 Information about the origin or creation of the book should be kept to a minimum, and should not use more words than the description of what happens in the book. 
 
 Example long summaries:
@@ -24,9 +25,10 @@ Example long summaries:
 'short_summary':
 
 Use the long summary to create the short summary, maintain the same phrases and expressions.
-Focus on the content of the book.
+Focus on the content of the book, targeted at a potential reader.
+Pay attention to the title of the book for clues as to what is important to mention.
 The short description should be one to three sentences long.
-Do not mention the title or start with the title
+Do not mention the title or start with the title.
 The language should appeal to an age-appropriate reader, and should be engaging and friendly.
 
 Example short summaries:
@@ -39,9 +41,10 @@ Example short summaries:
 Both summaries should not be patronising.
 Do not try to sell or use sales language e.g. 'bestseller', 'must read'. 
 Don't mention books by other authors.
-Do not use American or British specific language (words that are not spelt the exact same way in both countries). For example do not use ‘color’ or ‘colour’, instead use ‘shade’ or ‘hue’
-Don't mention the number of page.
-When the date of publication is mentioned, mention the specific date or do not mention the publication date at all. For example ‘the 2021 edition’ rather than ‘this year’s edition’.  
+Do not use American or British specific language (words that are not spelt the exact same way in both countries). For example do not use ‘color’ or ‘colour’, instead use ‘shade’ or ‘hue’.
+Don't mention the number of pages.
+When the date of publication is mentioned, mention the specific date or do not mention the publication date at all. For example ‘the 2021 edition’ rather than ‘this year’s edition’.
+
 -----
 
 'reading_ability':
@@ -60,7 +63,7 @@ Chapter books for proficient child readers who can independently read more chall
 
 HARRY_POTTER: Advanced Chapter books for children who are comfortable independently reading complex texts with sophisticated vocabulary and ideas. (e.g. Harry Potter and the Philosopher's Stone, Emma by Jane Austen)
 
-You must exclusively include 1-2 keys from this lis, and the output must be an array.
+You must exclusively include 1-2 keys from this list, and the output must be an array.
 
 -----
 
@@ -86,6 +89,7 @@ Below is a list of writing styles. You must look at every style and apply all of
 - ACTION_PACKED,
 - WHIMSICAL,
 - BEAUTIFUL,
+- CHARMING
 - GRIM,
 - INSPIRING,
 - CALM,
@@ -163,8 +167,6 @@ HUE13_INFORMATIVE: Informative/Factual books with very little tone. Encyclopaedi
 - PICTURE_BOOK
 - YOUNG_ADULT
 
-
-
 `genres` must only contain exact keys from this list.
 
 -----
@@ -202,13 +204,32 @@ A reasonable number of labels should be used, but not too many.
 - ATHLETES_AND_SPORT_STARS
 
 `characters` must only contain exact keys from this list.
+
+—--
+
+'recommend_status':
+
+This is advice on whether or not this book should be shown to a child as a recommendation:
+
+
+- GOOD ( good to recommend to a child),  
+- BAD_BORING (the story is so boring, it is unlikely a child will want to read this book), 
+- BAD_REFERENCE (a textbook or reference book that a child would not read for enjoyment for example a dictionary. )
+- BAD_CONTROVERSIAL  (controversial themes that parents may not want to expose to their children for example gender, sexuality or religion.). 
+- BAD_LOW_QUALITY (Poor writing. Books that do not have a real person attributed as the author are often low quality). 
+
+—--
+
+'confidence':
+
+Assign a confidence rating from 1 (low confidence) to 10 (high confidence) for each label and summary you provide. 
+
 """
 
 user_prompt_template = """
 The book is called '{display_title}' by {authors_string}.
 
 --- Current short Summaries:
-{huey_summary}
 {short_summaries}
 
 --- Detailed Summary:
@@ -243,6 +264,8 @@ Your output should be valid JSON with the following keys:
 - 'series': the name of the series the book is part of (leave blank if unsure),
 - 'series_number': the number of the book in the series (leave blank if unsure),
 - 'awards' with a list of awards the book has won.
+- 'recommend_status'
+- 'confidence'
 
 All text output should use UK English.
 """

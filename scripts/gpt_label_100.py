@@ -4,6 +4,7 @@ from structlog import get_logger
 from app import crud
 
 from app.config import get_settings
+from app.crud.base import compare_dicts
 from app.db.session import database_connection
 from app.models import Edition
 from app.models.labelset import LabelOrigin, LabelSet
@@ -57,11 +58,15 @@ def work_to_gpt_labelset_update(work: Work):
     labelset_info["gender"] = output.gender
     labelset_info["awards"] = output.awards
     labelset_info["notes"] = output.notes
+    labelset_info["label_confidence"] = output.confidence
 
     labelset_data["info"] = labelset_info
 
     # mark as needing to be checked
     labelset_data["checked"] = None
+
+    labelset_data["recommend_status"] = output.recommend_status
+    labelset_data["recommend_status_origin"] = LabelOrigin.GPT4
 
     labelset_create = LabelSetCreateIn(**labelset_data)
     return labelset_create
@@ -71,12 +76,25 @@ def label_and_update_work(work: Work, session):
     labelset_update = work_to_gpt_labelset_update(work)
 
     labelset = crud.labelset.get_or_create(session, work, False)
+    old_labelset_data = labelset.get_label_dict(session)
     new_labelset = crud.labelset.patch(session, labelset, labelset_update, True)
+    new_labelset_data = labelset.get_label_dict(session)
+    crud.event.create(
+        session,
+        title=f"Label edited",
+        description=f"GPT Script labelled {work.title}",
+        info={
+            "changes": compare_dicts(old_labelset_data, new_labelset_data),
+            "work_id": work.id,
+            "labelset_id": labelset.id,
+        },
+    )
 
     new_labelset.checked = None
     session.commit()
-    
+
     logger.info(f"Updated labelset for {work.title}")
+
 
 with Session(engine) as session:
     # select Works where:
@@ -97,15 +115,19 @@ with Session(engine) as session:
             Work.editions.any(Edition.cover_url.isnot(None)),
             Work.editions.any(Edition.date_published > 20150000),
         )
-        .limit(50)
+        .limit(200)
         .all()
     )
 
     print(f"Found {len(works)} works to label")
 
+    count = 0
     for work in works:
+        if count >= 100:
+            break
         try:
             label_and_update_work(work, session)
+            count += 1
         except ValueError:
             logger.warning(f"Failed to label {work.title}. Skipping...")
             continue

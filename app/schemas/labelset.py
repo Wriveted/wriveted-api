@@ -18,6 +18,7 @@ class WritingStyleKey(CaseInsensitiveStringEnum):
     ACTION_PACKED = "ACTION_PACKED"
     WHIMSICAL = "WHIMSICAL"
     BEAUTIFUL = "BEAUTIFUL"
+    CHARMING = "CHARMING"
     GRIM = "GRIM"
     INSPIRING = "INSPIRING"
     CALM = "CALM"
