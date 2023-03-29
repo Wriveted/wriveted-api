@@ -16,7 +16,8 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from app.db import Base
-from app.models.labelset_hue_association import LabelSetHue
+from app.models.hue import Hue
+from app.models.labelset_hue_association import LabelSetHue, Ordinal
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
 from app.schemas import CaseInsensitiveStringEnum
 
@@ -139,3 +140,50 @@ class LabelSet(Base):
         hues = [h.name for h in self.hues]
         reading_abilities = [ra.key for ra in self.reading_abilities]
         return f"'{self.work.title}' reading ability: {reading_abilities} ages: {self.min_age}-{self.max_age} Hues: {hues}"
+
+    def get_label_dict(self, session):
+        label_dict = {}
+
+        for hue, ordinal in (
+            session.query(Hue, LabelSetHue.ordinal)
+            .join(LabelSetHue)
+            .filter(LabelSetHue.labelset_id == self.id)
+            .all()
+        ):
+            if ordinal == Ordinal.PRIMARY:
+                label_dict["primary_hue_key"] = hue.key
+            elif ordinal == Ordinal.SECONDARY:
+                label_dict["secondary_hue_key"] = hue.key
+            elif ordinal == Ordinal.TERTIARY:
+                label_dict["tertiary_hue_key"] = hue.key
+        label_dict["hue_origin"] = self.hue_origin.value if self.hue_origin else None
+
+        label_dict["reading_ability_keys"] = [ra.key for ra in self.reading_abilities]
+        label_dict["reading_ability_origin"] = self.reading_ability_origin.value
+
+        label_dict["min_age"] = self.min_age
+        label_dict["max_age"] = self.max_age
+        label_dict["age_origin"] = self.age_origin.value if self.age_origin else None
+
+        label_dict["recommend_status"] = self.recommend_status.value
+        label_dict["recommend_status_origin"] = (
+            self.recommend_status_origin.value if self.recommend_status_origin else None
+        )
+
+        label_dict["huey_summary"] = self.huey_summary
+        label_dict["summary_origin"] = (
+            self.summary_origin.value if self.summary_origin else None
+        )
+
+        label_dict["labelled_by_user_id"] = self.labelled_by_user_id
+        label_dict["labelled_by_sa_id"] = self.labelled_by_sa_id
+
+        label_dict["checked"] = self.checked
+        label_dict["checked_at"] = str(self.checked_at)
+
+        label_dict["created_at"] = str(self.created_at)
+        label_dict["updated_at"] = str(self.updated_at)
+
+        label_dict["info"] = self.info
+
+        return label_dict

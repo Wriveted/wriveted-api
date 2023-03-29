@@ -13,6 +13,7 @@ from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user_or_service_account,
 )
+from app.crud.base import compare_dicts
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
@@ -236,21 +237,22 @@ async def update_work(
         labelset_update = changes.labelset
         logger.info("Updating labels", label_updates=labelset_update)
         labelset = crud.labelset.get_or_create(session, work_orm, False)
-        labelset = crud.labelset.patch(session, labelset, labelset_update, False)
+        old_labelset_data = labelset.get_label_dict(session)
+        labelset = crud.labelset.patch(session, labelset, labelset_update, True)
+        new_labelset_data = labelset.get_label_dict(session)
         crud.event.create(
             session,
             title=f"Label edited",
             description=f"Made a change to {work_orm.title} labels",
             info={
-                "changes": labelset_update.dict(
-                    exclude_unset=True, exclude_defaults=True
-                ),
+                "changes": compare_dicts(old_labelset_data, new_labelset_data),
                 "work_id": work_orm.id,
                 "labelset_id": labelset.id,
             },
             account=account,
         )
         del changes.labelset
+
     updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
     logger.info("Updated work", updated=updated)
     crud.event.create(

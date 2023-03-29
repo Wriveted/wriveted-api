@@ -76,7 +76,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             <= ORIGIN_WEIGHTS[data.hue_origin.name]
         ):
             # clear out existing hues before adding/updating
-            labelset.hues = []
             db.query(LabelSetHue).filter(
                 LabelSetHue.labelset_id == labelset.id
             ).delete()

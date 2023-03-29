@@ -192,3 +192,20 @@ def deep_merge_dicts(original, incoming):
                 original[key] = incoming[key]
         else:
             original[key] = incoming[key]
+
+
+def compare_dicts(dict1, dict2):
+    diff = {}
+    for key in set(dict1.keys()).union(dict2.keys()):
+        if key.startswith("_") or (
+            isinstance(dict1.get(key), dict)
+            and any(k.startswith("_") for k in dict1[key])
+        ):
+            continue
+        if isinstance(dict1.get(key), dict) and isinstance(dict2.get(key), dict):
+            sub_diff = compare_dicts(dict1[key], dict2[key])
+            if sub_diff:
+                diff[key] = sub_diff
+        elif dict1.get(key) != dict2.get(key):
+            diff[key] = (dict1.get(key), dict2.get(key))
+    return diff
