@@ -27,18 +27,22 @@ logger = get_logger()
 settings = get_settings()
 
 
-def gpt_query(system_prompt, user_content):
+def gpt_query(system_prompt, user_content, ai_content=None):
     openai.api_key = settings.OPENAI_API_KEY
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content},
+    ]
+    if ai_content:
+        messages.append({"role": "ai", "content": ai_content})
 
     logger.info("Prompts prepared, sending to OpenAI...")
 
     start_time = time.time()
     response = openai.ChatCompletion.create(
         model=settings.OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
+        messages=messages,
         temperature=0,
         timeout=settings.OPENAI_TIMEOUT,
     )
@@ -117,6 +121,8 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     }
     user_content = user_prompt_template.format(**user_provided_values) + suffix
 
+    logger.info("Prompt: ", prompt=user_content)
+
     gpt_response = gpt_query(target_prompt, user_content)
     all_usages.append(gpt_response.usage)
 
@@ -145,12 +151,12 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
             )
 
             # tell gpt what is going on
+            ai_content = gpt_response.output
             new_content = retry_prompt_template.format(
                 user_content=user_content,
-                response_string=gpt_response.output,
                 error_message=error_string,
             )
-            gpt_response = gpt_query(target_prompt, new_content)
+            gpt_response = gpt_query(target_prompt, new_content, ai_content)
             all_usages.append(gpt_response.usage)
 
         if retries <= 0:
@@ -162,6 +168,8 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
 
     usage = GptUsage(usages=all_usages)
     logger.info("GPT response was valid", work_id=work.id, usage=usage)
+
+    logger.debug("GPT response", response=gpt_response.output)
 
     return GptLabelResponse(
         system_prompt=system_prompt,

@@ -279,14 +279,7 @@ I just asked you to generate some data for a book, with the following prompt and
 
 ------------------------
 
-But you returned something that did not match the expected format:
-
------ your response -----
-
-{response_string}
-
--------------------------
-
+But you returned something that did not match the expected format.
 Here is a validation error message encountered when parsing:
 
 --------- error --------
@@ -295,5 +288,6 @@ Here is a validation error message encountered when parsing:
 
 ------------------------
 
-Please re-generate the requested data, ensuring that it matches the expected format.
+Please re-generate the requested data, ensuring that it matches the expected format. 
+Pay close attention to the error message above, as it will tell you what went wrong.
 """
