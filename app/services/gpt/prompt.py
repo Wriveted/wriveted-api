@@ -216,14 +216,7 @@ This is advice on whether or not this book should be shown to a child as a recom
 - BAD_BORING (the story is so boring, it is unlikely a child will want to read this book), 
 - BAD_REFERENCE (a textbook or reference book that a child would not read for enjoyment for example a dictionary. )
 - BAD_CONTROVERSIAL  (controversial themes that parents may not want to expose to their children for example gender, sexuality or religion.). 
-- BAD_LOW_QUALITY (Poor writing. Books that do not have a real person attributed as the author are often low quality). 
-
-—--
-
-'confidence':
-
-Assign a confidence rating from 1 (low confidence) to 10 (high confidence) for each label and summary you provide. 
-
+- BAD_LOW_QUALITY (Poor writing. Books that do not have a real person attributed as the author are often low quality).
 """
 
 user_prompt_template = """
@@ -265,8 +258,8 @@ Your output should be valid JSON with the following keys:
 - 'series_number': the number of the book in the series (leave blank if unsure),
 - 'awards' with a list of awards the book has won.
 - 'recommend_status'
-- 'confidence'
 
+Remember to exclusively use the specified keys for styles, hue_map, genres, characters, and gender.
 All text output should use UK English.
 """
 
