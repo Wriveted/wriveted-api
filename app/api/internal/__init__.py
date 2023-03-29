@@ -5,6 +5,7 @@ from pydantic import BaseModel, BaseSettings
 from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from twilio.rest import Client as TwilioClient
 
 from app import crud
 from app.db.session import get_session
@@ -18,8 +19,8 @@ from app.services.commerce import (
     send_sendgrid_email,
 )
 from app.services.events import handle_event_to_slack_alert, process_events
+from app.services.gpt import label_and_update_work
 from app.services.stripe_events import process_stripe_event
-from twilio.rest import Client as TwilioClient
 
 
 class CloudRunEnvironment(BaseSettings):
@@ -103,6 +104,25 @@ def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     )
 
     logger.info("Finished generating reading pathways", user_id=data.user_id)
+
+    return {"msg": "ok"}
+
+
+class GenerateLabelsPayload(BaseModel):
+    work_id: int
+
+
+@router.post("/generate-labels")
+def handle_generate_labels(
+    data: GenerateLabelsPayload,
+    session: Session = Depends(get_session),
+):
+    logger.info("Internal API generating labels for work", work_id=data.work_id)
+    work = crud.work.get_or_404(db=session, id=data.work_id)
+    label_and_update_work(work, session)
+    logger.info(
+        "Labels generated",
+    )
 
     return {"msg": "ok"}
 
