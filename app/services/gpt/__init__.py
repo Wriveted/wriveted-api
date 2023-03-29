@@ -26,7 +26,6 @@ from app.services.gpt.prompt import (
     system_prompt,
     user_prompt_template,
 )
-from scripts.gpt_label_100 import logger
 
 logger = get_logger()
 settings = get_settings()
