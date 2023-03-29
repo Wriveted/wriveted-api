@@ -159,7 +159,9 @@ class LabelSet(Base):
         label_dict["hue_origin"] = self.hue_origin.value if self.hue_origin else None
 
         label_dict["reading_ability_keys"] = [ra.key for ra in self.reading_abilities]
-        label_dict["reading_ability_origin"] = self.reading_ability_origin.value
+        label_dict["reading_ability_origin"] = (
+            self.reading_ability_origin.value if self.reading_ability_origin else None
+        )
 
         label_dict["min_age"] = self.min_age
         label_dict["max_age"] = self.max_age
