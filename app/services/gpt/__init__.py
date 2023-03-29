@@ -27,15 +27,15 @@ logger = get_logger()
 settings = get_settings()
 
 
-def gpt_query(system_prompt, user_content, ai_content=None):
+def gpt_query(system_prompt, user_content, extra_messages=None):
     openai.api_key = settings.OPENAI_API_KEY
 
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_content},
     ]
-    if ai_content:
-        messages.append({"role": "ai", "content": ai_content})
+    if extra_messages:
+        messages.extend(extra_messages)
 
     logger.info("Prompts prepared, sending to OpenAI...")
 
@@ -150,13 +150,20 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
                 work_id=work.id,
             )
 
-            # tell gpt what is going on
-            ai_content = gpt_response.output
-            new_content = retry_prompt_template.format(
-                user_content=user_content,
-                error_message=error_string,
+            # try again, provide new gpt thread with full context
+            ai_response = {"role": "assistant", "content": gpt_response.output}
+            validation_response = {
+                "role": "user",
+                "content": retry_prompt_template.format(
+                    user_content=user_content,
+                    error_message=error_string,
+                ),
+            }
+            gpt_response = gpt_query(
+                target_prompt,
+                user_content,
+                extra_messages=[ai_response, validation_response],
             )
-            gpt_response = gpt_query(target_prompt, new_content, ai_content)
             all_usages.append(gpt_response.usage)
 
         if retries <= 0:

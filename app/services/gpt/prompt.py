@@ -271,22 +271,10 @@ All text output should use UK English.
 """
 
 retry_prompt_template = """
-I just asked you to generate some data for a book, with the following prompt and content: 
-
------ user content -----
-
-{user_content}
-
-------------------------
-
-But you returned something that did not match the expected format.
+Your output did not match the expected format. 
 Here is a validation error message encountered when parsing:
 
---------- error --------
-
 {error_message}
-
-------------------------
 
 Please re-generate the requested data, ensuring that it matches the expected format. 
 Pay close attention to the error message above, as it will tell you what went wrong.
