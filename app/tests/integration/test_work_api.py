@@ -112,10 +112,8 @@ def test_backend_service_account_can_label_work(
 
         assert len(events) == 1
         event = events[0]
-        assert event.info.get("changes") == {
-            "huey_summary": "Blarg!",
-            "summary_origin": "HUMAN",
-        }
+        assert event.info.get("changes").get("huey_summary") == [None, "Blarg!"]
+        assert event.info.get("changes").get("summary_origin") == [None, "HUMAN"]
 
 
 def test_public_account_not_allowed_to_edit_work(
