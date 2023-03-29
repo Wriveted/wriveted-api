@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Security
+from fastapi import APIRouter, Depends, Path, Security
 from fastapi.params import Query
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import and_, func, select
@@ -19,7 +19,6 @@ from app.models import Author, Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
-from app.schemas.gpt import GptLabelResponse
 from app.schemas.work import (
     WorkBrief,
     WorkCreateWithEditionsIn,
@@ -27,9 +26,8 @@ from app.schemas.work import (
     WorkEnriched,
     WorkUpdateIn,
 )
+from app.services.background_tasks import queue_background_task
 from app.services.editions import get_definitive_isbn
-from app.services.google_drive import get_labeling_prompt_from_drive
-from app.services.gpt import extract_labels
 
 """
 Access control rules applying to all Works endpoints.
@@ -144,18 +142,21 @@ async def get_work_by_id(
         return output
 
 
-@router.get(
-    "/work/{work_id}/labels",
+@router.post(
+    "/work/{work_id}/generate-labels",
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
-    response_model=GptLabelResponse,
 )
-async def label_work_by_id(work: Work = Depends(get_work), experimental: bool = False):
-    prompt = get_labeling_prompt_from_drive() if experimental else None
+async def generate_work_label(work: Work = Depends(get_work)):
+    """
+    Queue an internal task to generate a label for a work using GPT-4.
 
-    try:
-        return extract_labels(work, prompt, retries=0)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    This is an experimental, admin only endpoint.
+    """
+    response = queue_background_task(
+        "generate-labels",
+        {"work_id": work.id},
+    )
+    return {"status": "ok", "task": response}
 
 
 @router.post(
