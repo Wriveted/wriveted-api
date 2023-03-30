@@ -182,41 +182,54 @@ Pronouns in the assorted summaries and genres may be valuable clues.
 
 'characters' must contain a list of these and only these labels, relating to the main character(s) of the book. 
 A reasonable number of labels should be used, but not too many.
-- BUGS,
-- CATS_DOGS_AND_MICE,
-- HORSES_AND_FARM_ANIMALS,
-- OCEAN_CREATURES,
-- WOLVES_AND_WILD_ANIMALS,
-- AUSTRALIAN_ANIMALS,
-- BRITISH_ANIMALS,
-- AMERICAN_ANIMALS,
-- DINOSAURS,
-- PRINCESSES_FAIRIES_MERMAIDS,
-- UNICORNS,
-- SUPERHEROES,
-- FAMILIES_AND_FRIENDS,
-- MONSTERS_GHOSTS_AND_VAMPIRES,
-- ALIENS,
-- TRAINS_CARS_AND_TRUCKS,
-- MISFITS_AND_UNDERDOGS,
-- PIRATES,
-- ROBOTS,
+- BUGS
+- CATS_DOGS_AND_MICE
+- HORSES_AND_FARM_ANIMALS
+- OCEAN_CREATURES
+- WOLVES_AND_WILD_ANIMALS
+- AUSTRALIAN_ANIMALS
+- BRITISH_ANIMALS
+- AMERICAN_ANIMALS
+- DINOSAURS
+- PRINCESSES_FAIRIES_MERMAIDS
+- UNICORNS
+- SUPERHEROES
+- FAMILIES_AND_FRIENDS
+- MONSTERS_GHOSTS_AND_VAMPIRES
+- ALIENS
+- TRAINS_CARS_AND_TRUCKS
+- MISFITS_AND_UNDERDOGS
+- PIRATES
+- ROBOTS
 - ATHLETES_AND_SPORT_STARS
+- WIZARDS_WITCHES_MAGIC
 
 `characters` must only contain exact keys from this list.
+-----
 
-—--
+‘controversial_themes’: a list of these and only these potentially controversial topics:
 
-'recommend_status':
+VIOLENT: contains explicit violence or gore
+SEXUAL: sexual behaviour, erotic fiction, explicit material sex 
+DRUGS: use of illegal substances or excessive alcohol use
+RELIGIOUS: religious ideas
+LGBTQI: lesbian, gay, bisexual, transgender and queer people
+PROFANITY: contains excessive profanity or offensive language
+MENTAL_HEALTH: mental health issues such as depression, anxiety, and suicide
+OTHER: a controversial topic not included in this list, must add a description in the ‘notes’
+
+Apply any of these keys that apply.
+
+----
+
+‘recommend_status’
 
 This is advice on whether or not this book should be shown to a child as a recommendation:
 
 
-- GOOD ( good to recommend to a child),  
-- BAD_BORING (the story is so boring, it is unlikely a child will want to read this book), 
-- BAD_REFERENCE (a textbook or reference book that a child would not read for enjoyment for example a dictionary. )
-- BAD_CONTROVERSIAL  (controversial themes that parents may not want to expose to their children for example gender, sexuality or religion.). 
-- BAD_LOW_QUALITY (Poor writing. Books that do not have a real person attributed as the author are often low quality).
+- GOOD (good to recommend to a child),
+- BAD_REFERENCE (a textbook or reference book that a child would not read for enjoyment for example a dictionary.)
+
 """
 
 user_prompt_template = """
@@ -258,6 +271,7 @@ Your output should be valid JSON with the following keys:
 - 'series_number': the number of the book in the series (leave blank if unsure),
 - 'awards' with a list of awards the book has won.
 - 'recommend_status'
+- 'controversial_themes' with a list of applicable controversial themes.
 
 Remember to exclusively use the specified keys for styles, hue_map, genres, characters, and gender.
 All text output should use UK English.
