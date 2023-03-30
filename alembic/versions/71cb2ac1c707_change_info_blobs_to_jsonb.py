@@ -110,7 +110,7 @@ def upgrade():
         "works", "info", type_=JSONB, nullable=True, postgresql_using="info::jsonb"
     )
     op.alter_column(
-        "wriveted_admin",
+        "wriveted_admins",
         "wriveted_admin_info",
         type_=JSONB,
         nullable=True,
@@ -225,7 +225,7 @@ def downgrade():
         "works", "info", type_=sa.JSON(), nullable=True, postgresql_using="info::json"
     )
     op.alter_column(
-        "wriveted_admin",
+        "wriveted_admins",
         "wriveted_admin_info",
         type_=sa.JSON(),
         nullable=True,
