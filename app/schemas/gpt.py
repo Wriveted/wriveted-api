@@ -1,9 +1,9 @@
 from typing import Dict, Literal
 
 from pydantic import BaseModel, root_validator, validator
+
 from app.models.labelset import RecommendStatus
 from app.schemas.labelset import CharacterKey, GenreKey, WritingStyleKey
-
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
@@ -140,7 +140,7 @@ class GptWorkData(BaseModel):
     awards: list[str] | None = []
     notes: str | None
     recommend_status: RecommendStatus
-    confidence: float
+    controversial_themes: list[str] | None = []
 
 
 class GptPromptUsage(BaseModel):

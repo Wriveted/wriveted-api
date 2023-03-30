@@ -226,7 +226,7 @@ def work_to_gpt_labelset_update(work: Work):
     labelset_info["gender"] = output.gender
     labelset_info["awards"] = output.awards
     labelset_info["notes"] = output.notes
-    labelset_info["label_confidence"] = output.confidence
+    labelset_info["controversial_themes"] = output.controversial_themes
 
     labelset_data["info"] = labelset_info
 
