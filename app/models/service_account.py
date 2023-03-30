@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Boolean, DateTime, Enum, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, Enum, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -22,7 +22,6 @@ class ServiceAccountType(CaseInsensitiveStringEnum):
 
 
 class ServiceAccount(Base):
-
     __tablename__ = "service_accounts"
 
     id = mapped_column(
@@ -52,7 +51,7 @@ class ServiceAccount(Base):
         passive_deletes=True,
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSON), nullable=True)
+    info = mapped_column(MutableDict.as_mutable(JSONB), nullable=True)
 
     created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = mapped_column(
@@ -72,7 +71,6 @@ class ServiceAccount(Base):
         return f"<ServiceAccount {self.name} - {summary}>"
 
     def __acl__(self):
-
         return [
             (Allow, "role:admin", All),
         ] + [(Allow, f"educator:{s.id}", All) for s in self.schools]

@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Computed, Integer, String
+from sqlalchemy import Computed, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -23,7 +24,7 @@ class Illustrator(Base):
         index=True,
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSONB))
 
     editions = relationship(
         "Edition",

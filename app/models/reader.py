@@ -1,9 +1,9 @@
-from fastapi_permissions import All, Allow
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import JSON, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
+from fastapi_permissions import All, Allow
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,7 +50,7 @@ class Reader(User):
 
     # reading_ability, age, last_visited, etc
     huey_attributes = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
     def get_principals(self):

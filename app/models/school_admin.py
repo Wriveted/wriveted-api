@@ -1,6 +1,5 @@
-from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column
 
@@ -28,7 +27,7 @@ class SchoolAdmin(Educator):
 
     # class_history? other misc
     school_admin_info = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
     def __repr__(self):

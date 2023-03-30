@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -36,7 +36,7 @@ class Event(Base):
 
     # Any properties for the event
     info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True
+        MutableDict.as_mutable(JSONB), nullable=True
     )
 
     @hybrid_property
@@ -70,6 +70,7 @@ class Event(Base):
     __table_args__ = (
         Index("ix_events_school", "school_id", postgresql_where=school_id.is_not(None)),
         Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
+        # Index("ix_events_info_work_id", "info", postgresql_where=info.has.is_not(None)),
     )
 
     service_account_id: Mapped[Optional[uuid.UUID]] = mapped_column(

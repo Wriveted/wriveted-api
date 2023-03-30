@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -69,7 +69,7 @@ class Subscription(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSONB))
     provider = mapped_column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),
         nullable=False,

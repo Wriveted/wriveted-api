@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, DateTime, ForeignKey, String, func, select, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, String, func, select, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
@@ -13,7 +13,6 @@ from app.models.collection_item import CollectionItem
 
 
 class Collection(Base):
-
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
@@ -57,7 +56,7 @@ class Collection(Base):
     )
     user: Mapped[Optional["User"]] = relationship("User", back_populates="collection")
 
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )

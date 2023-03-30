@@ -4,6 +4,7 @@ import os
 import sys
 from logging.config import fileConfig
 
+from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_grant_table import PGGrantTable
 from alembic_utils.pg_trigger import PGTrigger
@@ -27,6 +28,7 @@ sys.path.insert(
 )
 
 from app.db.base_class import Base  # noqa
+from app.db.extensions import public_fuzzystrmatch
 from app.db.functions import (
     update_collections_function,
     update_edition_title,
@@ -48,6 +50,8 @@ register_entities(
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
         collection_items_update_collections_trigger,
+        # Extensions
+        public_fuzzystrmatch,
     ]
 )
 
@@ -64,17 +68,11 @@ def get_url():
     return os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
 
 
-# def include_object(object, name, type_, reflected, compare_to) -> bool:
-#     if type_ == "table":
-#         return object.schema == "public"
-#
-#     if isinstance(object, (PGFunction, PGTrigger)):
-#         return True
-#
-#     if isinstance(object, PGGrantTable):
-#         return False
-#
-#     return True
+def include_name(name, type_, parent_names) -> bool:
+    if type_ == "grant_table":
+        return False
+    else:
+        return True
 
 
 def run_migrations_offline() -> None:
@@ -95,7 +93,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         # compare_type=True,
-        # include_object=include_object,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -124,7 +122,7 @@ def run_migrations_online():
             connection=connection,
             target_metadata=target_metadata,
             # compare_type=True,
-            # include_object=include_object,
+            include_name=include_name,
         )
 
         with context.begin_transaction():

@@ -1,6 +1,6 @@
-from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from fastapi_permissions import Allow
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -55,7 +55,7 @@ class Student(Reader):
 
     # class_history? other misc
     student_info = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
     def __repr__(self):
