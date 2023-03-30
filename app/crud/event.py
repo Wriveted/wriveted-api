@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Any, Union
 
-from sqlalchemy import cast, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import func
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -99,9 +98,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         if info_jsonpath_match is not None:
             # Apply the jsonpath filter to the info field
             event_query = event_query.where(
-                func.jsonb_path_match(cast(Event.info, JSONB), info_jsonpath_match).is_(
-                    True
-                )
+                func.jsonb_path_match(Event.info, info_jsonpath_match).is_(True)
             )
         if since is not None:
             event_query = event_query.where(Event.timestamp >= since)
