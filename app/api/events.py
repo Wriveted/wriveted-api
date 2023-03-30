@@ -171,7 +171,7 @@ async def get_events(
     try:
         events = crud.event.get_all_with_optional_filters(
             session,
-            query_strings=query,
+            query_string=query,
             match_prefix=match_prefix,
             level=level,
             school=school,
