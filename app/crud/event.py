@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Union
 
-from sqlalchemy import cast, func
+from sqlalchemy import cast, func, or_
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.orm import Session
@@ -59,7 +59,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters_query(
         self,
         db: Session,
-        query_string: str | None = None,
+        query_strings: list[str] | None = None,
         match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
@@ -70,16 +70,20 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
-        if query_string is not None:
+        if query_strings is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             if match_prefix:
-                event_query = event_query.filter(
-                    func.lower(Event.title).startswith(query_string.lower())
-                )
+                filters = [
+                    func.lower(Event.title).startswith(query.lower())
+                    for query in query_strings
+                ]
             else:
-                event_query = event_query.where(
-                    func.lower(Event.title).contains(query_string.lower())
-                )
+                filters = [
+                    func.lower(Event.title).contains(query.lower())
+                    for query in query_strings
+                ]
+            event_query = event_query.where(or_(*filters))
+
         if level is not None:
             # Include levels that are higher as well!
             logging_levels = ["debug", "normal", "warning", "error"]
@@ -90,12 +94,16 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                 level_index = len(logging_levels) - 1
             included_levels = logging_levels[level_index:]
             event_query = event_query.where(Event.level.in_(included_levels))
+
         if school is not None:
             event_query = event_query.where(Event.school == school)
+
         if user is not None:
             event_query = event_query.where(Event.user == user)
+
         if service_account is not None:
             event_query = event_query.where(Event.service_account == service_account)
+
         if info_jsonpath_match is not None:
             # Apply the jsonpath filter to the info field
             event_query = event_query.where(
@@ -103,6 +111,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                     True
                 )
             )
+
         if since is not None:
             event_query = event_query.where(Event.timestamp >= since)
 
@@ -111,7 +120,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters(
         self,
         db: Session,
-        query_string: str | None = None,
+        query_strings: list[str] | None = None,
         match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
@@ -123,7 +132,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         limit: int = 100,
     ):
         optional_filters = {
-            "query_string": query_string,
+            "query_string": query_strings,
             "match_prefix": match_prefix,
             "level": level,
             "school": school,

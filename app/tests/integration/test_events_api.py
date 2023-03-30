@@ -227,17 +227,17 @@ def test_event_query_and_prefix(
     # Test that we can query for entire string
     get_events_response = client.get(
         f"/v1/events",
-        params={"query": "Foo: Bar"},
+        params={"query": ["Foo: Bar", "Foo: Baz"]},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) >= 1
+    assert len(events) >= 2
 
     # Test that we can query for prefix
     get_events_response = client.get(
         f"/v1/events",
-        params={"query": "Foo:", "match_prefix": True},
+        params={"query": ["Foo:"], "match_prefix": True},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()

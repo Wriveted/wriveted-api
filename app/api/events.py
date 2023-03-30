@@ -79,10 +79,13 @@ async def create(
 
 @router.get("/events", response_model=EventListsResponse)
 async def get_events(
-    query: str = None,
+    query: list[str] = Query(
+        None,
+        description="List of query strings to match against event names",
+    ),
     match_prefix: bool = Query(
         False,
-        description="Whether to search for the provided `query` string as a prefix",
+        description="Whether to search for the provided query string(s) as prefix substrings",
     ),
     level: EventLevel = None,
     school_id: UUID = Query(
@@ -168,7 +171,7 @@ async def get_events(
     try:
         events = crud.event.get_all_with_optional_filters(
             session,
-            query_string=query,
+            query_strings=query,
             match_prefix=match_prefix,
             level=level,
             school=school,
