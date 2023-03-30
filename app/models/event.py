@@ -70,7 +70,9 @@ class Event(Base):
     __table_args__ = (
         Index("ix_events_school", "school_id", postgresql_where=school_id.is_not(None)),
         Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
-        # Index("ix_events_info_work_id", "info", postgresql_where=info.has.is_not(None)),
+        # Index("ix_events_info_work_id", text("(info->>'work_id')"),
+        #       #postgresql_where="info ? 'work_id'"
+        #       ),
     )
 
     service_account_id: Mapped[Optional[uuid.UUID]] = mapped_column(
