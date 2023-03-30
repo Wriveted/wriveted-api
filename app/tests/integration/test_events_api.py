@@ -224,7 +224,17 @@ def test_event_query_and_prefix(
     )
     create_event_response_foo_baz.raise_for_status()
 
-    # Test that we can query for entire string
+    # Test that we can query for a single string
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo: Bar"},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 1
+
+    # Test that we can query for a list of strings
     get_events_response = client.get(
         f"/v1/events",
         params={"query": ["Foo: Bar", "Foo: Baz"]},
@@ -232,9 +242,19 @@ def test_event_query_and_prefix(
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) >= 2
+    assert len(events) == 2
 
-    # Test that we can query for prefix
+    # Test that we can query for prefix with a single string
+    get_events_response = client.get(
+        f"/v1/events",
+        params={"query": "Foo:", "match_prefix": True},
+        headers=backend_service_account_headers,
+    )
+    get_events_response.raise_for_status()
+    events = get_events_response.json()["data"]
+    assert len(events) == 2
+
+    # Test that we can query for prefix with a list of strings
     get_events_response = client.get(
         f"/v1/events",
         params={"query": ["Foo:"], "match_prefix": True},
@@ -242,7 +262,7 @@ def test_event_query_and_prefix(
     )
     get_events_response.raise_for_status()
     events = get_events_response.json()["data"]
-    assert len(events) >= 2
+    assert len(events) == 2
 
 
 def test_event_api_info_filtering(
