@@ -119,10 +119,13 @@ def handle_generate_labels(
 ):
     logger.info("Internal API generating labels for work", work_id=data.work_id)
     work = crud.work.get_or_404(db=session, id=data.work_id)
-    label_and_update_work(work, session)
-    logger.info(
-        "Labels generated",
-    )
+    try:
+        label_and_update_work(work, session)
+        logger.info(
+            "Labels generated",
+        )
+    except Exception as e:
+        logger.error("Error generating labels. Ignoring.", e=e)
 
     return {"msg": "ok"}
 
