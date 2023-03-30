@@ -215,7 +215,7 @@ A reasonable number of labels should be used, but not too many.
 - SEXUAL: sexual behaviour, erotic fiction, explicit material sex 
 - DRUGS: use of illegal substances or excessive alcohol use
 - RELIGIOUS: religious ideas
-- LGBTQI: lesbian, gay, bisexual, transgender and queer people
+- LGBT: lesbian, gay, bisexual, transgender and queer themes and people may feature in the book
 - PROFANITY: contains excessive profanity or offensive language
 - MENTAL_HEALTH: mental health issues such as depression, anxiety, and suicide
 - OTHER: a controversial topic not included in this list, describe in the 'notes' output
