@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Enum, Integer, String, desc, nulls_last, select
+from sqlalchemy import Enum, Integer, String, desc, nulls_last, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,7 +18,6 @@ class WorkType(CaseInsensitiveStringEnum):
 
 
 class Work(Base):
-
     id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     type = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
@@ -31,7 +31,7 @@ class Work(Base):
 
     # TODO computed columns for display_title / sort_title
 
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSONB))
 
     editions = relationship(
         "Edition",

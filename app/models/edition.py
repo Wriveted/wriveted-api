@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy import (
-    JSON,
     Boolean,
     Computed,
     DateTime,
@@ -12,6 +11,7 @@ from sqlalchemy import (
     func,
     select,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
@@ -62,7 +62,7 @@ class Edition(Base):
 
     # Info contains stuff like edition number, language
     # media (paperback/hardback/audiobook), number of pages.
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
 
     # Proxy the authors from the related work
     authors: Mapped[List["Author"]] = association_proxy("work", "authors")

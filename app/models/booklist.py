@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi_permissions import All, Allow, Authenticated
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, func, select, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func, select, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
@@ -28,7 +28,6 @@ class ListSharingType(CaseInsensitiveStringEnum):
 
 
 class BookList(Base):
-
     __tablename__ = "book_lists"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -56,7 +55,7 @@ class BookList(Base):
         String(200), nullable=True, index=True, unique=True
     )
 
-    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()

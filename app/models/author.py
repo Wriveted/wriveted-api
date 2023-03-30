@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from sqlalchemy import JSON, Computed, Integer, String, and_, func, select
+from sqlalchemy import Computed, Integer, String, and_, func, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
@@ -27,7 +28,7 @@ class Author(Base):
     )
 
     # TODO check if can we get better typed JSON/dicts
-    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB))
 
     books: Mapped[List["Work"]] = relationship(
         "Work", secondary=author_work_association_table, back_populates="authors"

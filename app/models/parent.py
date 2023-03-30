@@ -2,14 +2,12 @@ import uuid
 from typing import Dict, Optional
 
 from fastapi_permissions import Allow
-from sqlalchemy import JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
+from sqlalchemy import ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship, Mapped
-from app.models.subscription import Subscription
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.subscription import Subscription
 from app.models.user import User, UserAccountType
 
 
@@ -31,7 +29,7 @@ class Parent(User):
 
     # misc
     parent_info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
     subscription: Mapped[Optional["Subscription"]] = relationship(
@@ -46,9 +44,6 @@ class Parent(User):
         back_populates="parent",
         foreign_keys="Reader.parent_id",
     )
-
-    # misc
-    parent_info = mapped_column(MutableDict.as_mutable(JSON), nullable=True, default={})
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"

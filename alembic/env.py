@@ -68,17 +68,11 @@ def get_url():
     return os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
 
 
-def include_object(object, name, type_, reflected, compare_to) -> bool:
-    if type_ == "table":
-        return object.schema == "public"
-
-    if isinstance(object, (PGFunction, PGTrigger, PGExtension)):
-        return True
-
-    if isinstance(object, (PGGrantTable,)):
+def include_name(name, type_, parent_names) -> bool:
+    if type_ == "grant_table":
         return False
-
-    return True
+    else:
+        return True
 
 
 def run_migrations_offline() -> None:
@@ -99,7 +93,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         # compare_type=True,
-        include_object=include_object,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -128,7 +122,7 @@ def run_migrations_online():
             connection=connection,
             target_metadata=target_metadata,
             # compare_type=True,
-            include_object=include_object,
+            include_name=include_name,
         )
 
         with context.begin_transaction():

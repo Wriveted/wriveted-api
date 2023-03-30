@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from sqlalchemy import (
-    JSON,
     Boolean,
     DateTime,
     Enum,
@@ -12,8 +11,9 @@ from sqlalchemy import (
     and_,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship, Mapped
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.models.hue import Hue
@@ -48,7 +48,6 @@ class LabelOrigin(CaseInsensitiveStringEnum):
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed
 # by combining data from editions' metdata.
 class LabelSet(Base):
-
     id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     work_id = mapped_column(
@@ -114,7 +113,7 @@ class LabelSet(Base):
         ForeignKey("service_accounts.id", name="fk_labeller-sa_labelset"), nullable=True
     )
 
-    info: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,

@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Computed, Integer, String
+from sqlalchemy import Computed, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -7,7 +8,6 @@ from app.models.series_works_association import series_works_association_table
 
 
 class Series(Base):
-
     id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     title = mapped_column(String(512), nullable=False, unique=True, index=True)
@@ -35,7 +35,7 @@ class Series(Base):
     # author = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSONB))
 
     # TODO order this relationship by the secondary table
     works = relationship(

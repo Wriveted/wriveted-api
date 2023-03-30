@@ -2,18 +2,8 @@ import uuid
 from datetime import datetime
 
 from fastapi_permissions import All, Allow, Deny
-from sqlalchemy import (
-    JSON,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    func,
-    text,
-)
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, func, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import mapped_column, relationship
@@ -41,7 +31,6 @@ class SchoolState(CaseInsensitiveStringEnum):
 
 
 class School(Base):
-
     id = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     country_code = mapped_column(
@@ -59,12 +48,15 @@ class School(Base):
         nullable=False,
     )
 
-    # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
-    Index("index_schools_by_country", country_code, official_identifier, unique=True)
-
-    # Index combining country code and optional state stored in the location key of info.
-    # Note alembic can't automatically deal with this, but the migration (and index) exists!
-    # Index("index_schools_by_country_state", country_code, text("(info->'location'->>'state')"))
+    __table_args__ = (
+        # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
+        Index(
+            "index_schools_by_country", country_code, official_identifier, unique=True
+        ),
+        # Index combining country code and optional state stored in the location key of info.
+        # Note alembic can't automatically deal with this, but the migration (and index) exists!
+        # Index("index_schools_by_country_state", country_code, postgresql_where=text("(info->'location'->>'state')"))
+    )
 
     state = mapped_column(
         Enum(SchoolState), nullable=False, default=SchoolState.INACTIVE
@@ -87,7 +79,7 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    info = mapped_column(MutableDict.as_mutable(JSON))
+    info = mapped_column(MutableDict.as_mutable(JSONB))
 
     country = relationship("Country")
 

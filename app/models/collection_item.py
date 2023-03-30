@@ -3,7 +3,8 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from fastapi_permissions import All, Allow
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -58,7 +59,7 @@ class CollectionItem(Base):
         cascade="all, delete-orphan",
     )
 
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSON))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
 
     copies_total: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     copies_available: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

@@ -3,18 +3,14 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi_permissions import All, Allow
-
-from sqlalchemy import JSON, Boolean, DateTime, Enum, String
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import Boolean, DateTime, Enum, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapped_column, relationship, Mapped
-
-from app.db import Base
-from app.models.supporter_reader_association import SupporterReaderAssociation
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.schemas import CaseInsensitiveStringEnum
 
 
@@ -68,7 +64,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     info: Mapped[Dict] = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
     created_at: Mapped[datetime] = mapped_column(
