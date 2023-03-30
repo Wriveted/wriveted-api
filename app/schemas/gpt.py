@@ -149,7 +149,7 @@ class GptWorkData(BaseModel):
     controversial_themes: list[ControversialThemeKey] | None = []
 
     @validator("controversial_themes", pre=True)
-    def validate_characters(cls, value):
+    def validate_controversial_themes(cls, value):
         errors = []
         for item in value:
             try:
