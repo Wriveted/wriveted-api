@@ -27,6 +27,7 @@ sys.path.insert(
 )
 
 from app.db.base_class import Base  # noqa
+from app.db.extensions import public_fuzzystrmatch
 from app.db.functions import (
     update_collections_function,
     update_edition_title,
@@ -48,6 +49,8 @@ register_entities(
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
         collection_items_update_collections_trigger,
+        # Extensions
+        public_fuzzystrmatch,
     ]
 )
 
