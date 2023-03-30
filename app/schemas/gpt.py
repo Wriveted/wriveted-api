@@ -3,7 +3,12 @@ from typing import Dict, Literal
 from pydantic import BaseModel, root_validator, validator
 
 from app.models.labelset import RecommendStatus
-from app.schemas.labelset import CharacterKey, GenreKey, WritingStyleKey
+from app.schemas.labelset import (
+    CharacterKey,
+    ControversialThemeKey,
+    GenreKey,
+    WritingStyleKey,
+)
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
@@ -140,7 +145,23 @@ class GptWorkData(BaseModel):
     awards: list[str] | None = []
     notes: str | None
     recommend_status: RecommendStatus
-    controversial_themes: list[str] | None = []
+
+    controversial_themes: list[ControversialThemeKey] | None = []
+
+    @validator("controversial_themes", pre=True)
+    def validate_characters(cls, value):
+        errors = []
+        for item in value:
+            try:
+                _item = ControversialThemeKey(item)
+            except ValueError:
+                permitted = ", ".join([e.name for e in ControversialThemeKey])
+                errors.append(
+                    f"|'{item}' is not a valid Controversial Theme Key. permitted Controversial Theme Keys: [{permitted}]|"
+                )
+        if errors:
+            raise ValueError(errors)
+        return value
 
 
 class GptPromptUsage(BaseModel):

@@ -1,5 +1,5 @@
 system_prompt = """
-You are a children's librarian assistant. You are given book data and you need to provide labels and  summaries to help children and parents find books they will love to read.
+You are a children's librarian assistant. You are given book data and you need to provide labels and summaries to help children and parents find books they will love to read.
 
 You are given structured data from multiple semi-reliable sources, including the book's title, one or more descriptions and genre labels. You can use this data to help you describe the book.
 
@@ -182,54 +182,54 @@ Pronouns in the assorted summaries and genres may be valuable clues.
 
 'characters' must contain a list of these and only these labels, relating to the main character(s) of the book. 
 A reasonable number of labels should be used, but not too many.
-- BUGS
-- CATS_DOGS_AND_MICE
-- HORSES_AND_FARM_ANIMALS
-- OCEAN_CREATURES
-- WOLVES_AND_WILD_ANIMALS
-- AUSTRALIAN_ANIMALS
-- BRITISH_ANIMALS
-- AMERICAN_ANIMALS
-- DINOSAURS
-- PRINCESSES_FAIRIES_MERMAIDS
-- UNICORNS
-- SUPERHEROES
-- FAMILIES_AND_FRIENDS
-- MONSTERS_GHOSTS_AND_VAMPIRES
-- ALIENS
-- TRAINS_CARS_AND_TRUCKS
-- MISFITS_AND_UNDERDOGS
-- PIRATES
-- ROBOTS
-- ATHLETES_AND_SPORT_STARS
+
+- BUGS,
+- CATS_DOGS_AND_MICE,
+- HORSES_AND_FARM_ANIMALS,
+- OCEAN_CREATURES,
+- WOLVES_AND_WILD_ANIMALS,
+- AUSTRALIAN_ANIMALS,
+- BRITISH_ANIMALS,
+- AMERICAN_ANIMALS,
+- DINOSAURS,
+- PRINCESSES_FAIRIES_MERMAIDS,
+- UNICORNS,
+- SUPERHEROES,
+- FAMILIES_AND_FRIENDS,
+- MONSTERS_GHOSTS_AND_VAMPIRES,
+- ALIENS,
+- TRAINS_CARS_AND_TRUCKS,
+- MISFITS_AND_UNDERDOGS,
+- PIRATES,
+- ROBOTS,
+- ATHLETES_AND_SPORT_STARS,
 - WIZARDS_WITCHES_MAGIC
 
 `characters` must only contain exact keys from this list.
------
 
-‘controversial_themes’: a list of these and only these potentially controversial topics:
+—--
 
-VIOLENT: contains explicit violence or gore
-SEXUAL: sexual behaviour, erotic fiction, explicit material sex 
-DRUGS: use of illegal substances or excessive alcohol use
-RELIGIOUS: religious ideas
-LGBTQI: lesbian, gay, bisexual, transgender and queer people
-PROFANITY: contains excessive profanity or offensive language
-MENTAL_HEALTH: mental health issues such as depression, anxiety, and suicide
-OTHER: a controversial topic not included in this list, must add a description in the ‘notes’
+'controversial_themes': a list of these and only these potentially controversial topics:
 
-Apply any of these keys that apply.
+- VIOLENT: contains explicit violence or gore
+- SEXUAL: sexual behaviour, erotic fiction, explicit material sex 
+- DRUGS: use of illegal substances or excessive alcohol use
+- RELIGIOUS: religious ideas
+- LGBTQI: lesbian, gay, bisexual, transgender and queer people
+- PROFANITY: contains excessive profanity or offensive language
+- MENTAL_HEALTH: mental health issues such as depression, anxiety, and suicide
+- OTHER: a controversial topic not included in this list, describe in the 'notes' output
 
-----
+Provide any of these keys that apply to the text.
 
-‘recommend_status’
+—--
+
+'recommend_status'
 
 This is advice on whether or not this book should be shown to a child as a recommendation:
 
-
 - GOOD (good to recommend to a child),
 - BAD_REFERENCE (a textbook or reference book that a child would not read for enjoyment for example a dictionary.)
-
 """
 
 user_prompt_template = """
@@ -273,7 +273,7 @@ Your output should be valid JSON with the following keys:
 - 'recommend_status'
 - 'controversial_themes' with a list of applicable controversial themes.
 
-Remember to exclusively use the specified keys for styles, hue_map, genres, characters, and gender.
+Remember to exclusively use the specified keys for outputs.
 All text output should use UK English.
 """
 

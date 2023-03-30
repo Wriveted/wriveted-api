@@ -29,6 +29,17 @@ class WritingStyleKey(CaseInsensitiveStringEnum):
     INFORMATIVE = "INFORMATIVE"
 
 
+class ControversialThemeKey(CaseInsensitiveStringEnum):
+    VIOLENT = "VIOLENT"
+    SEXUAL = "SEXUAL"
+    DRUGS = "DRUGS"
+    RELIGIOUS = "RELIGIOUS"
+    LGBTQI = "LGBTQI"
+    PROFANITY = "PROFANITY"
+    MENTAL_HEALTH = "MENTAL_HEALTH"
+    OTHER = "OTHER"
+
+
 class GenreKey(CaseInsensitiveStringEnum):
     FACTUAL_NON_FICTION = "FACTUAL_NON_FICTION"
     FUNNY = "FUNNY"
@@ -78,6 +89,7 @@ class CharacterKey(CaseInsensitiveStringEnum):
     PIRATES = "PIRATES"
     ROBOTS = "ROBOTS"
     ATHLETES_AND_SPORT_STARS = "ATHLETES_AND_SPORT_STARS"
+    WITCHES_WIZARDS_MAGIC = "WITCHES_WIZARDS_MAGIC"
 
 
 class ReadingAbility(BaseModel):

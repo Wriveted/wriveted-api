@@ -142,10 +142,6 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
             retries -= 1
             error_string = str(e)
 
-            if isinstance(e, ValidationError):
-                # pydantic. extract the error(s) in more reasonable verbosity
-                error_string = str([str(error.exc) for error in e.raw_errors])
-
             logger.warning(
                 "GPT response was not valid",
                 output=gpt_response.output,
@@ -174,8 +170,12 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
             break
 
     # check if the response is valid at this point
-    if not json_data or not parsed_data:
-        raise ValueError
+    if not json_data:
+        raise ValueError("GPT response was not valid JSON after exhausting retries")
+    elif not parsed_data:
+        raise ValueError(
+            "GPT response was not valid GPTLabelResponse after exhausting retries"
+        )
 
     usage = GptUsage(usages=all_usages)
     logger.info("GPT response was valid", work_id=work.id, usage=usage)
