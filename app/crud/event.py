@@ -59,7 +59,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters_query(
         self,
         db: Session,
-        query_strings: list[str] | None = None,
+        query_string: str | list[str] | None = None,
         match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
@@ -70,17 +70,20 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
 
-        if query_strings is not None:
+        if query_string is not None:
+            if isinstance(query_string, str):
+                query_string = [query_string]
+
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
             if match_prefix:
                 filters = [
                     func.lower(Event.title).startswith(query.lower())
-                    for query in query_strings
+                    for query in query_string
                 ]
             else:
                 filters = [
                     func.lower(Event.title).contains(query.lower())
-                    for query in query_strings
+                    for query in query_string
                 ]
             event_query = event_query.where(or_(*filters))
 
@@ -120,7 +123,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
     def get_all_with_optional_filters(
         self,
         db: Session,
-        query_strings: list[str] | None = None,
+        query_string: str | list[str] | None = None,
         match_prefix: bool | None = False,
         level: EventLevel | None = None,
         school: School | None = None,
@@ -132,7 +135,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         limit: int = 100,
     ):
         optional_filters = {
-            "query_string": query_strings,
+            "query_string": query_string,
             "match_prefix": match_prefix,
             "level": level,
             "school": school,

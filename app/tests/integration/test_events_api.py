@@ -182,7 +182,7 @@ def test_post_events_api_background_process(
                 db=session,
                 service_account=backend_service_account,
                 level="warning",
-                query_string="Test",
+                query_string=["Test"],
             )
             if e.title == "Test"
         ]
