@@ -62,14 +62,18 @@ def upgrade():
         postgresql_using="reader_info::jsonb",
     )
     op.alter_column(
-        "readers", "info", type_=JSONB, nullable=True, postgresql_using="info::jsonb"
+        "readers",
+        "huey_attributes",
+        type_=JSONB,
+        nullable=True,
+        postgresql_using="huey_attributes::jsonb",
     )
     op.alter_column(
         "school_admins",
-        "info",
+        "school_admin_info",
         type_=JSONB,
         nullable=True,
-        postgresql_using="info::jsonb",
+        postgresql_using="school_admin_info::jsonb",
     )
     op.alter_column(
         "service_accounts",
@@ -173,14 +177,18 @@ def downgrade():
         postgresql_using="reader_info::json",
     )
     op.alter_column(
-        "readers", "info", type_=sa.JSON(), nullable=True, postgresql_using="info::json"
+        "readers",
+        "huey_attributes",
+        type_=sa.JSON(),
+        nullable=True,
+        postgresql_using="huey_attributes::json",
     )
     op.alter_column(
         "school_admins",
-        "info",
+        "school_admin_info",
         type_=sa.JSON(),
         nullable=True,
-        postgresql_using="info::json",
+        postgresql_using="school_admin_info::json",
     )
     op.alter_column(
         "service_accounts",
