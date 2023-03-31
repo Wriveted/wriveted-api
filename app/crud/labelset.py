@@ -8,7 +8,7 @@ from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models import LabelSetHue
 from app.models.hue import Hue
-from app.models.labelset import LabelSet
+from app.models.labelset import LabelSet, RecommendStatus
 from app.models.labelset_hue_association import Ordinal
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
@@ -144,7 +144,11 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     updated = True
 
         # RECOMMEND STATUS
-        if data.recommend_status_origin and data.recommend_status:
+        if (
+            data.recommend_status != RecommendStatus.BAD_CONTROVERSIAL
+            and data.recommend_status_origin
+            and data.recommend_status
+        ):
             if (
                 labelset.recommend_status_origin is None
                 or ORIGIN_WEIGHTS[labelset.recommend_status_origin]

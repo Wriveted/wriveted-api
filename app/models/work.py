@@ -94,3 +94,23 @@ class Work(Base):
 
     def __repr__(self):
         return f"<Work id={self.id} - '{self.title}'>"
+
+    def get_dict(self, session):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "leading_article": self.leading_article,
+            "title": self.title,
+            "subtitle": self.subtitle,
+            "authors": [
+                {
+                    "id": author.id,
+                    "first_name": author.first_name,
+                    "last_name": author.last_name,
+                }
+                for author in self.authors
+            ],
+            "labelset": self.labelset.get_label_dict(session)
+            if self.labelset
+            else None,
+        }
