@@ -70,70 +70,64 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
 
         updated = False
 
+        # HUES
         if data.hue_origin and (
-            labelset.hue_origin is None
+            not labelset.hue_origin
             or ORIGIN_WEIGHTS[labelset.hue_origin]
             <= ORIGIN_WEIGHTS[data.hue_origin.name]
         ):
-            # clear out existing hues before adding/updating
-            db.query(LabelSetHue).filter(
-                LabelSetHue.labelset_id == labelset.id
-            ).delete()
+            new_hues = {
+                data.hue_primary_key,
+                data.hue_secondary_key,
+                data.hue_tertiary_key,
+            }
+            old_hues = {hue.key for hue in labelset.hues}
 
-            if data.hue_primary_key:
-                if hue := self.get_hue_by_key(db, data.hue_primary_key):
-                    db.add(
-                        LabelSetHue(
-                            labelset_id=labelset.id,
-                            hue_id=hue.id,
-                            ordinal=Ordinal.PRIMARY,
+            # only update if set of new hues is different (not worried about ordinals)
+            if new_hues != old_hues:
+                # clear out old hues, simpler than messing with ordinals
+                db.query(LabelSetHue).filter_by(labelset_id=labelset.id).delete()
+
+                for hue_key in new_hues:
+                    if hue := self.get_hue_by_key(db, hue_key):
+                        ordinal = (
+                            Ordinal.PRIMARY
+                            if hue_key == data.hue_primary_key
+                            else (
+                                Ordinal.SECONDARY
+                                if hue_key == data.hue_secondary_key
+                                else Ordinal.TERTIARY
+                            )
                         )
-                    )
-
-            if data.hue_secondary_key:
-                if hue := self.get_hue_by_key(db, data.hue_secondary_key):
-                    db.add(
-                        LabelSetHue(
-                            labelset_id=labelset.id,
-                            hue_id=hue.id,
-                            ordinal=Ordinal.SECONDARY,
+                        db.add(
+                            LabelSetHue(
+                                labelset_id=labelset.id, hue_id=hue.id, ordinal=ordinal
+                            )
                         )
-                    )
 
-            if data.hue_tertiary_key:
-                if hue := self.get_hue_by_key(db, data.hue_tertiary_key):
-                    db.add(
-                        LabelSetHue(
-                            labelset_id=labelset.id,
-                            hue_id=hue.id,
-                            ordinal=Ordinal.TERTIARY,
-                        )
-                    )
-
-            labelset.hue_origin = (
-                data.hue_origin
-                if data.hue_primary_key
-                or data.hue_secondary_key
-                or data.hue_tertiary_key
-                else None
-            )
+            # a higher authority may provide identical info, but we still want to update the origin
+            labelset.hue_origin = data.hue_origin if new_hues else None
             updated = True
 
-        # same idea with min/max age, re: authority
-        if data.age_origin and (data.min_age or data.max_age):
+        # AGE
+        if data.age_origin:
             if (
                 labelset.age_origin is None
                 or ORIGIN_WEIGHTS[labelset.age_origin]
                 <= ORIGIN_WEIGHTS[data.age_origin.name]
             ):
-                if data.min_age:
+                if data.min_age is not None:
                     labelset.min_age = data.min_age
-                if data.max_age:
+                if data.max_age is not None:
                     labelset.max_age = data.max_age
+                # doesn't make sense to remove only one of min/max age
+                if data.min_age is None and data.max_age is None:
+                    labelset.min_age = None
+                    labelset.max_age = None
                 labelset.age_origin = data.age_origin
                 updated = True
 
-        # same with reading ability
+        # READING ABILITY
         if data.reading_ability_origin and data.reading_ability_keys:
             if (
                 labelset.reading_ability_origin is None
@@ -149,7 +143,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     labelset.reading_ability_origin = data.reading_ability_origin
                     updated = True
 
-        # "recommendability" can also be overridden by authority
+        # RECOMMEND STATUS
         if data.recommend_status_origin and data.recommend_status:
             if (
                 labelset.recommend_status_origin is None
@@ -160,7 +154,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                 labelset.recommend_status_origin = data.recommend_status_origin
                 updated = True
 
-        # with genres just add the dict to the info blob
+        # GENRES
         if data.info and data.info["genres"]:
             try:
                 if not labelset.info:
@@ -170,7 +164,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                 logger.warning("Some error was ignored", exc_info=e)
                 pass
 
-        # now summary
+        # SUMMARY
         if data.summary_origin and data.huey_summary:
             if (
                 labelset.summary_origin is None
@@ -181,15 +175,19 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                 labelset.summary_origin = data.summary_origin
                 updated = True
 
-        # if the new Info object provides anything new, add the changes
-        if data.info and (
-            not labelset.info or (data.info.items() >= labelset.info.items())
-        ):
-            labelset.info = labelset.info or {}
-            deep_merge_dicts(labelset.info, data.info)
-            updated = True
+        # INFO
+        if data.info:
+            if not labelset.info:
+                labelset.info = data.info.copy()
+                updated = True
+            elif data.info.items() >= labelset.info.items():
+                # merge data.info into labelset.info
+                deep_merge_dicts(labelset.info, data.info)
+                updated = True
+                # remove keys in labelset.info that are not in data.info
+                for key in labelset.info.keys() - data.info.keys():
+                    labelset.info[key] = None
 
-        # TODO: implement a changelog for Labelsets instead of just overwriting everything
         if updated:
             if data.labelled_by_sa_id:
                 labelset.labelled_by_sa_id = data.labelled_by_sa_id
