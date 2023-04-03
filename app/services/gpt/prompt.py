@@ -166,6 +166,7 @@ HUE13_INFORMATIVE: Informative/Factual books with very little tone. Encyclopaedi
 - SPORTS
 - PICTURE_BOOK
 - YOUNG_ADULT
+- LGBTQ
 
 `genres` must only contain exact keys from this list.
 

@@ -66,6 +66,7 @@ class GenreKey(CaseInsensitiveStringEnum):
     SPORTS = "SPORTS"
     PICTURE_BOOK = "PICTURE_BOOK"
     YOUNG_ADULT = "YOUNG_ADULT"
+    LGBTQ = "LGBTQ"
 
 
 class CharacterKey(CaseInsensitiveStringEnum):
