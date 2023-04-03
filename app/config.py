@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4"
     OPENAI_TIMEOUT: float = 60.0
 
+    GPT_SERVICE_ACCOUNT_ID: str = "2c092595-76e8-4ba9-9340-37b7237d6b59"
+
     SLACK_BOT_TOKEN: str = ""
 
     HUEY_BOOKS_APP_URL: str = "https://hueybooks.com"
