@@ -99,21 +99,19 @@ def test_backend_service_account_can_label_work(
     # Wait a tick, then see if an event was created
     time.sleep(0.01)
     with session_factory() as session:
-        events = [
-            e
-            for e in crud.event.get_all_with_optional_filters(
-                db=session,
-                service_account=backend_service_account,
-                level="normal",
-                query_string="Label edited",
-            )
-            if e.info.get("work_id") == work.id
-        ]
+        events = crud.event.get_all_with_optional_filters(
+            db=session,
+            service_account=backend_service_account,
+            level="normal",
+            query_string="Work updated",
+            info_jsonpath_match=f"$.work_id=={work.id}",
+        )
 
         assert len(events) == 1
         event = events[0]
-        assert event.info.get("changes").get("huey_summary") == [None, "Blarg!"]
-        assert event.info.get("changes").get("summary_origin") == [None, "HUMAN"]
+        labelset_changes = event.info.get("changes").get("labelset")
+        assert labelset_changes.get("huey_summary") == [None, "Blarg!"]
+        assert labelset_changes.get("summary_origin") == [None, "HUMAN"]
 
 
 def test_public_account_not_allowed_to_edit_work(

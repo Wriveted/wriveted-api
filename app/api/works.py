@@ -236,23 +236,31 @@ async def update_work(
     logger.info("Updating work", target_work=work_orm, changes=changes)
     old_work_data = work_orm.get_dict(session)
 
+    labelset_changes = {}
     if changes.labelset is not None:
         labelset_update = changes.labelset
         logger.info("Updating labels", label_updates=labelset_update)
         labelset = crud.labelset.get_or_create(session, work_orm, False)
+        old_labelset_data = labelset.get_label_dict(session)
         labelset = crud.labelset.patch(session, labelset, labelset_update, True)
+        new_labelset_data = labelset.get_label_dict(session)
+        labelset_changes = compare_dicts(old_labelset_data, new_labelset_data)
         del changes.labelset
 
     updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
     new_work_data = updated.get_dict(session)
 
     logger.info("Updated work", updated=updated)
+    changes_dict = compare_dicts(old_work_data, new_work_data)
+    if labelset_changes:
+        changes_dict["labelset"] = labelset_changes
+
     crud.event.create(
         session,
         title=f"Work updated",
         description=f"Made a change to '{work_orm.title}'",
         info={
-            "changes": compare_dicts(old_work_data, new_work_data),
+            "changes": changes_dict,
             "work_id": work_orm.id,
         },
         account=account,
