@@ -8,7 +8,7 @@ from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
 from app.models import LabelSetHue
 from app.models.hue import Hue
-from app.models.labelset import LabelSet, RecommendStatus
+from app.models.labelset import LabelOrigin, LabelSet, RecommendStatus
 from app.models.labelset_hue_association import Ordinal
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
@@ -144,19 +144,22 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     updated = True
 
         # RECOMMEND STATUS
-        if (
-            data.recommend_status != RecommendStatus.BAD_CONTROVERSIAL
-            and data.recommend_status_origin
-            and data.recommend_status
-        ):
-            if (
-                labelset.recommend_status_origin is None
-                or ORIGIN_WEIGHTS[labelset.recommend_status_origin]
-                <= ORIGIN_WEIGHTS[data.recommend_status_origin.name]
-            ):
-                labelset.recommend_status = data.recommend_status
-                labelset.recommend_status_origin = data.recommend_status_origin
-                updated = True
+        if data.recommend_status_origin and data.recommend_status:
+            if labelset.recommend_status == RecommendStatus.BAD_CONTROVERSIAL:
+                # only allow human-originated data to overwrite bad_controversial labelsets
+                if data.recommend_status_origin == LabelOrigin.HUMAN:
+                    labelset.recommend_status = data.recommend_status
+                    labelset.recommend_status_origin = data.recommend_status_origin
+                    updated = True
+            else:
+                if (
+                    labelset.recommend_status_origin is None
+                    or ORIGIN_WEIGHTS[labelset.recommend_status_origin]
+                    <= ORIGIN_WEIGHTS[data.recommend_status_origin.name]
+                ):
+                    labelset.recommend_status = data.recommend_status
+                    labelset.recommend_status_origin = data.recommend_status_origin
+                    updated = True
 
         # GENRES
         if data.info and data.info["genres"]:
