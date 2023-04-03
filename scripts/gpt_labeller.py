@@ -8,6 +8,7 @@ from app.db.session import database_connection
 from app.models import Edition
 from app.models.labelset import LabelSet
 from app.models.work import Work
+from app.services.events import create_event
 from app.services.gpt import label_and_update_work
 
 settings = get_settings()
@@ -24,13 +25,14 @@ async def label():
     while True:
         with Session(engine) as session:
             # select a Work where:
-            # their associated labelset has min and max age,
-            # their associated lableset is missing reading abilities and/or hues
+            # its associated labelset has min and max age,
+            # its associated lableset is missing reading abilities and/or hues
             # at least one edition has a cover image,
-            # at least one edition has a publication date after 2015
+            # order by date published descending
             work = (
                 session.query(Work)
                 .join(Work.labelset)
+                .join(Edition)
                 .filter(
                     LabelSet.min_age.isnot(None),
                     LabelSet.max_age.isnot(None),
@@ -39,17 +41,31 @@ async def label():
                         ~LabelSet.hues.any(),
                     ),
                     Work.editions.any(Edition.cover_url.isnot(None)),
-                    Work.editions.any(Edition.date_published > 20150000),
                 )
+                .order_by(Edition.date_published.desc())
                 .limit(1)
                 .one_or_none()
             )
 
             try:
                 await label_and_update_work(work, session)
-            except ValueError:
+            except ValueError as e:
+                create_event(
+                    session,
+                    "GPT Labeling Failed",
+                    f"Failed to label {work.title}.",
+                    {"work_id": work.id, "error": str(e)},
+                )
                 logger.warning(f"Failed to label {work.title}. Skipping...")
                 continue
 
 
-asyncio.run(label())
+async def main():
+    tasks = []
+    for _ in range(3):
+        tasks.append(asyncio.create_task(label()))
+        await asyncio.sleep(20)
+    await asyncio.gather(*tasks)
+
+
+asyncio.run(main())
