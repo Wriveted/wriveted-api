@@ -8,8 +8,8 @@ from pydantic import ValidationError
 from structlog import get_logger
 
 from app import crud
+import app.api
 from app.config import get_settings
-from app.crud.base import compare_dicts
 from app.models.labelset import LabelOrigin
 from app.models.work import Work
 from app.schemas.gpt import (
@@ -20,6 +20,7 @@ from app.schemas.gpt import (
     GptWorkData,
 )
 from app.schemas.labelset import LabelSetCreateIn
+from app.schemas.work import WorkUpdateIn
 from app.services.gpt.prompt import (
     retry_prompt_template,
     suffix,
@@ -240,25 +241,15 @@ def work_to_gpt_labelset_update(work: Work):
     return labelset_create
 
 
-def label_and_update_work(work: Work, session):
+async def label_and_update_work(work: Work, session):
     labelset_update = work_to_gpt_labelset_update(work)
+    changes = WorkUpdateIn(labelset=labelset_update)
 
-    labelset = crud.labelset.get_or_create(session, work, False)
-    old_labelset_data = labelset.get_label_dict(session)
-    new_labelset = crud.labelset.patch(session, labelset, labelset_update, True)
-    new_labelset_data = labelset.get_label_dict(session)
-    crud.event.create(
-        session,
-        title=f"Label edited",
-        description=f"GPT Script labelled {work.title}",
-        info={
-            "changes": compare_dicts(old_labelset_data, new_labelset_data),
-            "work_id": work.id,
-            "labelset_id": labelset.id,
-        },
+    gpt = crud.service_account.get_or_404(
+        db=session, id=settings.GPT_SERVICE_ACCOUNT_ID
     )
 
-    new_labelset.checked = None
-    session.commit()
-
+    await app.api.works.update_work(
+        changes=changes, work_orm=work, account=gpt, session=session
+    )
     logger.info(f"Updated labelset for {work.title}")

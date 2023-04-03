@@ -113,14 +113,14 @@ class GenerateLabelsPayload(BaseModel):
 
 
 @router.post("/generate-labels")
-def handle_generate_labels(
+async def handle_generate_labels(
     data: GenerateLabelsPayload,
     session: Session = Depends(get_session),
 ):
     logger.info("Internal API generating labels for work", work_id=data.work_id)
     work = crud.work.get_or_404(db=session, id=data.work_id)
     try:
-        label_and_update_work(work, session)
+        await label_and_update_work(work, session)
         logger.info(
             "Labels generated",
         )
