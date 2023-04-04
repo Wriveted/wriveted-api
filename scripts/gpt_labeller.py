@@ -1,10 +1,13 @@
 import asyncio
+
+from openai.error import RateLimitError
 from sqlalchemy import and_, exists, or_, select
-from sqlalchemy.orm import contains_eager, Session
+from sqlalchemy.orm import Session, contains_eager
 from structlog import get_logger
 
 from app.config import get_settings
-from app.crud import event as crud_event, booklist as crud_booklist
+from app.crud import booklist as crud_booklist
+from app.crud import event as crud_event
 from app.db.session import database_connection
 from app.models import Edition
 from app.models.booklist import BookList
@@ -44,8 +47,15 @@ school_ids = [
 
 failed_list_id = "3f56747b-f008-4394-b571-0ae4f4c1c339"
 
+BACKOFF = 300  # 5 minutes
+WAITING = False
+WAIT_LOCK = asyncio.Lock()
+
 
 async def label():
+    global WAITING
+    global BACKOFF
+
     while True:
         with Session(engine) as session:
             # select a Work where:
@@ -101,6 +111,16 @@ async def label():
 
             try:
                 await label_and_update_work(work, session)
+                BACKOFF = 300  # reset backoff to 5 minutes if successful
+            except RateLimitError:
+                async with WAIT_LOCK:
+                    WAITING = True
+                    logger.warning(
+                        f"OpenAI: RateLimitError. All threads will wait {BACKOFF} seconds."
+                    )
+                    await asyncio.sleep(BACKOFF)
+                    BACKOFF *= 2  # increase backoff exponentially for each retry
+                    WAITING = False
             except ValueError as e:
                 crud_event.create(
                     session,
@@ -118,12 +138,24 @@ async def label():
                 logger.warning(f"Failed to label {work.title}. Skipping...")
                 continue
 
+        await asyncio.sleep(1)
+
 
 async def main():
     tasks = []
     for _ in range(3):
         tasks.append(asyncio.create_task(label()))
-        await asyncio.sleep(20)
+
+    while True:
+        if WAITING:
+            await asyncio.sleep(1)
+        else:
+            tasks.append(asyncio.create_task(label()))
+            await asyncio.sleep(20)
+
+        if len(tasks) == 0:
+            break
+
     await asyncio.gather(*tasks)
 
 
