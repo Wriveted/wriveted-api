@@ -17,6 +17,8 @@ from app.crud.base import compare_dicts
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
+from app.models.service_account import ServiceAccount
+from app.models.user import User
 from app.models.work import WorkType
 from app.permissions import Permission
 from app.schemas.work import (
@@ -239,6 +241,12 @@ async def update_work(
     labelset_changes = {}
     if changes.labelset is not None:
         labelset_update = changes.labelset
+
+        if isinstance(account, User):
+            labelset_update.labelled_by_user_id = account.id
+        elif isinstance(account, ServiceAccount):
+            labelset_update.labelled_by_sa_id = account.id
+
         logger.info("Updating labels", label_updates=labelset_update)
         labelset = crud.labelset.get_or_create(session, work_orm, False)
         old_labelset_data = labelset.get_label_dict(session)
