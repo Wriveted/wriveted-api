@@ -176,8 +176,12 @@ class LabelSet(Base):
             self.summary_origin.value if self.summary_origin else None
         )
 
-        label_dict["labelled_by_user_id"] = self.labelled_by_user_id
-        label_dict["labelled_by_sa_id"] = self.labelled_by_sa_id
+        label_dict["labelled_by_user_id"] = (
+            str(self.labelled_by_user_id) if self.labelled_by_user_id else None
+        )
+        label_dict["labelled_by_sa_id"] = (
+            str(self.labelled_by_sa_id) if self.labelled_by_sa_id else None
+        )
 
         label_dict["checked"] = self.checked
         label_dict["checked_at"] = str(self.checked_at)
