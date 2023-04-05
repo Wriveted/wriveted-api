@@ -242,10 +242,10 @@ async def update_work(
     if changes.labelset is not None:
         labelset_update = changes.labelset
 
-        if isinstance(account, User):
-            labelset_update.labelled_by_user_id = str(account.id)
-        elif isinstance(account, ServiceAccount):
-            labelset_update.labelled_by_sa_id = str(account.id)
+        # if isinstance(account, User):
+        #     labelset_update.labelled_by_user_id = str(account.id)
+        # elif isinstance(account, ServiceAccount):
+        #     labelset_update.labelled_by_sa_id = str(account.id)
 
         logger.info("Updating labels", label_updates=labelset_update)
         labelset = crud.labelset.get_or_create(session, work_orm, False)
