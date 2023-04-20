@@ -59,11 +59,7 @@ steps:
         OPENAI_API_KEY=openai-api-key:latest
       - >-
         --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,
-        commit-sha=$COMMIT_SHA,
-        gcb-build-id=$BUILD_ID,
-        gcb-trigger-id=$_TRIGGER_ID,
-        $_LABELS
+        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy-Non-Prod
     entrypoint: gcloud
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
@@ -104,10 +100,7 @@ steps:
         OPENAI_API_KEY=openai-api-key:latest
       - >-
         --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,
-        commit-sha=$COMMIT_SHA,
-        gcb-build-id=$BUILD_ID,
-        gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy-Non-Prod-internal-api
     entrypoint: gcloud
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
@@ -143,11 +136,7 @@ steps:
         OPENAI_API_KEY=openai-api-key:latest
       - >-
         --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,
-        commit-sha=$COMMIT_SHA,
-        gcb-build-id=$BUILD_ID,
-        gcb-trigger-id=$_TRIGGER_ID,
-        $_LABELS
+        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy-Prod
     entrypoint: gcloud
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
@@ -183,11 +172,7 @@ steps:
         OPENAI_API_KEY=openai-api-key:latest
       - >-
         --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,
-        commit-sha=$COMMIT_SHA,
-        gcb-build-id=$BUILD_ID,
-        gcb-trigger-id=$_TRIGGER_ID,
-        $_LABELS
+        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy-Prod-internal-api
     entrypoint: gcloud
   - name: "gcr.io/cloud-builders/docker"
