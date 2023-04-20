@@ -182,6 +182,9 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
         isbn = book_data.isbn
         # Get the edition (should exist), work (?), and labelset
         edition = crud.edition.get(session, id=isbn)
+        if edition.info is None and book_data.info is not None:
+            edition.info = dict(book_data.info)
+
         work = edition.work
         if work is None:
             work_data_in = WorkCreateIn(
@@ -192,7 +195,6 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
                 authors=[],  # not used in this case
                 series_name=book_data.series_name,
                 series_number=book_data.series_number,
-                info=book_data.info,
             )
             authors = [
                 crud.author.get_or_create(session, AuthorCreateIn.parse_obj(a))
