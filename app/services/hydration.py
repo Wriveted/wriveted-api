@@ -7,9 +7,14 @@ import requests
 from google.api_core.exceptions import NotFound
 from structlog import get_logger
 
+from app import crud
 from app.config import get_settings
 from app.models.event import EventLevel
+from app.models.work import WorkType
+from app.schemas.author import AuthorCreateIn
 from app.schemas.hydration import HydratedBookData
+from app.schemas.labelset import LabelSetCreateIn
+from app.schemas.work import WorkCreateIn
 from app.services.cover_images import handle_new_edition_cover_image
 from app.services.editions import create_missing_editions, get_definitive_isbn
 from app.services.events import create_event
@@ -172,8 +177,33 @@ def get_nielsen_data(isbn, use_cache=True):
     return data_query(isbn)
 
 
-async def save_editions(session, editions: list[HydratedBookData]):
-    pass
+def save_editions(session, hydrated_book_data: list[HydratedBookData]):
+    for book_data in hydrated_book_data:
+        isbn = book_data.isbn
+        # Get the edition (should exist), work (?), and labelset
+        edition = crud.edition.get(session, id=isbn)
+        work = edition.work
+        if work is None:
+            work_data_in = WorkCreateIn(
+                type=WorkType.BOOK,
+                leading_article=book_data.leading_article,
+                title=book_data.title,
+                subtitle=book_data.subtitle,
+                authors=[AuthorCreateIn.parse_obj(a) for a in book_data.authors],
+                series_name=book_data.series_name,
+                series_number=book_data.series_number,
+                info=book_data.info,
+            )
+            crud.work.create(session, obj_in=work_data_in)
+            labelset = crud.labelset.get_or_create(session, work=work)
+            estimated_labelset = book_data.labelset
+
+            # Update the labelset with the estimated labelset
+            crud.labelset.patch(
+                session,
+                db_obj=labelset,
+                obj_in=LabelSetCreateIn.parse_obj(estimated_labelset),
+            )
 
 
 def hydrate(isbn: str, use_cache: bool = True) -> HydratedBookData:
@@ -343,6 +373,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
         )
 
         create_missing_editions(session, new_edition_data=book_batch)
+        save_editions(session, book_batch)
 
     logger.info(
         f"------- Done! Delivered {current} hydrated editions. Goodbye. -------"
