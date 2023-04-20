@@ -194,12 +194,11 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
                 series_number=book_data.series_number,
                 info=book_data.info,
             )
-            authors = (
-                [
-                    crud.author.get_or_create(session, AuthorCreateIn.parse_obj(a))
-                    for a in book_data.authors
-                ],
-            )
+            authors = [
+                crud.author.get_or_create(session, AuthorCreateIn.parse_obj(a))
+                for a in book_data.authors
+            ]
+
             work = crud.work.get_or_create(
                 session, work_data=work_data_in, authors=authors
             )
