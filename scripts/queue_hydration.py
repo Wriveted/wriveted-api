@@ -13,7 +13,7 @@ from app.db.session import database_connection
 from app.models import Collection, Work
 
 settings = get_settings()
-api_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODI2NDU5OTcsImlhdCI6MTY4MTk1NDc5Nywic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OmUyNWI3MTE2LTZkZTktNDE5MS1hZjMxLTI1MzQzM2E3YTYzOCJ9.OnxWiSsObEH8xBaDS9WknB3rHWc0C2wyZtuEKrtT3ew"
+api_token = ""
 api = "http://localhost:8000/v1"
 #
 # wriveted_api_response = httpx.get(
