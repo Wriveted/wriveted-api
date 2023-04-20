@@ -204,8 +204,8 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
         # Update the labelset with the estimated labelset
         crud.labelset.patch(
             session,
-            db_obj=labelset,
-            obj_in=LabelSetCreateIn.parse_obj(estimated_labelset),
+            labelset=labelset,
+            data=LabelSetCreateIn.parse_obj(estimated_labelset),
         )
 
 
