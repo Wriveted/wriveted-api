@@ -194,16 +194,19 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
                 series_number=book_data.series_number,
                 info=book_data.info,
             )
-            crud.work.create(session, obj_in=work_data_in)
-            labelset = crud.labelset.get_or_create(session, work=work)
-            estimated_labelset = book_data.labelset
+            logger.info("Creating new work", data=work_data_in)
+            work = crud.work.create(session, obj_in=work_data_in)
+            edition.work = work
 
-            # Update the labelset with the estimated labelset
-            crud.labelset.patch(
-                session,
-                db_obj=labelset,
-                obj_in=LabelSetCreateIn.parse_obj(estimated_labelset),
-            )
+        labelset = crud.labelset.get_or_create(session, work=work)
+        estimated_labelset = book_data.labelset
+
+        # Update the labelset with the estimated labelset
+        crud.labelset.patch(
+            session,
+            db_obj=labelset,
+            obj_in=LabelSetCreateIn.parse_obj(estimated_labelset),
+        )
 
 
 def hydrate(isbn: str, use_cache: bool = True) -> HydratedBookData:
