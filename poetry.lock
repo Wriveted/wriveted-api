@@ -402,7 +402,7 @@ files = [
 name = "beautifulsoup4"
 version = "4.12.2"
 description = "Screen-scraping library"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.0"
 files = [
@@ -5493,7 +5493,7 @@ files = [
 name = "soupsieve"
 version = "2.4.1"
 description = "A modern CSS selector implementation for Beautiful Soup."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -6823,4 +6823,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "a7f58d315613bb157c07ccb76d016b1e17106757d7f587e34288d71fd70c2c72"
+content-hash = "4cba870a2adadb837f030678991e8967ccd8252867533e80a36f780df8944c59"
