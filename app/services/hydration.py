@@ -183,7 +183,7 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
         # Get the edition (should exist), work (?), and labelset
         edition = crud.edition.get(session, id=isbn)
         if edition.info is None and book_data.info is not None:
-            edition.info = dict(book_data.info)
+            edition.info = book_data.info.dict()
             session.flush()
 
         if edition.date_published is None and book_data.date_published is not None:
