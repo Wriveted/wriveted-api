@@ -189,13 +189,21 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
                 leading_article=book_data.leading_article,
                 title=book_data.title,
                 subtitle=book_data.subtitle,
-                authors=[AuthorCreateIn.parse_obj(a) for a in book_data.authors],
+                authors=[],  # not used in this case
                 series_name=book_data.series_name,
                 series_number=book_data.series_number,
                 info=book_data.info,
             )
-            logger.info("Creating new work", data=work_data_in)
-            work = crud.work.create(session, obj_in=work_data_in)
+            authors = (
+                [
+                    crud.author.get_or_create(session, AuthorCreateIn.parse_obj(a))
+                    for a in book_data.authors
+                ],
+            )
+            work = crud.work.get_or_create(
+                session, work_data=work_data_in, authors=authors
+            )
+            logger.info("Created new work", work_id=work.id)
             edition.work = work
 
         labelset = crud.labelset.get_or_create(session, work=work)
