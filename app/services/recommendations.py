@@ -95,7 +95,7 @@ def get_recommended_labelset_query(
     if recommendable_only:
         query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
 
-    query = query.where(Edition.cover_url.is_not(None)).limit(200)
+    query = query.where(Edition.cover_url.is_not(None)).limit(10_000)
 
     # To exclude images from the OpenLibrary bucket folder
     # query = query.filter(~Edition.cover_url.contains("/open/"))
