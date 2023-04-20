@@ -169,29 +169,34 @@ def get_nielsen_data(isbn, use_cache=True):
             pass  # cache miss, continue to make the request
 
     # populate object with the nielsen data
-    raw_data = data_query(isbn)
-
-    # save the raw data to gcp storage/cache
-    blob = get_blob(settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json", create=True)
-    blob.upload_from_string(data=json.dumps(raw_data), content_type="application/json")
-
-    return raw_data
+    return data_query(isbn)
 
 
 async def save_editions(session, editions: list[HydratedBookData]):
     pass
 
 
-def hydrate(isbn: str, use_cache: bool = True):
+def hydrate(isbn: str, use_cache: bool = True) -> HydratedBookData:
     """
     Get Nielsen data for a given ISBN.
     If use_cache is True, will first check the book data gcp bucket for a cached version.
-    If use_cache is False, will make a request to Nielsen's API, updating the cache with the result.
+    If use_cache is False, will make a request to Nielsen's API, updating the cache with the result (unless
+    NIELSEN_CACHE_RESULTS is False).
     """
     isbn = get_definitive_isbn(isbn)
 
     # populate object with nielsen data
     raw_data = get_nielsen_data(isbn, use_cache=use_cache)
+
+    # save the raw data to gcp storage/cache
+    if settings.NIELSEN_CACHE_RESULTS:
+        blob = get_blob(
+            settings.GCP_BOOK_DATA_BUCKET, f"nielsen/{isbn}.json", create=True
+        )
+        blob.upload_from_string(
+            data=json.dumps(raw_data), content_type="application/json"
+        )
+
     book_data = HydratedBookData.from_nielsen_blob(raw_data)
 
     # apply business logic rules to extrapolate possible labelset fields
@@ -244,7 +249,6 @@ def hydrate(isbn: str, use_cache: bool = True):
 
 
 def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
-
     if len(isbns_to_hydrate) < 1:
         logger.info("No editions to hydrate today. Exiting...")
         return
@@ -275,8 +279,8 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                 continue
 
             try:
-                raw_data = hydrate(isbn)
-                book_data = HydratedBookData.from_nielsen_blob(raw_data)
+                book_data = hydrate(isbn, use_cache=settings.NIELSEN_ENABLE_CACHE)
+
             except NielsenServiceException:
                 errors += 1
                 logger.warning(
@@ -308,16 +312,17 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                 book_data.hydrated_on = datetime.utcnow()
                 book_batch.append(book_data)
                 continue
-            except NielsenException:
+            except NielsenException as e:
                 errors += 1
                 logger.warning(
-                    "Something unexpected happened with the Nielsen query. Skipping..."
+                    "Something unexpected happened with the Nielsen query. Skipping...",
+                    exec_info=e,
                 )
                 continue
-            except:
-                errors += 1
-                logger.warning("Something else went wrong. Skipping...")
-                continue
+            # except Exception as e:
+            #     errors += 1
+            #     logger.warning("Something else went wrong during Hydration. Skipping...", exec_info=e)
+            #     continue
 
             hydrated += 1
 
@@ -329,7 +334,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                     image_log = "(+ OpenLibrary image)"
 
             logger.info(
-                f"Hydrated {isbn.rjust(13,' ')}. {current} / {total} ({int((current/total)*100)} %) (Batch: {len(book_batch)} / {self.wriveted.max_batch_size}) {image_log or ''} {'(+labelset)' if book_data.labelset.is_complete else ''}"
+                f"Hydrated {isbn.rjust(13,' ')}. {current} / {total} ({int((current/total)*100)} %) (Batch: {len(book_batch)}) {image_log or ''} {'(+labelset)'}"
             )
             book_batch.append(book_data)
 

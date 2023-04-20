@@ -1,16 +1,17 @@
-from base64 import b64decode
 import base64
 import sys
+from base64 import b64decode
 
-from google.cloud import storage
-from google.api_core.exceptions import NotFound
 import requests
+from google.api_core.exceptions import NotFound
+from google.cloud import storage
 from structlog import get_logger
 
 from app.config import get_settings
 
 settings = get_settings()
 logger = get_logger()
+
 
 # setup gcp bucket
 def get_gcp_bucket(bucket_name: str):
@@ -25,13 +26,16 @@ def get_gcp_bucket(bucket_name: str):
 # upload base64 image string to google bucket
 def base64_string_to_bucket(data: str, folder: str, filename: str, bucket_name: str):
     """
-    Upload a base64 image string to the specified google bucket, returning the public url.
+    Upload a base64 image string to the specified GCP bucket, returning the public url.
     """
     # get the image type
     filetype = data.split(";")[0].split("/")[1]
 
     # get the image data
-    image_data = data.split(",")[1]
+    try:
+        image_data = data.split(",")[1]
+    except IndexError:
+        return None
     data_bytes = b64decode(image_data)
 
     # create blob filename

@@ -132,7 +132,7 @@ steps:
         POSTGRESQL_USER=cloudrun,
         LOG_AS_JSON=True,
         GCP_CLOUD_TASKS_NAME=background-tasks,
-        WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app
+        WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
         NIELSEN_CLIENT_ID=WrivetedWebServices
       - >-

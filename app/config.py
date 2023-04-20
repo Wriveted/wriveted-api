@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     )
     NIELSEN_CLIENT_ID: str = "WrivetedWebServices"
     NIELSEN_PASSWORD: str = ""
+    NIELSEN_ENABLE_CACHE: bool = False
+    NIELSEN_CACHE_RESULTS: bool = True
 
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
