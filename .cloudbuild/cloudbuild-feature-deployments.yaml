@@ -70,8 +70,7 @@ steps:
         NIELSEN_PASSWORD=wriveted-nielsen-api-secret:latest,
         OPENAI_API_KEY=openai-api-key:latest
       - >-
-        --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy
     entrypoint: gcloud
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
@@ -110,8 +109,7 @@ steps:
         NIELSEN_PASSWORD=wriveted-nielsen-api-secret:latest,
         OPENAI_API_KEY=openai-api-key:latest
       - >-
-        --labels=
-        managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
     id: Deploy-internal-api
     entrypoint: gcloud
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
