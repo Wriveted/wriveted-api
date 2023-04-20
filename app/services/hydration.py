@@ -184,6 +184,11 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
         edition = crud.edition.get(session, id=isbn)
         if edition.info is None and book_data.info is not None:
             edition.info = dict(book_data.info)
+            session.flush()
+
+        if edition.date_published is None and book_data.date_published is not None:
+            edition.date_published = book_data.date_published
+            session.flush()
 
         work = edition.work
         if work is None:
@@ -211,10 +216,12 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
         estimated_labelset = book_data.labelset
 
         # Update the labelset with the estimated labelset
+        labelset_patch = LabelSetCreateIn.parse_obj(estimated_labelset)
+        logger.info("Patching labelset", labelset_id=labelset.id, data=labelset_patch)
         crud.labelset.patch(
             session,
             labelset=labelset,
-            data=LabelSetCreateIn.parse_obj(estimated_labelset),
+            data=labelset_patch,
         )
 
 
