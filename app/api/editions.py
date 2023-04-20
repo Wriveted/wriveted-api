@@ -9,7 +9,9 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.editions import get_edition_from_isbn
-from app.api.dependencies.security import get_current_active_user_or_service_account
+from app.api.dependencies.security import (
+    get_current_active_user_or_service_account,
+)
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas import is_url

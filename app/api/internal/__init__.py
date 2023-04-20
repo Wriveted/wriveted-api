@@ -20,6 +20,7 @@ from app.services.commerce import (
 )
 from app.services.events import handle_event_to_slack_alert, process_events
 from app.services.gpt import label_and_update_work
+from app.services.hydration import hydrate_bulk
 from app.services.stripe_events import process_stripe_event
 
 
@@ -150,3 +151,9 @@ def handle_send_sms(
 ):
     logger.info("Internal API sending sms", data=data)
     return client.messages.create(**data)
+
+
+@router.post("/hydrate-bulk")
+def handle_hydrate_bulk(isbns: list[str], session: Session = Depends(get_session)):
+    logger.info(f"Internal API hydrating {len(isbns)} isbns")
+    return hydrate_bulk(session, isbns)

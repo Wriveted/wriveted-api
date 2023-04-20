@@ -1,15 +1,23 @@
+import json
 from random import randint
 from typing import List
 
+import httpx
+import xmltodict
+from fastapi import HTTPException
+from google.api_core.exceptions import NotFound
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
+from app.config import get_settings
 from app.models import Edition
 from app.schemas.edition import EditionCreateIn
+from app.services.gcp_storage import get_blob
 
 logger = get_logger()
+settings = get_settings()
 
 
 async def compare_known_editions(session, isbn_list: List[str]):

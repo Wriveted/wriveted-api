@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     GCP_IMAGE_BUCKET: str = "wriveted-cover-images"
     GCP_HUEY_MEDIA_BUCKET: str = "wriveted-huey-media"
+    GCP_BOOK_DATA_BUCKET: str = "wriveted-book-data"
 
     GCP_CLOUD_TASKS_NAME: Optional[str] = None  # 'background-tasks'
     GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = (
@@ -51,6 +52,14 @@ class Settings(BaseSettings):
     SLACK_BOT_TOKEN: str = ""
 
     HUEY_BOOKS_APP_URL: str = "https://hueybooks.com"
+
+    NIELSEN_API_URL: str = (
+        "https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest"
+    )
+    NIELSEN_CLIENT_ID: str = "WrivetedWebServices"
+    NIELSEN_PASSWORD: str = ""
+    NIELSEN_ENABLE_CACHE: bool = False
+    NIELSEN_CACHE_RESULTS: bool = True
 
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
