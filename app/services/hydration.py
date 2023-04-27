@@ -185,6 +185,8 @@ def save_editions(
         isbn = book_data.isbn
         # Get the edition (should exist), work (?), and labelset
         edition = crud.edition.get(session, id=isbn)
+        edition.edition_title = book_data.title
+
         if edition.info is None and book_data.info is not None:
             edition.info = book_data.info.dict()
 
