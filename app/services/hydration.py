@@ -15,6 +15,7 @@ from app.schemas.author import AuthorCreateIn
 from app.schemas.hydration import HydratedBookData
 from app.schemas.labelset import LabelSetCreateIn
 from app.schemas.work import WorkCreateIn
+from app.services.background_tasks import queue_background_task
 from app.services.cover_images import handle_new_edition_cover_image
 from app.services.editions import create_missing_editions, get_definitive_isbn
 from app.services.events import create_event
@@ -177,7 +178,9 @@ def get_nielsen_data(isbn, use_cache=True):
     return data_query(isbn)
 
 
-def save_editions(session, hydrated_book_data: list[HydratedBookData]):
+def save_editions(
+    session, hydrated_book_data: list[HydratedBookData], queue_labelling: bool = True
+):
     for book_data in hydrated_book_data:
         isbn = book_data.isbn
         # Get the edition (should exist), work (?), and labelset
@@ -224,6 +227,11 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
             labelset=labelset,
             data=labelset_patch,
         )
+        if queue_labelling:
+            queue_background_task(
+                "generate-labels",
+                {"work_id": work.id},
+            )
 
 
 def hydrate(isbn: str, use_cache: bool = True) -> HydratedBookData:
@@ -393,7 +401,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
         )
 
         create_missing_editions(session, new_edition_data=book_batch)
-        save_editions(session, book_batch)
+        save_editions(session, book_batch, queue_labelling=True)
 
     logger.info(
         f"------- Done! Delivered {current} hydrated editions. Goodbye. -------"
