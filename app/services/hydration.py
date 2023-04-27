@@ -187,11 +187,14 @@ def save_editions(
         edition = crud.edition.get(session, id=isbn)
         if edition.info is None and book_data.info is not None:
             edition.info = book_data.info.dict()
-            session.flush()
 
         if edition.date_published is None and book_data.date_published is not None:
             edition.date_published = book_data.date_published
-            session.flush()
+
+        if book_data.cover_url:
+            edition.cover_url = book_data.cover_url
+
+        session.flush()
 
         work = edition.work
         if work is None:
@@ -227,7 +230,7 @@ def save_editions(
             labelset=labelset,
             data=labelset_patch,
         )
-        if queue_labelling and edition.cover_url is not None:
+        if queue_labelling and book_data.cover_url:
             queue_background_task(
                 "generate-labels",
                 {"work_id": work.id},
@@ -396,7 +399,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                     image_log = "(+ OpenLibrary image)"
 
             logger.info(
-                f"Hydrated {current} / {total} ({int((current/total)*100)} %) (Batch: {len(book_batch)}) {image_log or ''} {'(+labelset)'}",
+                f"Hydrated {current} / {total} ({int((current/total)*100)} %) (Batch size: {len(book_batch)}) {image_log or ''} {'(+labelset)'}",
                 isbn=isbn,
             )
             book_batch.append(book_data)
