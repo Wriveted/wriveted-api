@@ -365,13 +365,18 @@ class HydratedBookData(BaseModel):
                     self.labelset.age_origin = "NIELSEN_BIC"
                     return BIC_AGE_MAP[bic]["min"]
 
+            logger.info(
+                "Age calc",
+                interest_age=self.info.interest_age,
+                reading_age=self.info.reading_age,
+            )
             # interest age (IA)
             # if the string includes 'from' or does not include 'to', grab the first regex match for digits
             if self.info.interest_age and (
                 "from" in self.info.interest_age.lower()
                 or "to" not in self.info.interest_age.lower()
             ):
-                logger.debug(
+                logger.info(
                     "Grabbing min age from interest age",
                     interest_age=self.info.interest_age,
                 )
@@ -392,6 +397,10 @@ class HydratedBookData(BaseModel):
                 "from" in self.info.reading_age.lower()
                 or "to" not in self.info.reading_age.lower()
             ):
+                logger.info(
+                    "Grabbing min age from reading age",
+                    reading_age=self.info.reading_age,
+                )
                 min_age = re.search(r"/\d+/", self.info.reading_age)
                 if min_age:
                     self.labelset.age_origin = "NIELSEN_RA"
