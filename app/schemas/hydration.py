@@ -380,7 +380,7 @@ class HydratedBookData(BaseModel):
                     "Grabbing min age from interest age",
                     interest_age=self.info.interest_age,
                 )
-                min_age = re.search(r"/\d+/", self.info.interest_age)
+                min_age = re.search(r"\d+", self.info.interest_age)
                 if min_age:
                     self.labelset.age_origin = "NIELSEN_IA"
                     age = int(min_age.group(0))
@@ -401,7 +401,7 @@ class HydratedBookData(BaseModel):
                     "Grabbing min age from reading age",
                     reading_age=self.info.reading_age,
                 )
-                min_age = re.search(r"/\d+/", self.info.reading_age)
+                min_age = re.search(r"\d+", self.info.reading_age)
                 if min_age:
                     self.labelset.age_origin = "NIELSEN_RA"
                     age = int(min_age.group(0))
@@ -433,7 +433,7 @@ class HydratedBookData(BaseModel):
                 "from" in self.info.interest_age.lower()
                 or "to" not in self.info.interest_age.lower()
             ):
-                max_age = re.findall(r"/\d+/", self.info.interest_age)
+                max_age = re.findall(r"\d+", self.info.interest_age)
                 if max_age:
                     age = int(max_age[-1])
                     # if the string contains 'months', grab the equivalent ceil age in years, otherwise return the digit as is
@@ -449,7 +449,7 @@ class HydratedBookData(BaseModel):
                 "from" in self.info.reading_age.lower()
                 or "to" not in self.info.reading_age.lower()
             ):
-                max_age = re.findall(r"/\d+/", self.info.reading_age)
+                max_age = re.findall(r"\d+", self.info.reading_age)
                 if max_age:
                     age = int(max_age[-1])
                     # if the string contains 'months', grab the equivalent ceil age in years, otherwise return the digit as is
