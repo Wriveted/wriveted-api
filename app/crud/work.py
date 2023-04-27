@@ -1,15 +1,15 @@
 import re
 from multiprocessing import get_logger
-from sqlite3 import IntegrityError
 from typing import Any, List, Optional
 
 from sqlalchemy import and_, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
 from app.models import Author, Series, Work
+from app.models.author_work_association import author_work_association_table
 from app.models.edition import Edition
 from app.models.series_works_association import series_works_association_table
 from app.models.work import WorkType
@@ -41,10 +41,16 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
                 type=WorkType.BOOK,
                 title=work_data.title,
                 info=work_data.info,
-                authors=authors,
             )
             db.add(work)
             db.flush()
+
+            # add the authors to the work
+            db.execute(
+                insert(author_work_association_table).values(
+                    [{"work_id": work.id, "author_id": aid} for aid in author_ids]
+                )
+            )
 
             if work_data.series_name is not None:
                 series = self.get_or_create_series(db, work_data.series_name)
