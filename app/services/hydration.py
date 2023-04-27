@@ -194,6 +194,7 @@ def save_editions(
         if book_data.cover_url:
             edition.cover_url = book_data.cover_url
 
+        edition.hydrated_at = datetime.utcnow()
         session.flush()
 
         work = edition.work
