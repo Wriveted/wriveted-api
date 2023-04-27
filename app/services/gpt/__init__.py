@@ -7,8 +7,8 @@ import openai
 from pydantic import ValidationError
 from structlog import get_logger
 
-from app import crud
 import app.api
+from app import crud
 from app.config import get_settings
 from app.models.labelset import LabelOrigin
 from app.models.work import Work
@@ -42,7 +42,7 @@ def gpt_query(system_prompt, user_content, extra_messages=None):
     if extra_messages:
         messages.extend(extra_messages)
 
-    logger.info("Prompts prepared, sending to OpenAI...")
+    logger.debug("Prompts prepared, sending to OpenAI...")
 
     start_time = time.time()
     response = openai.ChatCompletion.create(
@@ -66,7 +66,7 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     target_prompt = prompt or system_prompt
     all_usages = []
 
-    logger.info("Requesting completion from OpenAI", work_id=work.id)
+    logger.debug("Requesting completion from OpenAI", work_id=work.id)
     # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
     editions = [
         ed
