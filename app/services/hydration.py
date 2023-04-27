@@ -344,7 +344,9 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                 logger.warning(
                     "Nielsen API service is apparently unavailable. Posting final batch then stopping..."
                 )
-                save_editions(session, book_batch)
+                save_editions(
+                    session, book_batch, queue_labelling=settings.LABEL_AFTER_HYDRATION
+                )
                 create_event(
                     "Hydration: Nielsen API error",
                     "Hydration service can't access the Nielsen API",
@@ -356,7 +358,9 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                 logger.warning(
                     "Nielsen Rate Limit reached. Posting final batch then stopping..."
                 )
-                save_editions(session, book_batch)
+                save_editions(
+                    session, book_batch, queue_labelling=settings.LABEL_AFTER_HYDRATION
+                )
                 create_event(
                     "Hydration: Nielsen rate limit error",
                     "Hydration service hit the Nielsen API rate limit",
@@ -392,7 +396,8 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
                     image_log = "(+ OpenLibrary image)"
 
             logger.info(
-                f"Hydrated {isbn.rjust(13,' ')}. {current} / {total} ({int((current/total)*100)} %) (Batch: {len(book_batch)}) {image_log or ''} {'(+labelset)'}"
+                f"Hydrated {current} / {total} ({int((current/total)*100)} %) (Batch: {len(book_batch)}) {image_log or ''} {'(+labelset)'}",
+                isbn=isbn,
             )
             book_batch.append(book_data)
 
@@ -401,7 +406,9 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
         )
 
         create_missing_editions(session, new_edition_data=book_batch)
-        save_editions(session, book_batch, queue_labelling=True)
+        save_editions(
+            session, book_batch, queue_labelling=settings.LABEL_AFTER_HYDRATION
+        )
 
     logger.info(
         f"------- Done! Delivered {current} hydrated editions. Goodbye. -------"
