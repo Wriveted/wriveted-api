@@ -1,15 +1,18 @@
-from datetime import datetime
 import html
 import re
+from datetime import datetime
 from math import ceil, floor
 from textwrap import shorten
 
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, root_validator
+from structlog import get_logger
 
 from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas.edition import EditionInfo, Genre
 from app.schemas.recommendations import HueKeys, ReadingAbilityKey
+
+logger = get_logger()
 
 # http://docplayer.net/212150627-Bookscan-product-classes.html
 REFERENCE_PRODCC = [
@@ -231,7 +234,6 @@ class HydratedBookData(BaseModel):
         # nielsen's max number of instances for a given type is 10
         # iterate through all such multi-field instances
         for i in range(1, 10):
-
             # look for "contributors" (authors/illustrators)
             if f"CNF{i}" in blob:
                 # http://www.onix-codelists.io/codelist/17
@@ -369,6 +371,10 @@ class HydratedBookData(BaseModel):
                 "from" in self.info.interest_age.lower()
                 or "to" not in self.info.interest_age.lower()
             ):
+                logger.debug(
+                    "Grabbing min age from interest age",
+                    interest_age=self.info.interest_age,
+                )
                 min_age = re.search(r"/\d+/", self.info.interest_age)
                 if min_age:
                     self.labelset.age_origin = "NIELSEN_IA"
@@ -620,6 +626,7 @@ class HydratedBookData(BaseModel):
         if max_age and min_age is None:
             min_age = max_age - 4
 
+        logger.info(f"Estimated age as", min_age=min_age, max_age=max_age)
         self.labelset.min_age = min_age
         self.labelset.max_age = max_age
 

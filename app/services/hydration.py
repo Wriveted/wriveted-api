@@ -214,6 +214,7 @@ def save_editions(session, hydrated_book_data: list[HydratedBookData]):
 
         labelset = crud.labelset.get_or_create(session, work=work)
         estimated_labelset = book_data.labelset
+        logger.info("Estimated labelset", data=estimated_labelset)
 
         # Update the labelset with the estimated labelset
         labelset_patch = LabelSetCreateIn.parse_obj(estimated_labelset)
