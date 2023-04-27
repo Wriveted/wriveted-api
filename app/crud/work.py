@@ -19,15 +19,13 @@ logger = get_logger()
 
 
 class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
-
     # def create_in_bulk(self, db: Session, work_data: List[WorkCreateIn]) -> List[Work]:
     #     pass
 
     def get_or_create(
         self, db: Session, work_data: WorkCreateIn, authors: List[Author], commit=True
     ) -> Work:
-
-        author_ids = [a.id for a in authors]
+        author_ids = list(set(a.id for a in authors))
 
         q = (
             select(Work)

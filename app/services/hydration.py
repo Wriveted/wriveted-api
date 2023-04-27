@@ -222,12 +222,12 @@ def save_editions(
         # Update the labelset with the estimated labelset
         labelset_patch = LabelSetCreateIn.parse_obj(estimated_labelset)
         logger.info("Patching labelset", labelset_id=labelset.id, data=labelset_patch)
-        crud.labelset.patch(
+        labelset = crud.labelset.patch(
             session,
             labelset=labelset,
             data=labelset_patch,
         )
-        if queue_labelling:
+        if queue_labelling and edition.cover_url is not None:
             queue_background_task(
                 "generate-labels",
                 {"work_id": work.id},
