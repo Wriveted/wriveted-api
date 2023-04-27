@@ -2,7 +2,7 @@ import re
 from multiprocessing import get_logger
 from typing import Any, List, Optional
 
-from sqlalchemy import and_, insert, select
+from sqlalchemy import and_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
@@ -47,9 +47,9 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
 
             # add the authors to the work
             db.execute(
-                insert(author_work_association_table).values(
-                    [{"work_id": work.id, "author_id": aid} for aid in author_ids]
-                )
+                pg_insert(author_work_association_table)
+                .on_conflict_do_nothing()
+                .values([{"work_id": work.id, "author_id": aid} for aid in author_ids])
             )
 
             if work_data.series_name is not None:
@@ -62,7 +62,7 @@ class CRUDWork(CRUDBase[Work, WorkCreateIn, Any]):
                     if work_data.series_number:
                         series_works_values["order_id"] = work_data.series_number
                     db.execute(
-                        insert(series_works_association_table).values(
+                        pg_insert(series_works_association_table).values(
                             **series_works_values
                         )
                     )
