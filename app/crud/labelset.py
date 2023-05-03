@@ -50,7 +50,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         )
 
     def get_or_create(self, db: Session, work: Work, commit=True) -> LabelSet:
-
         labelset = work.labelset
 
         if not labelset:

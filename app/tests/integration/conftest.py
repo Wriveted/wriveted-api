@@ -446,7 +446,6 @@ def test_school_with_collection(
     test_unhydrated_editions,
     backend_service_account,
 ) -> School:
-
     collection, created = crud.collection.get_or_create(
         db=session,
         collection_data=CollectionCreateIn(

@@ -14,7 +14,6 @@ from app.db import Base
 
 
 class BookListItem(Base):
-
     __tablename__ = "book_list_works"
 
     booklist_id = mapped_column(
