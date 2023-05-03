@@ -170,7 +170,6 @@ def test_allowed_update_to_school(
     test_school,
     lms_service_account_headers_for_school,
 ):
-
     school_id = test_school.wriveted_identifier
     get_initial_school_details_response = client.get(
         f"/v1/school/{school_id}",
@@ -194,7 +193,6 @@ def test_get_school_experiments(
     test_school,
     lms_service_account_headers_for_school,
 ):
-
     school_id = test_school.wriveted_identifier
     get_school_details_response = client.get(
         f"/v1/school/{school_id}",

@@ -6,6 +6,7 @@ from pydantic import AnyHttpUrl, BaseModel
 from pydantic.validators import strict_str_validator
 from app.schemas.users.user_identity import UserBrief
 
+
 # thanks https://github.com/pydantic/pydantic/issues/1551
 class PhoneNumber(str):
     """Phone number string, E164 format (e.g. +61 400 000 000)"""

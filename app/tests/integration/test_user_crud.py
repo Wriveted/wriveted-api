@@ -130,7 +130,6 @@ def test_cross_model_updates(session, test_school, test_class_group):
 def test_access_subclass_through_superclass_query(
     session, test_school, test_class_group
 ):
-
     student = crud.user.create(
         db=session,
         obj_in=UserCreateIn(

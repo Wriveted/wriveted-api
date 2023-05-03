@@ -58,7 +58,6 @@ class Contact(pydantic.BaseModel):
 contacts = []
 # First try find all the schools.
 for line in csv_file:
-
     contact = Contact(
         id=line[0].strip(),
         school_official_id=line[1] if len(line[1]) > 1 else None,

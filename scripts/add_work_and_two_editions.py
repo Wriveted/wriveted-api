@@ -84,7 +84,6 @@ isbns = narnia1 + narnia2
 book_data_for_api = []
 
 for isbn in isbns:
-
     # skip processing if work exists in db
     response = httpx.get(
         f"{settings.WRIVETED_API}/edition/{isbn}",
@@ -105,7 +104,6 @@ for isbn in isbns:
 
     # nielsen's max number of outputs for a given type is 10
     for i in range(1, 10):
-
         # look for "contributors" (authors/illustrators)
         if f"CNF{i}" in book:
             # http://www.onix-codelists.io/codelist/17

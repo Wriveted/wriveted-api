@@ -44,7 +44,6 @@ credentials_exception = HTTPException(
 def get_auth_header_data(
     http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> str:
-
     if http_auth is None:
         raise credentials_exception
 
