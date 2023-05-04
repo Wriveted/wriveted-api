@@ -13,9 +13,9 @@ proxy_connection_cleanup() {
 trap proxy_connection_cleanup EXIT SIGTERM SIGINT SIGQUIT
 
 echo "Downloading cloud_sql_proxy"
-curl -s "https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64" -o cloud_sql_proxy
-chmod +x cloud_sql_proxy
-./cloud_sql_proxy -instances="${CLOUD_SQL_INSTANCE}=tcp:localhost:${POSTGRES_PORT}" &
+curl -s "https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64" -o "${HOME}/cloud_sql_proxy"
+chmod +x "${HOME}/cloud_sql_proxy"
+"${HOME}/cloud_sql_proxy" -instances="${CLOUD_SQL_INSTANCE}=tcp:localhost:${POSTGRES_PORT}" &
 
 echo "Running migration"
 export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_PASSWORD}@localhost/postgres"
