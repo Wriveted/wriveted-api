@@ -13,6 +13,14 @@ ENV PIP_NO_CACHE_DIR=1 \
   VIRTUAL_ENV=/poetry-env \
   PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
 
+# hadolint ignore=DL3008
+RUN apt-get update \
+  && apt-get install --no-install-recommends -y \
+    curl \
+  && apt-get autoremove -y \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
 # Install Poetry
 # hadolint ignore=DL3013
 RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
