@@ -213,18 +213,3 @@ async def bulk_add_editions(
     )
 
     return {"msg": msg}
-
-
-@router.get("/editions/to_hydrate", response_model=List[EditionBrief])
-async def get_editions_to_hydrate(
-    pagination: PaginatedQueryParams = Depends(),
-    session: Session = Depends(get_session),
-):
-    q = (
-        session.query(Edition, Edition.num_schools)
-        .order_by(Edition.num_collections.desc())
-        .where(Edition.hydrated == False)
-        .limit(pagination.limit if pagination.limit else 5000)
-    )
-
-    return session.execute(q).scalars().all()

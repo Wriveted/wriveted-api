@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
 )
-from app.api.editions import add_edition, get_editions_to_hydrate
+from app.db.session import get_session
+from app.models.edition import Edition
 from app.schemas.hydration import HydratedBookData
 from app.services.background_tasks import queue_background_task
 from app.services.hydration import (
@@ -27,6 +29,7 @@ router = APIRouter(
 async def hydrate_bulk(
     limit: int = 5000,
     isbns_to_hydrate: list[str] = [],
+    session: Session = Depends(get_session),
 ):
     """
     Asynchronously hydrates list of ISBNs against collated metadata sources, before sending the enriched data back to the Wriveted API.
@@ -35,7 +38,14 @@ async def hydrate_bulk(
     """
 
     if not isbns_to_hydrate:
-        isbns_to_hydrate = get_editions_to_hydrate(limit)
+        q = (
+            session.query(Edition)
+            .where(Edition.hydrated == False)
+            .order_by(Edition.collection_count.desc())
+            .limit(limit)
+        )
+
+        isbns_to_hydrate = session.execute(q).scalars().all()
 
     queue_background_task(
         "hydrate-bulk",
