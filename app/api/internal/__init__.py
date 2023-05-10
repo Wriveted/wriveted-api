@@ -154,6 +154,8 @@ def handle_send_sms(
 
 
 @router.post("/hydrate-bulk")
-def handle_hydrate_bulk(isbns: list[str], session: Session = Depends(get_session)):
+async def handle_hydrate_bulk(
+    isbns: list[str], session: Session = Depends(get_session)
+):
     logger.info(f"Internal API hydrating {len(isbns)} isbns")
     return hydrate_bulk(session, isbns)

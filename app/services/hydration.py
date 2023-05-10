@@ -312,7 +312,7 @@ def hydrate(isbn: str, use_cache: bool = True) -> HydratedBookData:
     return book_data
 
 
-def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
+async def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
     if len(isbns_to_hydrate) < 1:
         logger.info("No editions to hydrate today. Exiting...")
         return
@@ -411,7 +411,7 @@ def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
             f"Have hydrated a partial batch of {len(chunk)}. Posting to Wriveted..."
         )
 
-        create_missing_editions(session, new_edition_data=book_batch)
+        await create_missing_editions(session, new_edition_data=book_batch)
         save_editions(
             session, book_batch, queue_labelling=settings.LABEL_AFTER_HYDRATION
         )
