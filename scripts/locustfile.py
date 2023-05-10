@@ -32,7 +32,6 @@ class UnAuthenticatedUser(HttpUser):
 
 
 class RootUser(HttpUser):
-
     wait_time = between(0.1, 3)
 
     def on_start(self):

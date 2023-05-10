@@ -51,7 +51,6 @@ class UserUpdateIn(BaseModel):
 
 
 class InternalUserUpdateIn(UserUpdateIn):
-
     current_type: UserAccountType | None
     school_id: UUID4 | int | None
 

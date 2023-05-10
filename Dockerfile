@@ -1,17 +1,32 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 LABEL org.opencontainers.image.source=https://github.com/Wriveted/wriveted-api
 
 WORKDIR /app/
 SHELL ["/bin/bash", "-c"]
 
-ENV PIP_NO_CACHE_DIR=1 \
+ENV USERNAME=wriveted \
+  USER_UID=1000 \
+  USER_GID=1000 \
+  PIP_NO_CACHE_DIR=1 \
   POETRY_NO_INTERACTION=1 \
   PYTHONPATH=/app \
   PORT=8000 \
-  POETRY_HOME=/opt/poetry \
-  VIRTUAL_ENV=/poetry-env \
-  PATH="/poetry-env/bin:/opt/poetry/bin:$PATH"
+  POETRY_HOME=/home/wriveted/poetry \
+  VIRTUAL_ENV=/home/wriveted/poetry-env \
+  PATH="/home/wriveted/poetry-env/bin:/home/wriveted/poetry/bin:$PATH"
+
+# hadolint ignore=DL3008
+RUN apt-get update \
+  && apt-get install --no-install-recommends -y \
+    curl \
+  && apt-get autoremove -y \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
+  && groupadd --gid ${USER_GID} ${USERNAME} \
+  && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}
+
+USER ${USERNAME}
 
 # Install Poetry
 # hadolint ignore=DL3013
@@ -25,7 +40,7 @@ RUN /usr/local/bin/python -m pip install --upgrade pip --no-cache-dir \
   && "${POETRY_HOME}/bin/poetry" config installer.modern-installation false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
-COPY \
+COPY --chown=${USERNAME}:${USER_GID} \
   ./pyproject.toml \
   ./poetry.lock* \
   alembic.ini  \
@@ -43,9 +58,9 @@ RUN python3 -m venv ${VIRTUAL_ENV} \
   fi \
   && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
-COPY scripts/ /app/scripts
-COPY alembic/ /app/alembic
-COPY app/ /app/app
+COPY --chown=${USERNAME}:${USER_GID} scripts/ /app/scripts
+COPY --chown=${USERNAME}:${USER_GID} alembic/ /app/alembic
+COPY --chown=${USERNAME}:${USER_GID} app/ /app/app
 
 RUN python3 -m venv ${VIRTUAL_ENV} \
   && if [ $INSTALL_DEV == 'true' ] ; then \

@@ -38,8 +38,6 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Check formatting
         uses: psf/black@stable
-        with:
-          version: "22.10.0"
       - uses: dciborow/action-pylint@0.0.7
         with:
           github_token: ${{ secrets.github_token }}

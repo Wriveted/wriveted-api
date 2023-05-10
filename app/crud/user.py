@@ -32,7 +32,6 @@ logger = get_logger()
 
 
 class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
-
     # TODO handle create student account linked to school
 
     # ----CRUD override----

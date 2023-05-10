@@ -17,7 +17,6 @@ depends_on = None
 
 
 def upgrade():
-
     op.execute(
         """
     update editions

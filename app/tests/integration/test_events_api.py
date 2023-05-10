@@ -56,7 +56,6 @@ def test_get_school_events_as_school_admin(
     test_school,
     admin_of_test_school_headers,
 ):
-
     school_id = test_school.wriveted_identifier
 
     get_events_response = client.get(
@@ -73,7 +72,6 @@ def test_get_school_events_as_school_admin(
 def test_cant_get_school_events_as_public(
     client, test_school, test_user_account, test_user_account_headers
 ):
-
     school_id = test_school.wriveted_identifier
     assert (
         not hasattr(test_user_account, "school_id")

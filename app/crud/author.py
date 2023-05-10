@@ -20,7 +20,6 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
     def get_or_create(
         self, db: Session, author_data: AuthorCreateIn, commit=True
     ) -> Author:
-
         q = select(Author).where(
             Author.name_key
             == first_last_to_name_key(author_data.first_name, author_data.last_name)

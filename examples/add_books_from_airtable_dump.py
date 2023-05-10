@@ -52,7 +52,6 @@ with open("Wriveted-books.csv", newline="") as csv_file:
             cover_url = book_row[17]
 
         for ISBN in book_row[28].split(","):
-
             new_edition_data = {
                 # "work_title": "string",
                 "title": book_row[0].strip(),

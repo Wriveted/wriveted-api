@@ -32,7 +32,6 @@ def test_create_token():
 
 
 def test_extra_claims_propogated():
-
     token = create_access_token(
         subject=f"Wriveted:User-Account:0",
         extra_claims={"test-claim": "secret"},
@@ -55,7 +54,6 @@ def test_token_with_invalid_subject_rejected():
 
 
 def test_expired_token_rejected():
-
     token = create_access_token(
         subject="Wriveted:user-account:1", expires_delta=datetime.timedelta(seconds=1)
     )

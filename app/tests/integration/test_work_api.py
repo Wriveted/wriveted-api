@@ -52,7 +52,6 @@ def test_backend_service_account_can_get_edit_detail_on_specific_work(
 def test_backend_service_account_can_create_empty_work(
     client, backend_service_account_headers, works_list
 ):
-
     response = client.post(
         f"v1/work",
         json={"title": "Test Work", "authors": [], "editions": []},
@@ -66,7 +65,6 @@ def test_backend_service_account_can_create_empty_work(
 def test_backend_service_account_can_delete_a_work(
     client, backend_service_account_headers, works_list
 ):
-
     response = client.delete(
         f"v1/work/{works_list[0].id}",
         headers=backend_service_account_headers,

@@ -131,7 +131,6 @@ async def add_booklist(
                     detail="You lack the permission to create book lists for other users",
                 )
         else:
-
             if isinstance(account, User):
                 booklist.user_id = account.id
             else:

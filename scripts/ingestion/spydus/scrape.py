@@ -87,7 +87,6 @@ def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120)
 
 
 def get_manifestation_from_isbn(isbn, config: Settings, timeout=30):
-
     response = httpx.get(
         f"{config.spydus_base_url}/api/lcf/1.2/manifestations",
         params={
@@ -230,7 +229,6 @@ def experiment1(config):
         # Get details and map manifestation ID type "03" to ISBN
         detail = get_manifestation_details(identifier, config)
         for alternative_id in detail["additional-manifestation-id"]:
-
             if alternative_id["manifestation-id-type"] == "02":
                 # An item with an ISBN!
                 print("ISBN:", alternative_id["value"])

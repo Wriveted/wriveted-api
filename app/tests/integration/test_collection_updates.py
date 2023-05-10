@@ -206,7 +206,6 @@ def test_collection_management(
             for isbn in book_row[28].split(","):
                 isbn = isbn.strip().upper()
                 if isbn not in seen_isbns and len(isbn) > 0:
-
                     new_edition_data = {
                         # "work_title": "string",
                         "title": book_row[0].strip(),
