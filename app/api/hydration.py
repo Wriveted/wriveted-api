@@ -5,6 +5,7 @@ from structlog import get_logger
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
 )
+from app.api.editions import add_edition
 from app.db.session import get_session
 from app.models.edition import Edition
 from app.schemas.hydration import HydratedBookData

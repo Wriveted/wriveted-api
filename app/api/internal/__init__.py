@@ -158,4 +158,6 @@ async def handle_hydrate_bulk(
     isbns: list[str], session: Session = Depends(get_session)
 ):
     logger.info(f"Internal API hydrating {len(isbns)} isbns")
-    return hydrate_bulk(session, isbns)
+    await hydrate_bulk(session, isbns)
+
+    return {"msg": "ok"}
