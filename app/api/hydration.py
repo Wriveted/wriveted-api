@@ -39,7 +39,7 @@ async def hydrate_bulk(
 
     if not isbns_to_hydrate:
         q = (
-            session.query(Edition)
+            session.query(Edition.isbn)
             .where(Edition.hydrated == False)
             .order_by(Edition.collection_count.desc())
             .limit(limit)
