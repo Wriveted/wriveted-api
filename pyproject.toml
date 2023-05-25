@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wriveted-api"
-version = "0.3.3"
+version = "0.4.0"
 description = "Wriveted helps children find books they will love to read"
 authors = ["Brian Thorne <brian@wriveted.com>", "Joshua Landy <joshua@wriveted.com>"]
 packages = [
@@ -8,26 +8,26 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "^0.89"
-uvicorn = {extras = ["standard"], version = "^0.20"}
-alembic = "^1.9"
-structlog = "^22.3.0"
-psycopg2-binary = "^2.9.5"
+python = "^3.11"
+fastapi = "^0.95"
+uvicorn = {extras = ["standard"], version = "^0.22"}
+alembic = "^1.11"
+structlog = "^23.1.0"
+psycopg2-binary = "^2.9.6"
 SQLAlchemy = "^2.0"
-httpx = "^0.23"
+httpx = "^0.24"
 fastapi-cloudauth = "^0.4.3"
-cryptography = "^39.0"
+cryptography = "^40.0"
 pydantic = {extras = ["email"], version = "^1.10"}
 fastapi_permissions = "^0.2.7"
 gunicorn = "^20.1.0"
-tenacity = "^8.1"
-sendgrid = "^6.9.7"
+tenacity = "^8.2"
+sendgrid = "^6.10"
 mock = "^5.0.1"
 webencodings = "^0.5.1"
 google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
-setuptools = "^67.0.0"
+setuptools = "^67.8"
 humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
 pillow = "^9.4.0"
@@ -38,20 +38,19 @@ phonenumbers = "^8.13.6"
 twilio = "^7.16.3"
 xmltodict = "^0.13.0"
 isbnlib = "^3.10.13"
-
-openai = "^0.27.2"
+openai = "^0.27.7"
 google-api-python-client = "^2.82.0"
 beautifulsoup4 = "^4.12.2"
 
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.2"
-jupyterlab = "^3.5"
-black = {extras = ["jupyter"], version = "22.10.0"}
+pytest = "^7.3"
+jupyterlab = "^4.0"
+black = {extras = ["jupyter"], version = "^23.3"}
 google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.8"
-pre-commit = "^2.21"
+pre-commit = "^3.3"
 locust = "^2.14"
 rich = "^13.3.2"
 
@@ -61,7 +60,6 @@ optional = true
 [tool.poetry.group.embedding.dependencies]
 pypdf = "^3.5.2"
 beautifulsoup4 = "^4.11.2"
-httpx = "^0.23.3"
 unstructured = "^0.5.4"
 openai = "^0.27.2"
 chromadb = "^0.3.11"
