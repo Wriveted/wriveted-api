@@ -49,7 +49,7 @@ jupyterlab = "^4.0"
 black = {extras = ["jupyter"], version = "^23.3"}
 google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
-google-auth-oauthlib = "^0.8"
+google-auth-oauthlib = "^1.0"
 pre-commit = "^3.3"
 locust = "^2.14"
 rich = "^13.3.2"
