@@ -21,7 +21,7 @@ class EventBrief(BaseModel):
 
 class EventCreateIn(BaseModel):
     title: str
-    description: str
+    description: str | None
     level: EventLevel
     school_id: UUID | None
     user_id: UUID | None

@@ -22,14 +22,14 @@ jobs:
       uses: snok/install-poetry@v1
     - name: 🐍 Set up Python
       id: python
-      uses: actions/setup-python@v4.5.0
+      uses: actions/setup-python@v4.6.0
       with:
-        python-version: "3.10"
+        python-version: "3.11"
         cache: 'poetry'
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
       with:
-        postgresql version: '14'  # See https://hub.docker.com/_/postgres for available versions
+        postgresql version: '15'  # See https://hub.docker.com/_/postgres for available versions
         postgresql user: postgres
         postgresql password: secret
     - name: 🔧 Install dependencies
