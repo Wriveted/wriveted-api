@@ -83,6 +83,7 @@ class SchoolCreateIn(BaseModel):
     name: str
     country_code: constr(min_length=3, max_length=3)
     official_identifier: Optional[str]
+    bookbot_type: Optional[SchoolBookbotType]
     lms_type: Optional[str]
     info: SchoolInfo
     student_domain: Optional[AnyHttpUrl]
