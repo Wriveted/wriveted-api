@@ -706,6 +706,18 @@ files = [
 ]
 
 [[package]]
+name = "chardet"
+version = "5.1.0"
+description = "Universal encoding detector for Python 3"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "chardet-5.1.0-py3-none-any.whl", hash = "sha256:362777fb014af596ad31334fde1e8c327dfdb076e1960d1694662d46a6917ab9"},
+    {file = "chardet-5.1.0.tar.gz", hash = "sha256:0d62712b956bc154f85fb0a266e2a3c5913c2967e00348701b32411d6def31e5"},
+]
+
+[[package]]
 name = "charset-normalizer"
 version = "3.1.0"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
@@ -3807,6 +3819,27 @@ files = [
 ]
 
 [[package]]
+name = "pdfminer-six"
+version = "20221105"
+description = "PDF parser and analyzer"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pdfminer.six-20221105-py3-none-any.whl", hash = "sha256:1eaddd712d5b2732f8ac8486824533514f8ba12a0787b3d5fe1e686cd826532d"},
+    {file = "pdfminer.six-20221105.tar.gz", hash = "sha256:8448ab7b939d18b64820478ecac5394f482d7a79f5f7eaa7703c6c959c175e1d"},
+]
+
+[package.dependencies]
+charset-normalizer = ">=2.0.0"
+cryptography = ">=36.0.0"
+
+[package.extras]
+dev = ["black", "mypy (==0.931)", "nox", "pytest"]
+docs = ["sphinx", "sphinx-argparse"]
+image = ["Pillow"]
+
+[[package]]
 name = "pexpect"
 version = "4.8.0"
 description = "Pexpect allows easy control of interactive console applications."
@@ -5478,39 +5511,42 @@ files = [
 
 [[package]]
 name = "unstructured"
-version = "0.5.13"
+version = "0.7.1"
 description = "A library that prepares raw documents for downstream ML tasks."
 category = "dev"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "unstructured-0.5.13-py3-none-any.whl", hash = "sha256:44ddc2848f1009fd64ced91a9b52d0e9dd15dee837f34a898ecd95863236b880"},
-    {file = "unstructured-0.5.13.tar.gz", hash = "sha256:b25443a47353297bda5eec64615215111e07c2507771cf8ad5471d04ac9026b1"},
+    {file = "unstructured-0.7.1-py3-none-any.whl", hash = "sha256:6577b41774528ad1967852206d6aff605524d8b128167b23e81738b4ae83ce96"},
+    {file = "unstructured-0.7.1.tar.gz", hash = "sha256:d4fb7911a51c7301dad52927c97333c256311828c78e6c5b1d56b4cfc8d3394b"},
 ]
 
 [package.dependencies]
 argilla = "*"
-certifi = ">=2022.12.07"
+chardet = "*"
 lxml = "*"
 markdown = "*"
 msg-parser = "*"
 nltk = "*"
 openpyxl = "*"
 pandas = "*"
+"pdfminer.six" = "*"
 pillow = "*"
 pypandoc = "*"
 python-docx = "*"
 python-magic = "*"
 python-pptx = "*"
 requests = "*"
+xlrd = "*"
 
 [package.extras]
 azure = ["adlfs", "fsspec"]
-github = ["pygithub (==1.57.0)"]
+discord = ["discord-py"]
+github = ["pygithub (==1.58.2)"]
 gitlab = ["python-gitlab"]
-google-drive = ["google-api-python-client", "protobuf (<3.21)"]
+google-drive = ["google-api-python-client"]
 huggingface = ["langdetect", "sacremoses", "sentencepiece", "torch", "transformers"]
-local-inference = ["unstructured-inference (==0.3.2)"]
+local-inference = ["unstructured-inference (==0.5.1)"]
 reddit = ["praw"]
 s3 = ["fsspec", "s3fs"]
 slack = ["slack-sdk"]
@@ -5843,6 +5879,23 @@ MarkupSafe = ">=2.1.1"
 watchdog = ["watchdog (>=2.3)"]
 
 [[package]]
+name = "xlrd"
+version = "2.0.1"
+description = "Library for developers to extract data from Microsoft Excel (tm) .xls spreadsheet files"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
+files = [
+    {file = "xlrd-2.0.1-py2.py3-none-any.whl", hash = "sha256:6a33ee89877bd9abc1158129f6e94be74e2679636b8a205b43b85206c3f0bbdd"},
+    {file = "xlrd-2.0.1.tar.gz", hash = "sha256:f72f148f54442c6b056bf931dbc34f986fd0c3b0b6b5a58d013c9aef274d0c88"},
+]
+
+[package.extras]
+build = ["twine", "wheel"]
+docs = ["sphinx"]
+test = ["pytest", "pytest-cov"]
+
+[[package]]
 name = "xlsxwriter"
 version = "3.1.2"
 description = "A Python module for creating Excel XLSX files."
@@ -6083,4 +6136,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "01ba55098d36e13a4a702339c195b21fa0a2ea6fe256d1309eed9b487038e593"
+content-hash = "a3aaf940ec1e491214e787d7915027d480606a6a02cb3a1fef57baf475a1f572"
