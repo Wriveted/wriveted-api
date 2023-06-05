@@ -38,7 +38,7 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Check formatting
         uses: psf/black@stable
-      - uses: dciborow/action-pylint@0.1.0
+      - uses: dciborow/action-pylint@0.1.1
         with:
           github_token: ${{ secrets.github_token }}
           # GitHub Status Check won't become failure with warning.
