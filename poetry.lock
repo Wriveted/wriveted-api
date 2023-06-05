@@ -5435,14 +5435,14 @@ test = ["argcomplete (>=2.0)", "pre-commit", "pytest", "pytest-mock"]
 
 [[package]]
 name = "twilio"
-version = "8.2.1"
+version = "8.2.2"
 description = "Twilio API client and TwiML generator"
 category = "main"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "twilio-8.2.1-py2.py3-none-any.whl", hash = "sha256:9c6bbfda1f3196c64258b6661e372c23e2e6a9630c9986f725d16bb4bfe3275f"},
-    {file = "twilio-8.2.1.tar.gz", hash = "sha256:66fe6a18199955b8abce2699e533b56f605a22d585c3f0b1820113ec068a0b51"},
+    {file = "twilio-8.2.2-py2.py3-none-any.whl", hash = "sha256:fa39d61757730a137d3a9c6ef84428fb3237616f21ff2b1c98116eee828d54e8"},
+    {file = "twilio-8.2.2.tar.gz", hash = "sha256:6470a8bb6b1e240dd48c77f17e29fc1ee9041b75707bf437f880a585b6c722bc"},
 ]
 
 [package.dependencies]
@@ -6083,4 +6083,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "01ba55098d36e13a4a702339c195b21fa0a2ea6fe256d1309eed9b487038e593"
+content-hash = "130c8102301af54dd730287c4a73f81e47a74c8e8a63cee6bccc32d313897df5"
