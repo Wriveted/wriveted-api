@@ -22,7 +22,7 @@ jobs:
       uses: snok/install-poetry@v1
     - name: 🐍 Set up Python
       id: python
-      uses: actions/setup-python@v4.6.0
+      uses: actions/setup-python@v4.6.1
       with:
         python-version: "3.11"
         cache: 'poetry'
