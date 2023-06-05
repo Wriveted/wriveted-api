@@ -58,7 +58,7 @@ rich = "^13.3.2"
 optional = true
 
 [tool.poetry.group.embedding.dependencies]
-pypdf = "^3.5.2"
+pypdf = "^3.9.1"
 beautifulsoup4 = "^4.11.2"
 unstructured = "^0.5.4"
 openai = "^0.27.2"
