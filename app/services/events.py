@@ -15,7 +15,6 @@ from app.models.booklist import ListType
 from app.models.collection_item import CollectionItem
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
-from app.models.reader import Reader
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
 from app.schemas.booklist import (
@@ -26,7 +25,7 @@ from app.schemas.booklist import (
     ItemUpdateType,
 )
 from app.schemas.collection import CollectionItemActivityBase
-from app.schemas.events.event import EventCreateIn
+from app.schemas.events.huey_events import HueyBookReviewedInfo
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import ReadingLogEventFeedback
 from app.services.background_tasks import queue_background_task
@@ -384,21 +383,40 @@ def get_liked_books_from_book_review_event(session: Session, event: Event):
     liked_items = []
     logger.info("Getting liked books from event", event_info=event.info)
 
-    if "reviews" not in event.info:
-        logger.error("Unexpected event - couldn't find reviews")
-        return []
-
-    for review in event.info["reviews"]:
-        logger.debug("Processing review", raw_review=review)
-        edition = crud.edition.get(db=session, id=review["isbn"])
-        if edition and review["liked"]:
-            liked_items.append(
-                BookListItemUpdateIn(
-                    action=ItemUpdateType.ADD,
-                    work_id=edition.work_id,
-                    info=BookListItemInfo(
-                        edition=review["isbn"],
-                    ),
-                )
+    if "reviews" in event.info:
+        logger.warning("Unexpected event schema. Processing multiple reviews")
+        for review in event.info["reviews"]:
+            logger.debug("Processing review", raw_review=review)
+            isbn = review["isbn"]
+            book_liked = review["liked"]
+            liked_booklist_item = booklist_item_update_from_isbn(
+                session, isbn, book_liked
             )
+            if liked_booklist_item:
+                liked_items.append(liked_booklist_item)
+
+    else:
+        info: HueyBookReviewedInfo = HueyBookReviewedInfo.parse_obj(event.info)
+        logger.debug("Processing a book review", raw_review=info)
+        liked_booklist_item = booklist_item_update_from_isbn(
+            session, info.isbn, info.liked
+        )
+        if liked_booklist_item:
+            liked_items.append(liked_booklist_item)
+
     return liked_items
+
+
+def booklist_item_update_from_isbn(
+    session, isbn, book_liked
+) -> Optional[BookListItemUpdateIn]:
+    edition = crud.edition.get(db=session, id=isbn)
+    if edition and book_liked:
+        liked_booklist_item = BookListItemUpdateIn(
+            action=ItemUpdateType.ADD,
+            work_id=edition.work_id,
+            info=BookListItemInfo(
+                edition=isbn,
+            ),
+        )
+        return liked_booklist_item
