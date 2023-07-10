@@ -77,32 +77,7 @@ async def validation_exception_handler(request, exc):
     return await request_validation_exception_handler(request, exc)
 
 
-async def catch_exceptions_middleware(request: Request, call_next):
-    """
-    This global middleware allows us to log any unexpected exceptions and ensure
-    we don't return any unsanitized output to clients.
-    """
-    try:
-        return await call_next(request)
-    except HTTPException as e:
-        # This exception is assumed fine for end users
-        raise e
-    except Exception as e:
-        logger.error(
-            "An uncaught exception occurred in a request handler",
-            request=request.url,
-            method=request.method,
-            exc_info=e,
-        )
-        return Response(
-            "Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
-
-# Note without this handler being added before the CORS middleware, internal errors
-# don't include CORS headers - which masks the underlying internal error as a CORS error
-# to clients.
-app.middleware("http")(catch_exceptions_middleware)
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
     logger.info(
