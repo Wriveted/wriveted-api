@@ -109,12 +109,10 @@ async def request_middleware(request: Request, call_next):
 
     logger.debug("Request started", request_method=request.method)
 
-    try:
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-    finally:
-        logger.debug("Request ended")
-        return response
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    logger.debug("Request ended")
+    return response
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
