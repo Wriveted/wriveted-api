@@ -108,7 +108,7 @@ async def request_middleware(request: Request, call_next):
 
     logger.debug("Request started", request_method=request.method)
     # Create a default response
-    response = Response("No Content", status_code=status.HTTP_204_NO_CONTENT)
+    response = Response(None, status_code=status.HTTP_204_NO_CONTENT)
     try:
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
