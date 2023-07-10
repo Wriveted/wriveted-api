@@ -94,27 +94,27 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-
-@app.middleware("http")
-async def request_middleware(request: Request, call_next):
-    """
-    Middleware to add a UUID to each request.
-
-    Adds a header to the response `X-Request-ID` with this ID.
-    """
-    request_id = str(uuid.uuid4())
-    clear_contextvars()
-    bind_contextvars(request_id=request_id, request_path=request.url.path)
-
-    logger.debug("Request started", request_method=request.method)
-    # Create a default response
-    response = Response("No Content", status_code=status.HTTP_204_NO_CONTENT)
-    try:
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-    finally:
-        logger.debug("Request ended")
-        return response
+#
+# @app.middleware("http")
+# async def request_middleware(request: Request, call_next):
+#     """
+#     Middleware to add a UUID to each request.
+#
+#     Adds a header to the response `X-Request-ID` with this ID.
+#     """
+#     request_id = str(uuid.uuid4())
+#     clear_contextvars()
+#     bind_contextvars(request_id=request_id, request_path=request.url.path)
+#
+#     logger.debug("Request started", request_method=request.method)
+#     # Create a default response
+#     response = Response("No Content", status_code=status.HTTP_204_NO_CONTENT)
+#     try:
+#         response = await call_next(request)
+#         response.headers["X-Request-ID"] = request_id
+#     finally:
+#         logger.debug("Request ended")
+#         return response
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
