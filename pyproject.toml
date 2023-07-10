@@ -9,14 +9,14 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "0.97.0"
+fastapi = "^0.97"
 uvicorn = {extras = ["standard"], version = "^0.22"}
 alembic = "^1.11"
 structlog = "^23.1.0"
 psycopg2-binary = "^2.9.6"
 SQLAlchemy = "^2.0"
 httpx = "^0.24"
-#fastapi-cloudauth = "^0.4.3"
+fastapi-cloudauth = "^0.4.3"
 cryptography = "^40.0"
 pydantic = {extras = ["email"], version = "^1.10"}
 fastapi_permissions = "^0.2.7"
@@ -41,7 +41,6 @@ isbnlib = "^3.10.13"
 openai = "^0.27.7"
 google-api-python-client = "^2.82.0"
 beautifulsoup4 = "^4.12.2"
-fastapi-cloudauth = {git = "https://github.com/kidylee/fastapi-cloudauth"}
 
 
 [tool.poetry.dev-dependencies]
