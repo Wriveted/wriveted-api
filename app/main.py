@@ -92,6 +92,7 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
     )
 
 
@@ -107,8 +108,7 @@ async def request_middleware(request: Request, call_next):
     bind_contextvars(request_id=request_id, request_path=request.url.path)
 
     logger.debug("Request started", request_method=request.method)
-    # Create a default response
-    response = Response(None, status_code=status.HTTP_204_NO_CONTENT)
+
     try:
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
