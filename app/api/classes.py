@@ -196,7 +196,7 @@ async def delete_class(
     session: Session = Depends(get_session),
 ):
     """
-    Delete a class.
+    Delete a class and all students in it.
 
     🔒 caller needs `delete` permission on the class, and `update` permission
     on the school.
