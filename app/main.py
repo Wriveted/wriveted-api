@@ -1,14 +1,12 @@
 import textwrap
-import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from starlette import status
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import RedirectResponse
 from structlog import get_logger
-from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from app.api import api_router
 from app.config import get_settings
@@ -74,7 +72,6 @@ async def validation_exception_handler(request, exc):
         request=request.url,
     )
     return await request_validation_exception_handler(request, exc)
-
 
 
 # Set all CORS enabled origins

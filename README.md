@@ -39,10 +39,10 @@ For example to connect to the docker-compose database:
 
 ```
 // Terminal
-export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@localhost/postgres
 
 // Powershell
-$Env:SQLALCHEMY_DATABASE_URI = "postgresql://postgres:password@localhost/postgres"
+$Env:SQLALCHEMY_DATABASE_URI = "postgresql://postgres:xvc8kcn@localhost/postgres"
 ```
 
 Then create a new migration:

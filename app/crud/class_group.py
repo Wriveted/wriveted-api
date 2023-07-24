@@ -1,10 +1,11 @@
 from typing import List, Optional
+from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
-from app.models import School
+from app.models import School, Student
 from app.models.class_group import ClassGroup
 from app.schemas.class_group import ClassGroupCreateIn, ClassGroupUpdateIn
 from app.services.class_groups import new_random_class_code
@@ -63,6 +64,13 @@ class CRUDClassGroup(CRUDBase[ClassGroup, ClassGroupCreateIn, ClassGroupUpdateIn
             school_id=obj_in.school_id,
             join_code=new_random_class_code(session),
         )
+
+    def remove(self, db: Session, *, id: UUID) -> ClassGroup:
+        # To help the database out let's remove the students first
+        # DB should do this on class deletion via Cascade
+        stmt = delete(Student).where(Student.class_group_id == id)
+        db.execute(stmt)
+        return super().remove(db, id=id)
 
 
 class_group = CRUDClassGroup(ClassGroup)
