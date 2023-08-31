@@ -2,12 +2,14 @@ from datetime import datetime
 from typing import Literal, Union
 from uuid import UUID
 
+import requests
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_cloudauth.firebase import FirebaseClaims, FirebaseCurrentUser
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
+from tenacity import retry, retry_if_exception_type, stop_after_delay, wait_fixed
 
 from app import crud
 from app.api.dependencies.security import (
@@ -38,7 +40,28 @@ config = get_settings()
 
 router = APIRouter(tags=["Security"])
 
-get_current_firebase_user = FirebaseCurrentUser(project_id=config.FIREBASE_PROJECT_ID)
+
+@retry(
+    stop=stop_after_delay(180),  # Stop retrying after 180 seconds (3 minutes)
+    wait=wait_fixed(5),  # Wait 5 seconds between retries
+    retry=retry_if_exception_type(
+        requests.exceptions.ConnectionError
+    ),  # Retry only for ConnectionError
+)
+def get_firebase_user():
+    return FirebaseCurrentUser(project_id=config.FIREBASE_PROJECT_ID)
+
+
+get_current_firebase_user = None
+
+try:
+    get_current_firebase_user = get_firebase_user()
+except requests.exceptions.ConnectionError:
+    logger.warning(
+        "Couldn't connect to Firebase SSO even after retries. Check that the server has access to the internet."
+    )
+    auth_firebase_user = None
+
 
 get_raw_info = get_current_firebase_user.claim(None)
 
