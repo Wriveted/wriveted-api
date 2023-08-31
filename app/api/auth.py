@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
-from tenacity import retry, retry_if_exception_type, stop_after_delay, wait_fixed
+from tenacity import retry, stop_after_delay, wait_fixed
 
 from app import crud
 from app.api.dependencies.security import (
@@ -43,10 +43,7 @@ router = APIRouter(tags=["Security"])
 
 @retry(
     stop=stop_after_delay(180),  # Stop retrying after 180 seconds (3 minutes)
-    wait=wait_fixed(5),  # Wait 5 seconds between retries
-    retry=retry_if_exception_type(
-        requests.exceptions.ConnectionError
-    ),  # Retry only for ConnectionError
+    wait=wait_fixed(10),  # Wait between retries
 )
 def get_firebase_user():
     return FirebaseCurrentUser(project_id=config.FIREBASE_PROJECT_ID)
