@@ -5,6 +5,7 @@ from base64 import b64decode
 import requests
 from google.api_core.exceptions import NotFound
 from google.cloud import storage
+from google.cloud.storage import Bucket
 from structlog import get_logger
 
 from app.config import get_settings
@@ -14,16 +15,15 @@ logger = get_logger()
 
 
 # setup gcp bucket
-def get_gcp_bucket(bucket_name: str):
+def get_gcp_bucket(bucket_name: str) -> Bucket:
     """
-    Populate a google bucket object from the bucket name.
+    Get a Google Storage Bucket reference from the bucket name.
     """
     # get the bucket
     storage_client = storage.Client()
     return storage_client.get_bucket(bucket_name)
 
 
-# upload base64 image string to google bucket
 def base64_string_to_bucket(data: str, folder: str, filename: str, bucket_name: str):
     """
     Upload a base64 image string to the specified GCP bucket, returning the public url.
@@ -90,7 +90,9 @@ def delete_blob(bucket_name: str, blob_name: str):
 
 def get_blob(bucket_name: str, blob_name: str, create: bool = False):
     """
-    Get a blob from the bucket. Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist and create is False.
+    Get a blob from the bucket.
+
+    Raises a google.api_core.exceptions.NotFound exception if the blob doesn't exist and create is False.
     """
     bucket = get_gcp_bucket(bucket_name)
     blob = bucket.blob(blob_name)
