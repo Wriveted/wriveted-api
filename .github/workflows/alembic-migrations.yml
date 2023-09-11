@@ -17,7 +17,7 @@ jobs:
       SHOPIFY_HMAC_SECRET: unused
       SECRET_KEY: unused
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: ➕ Install poetry
       uses: snok/install-poetry@v1
     - name: 🐍 Set up Python
