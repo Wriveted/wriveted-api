@@ -3,31 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-import phonenumbers
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict
-from pydantic.validators import strict_str_validator
 
+from app.schemas.phone_number import PhoneNumber
 from app.schemas.users.user_identity import UserBrief
-
-
-# thanks https://github.com/pydantic/pydantic/issues/1551
-class PhoneNumber(str):
-    """Phone number string, E164 format (e.g. +61 400 000 000)"""
-
-    @classmethod
-    def __get_validators__(cls):
-        yield strict_str_validator
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: str):
-        v = v.strip().replace(" ", "")
-        try:
-            pn = phonenumbers.parse(v)
-        except phonenumbers.phonenumberutil.NumberParseException:
-            raise ValueError("invalid phone number format")
-
-        return cls(phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164))
 
 
 class UserPatchOptions(BaseModel):

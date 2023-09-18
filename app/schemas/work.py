@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
 
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
@@ -19,7 +19,7 @@ class WorkInfo(BaseModel):
 
 
 class WorkBrief(BaseModel):
-    id: str
+    id: Annotated[str, BeforeValidator(str)]
     type: Optional[WorkType] = None
 
     leading_article: str | None = None
