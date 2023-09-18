@@ -9,36 +9,36 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.100"
-uvicorn = {extras = ["standard"], version = "^0.22"}
+fastapi = "^0.103"
+uvicorn = {extras = ["standard"], version = "^0.23"}
 alembic = "^1.11"
 structlog = "^23.1.0"
 psycopg2-binary = "^2.9.6"
 SQLAlchemy = "^2.0"
-httpx = "^0.24"
+httpx = "^0.25"
 fastapi-cloudauth = "^0.4.3"
-cryptography = "^40.0"
-pydantic = {extras = ["email"], version = "^1.10"}
+cryptography = "^41.0"
+pydantic = {extras = ["email"], version = "^2.3"}
 fastapi_permissions = "^0.2.7"
-gunicorn = "^20.1.0"
+gunicorn = "^21.2"
 tenacity = "^8.2"
 sendgrid = "^6.10"
 mock = "^5.0.1"
 webencodings = "^0.5.1"
 google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
-setuptools = "^67.8"
+setuptools = "^68.2"
 humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
-pillow = "^9.4.0"
-stripe = "^5.0.0"
+pillow = "^10.0"
+stripe = "^6.5"
 slack-sdk = "^3.19.5"
 alembic-utils = "^0.8.1"
 phonenumbers = "^8.13.6"
 twilio = "^8.2.1"
 xmltodict = "^0.13.0"
 isbnlib = "^3.10.13"
-openai = "^0.27.7"
+openai = "^0.28.0"
 google-api-python-client = "^2.82.0"
 beautifulsoup4 = "^4.12.2"
 
@@ -61,7 +61,6 @@ optional = true
 pypdf = "^3.5.2"
 beautifulsoup4 = "^4.11.2"
 unstructured = "^0.5.4"
-openai = "^0.27.2"
 chromadb = "^0.3.11"
 
 [build-system]
