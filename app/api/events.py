@@ -101,7 +101,7 @@ async def get_events(
     info_jsonpath_match: str = Query(
         None,
         description="Filter events using a JSONPath over the info field. The resulting value must be a boolean expression.",
-        example='($.reading_logged.emoji == "🤪")',
+        examples=['($.reading_logged.emoji == "🤪")'],
     ),
     since: datetime = Query(
         None,

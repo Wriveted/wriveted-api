@@ -14,9 +14,9 @@ from app.db.session import get_session
 
 
 class CloudRunEnvironment(BaseSettings):
-    K_SERVICE: str = None
-    K_REVISION: str = None
-    K_CONFIGURATION: str = None
+    K_SERVICE: str | None = None
+    K_REVISION: str | None = None
+    K_CONFIGURATION: str | None = None
 
 
 class Version(BaseModel):

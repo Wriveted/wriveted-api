@@ -265,7 +265,7 @@ def populate_booklist_object(
                 # Skip this item
                 continue
 
-            edition_detail = EditionDetail.from_orm(
+            edition_detail = EditionDetail.model_validate(
                 edition,
             )
             enriched_item = BookListItemEnriched(**i.__dict__, edition=edition_detail)
@@ -281,7 +281,7 @@ def populate_booklist_object(
     booklist.pagination = Pagination(**pagination.to_dict(), total=booklist.book_count)
 
     return (
-        BookListDetail.from_orm(booklist)
+        BookListDetail.model_validate(booklist)
         if not enriched
-        else BookListDetailEnriched.from_orm(booklist)
+        else BookListDetailEnriched.model_validate(booklist)
     )

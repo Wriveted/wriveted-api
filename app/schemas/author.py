@@ -1,6 +1,6 @@
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 
 
 class ContributorBase(BaseModel):
@@ -9,7 +9,7 @@ class ContributorBase(BaseModel):
 
 
 class AuthorBrief(ContributorBase):
-    id: str
+    id: Annotated[str, BeforeValidator(str)]
     model_config = ConfigDict(from_attributes=True)
 
 

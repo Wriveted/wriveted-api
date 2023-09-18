@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from pydantic import UUID4, BaseModel, EmailStr, root_validator
+from pydantic import UUID4, BaseModel, EmailStr, model_validator
 
 from app.models.user import UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
@@ -54,25 +54,23 @@ class InternalUserUpdateIn(UserUpdateIn):
     current_type: UserAccountType | None = None
     school_id: UUID4 | int | None = None
 
-    @root_validator
-    def validate_user_type_change(cls, values):
-        new_type: UserAccountType = values.get("type")
-        current_type: UserAccountType = values.get("current_type")
+    @model_validator(mode="after")
+    def validate_user_creation(self):
+        new_type: UserAccountType = self.type
+        current_type: UserAccountType = self.current_type
 
         if new_type:
             # if changing types, ensure the required fields of new_type are met
             # by the union of the current_type's fields and provided UserUpdateIn fields
-            update_attributes = [k for k, v in dict(values).items() if v is not None]
+            update_attributes = [k for k, v in dict(self).items() if v is not None]
             existing_attributes = user_type_attributes_map[current_type]
             current_attributes = update_attributes + existing_attributes
 
             needed_attributes = user_type_attributes_map[new_type]
 
             difference = set(needed_attributes) - set(current_attributes)
-            if difference:
-                raise ValueError(
-                    f"Not all required attributes have been provided to change from user type '{current_type.value}' to '{new_type.value}'. "
-                    + f"Missing attributes: {[a for a in needed_attributes if a not in current_attributes]}."
-                )
-
-        return values
+            assert not difference, (
+                f"Missing attributes: {difference}"
+                f"Not all required attributes have been provided to change from user type '{current_type.value}' to '{new_type.value}'. "
+                f"Missing attributes: {[a for a in needed_attributes if a not in current_attributes]}."
+            )

@@ -52,7 +52,7 @@ class EditionBrief(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
     cover_url: Optional[AnyHttpUrl] = None
-    work_id: Optional[str] = None
+    work_id: Optional[str] = None  # todo convert optional int to str
     isbn: str
     model_config = ConfigDict(from_attributes=True)
 
