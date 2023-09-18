@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     )
     WRIVETED_INTERNAL_API: Optional[AnyHttpUrl] = None
 
-    POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath]  # e.g. /cloudsql
+    POSTGRESQL_DATABASE_SOCKET_PATH: Optional[DirectoryPath] = None  # e.g. /cloudsql
 
     POSTGRESQL_SERVER: str = "/"
     POSTGRESQL_DATABASE: str = "postgres"
