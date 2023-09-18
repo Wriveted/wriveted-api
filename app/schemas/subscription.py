@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.product import ProductBrief
 
@@ -13,34 +13,32 @@ class SubscriptionBrief(BaseModel):
     type: Literal["family"]
     provider: Literal["stripe"]
     is_active: bool
-    expiration: datetime | None
+    expiration: datetime | None = None
     product: ProductBrief
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubscriptionDetail(SubscriptionBrief):
     stripe_customer_id: str
     created_at: datetime
     updated_at: datetime
-    info: Optional[Any]
+    info: Optional[Any] = None
 
 
 class SubscriptionCreateIn(BaseModel):
     id: str
     stripe_customer_id: str
-    parent_id: str | None
+    parent_id: str | None = None
     product_id: str
-    is_active: bool | None
-    info: dict | None
-    latest_checkout_session_id: str | None
-    expiration: datetime | None
+    is_active: bool | None = None
+    info: dict | None = None
+    latest_checkout_session_id: str | None = None
+    expiration: datetime | None = None
 
 
 class SubscriptionUpdateIn(BaseModel):
-    product_id: str | None
-    is_active: bool | None
-    info: dict | None
-    latest_checkout_session_id: str | None
-    expiration: datetime | None
+    product_id: str | None = None
+    is_active: bool | None = None
+    info: dict | None = None
+    latest_checkout_session_id: str | None = None
+    expiration: datetime | None = None

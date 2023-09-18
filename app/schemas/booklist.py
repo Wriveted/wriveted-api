@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import UUID4, BaseModel, Field, validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, validator
 
 from app.models.booklist import ListSharingType, ListType
 from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
@@ -22,7 +22,7 @@ class BookFeedbackChoice(CaseInsensitiveStringEnum):
 class BookListItemInfo(BaseModel):
     edition: Optional[str] = Field(None, description="ISBN")
     note: Optional[str] = Field(None, description="Note from the booklist creator")
-    feedback: BookFeedbackChoice | None
+    feedback: BookFeedbackChoice | None = None
 
 
 class BookListItemBase(BaseModel):
@@ -34,9 +34,7 @@ class BookListItemBase(BaseModel):
 class BookListItemDetail(BookListItemBase):
     # id: UUID
     work: WorkEnriched
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BookListItemEnriched(BookListItemDetail):
@@ -44,28 +42,26 @@ class BookListItemEnriched(BookListItemDetail):
 
 
 class BookListItemCreateIn(BookListItemBase):
-    order_id: Optional[int]
+    order_id: Optional[int] = None
 
 
 class BookListBase(BaseModel):
     id: UUID4
     name: str
     type: ListType
-    book_count: int | None
-
-    class Config:
-        orm_mode = True
+    book_count: int | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BookListOptionalInfo(BaseModel):
-    description: Optional[str]
-    image_url: Optional[str]
-    subheading: Optional[str]
-    colour: Optional[str]
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    subheading: Optional[str] = None
+    colour: Optional[str] = None
 
 
 class BookListOptionalInfoCreateIn(BookListOptionalInfo):
-    image_url: str | None
+    image_url: str | None = None
 
     _validate_image_url = validator("image_url", allow_reuse=True)(
         lambda v: validate_image_url_or_base64_string(v, field_name="image_url")
@@ -75,14 +71,14 @@ class BookListOptionalInfoCreateIn(BookListOptionalInfo):
 class BookListCreateIn(BaseModel):
     name: str
     type: ListType
-    slug: str | None
-    sharing: ListSharingType | None
+    slug: str | None = None
+    sharing: ListSharingType | None = None
 
-    school_id: str | None
-    user_id: str | None
+    school_id: str | None = None
+    user_id: str | None = None
 
     info: BookListOptionalInfo | None = None
-    items: list[BookListItemCreateIn] | None
+    items: list[BookListItemCreateIn] | None = None
 
 
 class ItemUpdateType(CaseInsensitiveStringEnum):
@@ -94,27 +90,27 @@ class ItemUpdateType(CaseInsensitiveStringEnum):
 class BookListItemUpdateIn(BaseModel):
     action: ItemUpdateType
     work_id: int
-    order_id: Optional[int]
+    order_id: Optional[int] = None
     info: Optional[BookListItemInfo] = None
 
 
 class BookListUpdateIn(BaseModel):
-    name: Optional[str]
-    type: Optional[ListType]
-    sharing: Optional[ListSharingType]
-    slug: Optional[str]
+    name: Optional[str] = None
+    type: Optional[ListType] = None
+    sharing: Optional[ListSharingType] = None
+    slug: Optional[str] = None
     info: Optional[BookListOptionalInfo] = None
-    items: Optional[list[BookListItemUpdateIn]]
+    items: Optional[list[BookListItemUpdateIn]] = None
 
 
 class BookListBrief(BookListBase):
     created_at: datetime
     updated_at: datetime
-    user: Optional[UserIdentity]
-    school: Optional[SchoolWrivetedIdentity]
-    sharing: Optional[ListSharingType]
-    slug: Optional[str]
-    info: Optional[BookListOptionalInfo]
+    user: Optional[UserIdentity] = None
+    school: Optional[SchoolWrivetedIdentity] = None
+    sharing: Optional[ListSharingType] = None
+    slug: Optional[str] = None
+    info: Optional[BookListOptionalInfo] = None
 
 
 class BookListsResponse(PaginatedResponse):

@@ -2,8 +2,16 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, Field, conint, root_validator, validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_validator,
+    validator,
+)
 from structlog import get_logger
+from typing_extensions import Annotated
 
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
@@ -18,12 +26,10 @@ class CollectionBrief(BaseModel):
     id: UUID
     name: str
     book_count: int
-    school_id: UUID | None
-    user_id: UUID | None
+    school_id: UUID | None = None
+    user_id: UUID | None = None
     updated_at: datetime
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionInfo(BaseModel):
@@ -55,45 +61,39 @@ class CollectionItemFeedback(BaseModel):
     This is also used to update the feedback for a collection item.
     """
 
-    emojis: list[str] | None
-    descriptor: str | None
+    emojis: list[str] | None = None
+    descriptor: str | None = None
 
 
 class CollectionItemInfo(BaseModel):
-    cover_image: AnyHttpUrl | None
-    title: str | None
-    author: str | None
+    cover_image: AnyHttpUrl | None = None
+    title: str | None = None
+    author: str | None = None
 
-    feedback: CollectionItemFeedback | None
+    feedback: CollectionItemFeedback | None = None
 
-    other: dict[str, Any] | None
+    other: dict[str, Any] | None = None
 
 
 class CollectionItemInfoCreateIn(CollectionItemInfo):
-    cover_image: str | None
+    cover_image: str | None = None
 
     _validate_cover_image = validator("cover_image", pre=True, allow_reuse=True)(
         lambda v: validate_image_url_or_base64_string(v, field_name="cover_image")
     )
-
-    class Config:
-        max_anystr_length = (
-            2**19
-        ) * 1.5  # Max filesize is 500kb, but base64 strings are at least 4/3 the size
-
-        validate_assignment = True
+    model_config = ConfigDict(str_max_length=(2**19) * 1.5, validate_assignment=True)
 
 
 class CoverImageUpdateIn(CollectionItemInfoCreateIn):
-    collection_id: UUID | None
+    collection_id: UUID | None = None
     edition_isbn: str
 
 
 class CollectionItemBase(BaseModel):
-    edition_isbn: str | None
-    info: CollectionItemInfoCreateIn | None
-    copies_total: Optional[conint(ge=0)] = None
-    copies_available: Optional[conint(ge=0)] = None
+    edition_isbn: str | None = None
+    info: CollectionItemInfoCreateIn | None = None
+    copies_total: Optional[Annotated[int, Field(ge=0)]] = None
+    copies_available: Optional[Annotated[int, Field(ge=0)]] = None
 
 
 class CollectionItemCreateIn(CollectionItemBase):
@@ -101,10 +101,11 @@ class CollectionItemCreateIn(CollectionItemBase):
 
 
 class CollectionItemAndStatusCreateIn(CollectionItemCreateIn):
-    read_status: CollectionItemReadStatus | None
-    reader_id: UUID | None
+    read_status: CollectionItemReadStatus | None = None
+    reader_id: UUID | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def _validate_logic(cls, values: dict):
         if not values:
             return
@@ -125,13 +126,14 @@ class CollectionItemAndStatusCreateIn(CollectionItemCreateIn):
 class CollectionCreateIn(BaseModel):
     name: str
 
-    school_id: UUID | None
-    user_id: UUID | None
+    school_id: UUID | None = None
+    user_id: UUID | None = None
 
-    info: dict[str, Any] | None
-    items: list[CollectionItemCreateIn] | None
+    info: dict[str, Any] | None = None
+    items: list[CollectionItemCreateIn] | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def _validate_relationships(cls, values: dict):
         school_id = values.get("school_id")
         user_id = values.get("user_id")
@@ -144,16 +146,14 @@ class CollectionCreateIn(BaseModel):
 
 class CollectionItemDetail(BaseModel):
     id: int
-    work: Optional[WorkBrief]
-    edition: EditionBrief | None
+    work: Optional[WorkBrief] = None
+    edition: EditionBrief | None = None
 
-    copies_total: Optional[conint(ge=0)] = None
-    copies_available: Optional[conint(ge=0)] = None
+    copies_total: Optional[Annotated[int, Field(ge=0)]] = None
+    copies_available: Optional[Annotated[int, Field(ge=0)]] = None
 
-    info: CollectionItemInfo | None
-
-    class Config:
-        orm_mode = True
+    info: CollectionItemInfo | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionItemsResponse(PaginatedResponse):
@@ -172,18 +172,16 @@ class CollectionItemUpdate(CollectionItemCreateIn):
         None,
         description="Item id or edition_isbn required if action is `update` or `remove`",
     )
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionUpdateIn(BaseModel):
-    name: str | None
-    info: dict[str, Any] | None
+    name: str | None = None
+    info: dict[str, Any] | None = None
 
 
 class CollectionAndItemsUpdateIn(CollectionUpdateIn):
-    items: list[CollectionItemUpdate] | None
+    items: list[CollectionItemUpdate] | None = None
 
 
 class CollectionUpdateSummaryResponse(BaseModel):
@@ -195,9 +193,7 @@ class CollectionItemActivityBase(BaseModel):
     collection_item_id: int
     reader_id: UUID
     status: CollectionItemReadStatus
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionItemActivityBrief(CollectionItemActivityBase):

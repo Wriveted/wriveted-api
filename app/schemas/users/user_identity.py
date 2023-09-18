@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, ConfigDict
 
 from app.models.user import UserAccountType
 
@@ -11,9 +11,7 @@ from app.models.user import UserAccountType
 class UserBase(BaseModel):
     id: UUID4
     type: UserAccountType
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserIdentity(UserBase):
@@ -21,6 +19,6 @@ class UserIdentity(UserBase):
 
 
 class UserBrief(UserIdentity):
-    email: str | None
+    email: str | None = None
     is_active: bool
-    last_login_at: Optional[datetime]
+    last_login_at: Optional[datetime] = None

@@ -13,11 +13,11 @@ class UserCreateAuth(BaseModel):
     """
 
     type: UserAccountType | None = UserAccountType.PUBLIC
-    username: str | None
-    first_name: str | None
-    last_name_initial: str | None
-    school_id: UUID4 | None
-    class_join_code: UUID4 | None
+    username: str | None = None
+    first_name: str | None = None
+    last_name_initial: str | None = None
+    school_id: UUID4 | None = None
+    class_join_code: UUID4 | None = None
 
     @root_validator
     def validate_user_creation(cls, values):
@@ -50,27 +50,27 @@ class UserCreateAuth(BaseModel):
 class UserCreateIn(BaseModel):
     # all users
     name: str = None
-    email: EmailStr | None
-    info: UserInfo | None
+    email: EmailStr | None = None
+    info: UserInfo | None = None
     type: UserAccountType = UserAccountType.PUBLIC
     newsletter: bool = False
 
     # readers
-    username: str | None
+    username: str | None = None
     first_name: str | None = None
     last_name_initial: str | None = None
-    huey_attributes: HueyAttributes | None
-    parent_id: UUID4 | None
+    huey_attributes: HueyAttributes | None = None
+    parent_id: UUID4 | None = None
 
     # students / educators
-    school_id: UUID4 | int | None
-    class_group_id: UUID4 | None
+    school_id: UUID4 | int | None = None
+    class_group_id: UUID4 | None = None
 
     # parents
-    children: list[UserCreateIn] | None
+    children: list[UserCreateIn] | None = None
 
     # subscription
-    checkout_session_id: str | None
+    checkout_session_id: str | None = None
 
     @root_validator
     def validate_user_creation(cls, values):

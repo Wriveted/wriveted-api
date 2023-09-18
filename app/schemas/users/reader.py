@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator, validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.schemas.booklist import BookListBase
@@ -11,19 +11,19 @@ from app.schemas.users.user_identity import UserBrief, UserIdentity
 
 
 class ReadingPath(BaseModel):
-    read_now: BookListBase | None
-    read_next: BookListBase | None
+    read_now: BookListBase | None = None
+    read_next: BookListBase | None = None
 
 
 class SpecialLists(BaseModel):
-    read_books: BookListBase | None
-    favorite_books: BookListBase | None
-    suggested_books: BookListBase | None
+    read_books: BookListBase | None = None
+    favorite_books: BookListBase | None = None
+    suggested_books: BookListBase | None = None
 
 
 class ReaderBase(BaseModel):
-    first_name: str | None
-    last_name_initial: str | None
+    first_name: str | None = None
+    last_name_initial: str | None = None
 
 
 class ReaderIdentity(ReaderBase, UserIdentity):
@@ -32,15 +32,17 @@ class ReaderIdentity(ReaderBase, UserIdentity):
 
 class ReaderBrief(ReaderBase, UserBrief):
     huey_attributes: HueyAttributes
-    parent: UserIdentity | None
+    parent: UserIdentity | None = None
 
 
 class ReaderDetail(ReaderBrief, UserDetail):
     booklists: list[BookListBase]
     reading_path: ReadingPath = None
     special_lists: SpecialLists = None
-    collection: CollectionBrief | None
+    collection: CollectionBrief | None = None
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("reading_path", pre=True, always=True)
     def grab_pathway_lists(cls, v, values):
         lists = values.get("booklists", None)
@@ -56,6 +58,8 @@ class ReaderDetail(ReaderBrief, UserDetail):
         )
         return output
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("special_lists", pre=True, always=True)
     def grab_special_lists(cls, v, values):
         lists = values.get("booklists", None)
@@ -74,6 +78,7 @@ class ReaderDetail(ReaderBrief, UserDetail):
         )
         return output
 
-    @validator("booklists", pre=True)
+    @field_validator("booklists", mode="before")
+    @classmethod
     def limit_booklists(cls, v):
         return v[:5] if isinstance(v, (AppenderQuery, list)) else v

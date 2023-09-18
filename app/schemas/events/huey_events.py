@@ -2,16 +2,16 @@ from pydantic import BaseModel
 
 
 class HueyEventsSharedInfo(BaseModel):
-    chatbot: str | None
-    experiments: dict[str, bool] | None
-    school_name: str | None
-    distinct_id: str | None
+    chatbot: str | None = None
+    experiments: dict[str, bool] | None = None
+    school_name: str | None = None
+    distinct_id: str | None = None
 
 
 class HueyBookReviewedInfo(HueyEventsSharedInfo):
-    isbn: str | None
+    isbn: str | None = None
     read: bool
-    image: str | None
+    image: str | None = None
     liked: bool
-    title: str | None
-    author: str | None
+    title: str | None = None
+    author: str | None = None

@@ -24,7 +24,7 @@ def get_user_from_id(
 
 
 class MaybeHasUserId(BaseModel):
-    user_id: UUID | None
+    user_id: UUID | None = None
 
 
 def get_optional_user_from_body(
@@ -62,7 +62,7 @@ def get_reader_from_body(
 
 
 class MaybeHasReaderId(BaseModel):
-    reader_id: UUID | None
+    reader_id: UUID | None = None
 
 
 def get_and_validate_collection_with_optional_reader(

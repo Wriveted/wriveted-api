@@ -10,4 +10,4 @@ class EducatorBrief(UserBrief):
 
 
 class EducatorDetail(UserDetail, EducatorBrief):
-    educator_info: dict | None
+    educator_info: dict | None = None

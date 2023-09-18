@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 
 from jose import jwt
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from app.config import get_settings
 
@@ -20,7 +20,8 @@ class TokenPayload(BaseModel):
     iat: datetime
     exp: datetime
 
-    @validator("sub")
+    @field_validator("sub")
+    @classmethod
     def sub_must_start_with_wriveted(cls, v):
         if not v.startswith("wriveted") and ":" not in v:
             raise ValueError("Invalid JWT subject")

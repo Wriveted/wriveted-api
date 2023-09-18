@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import AnyHttpUrl, BaseModel, validator
-from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, field_validator, validator
 
+from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
 from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
 from app.schemas.labelset import LabelSetCreateIn
@@ -41,87 +41,86 @@ class EditionInfo(BaseModel):
     reading_age: str | None = None  # RA
     country: str | None = None  # COP
     medium_tags: list[str] = []  # PFCT, PCTCT{n}
-    image_flag: bool | None  # IMAGFLAG
+    image_flag: bool | None = None  # IMAGFLAG
 
     links: list[LinkBrief] = []
     other: dict | None = None
 
 
 class EditionBrief(BaseModel):
-    leading_article: Optional[str]
-    title: Optional[str]
-    subtitle: Optional[str]
-    cover_url: Optional[AnyHttpUrl]
-    work_id: Optional[str]
+    leading_article: Optional[str] = None
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    cover_url: Optional[AnyHttpUrl] = None
+    work_id: Optional[str] = None
     isbn: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EditionDetail(EditionBrief):
-    series_name: Optional[str]
-    series_number: Optional[int]
+    series_name: Optional[str] = None
+    series_number: Optional[int] = None
 
     authors: list[AuthorBrief]
     illustrators: list[IllustratorBrief]
 
-    date_published: Optional[int]
-    info: Optional[EditionInfo]
+    date_published: Optional[int] = None
+    info: Optional[EditionInfo] = None
 
-    @validator("authors", "illustrators", pre=True)
+    @field_validator("authors", "illustrators", mode="before")
+    @classmethod
     def contributors_not_none(cls, v):
         return v or []
 
 
 class EditionCreateIn(BaseModel):
     isbn: str
-    other_isbns: Optional[list[str]]
+    other_isbns: Optional[list[str]] = None
 
-    work_id: int | None
+    work_id: int | None = None
 
-    leading_article: Optional[str]
-    title: Optional[str]
-    subtitle: Optional[str]
+    leading_article: Optional[str] = None
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
 
-    series_name: Optional[str]
-    series_number: Optional[int]
+    series_name: Optional[str] = None
+    series_number: Optional[int] = None
 
-    authors: Optional[list[AuthorCreateIn]]
-    illustrators: Optional[list[IllustratorCreateIn]]
+    authors: Optional[list[AuthorCreateIn]] = None
+    illustrators: Optional[list[IllustratorCreateIn]] = None
 
-    cover_url: str | None
+    cover_url: str | None = None
     _validate_cover_url = validator("cover_url", allow_reuse=True)(
         lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
     )
 
-    date_published: Optional[int]
+    date_published: Optional[int] = None
 
-    labelset: Optional[LabelSetCreateIn]
-    info: Optional[EditionInfo]
+    labelset: Optional[LabelSetCreateIn] = None
+    info: Optional[EditionInfo] = None
 
     hydrated: bool = False
 
 
 class EditionUpdateIn(BaseModel):
-    leading_article: str | None
-    edition_title: str | None
-    edition_subtitle: str | None
+    leading_article: str | None = None
+    edition_title: str | None = None
+    edition_subtitle: str | None = None
 
-    date_published: str | None
+    date_published: str | None = None
 
-    illustrators: list[ContributorBase | int] | None
+    illustrators: list[ContributorBase | int] | None = None
 
-    cover_url: str | None
+    cover_url: str | None = None
     _validate_cover_url = validator("cover_url", pre=True, allow_reuse=True)(
         lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
     )
 
-    work_id: int | None
+    work_id: int | None = None
 
-    info: EditionInfo | None
+    info: EditionInfo | None = None
 
-    hydrated_at: datetime | None
+    hydrated_at: datetime | None = None
 
 
 class KnownAndTaggedEditionCounts(BaseModel):

@@ -11,9 +11,9 @@ from app.schemas.users.user_identity import UserBrief
 class ParentBrief(UserBrief):
     type: Literal["parent"]
     children: list[ReaderIdentity]
-    subscription: SubscriptionBrief | None
+    subscription: SubscriptionBrief | None = None
 
 
 class ParentDetail(UserDetail, ParentBrief):
-    parent_info: dict | None
-    subscription: SubscriptionDetail | None
+    parent_info: dict | None = None
+    subscription: SubscriptionDetail | None = None

@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from datetime import datetime
 from uuid import UUID
+
 import phonenumbers
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict
 from pydantic.validators import strict_str_validator
+
 from app.schemas.users.user_identity import UserBrief
 
 
@@ -32,27 +35,27 @@ class UserPatchOptions(BaseModel):
 
 
 class UserInfo(BaseModel):
-    sign_in_provider: str | None
-    phone_number: PhoneNumber | None
+    sign_in_provider: str | None = None
+    phone_number: PhoneNumber | None = None
 
     # hoping pictures won't be base64 strings
-    picture: AnyHttpUrl | None
+    picture: AnyHttpUrl | None = None
 
     # storing each individual user type's info
     # in the base will allow a type of posterity
     # in the event of user type changes
-    reader_info: dict | None
-    student_info: dict | None
-    educator_info: dict | None
-    school_admin_info: dict | None
-    wriveted_admin_info: dict | None
-    parent_info: dict | None
+    reader_info: dict | None = None
+    student_info: dict | None = None
+    educator_info: dict | None = None
+    school_admin_info: dict | None = None
+    wriveted_admin_info: dict | None = None
+    parent_info: dict | None = None
 
-    other: dict | None
+    other: dict | None = None
 
 
 class UserDetail(UserBrief):
-    info: UserInfo | None
+    info: UserInfo | None = None
 
     created_at: datetime
     updated_at: datetime
@@ -61,9 +64,7 @@ class UserDetail(UserBrief):
 
 class UsersSchool(BaseModel):
     wriveted_identifier: UUID
-    official_identifier: str | None
+    official_identifier: str | None = None
     country_code: str
     name: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

@@ -5,7 +5,7 @@ from math import ceil, floor
 from textwrap import shorten
 
 from bs4 import BeautifulSoup
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 from structlog import get_logger
 
 from app.models.labelset import LabelOrigin, RecommendStatus
@@ -151,10 +151,11 @@ BIC_AGE_MAP = {
 
 
 class Contributor(BaseModel):
-    first_name: str | None  # ICFN
+    first_name: str | None = None  # ICFN
     last_name: str  # ICKN
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate(cls, values):
         # in the case of a single-name author, Nielsen will use a last name only (i.e. Homer, {blank})
         # but in the case of a comapny, Nielsen will use a first name only (i.e. {blank}, Australian Geographic)
@@ -168,22 +169,22 @@ class Contributor(BaseModel):
 
 class EstimatedLabelSet(BaseModel):
     hues: list[HueKeys] = []
-    hue_origin: LabelOrigin | None
+    hue_origin: LabelOrigin | None = None
 
-    min_age: int | None
-    max_age: int | None
-    age_origin: LabelOrigin | None
+    min_age: int | None = None
+    max_age: int | None = None
+    age_origin: LabelOrigin | None = None
 
     reading_abilities: list[ReadingAbilityKey] = []
-    reading_ability_origin: LabelOrigin | None
+    reading_ability_origin: LabelOrigin | None = None
 
-    huey_summary: str | None
-    summary_origin: LabelOrigin | None
+    huey_summary: str | None = None
+    summary_origin: LabelOrigin | None = None
 
-    info: dict | None
+    info: dict | None = None
 
-    recommend_status: RecommendStatus | None
-    recommend_status_origin: LabelOrigin | None
+    recommend_status: RecommendStatus | None = None
+    recommend_status_origin: LabelOrigin | None = None
 
 
 class HydratedBookData(BaseModel):
