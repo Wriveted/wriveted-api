@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import UUID4, BaseModel, validator
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
 from app.models import ServiceAccountType
@@ -14,19 +14,18 @@ class ServiceAccountBrief(BaseModel):
     name: str
     type: ServiceAccountType
     is_active: bool
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ServiceAccountDetail(ServiceAccountBrief):
-    info: Optional[dict]
+    info: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
     events: List[EventBrief]
     schools: List[SchoolIdentity]
 
-    @validator("events", pre=True)
+    @field_validator("events", mode="before")
+    @classmethod
     def limit_events(cls, v):
         return v[:10] if isinstance(v, AppenderQuery) else v
 
@@ -38,11 +37,11 @@ class ServiceAccountCreatedResponse(ServiceAccountBrief):
 class ServiceAccountCreateIn(BaseModel):
     name: str
     type: ServiceAccountType
-    info: Optional[dict]
-    schools: Optional[List[SchoolWrivetedIdentity]]
+    info: Optional[dict] = None
+    schools: Optional[List[SchoolWrivetedIdentity]] = None
 
 
 class ServiceAccountUpdateIn(BaseModel):
-    name: Optional[str]
-    info: Optional[dict]
-    schools: Optional[List[SchoolWrivetedIdentity]]
+    name: Optional[str] = None
+    info: Optional[dict] = None
+    schools: Optional[List[SchoolWrivetedIdentity]] = None

@@ -2,7 +2,15 @@ import enum
 from functools import lru_cache
 from typing import Any, List, Optional, Union
 
-from pydantic import AnyHttpUrl, AnyUrl, BaseSettings, DirectoryPath, HttpUrl, validator
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    DirectoryPath,
+    HttpUrl,
+    field_validator,
+    validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -63,6 +71,8 @@ class Settings(BaseSettings):
     NIELSEN_ENABLE_CACHE: bool = False
     NIELSEN_CACHE_RESULTS: bool = True
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_sqlalchemy_connection(
         cls, v: Optional[str], values: dict[str, Any]
@@ -139,7 +149,8 @@ class Settings(BaseSettings):
         "http://15.188.52.37",
     ]
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
@@ -175,10 +186,7 @@ class Settings(BaseSettings):
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
-
-    class Config:
-        case_sensitive = True
-        use_enum_values = True
+    model_config = SettingsConfigDict(case_sensitive=True, use_enum_values=True)
 
 
 @lru_cache()

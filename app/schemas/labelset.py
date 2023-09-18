@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas import CaseInsensitiveStringEnum
@@ -97,77 +97,72 @@ class ReadingAbility(BaseModel):
     id: str
     key: str
     name: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LabelSetBrief(BaseModel):
     id: str
     work_id: str
-    # work_name: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LabelSetBasic(LabelSetBrief):
     hues: list[Hue]
-    min_age: Optional[int]
-    max_age: Optional[int]
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
     reading_abilities: list[ReadingAbility]
-    huey_summary: Optional[str]
+    huey_summary: Optional[str] = None
 
 
 class LabelSetDetail(LabelSetBrief):
     hues: list[Hue]
-    hue_origin: Optional[LabelOrigin]
+    hue_origin: Optional[LabelOrigin] = None
 
-    min_age: Optional[int]
-    max_age: Optional[int]
-    age_origin: Optional[LabelOrigin]
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
+    age_origin: Optional[LabelOrigin] = None
 
     reading_abilities: list[ReadingAbility]
-    reading_ability_origin: Optional[LabelOrigin]
+    reading_ability_origin: Optional[LabelOrigin] = None
 
-    huey_summary: Optional[str]
-    summary_origin: Optional[LabelOrigin]
+    huey_summary: Optional[str] = None
+    summary_origin: Optional[LabelOrigin] = None
 
-    labelled_by_user_id: Optional[UUID]
-    labelled_by_sa_id: Optional[UUID]
-    info: Optional[dict]
+    labelled_by_user_id: Optional[UUID] = None
+    labelled_by_sa_id: Optional[UUID] = None
+    info: Optional[dict] = None
 
-    recommend_status: Optional[RecommendStatus]
-    recommend_status_origin: Optional[LabelOrigin]
-    checked: Optional[bool]
+    recommend_status: Optional[RecommendStatus] = None
+    recommend_status_origin: Optional[LabelOrigin] = None
+    checked: Optional[bool] = None
 
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
 
 
 # everything is optional here. also used for patch requests
 class LabelSetCreateIn(BaseModel):
-    hue_primary_key: Optional[str]
-    hue_secondary_key: Optional[str]
-    hue_tertiary_key: Optional[str]
-    hue_origin: Optional[LabelOrigin]
+    hue_primary_key: Optional[str] = None
+    hue_secondary_key: Optional[str] = None
+    hue_tertiary_key: Optional[str] = None
+    hue_origin: Optional[LabelOrigin] = None
 
-    min_age: Optional[int]
-    max_age: Optional[int]
-    age_origin: Optional[LabelOrigin]
-    reading_ability_keys: Optional[list[str]]
-    reading_ability_origin: Optional[LabelOrigin]
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
+    age_origin: Optional[LabelOrigin] = None
+    reading_ability_keys: Optional[list[str]] = None
+    reading_ability_origin: Optional[LabelOrigin] = None
 
-    huey_summary: Optional[str]
-    summary_origin: Optional[LabelOrigin]
+    huey_summary: Optional[str] = None
+    summary_origin: Optional[LabelOrigin] = None
 
-    labelled_by_user_id: Optional[UUID]
-    labelled_by_sa_id: Optional[UUID]
-    info: Optional[dict]
+    labelled_by_user_id: Optional[UUID] = None
+    labelled_by_sa_id: Optional[UUID] = None
+    info: Optional[dict] = None
 
-    recommend_status: Optional[RecommendStatus]
-    recommend_status_origin: Optional[LabelOrigin]
-    checked: Optional[bool]
+    recommend_status: Optional[RecommendStatus] = None
+    recommend_status_origin: Optional[LabelOrigin] = None
+    checked: Optional[bool] = None
 
     def empty(self):
         for att in self.__dict__:

@@ -28,31 +28,31 @@ user_type_attributes_map = {
 
 class UserUpdateIn(BaseModel):
     # all users
-    name: str | None
-    is_active: bool | None
-    email: EmailStr | None
-    info: UserInfo | None
-    newsletter: bool | None
+    name: str | None = None
+    is_active: bool | None = None
+    email: EmailStr | None = None
+    info: UserInfo | None = None
+    newsletter: bool | None = None
 
     # readers
-    first_name: str | None
-    last_name_initial: str | None
-    huey_attributes: HueyAttributes | None
+    first_name: str | None = None
+    last_name_initial: str | None = None
+    huey_attributes: HueyAttributes | None = None
 
     # students
-    username: str | None
+    username: str | None = None
 
     # students + educators
-    school_id: UUID | None
-    class_group_id: UUID | None
+    school_id: UUID | None = None
+    class_group_id: UUID | None = None
 
     # changing user type
-    type: UserAccountType | None
+    type: UserAccountType | None = None
 
 
 class InternalUserUpdateIn(UserUpdateIn):
-    current_type: UserAccountType | None
-    school_id: UUID4 | int | None
+    current_type: UserAccountType | None = None
+    school_id: UUID4 | int | None = None
 
     @root_validator
     def validate_user_type_change(cls, values):

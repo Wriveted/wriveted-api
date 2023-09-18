@@ -1,14 +1,15 @@
 from datetime import datetime
-from uuid import UUID
-from pydantic import AnyHttpUrl, BaseModel, constr
+
+from pydantic import AnyHttpUrl, BaseModel, StringConstraints
+from typing_extensions import Annotated
 
 from app.schemas.sendgrid import SendGridEmailData
 
 
 class SendEmailPayload(BaseModel):
     email_data: SendGridEmailData
-    user_id: str | None
-    service_account_id: str | None
+    user_id: str | None = None
+    service_account_id: str | None = None
 
 
 class SendSmsPayload(BaseModel):
@@ -26,7 +27,7 @@ class ReadingLogEventDetail(BaseModel):
     supporter_nickname: str
 
     book_title: str
-    cover_url: str | None
+    cover_url: str | None = None
 
     emoji: str
     descriptor: str
@@ -37,5 +38,5 @@ class ReadingLogEventDetail(BaseModel):
 
 class ReadingLogEventFeedback(BaseModel):
     event_id: str
-    comment: constr(min_length=5, max_length=140)
+    comment: Annotated[str, StringConstraints(min_length=5, max_length=140)]
     gif_url: AnyHttpUrl

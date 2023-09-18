@@ -6,9 +6,9 @@ from app.schemas.users.user_identity import UserIdentity
 
 
 class EventDetail(EventBrief):
-    school: SchoolWrivetedIdentity | None
-    user: UserIdentity | None
-    service_account: ServiceAccountBrief | None
+    school: SchoolWrivetedIdentity | None = None
+    user: UserIdentity | None = None
+    service_account: ServiceAccountBrief | None = None
 
 
 class EventListsResponse(PaginatedResponse):

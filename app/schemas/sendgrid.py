@@ -9,39 +9,41 @@ config = get_settings()
 
 class SendGridCustomField(BaseModel):
     name: str
-    value: int | datetime | str | None
-    id: str | None
+    value: int | datetime | str | None = None
+    id: str | None = None
 
 
 class SendGridContactData(BaseModel):
     email: EmailStr
-    first_name: str | None
-    last_name: str | None
-    address_line_1: str | None
-    address_line_2: str | None
-    city: str | None
-    state_province_region: str | None
-    postal_code: str | None
-    country: str | None
-    phone_number: str | None
-    whatsapp: str | None
-    line: str | None
-    facebook: str | None
-    unique_name: str | None
+    first_name: str | None = None
+    last_name: str | None = None
+    address_line_1: str | None = None
+    address_line_2: str | None = None
+    city: str | None = None
+    state_province_region: str | None = None
+    postal_code: str | None = None
+    country: str | None = None
+    phone_number: str | None = None
+    whatsapp: str | None = None
+    line: str | None = None
+    facebook: str | None = None
+    unique_name: str | None = None
 
 
 class CustomSendGridContactData(SendGridContactData):
-    custom_fields: dict[str, int | datetime | str] | None
+    custom_fields: dict[str, int | datetime | str] | None = None
 
 
 class SendGridEmailData(BaseModel):
     from_email: EmailStr = "hello@hueybooks.com"
-    from_name: str | None
+    from_name: str | None = None
     to_emails: list[EmailStr]
-    subject: str | None
-    template_id: str | None
+    subject: str | None = None
+    template_id: str | None = None
     template_data: dict = {}
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("template_data", always=True)
     def validate_template_data(cls, value, values):
         if value and not values.get("template_id"):

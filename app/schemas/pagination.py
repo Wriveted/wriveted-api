@@ -1,7 +1,6 @@
 from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
-from pydantic.generics import GenericModel
 
 DataT = TypeVar("DataT")
 
@@ -12,6 +11,6 @@ class Pagination(BaseModel):
     total: Optional[int] = Field(None, description="Total number of items (if known)")
 
 
-class PaginatedResponse(GenericModel, Generic[DataT]):
+class PaginatedResponse(BaseModel, Generic[DataT]):
     data: List[DataT]
     pagination: Optional[Pagination]

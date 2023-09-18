@@ -1,7 +1,8 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 from sendgrid import SendGridAPIClient
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -57,7 +58,7 @@ async def process_event(data: ProcessEventPayload):
 class EventSlackAlertPayload(BaseModel):
     event_id: str
     slack_channel: EventSlackChannel = EventSlackChannel.GENERAL
-    slack_extra: dict[str, str] | None
+    slack_extra: dict[str, str] | None = None
 
 
 @router.post("/event-to-slack-alert")
@@ -73,7 +74,7 @@ async def event_to_slack_alert(
 
 class StripeInternalEventPayload(BaseModel):
     stripe_event_type: str
-    stripe_event_data: Any
+    stripe_event_data: Any = None
 
 
 @router.post("/process-stripe-event")

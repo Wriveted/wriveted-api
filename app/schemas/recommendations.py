@@ -2,8 +2,8 @@ import uuid
 from typing import Optional
 
 from pydantic import BaseModel, HttpUrl
-from app.schemas import CaseInsensitiveStringEnum
 
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.labelset import LabelSetDetail
 
 
@@ -53,7 +53,7 @@ class HueyRecommendationFilterUsed(HueyRecommendationFilterBase):
 class HueyBook(BaseModel):
     work_id: int
     isbn: str
-    cover_url: HttpUrl | None
+    cover_url: HttpUrl | None = None
     display_title: str  # {leading article} {title} (leading article is optional, thus bridging whitespace optional)
     authors_string: str  # {a1.first_name} {a1.last_name}, {a2.first_name} {a2.last_name} ... (first name is optional, thus bridging whitespace optional)
     summary: str

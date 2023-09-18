@@ -1,6 +1,6 @@
 from typing import Dict, Literal
 
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, field_validator, model_validator, validator
 
 from app.models.labelset import RecommendStatus
 from app.schemas.labelset import (
@@ -13,12 +13,13 @@ from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
 class GptWorkData(BaseModel):
-    short_summary: str | None
-    long_summary: str | None
+    short_summary: str | None = None
+    long_summary: str | None = None
 
     reading_ability: list[ReadingAbilityKey] = []
 
-    @validator("reading_ability", pre=True)
+    @field_validator("reading_ability", mode="before")
+    @classmethod
     def validate_reading_ability(cls, value):
         errors = []
         for item in value:
@@ -35,7 +36,8 @@ class GptWorkData(BaseModel):
 
     styles: list[WritingStyleKey] | None = []
 
-    @validator("styles", pre=True)
+    @field_validator("styles", mode="before")
+    @classmethod
     def validate_styles(cls, value):
         errors = []
         for item in value:
@@ -52,7 +54,8 @@ class GptWorkData(BaseModel):
 
     genres: list[GenreKey] | None = []
 
-    @validator("genres", pre=True)
+    @field_validator("genres", mode="before")
+    @classmethod
     def validate_genres(cls, value):
         errors = []
         for item in value:
@@ -69,7 +72,8 @@ class GptWorkData(BaseModel):
 
     hue_map: Dict[HueKeys, float] = {}
 
-    @validator("hue_map", pre=True)
+    @field_validator("hue_map", mode="before")
+    @classmethod
     def validate_hue_map(cls, value):
         errors = []
         for key in value.keys():
@@ -86,6 +90,8 @@ class GptWorkData(BaseModel):
 
     hues: list[HueKeys] = []
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("hues", always=True, pre=True)
     def generate_hues(cls, value, values):
         hue_map = values.get("hue_map")
@@ -112,7 +118,8 @@ class GptWorkData(BaseModel):
 
     characters: list[CharacterKey] | None = []
 
-    @validator("characters", pre=True)
+    @field_validator("characters", mode="before")
+    @classmethod
     def validate_characters(cls, value):
         errors = []
         for item in value:
@@ -129,10 +136,11 @@ class GptWorkData(BaseModel):
 
     gender: Literal["male", "female", "nonbinary", "unknown"] | None = None
 
-    series: str | None
-    series_number: int | None
+    series: str | None = None
+    series_number: int | None = None
 
-    @validator("series_number", pre=True)
+    @field_validator("series_number", mode="before")
+    @classmethod
     def series_number_to_int(cls, value):
         if value is None:
             return None
@@ -143,12 +151,13 @@ class GptWorkData(BaseModel):
             return None
 
     awards: list[str] | None = []
-    notes: str | None
+    notes: str | None = None
     recommend_status: RecommendStatus
 
     controversial_themes: list[ControversialThemeKey] | None = []
 
-    @validator("controversial_themes", pre=True)
+    @field_validator("controversial_themes", mode="before")
+    @classmethod
     def validate_controversial_themes(cls, value):
         errors = []
         for item in value:
@@ -184,7 +193,8 @@ class GptUsage(BaseModel):
     usages: list[GptPromptUsage]
 
     # calculate the overall usage from the list
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def calculate_overall_usage(cls, values):
         overall_prompt_tokens = 0
         overall_completion_tokens = 0

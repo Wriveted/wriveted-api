@@ -4,7 +4,8 @@ from importlib.metadata import PackageNotFoundError
 from textwrap import dedent
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 

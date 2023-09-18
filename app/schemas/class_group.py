@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-from app.schemas import CaseInsensitiveStringEnum
+from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.users.student import StudentIdentity
 
@@ -12,9 +12,7 @@ from app.schemas.users.student import StudentIdentity
 class ClassGroupIdentifier(BaseModel):
     id: UUID = Field(None, description="Class Identifier (Wriveted UUID)")
     school_id: UUID = Field(None, description="School Identifier (Wriveted UUID)")
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClassGroupBrief(ClassGroupIdentifier):
@@ -54,8 +52,8 @@ class ClassGroupMemberUpdateIn(BaseModel):
 
 # Note we don't allow changing the joining code (should we?)
 class ClassGroupUpdateIn(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     note: Optional[str] = Field(None, description="Note about this class")
 
-    members: Optional[list[ClassGroupMemberUpdateIn]]
-    admins: Optional[list[ClassGroupMemberUpdateIn]]
+    members: Optional[list[ClassGroupMemberUpdateIn]] = None
+    admins: Optional[list[ClassGroupMemberUpdateIn]] = None

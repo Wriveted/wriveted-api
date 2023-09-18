@@ -1,8 +1,8 @@
 import datetime
 
 from pydantic import BaseModel
-from app.schemas import CaseInsensitiveStringEnum
 
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.service_account import ServiceAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.parent import ParentDetail
@@ -33,5 +33,5 @@ class AuthenticatedAccountBrief(BaseModel):
     account_type: AccountType
     token_expiry: datetime.datetime
 
-    user: SpecificUserDetail | None
-    service_account: ServiceAccountBrief | None
+    user: SpecificUserDetail | None = None
+    service_account: ServiceAccountBrief | None = None

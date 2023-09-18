@@ -263,8 +263,8 @@ def student_user_auth(
 
 
 class RegisterUserIn(BaseModel):
-    first_name: str | None
-    last_name_initial: str | None
+    first_name: str | None = None
+    last_name_initial: str | None = None
     school_id: UUID
     class_joining_code: str
 

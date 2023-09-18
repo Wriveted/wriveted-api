@@ -1,83 +1,74 @@
-from typing import List, Literal, Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.models.work import WorkType
 from app.schemas.author import AuthorBrief, AuthorCreateIn
 from app.schemas.edition import EditionBrief, Genre
-from app.schemas.labelset import (
-    CharacterKey,
-    GenreKey,
-    LabelSetBasic,
-    LabelSetCreateIn,
-    LabelSetDetail,
-    WritingStyleKey,
-)
-from app.schemas.recommendations import HueKeys, ReadingAbilityKey
+from app.schemas.labelset import LabelSetBasic, LabelSetCreateIn, LabelSetDetail
 
 
 class WorkInfo(BaseModel):
     genres: list[Genre]
     other: dict
 
-    @validator("genres", pre=True)
+    @field_validator("genres", mode="before")
+    @classmethod
     def genres_not_none(cls, v):
         return v or []
 
 
 class WorkBrief(BaseModel):
     id: str
-    type: Optional[WorkType]
+    type: Optional[WorkType] = None
 
-    leading_article: str | None
+    leading_article: str | None = None
     title: str
-    subtitle: str | None
+    subtitle: str | None = None
 
     authors: List[AuthorBrief]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkEnriched(WorkBrief):
-    labelset: LabelSetBasic | None
-    cover_url: str | None
+    labelset: LabelSetBasic | None = None
+    cover_url: str | None = None
 
 
 class WorkDetail(WorkEnriched):
     editions: List[EditionBrief]
-    labelset: Optional[LabelSetDetail]
-    info: Optional[WorkInfo]
+    labelset: Optional[LabelSetDetail] = None
+    info: Optional[WorkInfo] = None
 
 
 class WorkCreateIn(BaseModel):
     type: WorkType
 
-    leading_article: Optional[str]
+    leading_article: Optional[str] = None
     title: str
-    subtitle: Optional[str]
+    subtitle: Optional[str] = None
 
     authors: List[AuthorCreateIn]
 
-    series_name: Optional[str]
-    series_number: Optional[int]
+    series_name: Optional[str] = None
+    series_number: Optional[int] = None
 
-    info: Optional[dict]
+    info: Optional[dict] = None
 
 
 class WorkCreateWithEditionsIn(BaseModel):
     type: WorkType = WorkType.BOOK
-    leading_article: Optional[str]
+    leading_article: Optional[str] = None
     title: str
-    subtitle: Optional[str]
+    subtitle: Optional[str] = None
     authors: List[AuthorCreateIn | int]
     editions: list[str]
-    info: Optional[dict]
+    info: Optional[dict] = None
 
 
 class WorkUpdateIn(BaseModel):
-    leading_article: str | None
-    title: str | None
-    subtitle: str | None
+    leading_article: str | None = None
+    title: str | None = None
+    subtitle: str | None = None
 
-    labelset: LabelSetCreateIn | None
+    labelset: LabelSetCreateIn | None = None
