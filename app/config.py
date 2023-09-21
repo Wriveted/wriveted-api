@@ -2,14 +2,8 @@ import enum
 from functools import lru_cache
 from typing import Any, List, Optional, Union
 
-from pydantic import (
-    AnyHttpUrl,
-    AnyUrl,
-    DirectoryPath,
-    HttpUrl,
-    field_validator,
-    validator,
-)
+from pydantic import AnyHttpUrl, DirectoryPath, HttpUrl, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,7 +35,6 @@ class Settings(BaseSettings):
     POSTGRESQL_USER: str = "postgres"
     POSTGRESQL_PASSWORD: str
 
-    SQLALCHEMY_DATABASE_URI: str = None
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 10
 
@@ -71,16 +64,18 @@ class Settings(BaseSettings):
     NIELSEN_ENABLE_CACHE: bool = False
     NIELSEN_CACHE_RESULTS: bool = True
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
+    SQLALCHEMY_DATABASE_URI: str | None = None
+
+    @field_validator("SQLALCHEMY_DATABASE_URI", mode="before")
+    @classmethod
     def assemble_sqlalchemy_connection(
-        cls, v: Optional[str], values: dict[str, Any]
+        cls, v: Optional[str], info: FieldValidationInfo
     ) -> Any:
         if isinstance(v, str):
             # If a string is provided (e.g. via environment variable) we just use that
             return v
 
+        values = info.data
         # Otherwise, assemble a sqlalchemy connection string from the other provided values.
         db_host = values.get("POSTGRESQL_SERVER")
         db_user = values.get("POSTGRESQL_USER")
@@ -101,14 +96,10 @@ class Settings(BaseSettings):
             )
             query = f"host={socket_path}/{cloud_sql_instance_connection}"
 
-        return AnyUrl.build(
-            scheme="postgresql",
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            path=db_name,
-            query=query,
-        )
+        scheme = "postgresql"
+
+        # Assemble it all together:
+        return f"{scheme}://{db_user}:{db_password}@{db_host}/{db_name}?{query}"
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \

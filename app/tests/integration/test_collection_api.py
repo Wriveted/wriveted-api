@@ -107,7 +107,8 @@ def test_user_can_update_collection_items_by_id(
         },
         headers=test_user_account_headers,
     )
-    patch_collection_response.raise_for_status()
+    assert patch_collection_response.status_code == 200, patch_collection_response.text
+
     collection = crud.collection.get(session, test_user_collection.id)
     session.refresh(collection)
     assert len(collection.items) == item_count
