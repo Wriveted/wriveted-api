@@ -1,14 +1,13 @@
 from typing import Literal
 
+from app.models.user import UserAccountType
 from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users.reader import ReaderBrief, ReaderDetail, ReaderIdentity
 from app.schemas.users.user import UsersSchool
 
-# from app.schemas.class_group import ClassGroupBrief
-
 
 class StudentIdentity(ReaderIdentity):
-    type: Literal["student"]
+    type: Literal[UserAccountType.STUDENT]
     username: str
     school: SchoolIdentity
 

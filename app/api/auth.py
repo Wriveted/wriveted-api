@@ -312,7 +312,7 @@ def create_student_user(
     crud.event.create(
         session=session,
         title="Student account created",
-        description=f"",
+        description=f"User type: {new_user.type}",
         account=new_user,
         school=school,
         commit=False,
@@ -320,7 +320,7 @@ def create_student_user(
     session.commit()
     session.refresh(new_user)
 
-    return new_user
+    return StudentIdentity.model_validate(new_user)
 
 
 @router.get("/auth/me", response_model=AuthenticatedAccountBrief)

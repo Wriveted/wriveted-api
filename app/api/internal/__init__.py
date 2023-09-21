@@ -26,9 +26,9 @@ from app.services.stripe_events import process_stripe_event
 
 
 class CloudRunEnvironment(BaseSettings):
-    K_SERVICE: str = None
-    K_REVISION: str = None
-    K_CONFIGURATION: str = None
+    K_SERVICE: str | None = None
+    K_REVISION: str | None = None
+    K_CONFIGURATION: str | None = None
 
 
 cloud_run_config = CloudRunEnvironment()

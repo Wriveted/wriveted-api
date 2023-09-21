@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field, validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 from app.models.booklist import ListSharingType, ListType
-from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.edition import EditionDetail
+from app.schemas.image_url import ImageUrl
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.school import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
@@ -61,11 +62,7 @@ class BookListOptionalInfo(BaseModel):
 
 
 class BookListOptionalInfoCreateIn(BookListOptionalInfo):
-    image_url: str | None = None
-
-    _validate_image_url = validator("image_url", allow_reuse=True)(
-        lambda v: validate_image_url_or_base64_string(v, field_name="image_url")
-    )
+    image_url: ImageUrl | None = None
 
 
 class BookListCreateIn(BaseModel):

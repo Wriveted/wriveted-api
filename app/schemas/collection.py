@@ -2,20 +2,14 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import (
-    AnyHttpUrl,
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-    validator,
-)
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 from structlog import get_logger
 from typing_extensions import Annotated
 
 from app.models.collection_item_activity import CollectionItemReadStatus
-from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.edition import EditionBrief
+from app.schemas.image_url import ImageUrl
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.work import WorkBrief
 
@@ -76,11 +70,7 @@ class CollectionItemInfo(BaseModel):
 
 
 class CollectionItemInfoCreateIn(CollectionItemInfo):
-    cover_image: str | None = None
-
-    _validate_cover_image = validator("cover_image", pre=True, allow_reuse=True)(
-        lambda v: validate_image_url_or_base64_string(v, field_name="cover_image")
-    )
+    cover_image: ImageUrl | None = None
     model_config = ConfigDict(str_max_length=(2**19) * 1.5, validate_assignment=True)
 
 

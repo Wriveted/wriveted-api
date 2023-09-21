@@ -1,11 +1,19 @@
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, field_validator, validator
+from pydantic import (
+    AfterValidator,
+    AnyHttpUrl,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    field_validator,
+)
 
-from app.schemas import CaseInsensitiveStringEnum, validate_image_url_or_base64_string
+from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.author import AuthorBrief, AuthorCreateIn, ContributorBase
 from app.schemas.illustrator import IllustratorBrief, IllustratorCreateIn
+from app.schemas.image_url import ImageUrl, validate_image_url_or_base64_string
 from app.schemas.labelset import LabelSetCreateIn
 from app.schemas.link import LinkBrief
 
@@ -26,7 +34,9 @@ class Genre(BaseModel):
 
 class EditionInfo(BaseModel):
     # nielsen fields
-    pages: str | None = None  # PAGNUM
+    pages: Annotated[
+        str | None, BeforeValidator(lambda v: v if v is None else str(v))
+    ] = None  # PAGNUM
     summary_short: str | None = None  # AUSFSD
     summary_long: str | None = None  # AUSFLD
     genres: list[Genre] = []  # BISACT/C{n}, BIC2ST/C{n}, THEMAST/C{n}, LOCSH{n}
@@ -52,7 +62,9 @@ class EditionBrief(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
     cover_url: Optional[AnyHttpUrl] = None
-    work_id: Optional[str] = None  # todo convert optional int to str
+    work_id: Annotated[
+        Optional[str], BeforeValidator(lambda x: x if x is None else str(x))
+    ] = None
     isbn: str
     model_config = ConfigDict(from_attributes=True)
 
@@ -89,10 +101,12 @@ class EditionCreateIn(BaseModel):
     authors: Optional[list[AuthorCreateIn]] = None
     illustrators: Optional[list[IllustratorCreateIn]] = None
 
-    cover_url: str | None = None
-    _validate_cover_url = validator("cover_url", allow_reuse=True)(
-        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
-    )
+    cover_url: Annotated[
+        str | None,
+        AfterValidator(
+            lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
+        ),
+    ] = None
 
     date_published: Optional[int] = None
 
@@ -111,10 +125,7 @@ class EditionUpdateIn(BaseModel):
 
     illustrators: list[ContributorBase | int] | None = None
 
-    cover_url: str | None = None
-    _validate_cover_url = validator("cover_url", pre=True, allow_reuse=True)(
-        lambda v: validate_image_url_or_base64_string(v, field_name="cover_url")
-    )
+    cover_url: ImageUrl | None = None
 
     work_id: int | None = None
 
