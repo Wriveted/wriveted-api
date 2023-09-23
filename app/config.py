@@ -5,6 +5,9 @@ from typing import Any, List, Optional, Union
 from pydantic import AnyHttpUrl, DirectoryPath, HttpUrl, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from structlog import get_logger
+
+logger = get_logger()
 
 
 class Settings(BaseSettings):
@@ -99,7 +102,11 @@ class Settings(BaseSettings):
         scheme = "postgresql"
 
         # Assemble it all together:
-        return f"{scheme}://{db_user}:{db_password}@{db_host}/{db_name}?{query}"
+        connection_string = (
+            f"{scheme}://{db_user}:{db_password}@{db_host}/{db_name}?{query}"
+        )
+        logger.debug(f"Connection string {connection_string}")
+        return connection_string
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
