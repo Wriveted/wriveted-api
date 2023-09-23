@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 

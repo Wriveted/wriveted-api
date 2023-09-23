@@ -1,7 +1,8 @@
 from __future__ import annotations
-from phonenumbers import PhoneNumber
 
+from phonenumbers import PhoneNumber
 from pydantic import Field
+
 from app.schemas.users.user_identity import UserBrief, UserIdentity
 
 

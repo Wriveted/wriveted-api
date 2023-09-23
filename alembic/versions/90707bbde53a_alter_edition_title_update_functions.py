@@ -5,9 +5,7 @@ Revises: 3cc9f3831b7b
 Create Date: 2023-02-17 13:51:13.443568
 
 """
-import sqlalchemy as sa
 from alembic_utils.pg_function import PGFunction
-from sqlalchemy import text as sql_text
 
 from alembic import op
 

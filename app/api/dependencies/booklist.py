@@ -2,8 +2,8 @@ import select
 import uuid
 
 from fastapi import Depends, HTTPException, Path
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app import crud
 from app.db.session import get_session

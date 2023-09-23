@@ -1,3 +1,5 @@
+import secrets
+
 from starlette import status
 
 from app.models.booklist import ListSharingType, ListType
@@ -636,8 +638,13 @@ def test_enriched_booklist_response(
 
 
 def test_create_public_huey_booklist(
-    client, backend_service_account_headers, test_user_account_headers, works_list
+    client,
+    backend_service_account_headers,
+    test_user_account_headers,
+    works_list,
 ):
+    slug = f"wizard-wishes-{secrets.token_hex(8)}"
+
     # test that a public huey booklist can't be created with user rights
     create_booklist_response = client.post(
         "v1/list",
@@ -645,7 +652,7 @@ def test_create_public_huey_booklist(
         json={
             "name": "wizard wishes",
             "type": ListType.HUEY,
-            "slug": "wizard-wishes",
+            "slug": slug,
             "sharing": ListSharingType.PUBLIC,
             "info": {"foo": 42},
             "items": [
@@ -667,7 +674,7 @@ def test_create_public_huey_booklist(
         json={
             "name": "wizard wishes",
             "type": ListType.HUEY,
-            "slug": "wizard-wishes",
+            "slug": slug,
             "sharing": ListSharingType.PUBLIC,
             "info": {"foo": 42},
             "items": [
@@ -686,6 +693,8 @@ def test_create_public_huey_booklist(
 def test_get_public_huey_booklist_without_auth(
     client, backend_service_account_headers, works_list
 ):
+    slug = f"top-20-ultra-cool-books-{secrets.token_hex(8)}"
+
     # create a public huey booklist
     create_booklist_response = client.post(
         "v1/list",
@@ -693,7 +702,7 @@ def test_get_public_huey_booklist_without_auth(
         json={
             "name": "top 20 ultra cool books",
             "type": ListType.HUEY,
-            "slug": "top-20-ultra-cool-books",
+            "slug": slug,
             "sharing": ListSharingType.PUBLIC,
             "info": {"foo": 42},
             "items": [
@@ -710,11 +719,11 @@ def test_get_public_huey_booklist_without_auth(
 
     # get the public huey booklist without auth
     get_booklist_response = client.get(
-        "v1/public-list/top-20-ultra-cool-books",
+        f"v1/public-list/{slug}",
     )
     assert get_booklist_response.status_code == 200
     json = get_booklist_response.json()
     assert json["name"] == "top 20 ultra cool books"
     assert json["type"] == ListType.HUEY
-    assert json["slug"] == "top-20-ultra-cool-books"
+    assert json["slug"] == slug
     assert json["sharing"] == ListSharingType.PUBLIC

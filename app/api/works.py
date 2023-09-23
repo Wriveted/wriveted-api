@@ -17,8 +17,6 @@ from app.crud.base import compare_dicts
 from app.db.session import get_session
 from app.models import Author, Work
 from app.models.edition import Edition
-from app.models.service_account import ServiceAccount
-from app.models.user import User
 from app.models.work import WorkType
 from app.permissions import Permission
 from app.schemas.work import (
@@ -128,10 +126,10 @@ async def get_work_by_id(
     session: Session = Depends(get_session),
 ):
     if full_detail:
-        return WorkDetail.from_orm(work)
+        return WorkDetail.model_validate(work)
 
     else:
-        output = WorkEnriched.from_orm(work)
+        output = WorkEnriched.model_validate(work)
         first_edition_with_cover = session.scalar(
             select(Edition).where(
                 and_(Edition.cover_url.isnot(None), Edition.work_id == work.id)
@@ -210,7 +208,7 @@ async def create_work_with_editions(
     logger.debug(f"Associated {len(edition_ids)} editions with new work", work=work)
     crud.event.create(
         session,
-        title=f"Work created",
+        title="Work created",
         description=f"'{work.title}' created with {len(edition_ids)} editions",
         info={
             "work_id": work.id,
@@ -218,7 +216,7 @@ async def create_work_with_editions(
         },
         account=account,
     )
-    logger.debug(f"Added event and committed new work", work=work)
+    logger.debug("Added event and committed new work", work=work)
     return work
 
 
@@ -265,7 +263,7 @@ async def update_work(
 
     crud.event.create(
         session,
-        title=f"Work updated",
+        title="Work updated",
         description=f"Made a change to '{work_orm.title}'",
         info={
             "changes": changes_dict,
@@ -291,7 +289,7 @@ async def delete_work(
 ):
     crud.event.create(
         session,
-        title=f"Work deleted",
+        title="Work deleted",
         description=f"Deleted work '{work_orm.title}'",
         info={
             "work_id": work_orm.id,

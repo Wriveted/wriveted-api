@@ -1,6 +1,6 @@
 from typing import Dict, Literal
 
-from pydantic import BaseModel, field_validator, model_validator, validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.models.labelset import RecommendStatus
 from app.schemas.labelset import (
@@ -90,31 +90,30 @@ class GptWorkData(BaseModel):
 
     hues: list[HueKeys] = []
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("hues", always=True, pre=True)
-    def generate_hues(cls, value, values):
-        hue_map = values.get("hue_map")
+    @model_validator(mode="after")
+    def generate_hues(self):
+        hue_map = self.hue_map
 
-        if not hue_map:
-            return value
+        if hue_map is not None:
+            # grab top ..3 hues with value > 0.1
+            hues = [
+                k
+                for k, v in sorted(hue_map.items(), key=lambda item: -item[1])[:3]
+                if v > 0.1
+            ]
 
-        # grab top ..3 hues with value > 0.1
-        hues = [
-            k
-            for k, v in sorted(hue_map.items(), key=lambda item: -item[1])[:3]
-            if v > 0.1
-        ]
+            if max(hue_map.values()) < 0.2:
+                raise ValueError(
+                    "Low values in hue_map. Are you sure you're assessing each value individually?"
+                )
 
-        if max(hue_map.values()) < 0.2:
-            raise ValueError(
-                "Low values in hue_map. Are you sure you're assessing each value individually?"
-            )
+            if not hues:
+                raise ValueError(
+                    "No hues found in hue_map. Must include non-zero values."
+                )
+            self.hues = hues
 
-        if not hues:
-            raise ValueError("No hues found in hue_map. Must include non-zero values.")
-
-        return hues
+        return self
 
     characters: list[CharacterKey] | None = []
 

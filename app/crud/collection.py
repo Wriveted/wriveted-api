@@ -309,7 +309,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                     db=db, isbn=item.edition_isbn, commit=True
                 )
                 isbn = edition.isbn
-            except AssertionError as e:
+            except AssertionError:
                 # Invalid isbn, just skip
                 logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
                 return

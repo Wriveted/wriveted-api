@@ -1,9 +1,14 @@
 fail_fast: true
 repos:
   - repo: https://github.com/ambv/black
-    rev: 23.1.0
+    rev: 23.9.1
     hooks:
       - id: black
+        # It is recommended to specify the latest version of Python
+        # supported by your project here, or alternatively use
+        # pre-commit's default_language_version, see
+        # https://pre-commit.com/#top_level-default_language_version
+        language_version: python3.11
 
   - repo: https://github.com/PyCQA/pylint
     rev: v2.17.1
@@ -11,6 +16,13 @@ repos:
       - id: pylint
         args: [--disable=all, --enable=unused-import]
         exclude: (^scripts|^alembic|^docs|^examples|^deployment)
+
+#  - repo: https://github.com/astral-sh/ruff-pre-commit
+#    # Ruff version.
+#    rev: v0.0.291
+#    hooks:
+#      - id: ruff
+#        args: [--fix, --exit-non-zero-on-fix]
 
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0

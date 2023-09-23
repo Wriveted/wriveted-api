@@ -1,7 +1,9 @@
 from uuid import UUID
+
 from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db import Base
-from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 
 class SupporterReaderAssociation(Base):

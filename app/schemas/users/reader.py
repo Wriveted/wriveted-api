@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, field_validator, validator
+from typing import Literal
+
+from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy.orm.dynamic import AppenderQuery
 
+from app.models.user import UserAccountType
 from app.schemas.booklist import BookListBase
 from app.schemas.collection import CollectionBrief
 from app.schemas.users.huey_attributes import HueyAttributes
@@ -22,6 +25,7 @@ class SpecialLists(BaseModel):
 
 
 class ReaderBase(BaseModel):
+    # type: Literal[UserAccountType.STUDENT, UserAccountType.PUBLIC]
     first_name: str | None = None
     last_name_initial: str | None = None
 
@@ -36,49 +40,61 @@ class ReaderBrief(ReaderBase, UserBrief):
 
 
 class ReaderDetail(ReaderBrief, UserDetail):
-    booklists: list[BookListBase]
+    booklists: list[BookListBase] = []
     reading_path: ReadingPath = None
     special_lists: SpecialLists = None
     collection: CollectionBrief | None = None
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("reading_path", pre=True, always=True)
-    def grab_pathway_lists(cls, v, values):
-        lists = values.get("booklists", None)
-        output = {}
+    @model_validator(mode="after")
+    def validate_reading_pathway_lists(self):
         # get the first booklist matching each required name (with null safeties)
-        output["read_now"] = next(
-            iter([list for list in lists if list.name == "Books To Read Now"] or []),
+        read_now_booklist = next(
+            iter(
+                [list for list in self.booklists if list.name == "Books To Read Now"]
+                or []
+            ),
             None,
         )
-        output["read_next"] = next(
-            iter([list for list in lists if list.name == "Books To Read Next"] or []),
+        read_next_booklist = next(
+            iter(
+                [list for list in self.booklists if list.name == "Books To Read Next"]
+                or []
+            ),
             None,
         )
-        return output
+        self.reading_path = ReadingPath(
+            read_now=read_now_booklist, read_next=read_next_booklist
+        )
+        return self
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("special_lists", pre=True, always=True)
-    def grab_special_lists(cls, v, values):
-        lists = values.get("booklists", None)
-        output = {}
+    @model_validator(mode="after")
+    def grab_special_lists(self):
+        lists = self.booklists
+
         # get the first booklist matching each required name (with null safeties)
-        output["read_books"] = next(
+        read_booklist = next(
             iter([list for list in lists if list.name == "Books I've Read"] or []), None
         )
-        output["favourite_books"] = next(
+        favourite_booklist = next(
             iter([list for list in lists if list.name == "My Favourite Books"] or []),
             None,
         )
-        output["suggested_books"] = next(
+        suggested_booklist = next(
             iter([list for list in lists if list.name == "Suggested Books"] or []),
             None,
         )
-        return output
+        self.special_lists = SpecialLists(
+            read_books=read_booklist,
+            favorite_books=favourite_booklist,
+            suggested_books=suggested_booklist,
+        )
+        return self
 
     @field_validator("booklists", mode="before")
     @classmethod
-    def limit_booklists(cls, v):
+    def limit_booklists(cls, v) -> list[BookListBase]:
         return v[:5] if isinstance(v, (AppenderQuery, list)) else v
+
+
+class PublicReaderDetail(ReaderDetail):
+    type: Literal[UserAccountType.PUBLIC]

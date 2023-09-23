@@ -5,15 +5,12 @@ Revises: a9a0c79362f9
 Create Date: 2022-03-31 13:01:25.004641
 
 """
-import uuid
 
 import sqlalchemy as sa
-from sqlalchemy import JSON, Column, String, column, orm, select, table, update
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import orm, select
 from sqlalchemy.ext.automap import automap_base
 
 # revision identifiers, used by Alembic.
-from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm.attributes import flag_modified
 
 from alembic import op
@@ -47,7 +44,7 @@ def upgrade():
     session = orm.Session(bind=bind)
 
     events = (
-        session.execute(select(Event).where(Event.info["description"] == None))
+        session.execute(select(Event).where(Event.info["description"] is None))
         .scalars()
         .all()
     )

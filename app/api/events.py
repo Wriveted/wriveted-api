@@ -53,7 +53,7 @@ async def create(
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to create an event associated with that school",
+                detail="The current account is not allowed to create an event associated with that school",
             )
     else:
         school = None
@@ -130,7 +130,7 @@ async def get_events(
             logger.debug("Forbidding unfiltered event request for non admin user")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to request global events. Try filtering by your school or user.",
+                detail="The current account is not allowed to request global events. Try filtering by your school or user.",
             )
 
     # At this point we know that we have either a school id, a user id or the request is from an admin
@@ -142,7 +142,7 @@ async def get_events(
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to filter events associated with that user",
+                detail="The current account is not allowed to filter events associated with that user",
             )
     else:
         user = None
@@ -163,7 +163,7 @@ async def get_events(
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to filter events associated with that school",
+                detail="The current account is not allowed to filter events associated with that school",
             )
     else:
         school = None

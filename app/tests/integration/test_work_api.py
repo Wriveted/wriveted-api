@@ -53,7 +53,7 @@ def test_backend_service_account_can_create_empty_work(
     client, backend_service_account_headers, works_list
 ):
     response = client.post(
-        f"v1/work",
+        "v1/work",
         json={"title": "Test Work", "authors": [], "editions": []},
         headers=backend_service_account_headers,
     )
@@ -141,7 +141,7 @@ def test_move_edition_to_new_work(client, backend_service_account_headers, works
     test_edition: Edition = original_work.editions[0]
 
     response = client.post(
-        f"v1/work",
+        "v1/work",
         json={
             "title": "New Test Work",
             "authors": [
@@ -176,7 +176,7 @@ def test_move_edition_to_new_work_with_existing_author(
     test_edition: Edition = original_work.editions[0]
 
     response = client.post(
-        f"v1/work",
+        "v1/work",
         json={
             "title": "New Test Work",
             "authors": [

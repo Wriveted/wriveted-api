@@ -45,7 +45,7 @@ def get_and_validate_specified_user_from_body(
         if not has_permission(active_principals, "update", user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to perform an operation associated with that user",
+                detail="The current account is not allowed to perform an operation associated with that user",
             )
         return user
 
@@ -78,13 +78,13 @@ def get_and_validate_collection_with_optional_reader(
         if not has_permission(active_principals, "update", reader):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to perform an operation associated with that reader",
+                detail="The current account is not allowed to perform an operation associated with that reader",
             )
         reader_principals = get_active_principals(reader)
         if not has_permission(reader_principals, "read", collection):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The specified reader is not allowed to read that collection",
+                detail="The specified reader is not allowed to read that collection",
             )
 
     return collection

@@ -5,10 +5,9 @@ Revises: c82cfb47da40
 Create Date: 2023-02-21 16:31:05.873767
 
 """
-from alembic import op
 import sqlalchemy as sa
-from alembic_utils.pg_grant_table import PGGrantTable
-from sqlalchemy import text as sql_text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "590a6fb0b2c7"

@@ -64,7 +64,7 @@ def test_user_crud_types(session, test_school, test_class_group):
     assert isinstance(
         wrivetedadmin, WrivetedAdmin
     ), "CRUD: User account with type='wriveted' not constructing a WrivetedAdmin object"
-    deleted_wriveted_user = crud.user.remove(session, id=wrivetedadmin.id)
+    crud.user.remove(session, id=wrivetedadmin.id)
 
     schooladmin = crud.user.create(
         db=session,
@@ -79,7 +79,7 @@ def test_user_crud_types(session, test_school, test_class_group):
     assert isinstance(
         schooladmin, SchoolAdmin
     ), "CRUD: User account with type='SCHOOL_ADMIN' not constructing a SchoolAdmin object"
-    deleted_school_admin = crud.user.remove(session, id=schooladmin.id)
+    crud.user.remove(session, id=schooladmin.id)
     student = crud.user.create(
         db=session,
         obj_in=UserCreateIn(
@@ -134,7 +134,7 @@ def test_access_subclass_through_superclass_query(
         db=session,
         obj_in=UserCreateIn(
             name="Test Student to retrieve via parent tables",
-            email=f"teststudentretrieve@test.com",
+            email="teststudentretrieve@test.com",
             type=UserAccountType.STUDENT,
             school_id=test_school.id,
             first_name="Test",

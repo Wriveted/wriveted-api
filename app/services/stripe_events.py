@@ -195,7 +195,7 @@ def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
             stripe_customer = StripeCustomer.retrieve(stripe_customer_id)
             bind_contextvars(stripe_customer_id=stripe_customer_id)
         else:
-            raise NotImplemented("Stripe event does not include a customer id")
+            raise NotImplementedError("Stripe event does not include a customer id")
     return stripe_customer
 
 

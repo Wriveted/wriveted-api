@@ -103,3 +103,5 @@ class UserCreateIn(BaseModel):
                 assert self.school_id, "SchoolAdmin users must provide school_id."
             case _:
                 pass
+
+        return self

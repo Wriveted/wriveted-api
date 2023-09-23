@@ -10,4 +10,4 @@ class WrivetedAdminBrief(UserBrief):
 
 
 class WrivetedAdminDetail(UserDetail, WrivetedAdminBrief):
-    pass
+    type: Literal[UserAccountType.WRIVETED]

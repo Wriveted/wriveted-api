@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from PIL import Image
 from pydantic import AfterValidator
 
-from app.schemas import is_url, logger
+from app.schemas import is_url
 
 
 def validate_image_url_or_base64_string(
@@ -35,7 +35,7 @@ def validate_image_url_or_base64_string(
     if not v:
         return
 
-    logger.debug(f"Validating {field_name} `{v[0:100]}...`")
+    # logger.debug(f"Validating {field_name} `{v[0:200]}...`")
 
     # check if v is a URL
     if is_url(str(v)):
@@ -47,7 +47,7 @@ def validate_image_url_or_base64_string(
         # remove the metadata from the base64 string before decoding
         raw_image_bytes = b64decode(v.split(",")[1])
         img = Image.open(BytesIO(raw_image_bytes))
-    except (BinasciiError, IOError) as e:
+    except (BinasciiError, IOError):
         raise ValueError(
             f"{field_name} must be a valid base64 image string, properly formed"
         )

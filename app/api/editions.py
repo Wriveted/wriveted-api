@@ -9,9 +9,7 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.editions import get_edition_from_isbn
-from app.api.dependencies.security import (
-    get_current_active_user_or_service_account,
-)
+from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
 from app.schemas import is_url
@@ -23,9 +21,7 @@ from app.schemas.edition import (
     KnownAndTaggedEditionCounts,
 )
 from app.schemas.illustrator import IllustratorCreateIn
-from app.services.cover_images import (
-    handle_edition_cover_image_update,
-)
+from app.services.cover_images import handle_edition_cover_image_update
 from app.services.editions import (
     compare_known_editions,
     create_missing_editions,
@@ -176,7 +172,7 @@ async def update_edition(
 
     crud.event.create(
         session,
-        title=f"Edition updated",
+        title="Edition updated",
         description=f"Made a change to '{updated_edition.title}'",
         info={
             "changes": changes_dict,
@@ -203,7 +199,7 @@ async def bulk_add_editions(
 
     crud.event.create(
         session,
-        title=f"Bulk editions added",
+        title="Bulk editions added",
         description=msg,
         info={
             "created": created,

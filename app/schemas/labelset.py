@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 
 from app.models.labelset import LabelOrigin, RecommendStatus
 from app.schemas import CaseInsensitiveStringEnum
@@ -101,8 +101,8 @@ class ReadingAbility(BaseModel):
 
 
 class LabelSetBrief(BaseModel):
-    id: str
-    work_id: str
+    id: Annotated[str, BeforeValidator(str)]
+    work_id: Annotated[str, BeforeValidator(str)]
     model_config = ConfigDict(from_attributes=True)
 
 

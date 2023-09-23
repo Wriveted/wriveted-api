@@ -216,7 +216,7 @@ async def create_collection(
         return crud.collection.create(
             session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
         )
-    except IntegrityError as e:
+    except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
@@ -261,7 +261,7 @@ async def set_collection(
         return crud.collection.create(
             session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
         )
-    except IntegrityError as e:
+    except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
@@ -362,7 +362,7 @@ async def add_collection_item(
             session, item=data, collection_orm_object=collection
         )
         item = session.get(CollectionItem, item_id)
-    except IntegrityError as e:
+    except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail=f"ISBN {data.edition_isbn} already in collection",
@@ -488,7 +488,7 @@ async def update_collection(
         crud.event.create(
             session=session,
             title="Collection Update",
-            description=f"Updates made to collection",
+            description="Updates made to collection",
             info={
                 "collection_id": str(collection.id),
             },
@@ -496,7 +496,7 @@ async def update_collection(
             account=account,
             commit=False,
         )
-    except IntegrityError as e:
+    except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",

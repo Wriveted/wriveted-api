@@ -5,8 +5,6 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from app.schemas import is_url
-from app.services.cover_images import handle_new_edition_cover_image
 
 import app.services.editions as editions_service
 from app import crud
@@ -17,8 +15,10 @@ from app.crud.illustrator import illustrator as crud_illustrator
 from app.crud.work import work as crud_work
 from app.models import Edition, Illustrator, Work
 from app.models.work import WorkType
+from app.schemas import is_url
 from app.schemas.edition import EditionCreateIn, EditionUpdateIn
 from app.schemas.work import WorkCreateIn
+from app.services.cover_images import handle_new_edition_cover_image
 
 logger = get_logger()
 

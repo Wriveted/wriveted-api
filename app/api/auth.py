@@ -24,6 +24,7 @@ from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.parent import ParentDetail
+from app.schemas.users.reader import PublicReaderDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
 from app.schemas.users.user import UserDetail
@@ -335,24 +336,35 @@ def get_current_user(
     """
     logger.debug("Testing user token", account=current_user_or_service_account)
     if isinstance(current_user_or_service_account, User):
+        logger.info("User type", user_type=current_user_or_service_account.type)
         match current_user_or_service_account.type:
             case UserAccountType.STUDENT:
-                user_detail = StudentDetail.from_orm(current_user_or_service_account)
+                user_detail = StudentDetail.model_validate(
+                    current_user_or_service_account
+                )
             case UserAccountType.WRIVETED:
-                user_detail = WrivetedAdminDetail.from_orm(
+                user_detail = WrivetedAdminDetail.model_validate(
                     current_user_or_service_account
                 )
             case UserAccountType.EDUCATOR:
-                user_detail = EducatorDetail.from_orm(current_user_or_service_account)
+                user_detail = EducatorDetail.model_validate(
+                    current_user_or_service_account
+                )
             case UserAccountType.SCHOOL_ADMIN:
-                user_detail = SchoolAdminDetail.from_orm(
+                user_detail = SchoolAdminDetail.model_validate(
+                    current_user_or_service_account
+                )
+            case UserAccountType.PUBLIC:
+                user_detail = PublicReaderDetail.model_validate(
                     current_user_or_service_account
                 )
             case UserAccountType.PARENT:
-                user_detail = ParentDetail.from_orm(current_user_or_service_account)
-
+                user_detail = ParentDetail.model_validate(
+                    current_user_or_service_account
+                )
             case _:
-                user_detail = UserDetail.from_orm(current_user_or_service_account)
+                logger.info("Generic user")
+                user_detail = UserDetail.model_validate(current_user_or_service_account)
 
         return AuthenticatedAccountBrief(
             account_type=AccountType.user,
@@ -367,4 +379,4 @@ def get_current_user(
             token_expiry=token_data.exp,
         )
     else:
-        raise NotImplemented("Hmm")
+        raise NotImplementedError("Hmm")

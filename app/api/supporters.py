@@ -3,12 +3,8 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.events import (
-    get_and_validate_reading_log_event_by_id,
-)
-from app.api.dependencies.security import (
-    get_current_active_user,
-)
+from app.api.dependencies.events import get_and_validate_reading_log_event_by_id
+from app.api.dependencies.security import get_current_active_user
 from app.db.session import get_session
 from app.models.event import Event, EventLevel
 from app.models.supporter_reader_association import SupporterReaderAssociation

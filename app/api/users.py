@@ -94,20 +94,21 @@ async def create_user(
     blob in `user_data`.
     Will create `reader` users as children for any `parent` types, if provided.
     """
-    logger.debug("Creating a user")
+    logger.debug("Creating a user", data=user_data)
     try:
         new_user = handle_user_creation(session, user_data, generate_pathway_lists)
         return new_user
 
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    except IntegrityError as e:
+    except IntegrityError:
         raise HTTPException(status_code=409, detail="Email already exists")
 
 
 @router.get("/user/{user_id}", response_model=SpecificUserDetail)
 async def get_user(user: User = Permission("details", get_user_from_id)):
     logger.info("Retrieving details on one user", user=user)
+    logger.info(f"Type of user is {user.type}")
     return user
 
 

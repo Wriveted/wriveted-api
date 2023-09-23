@@ -1,9 +1,7 @@
 from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from fastapi.responses import JSONResponse
 from fastapi_permissions import Allow, Authenticated, has_permission
-from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette import status
@@ -150,7 +148,7 @@ async def add_booklist(
 
         crud.event.create(
             session=session,
-            title=f"Booklist created",
+            title="Booklist created",
             description=f"{account.name} created booklist '{booklist.name}'",
             info={
                 "type": booklist.type,

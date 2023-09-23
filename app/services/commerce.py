@@ -11,6 +11,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import From, Mail
 from sqlalchemy.orm import Session
 from structlog import get_logger
+from twilio.rest import Client as TwilioClient
 
 from app import crud
 from app.config import get_settings
@@ -23,7 +24,6 @@ from app.schemas.sendgrid import (
     SendGridEmailData,
 )
 from app.schemas.shopify import ShopifyEventRoot
-from twilio.rest import Client as TwilioClient
 
 logger = get_logger()
 config = get_settings()
@@ -303,7 +303,7 @@ def process_shopify_order(
     upsert_sendgrid_from_shopify_order(data, sg, session)
     crud.event.create(
         session,
-        title=f"Shopify: Order placed",
-        description=f"A customer placed an order on the HueyBooks Shopify store",
+        title="Shopify: Order placed",
+        description="A customer placed an order on the HueyBooks Shopify store",
         info={"shopify_data": json.loads(json.dumps(data.dict(), default=str))},
     )
