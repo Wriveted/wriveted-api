@@ -94,7 +94,7 @@ class CharacterKey(CaseInsensitiveStringEnum):
 
 
 class ReadingAbility(BaseModel):
-    id: str
+    id: Annotated[str, BeforeValidator(str)]
     key: str
     name: str
     model_config = ConfigDict(from_attributes=True)
