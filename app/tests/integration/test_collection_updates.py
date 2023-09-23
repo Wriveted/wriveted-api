@@ -281,7 +281,7 @@ def test_collection_management(
         f"Adding the initial {len(original_hydrated)} hydrated books to db as Editions, Works, Authors etc."
     )
     add_books_response = client.post(
-        f"/v1/editions",
+        "/v1/editions",
         json=original_hydrated,
         timeout=30,
         headers=lms_service_account_headers_for_school,

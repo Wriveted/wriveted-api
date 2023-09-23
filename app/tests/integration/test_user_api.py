@@ -143,9 +143,10 @@ def test_get_subscribed_parent_user(
     assert response.status_code == status.HTTP_200_OK
 
     json = response.json()
+    print(json)
     assert json["type"] == "parent"
     assert json["subscription"]["provider"] == "stripe"
-    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["is_active"] is True
     assert json["subscription"]["type"] == "family"
     assert json["subscription"]["stripe_customer_id"] == "cus_123"
     assert json["subscription"]["id"] == "sub_123"
@@ -153,7 +154,7 @@ def test_get_subscribed_parent_user(
     # Test that querying users with active family subscriptions returns the
     # created parent
     response = client.get(
-        f"v1/users",
+        "v1/users",
         params={"limit": 500, "active_subscription_type": "family"},
         headers=backend_service_account_headers,
     )
@@ -177,7 +178,7 @@ def test_parent_user_can_login(
     parent_access_token = create_user_access_token(user)
 
     response = client.get(
-        f"v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
+        "v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -196,7 +197,7 @@ def test_parent_create_via_api(session, client, backend_service_account_headers)
         crud.user.remove(db=session, id=existing_user.id)
 
     response = client.post(
-        f"v1/user",
+        "v1/user",
         json={
             "name": "A Parent",
             "email": email,
@@ -213,7 +214,7 @@ def test_parent_create_via_api(session, client, backend_service_account_headers)
     parent_access_token = response.json()["access_token"]
 
     response = client.get(
-        f"v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
+        "v1/auth/me", headers={"Authorization": f"bearer {parent_access_token}"}
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -234,7 +235,7 @@ def test_parent_create_with_child_via_api(
         crud.user.remove(db=session, id=existing_user.id)
 
     response = client.post(
-        f"v1/user",
+        "v1/user",
         json={
             "name": "Parent N. Child",
             "email": email,
@@ -288,7 +289,7 @@ def test_user_create_with_checkout_session_id(
     session.commit()
 
     response = client.post(
-        f"v1/user",
+        "v1/user",
         json={
             "name": "A Parent With Subscription",
             "email": email,
@@ -301,7 +302,7 @@ def test_user_create_with_checkout_session_id(
 
     json = response.json()
     assert json["subscription"]["provider"] == "stripe"
-    assert json["subscription"]["is_active"] == True
+    assert json["subscription"]["is_active"] is True
     assert json["subscription"]["type"] == "family"
     assert json["subscription"]["stripe_customer_id"] == "cus_123"
     assert json["subscription"]["id"] == "sub_123"
@@ -312,7 +313,7 @@ def test_user_create_with_checkout_session_id(
         crud.user.remove(db=session, id=existing_user.id)
 
     response = client.post(
-        f"v1/user",
+        "v1/user",
         json={
             "name": "A Parent Trying to Steal a Subscription",
             "email": email_2,

@@ -5,9 +5,7 @@ Revises: 998f29940cbf
 Create Date: 2021-12-28 11:20:41.297418
 
 """
-from uuid import uuid4
 
-import sqlalchemy as sa
 from sqlalchemy import orm
 
 from alembic import op

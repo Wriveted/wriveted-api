@@ -14,7 +14,7 @@ def test_filter_school_events_as_wriveted_admin(
 ):
     school_id = test_school.wriveted_identifier
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"school_id": school_id},
         headers=backend_service_account_headers,
     )
@@ -35,7 +35,7 @@ def test_events_pagination(
     session.commit()
 
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"school_id": school_id, "limit": 100},
         headers=backend_service_account_headers,
     )
@@ -59,7 +59,7 @@ def test_get_school_events_as_school_admin(
     school_id = test_school.wriveted_identifier
 
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"school_id": school_id},
         headers=admin_of_test_school_headers,
     )
@@ -80,7 +80,7 @@ def test_cant_get_school_events_as_public(
 
     # Shouldn't be able to filter by the school:
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"school_id": school_id},
         headers=test_user_account_headers,
     )
@@ -93,7 +93,7 @@ def test_post_events_api(
     backend_service_account_headers,
 ):
     create_event_response = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
             "title": "TEST EVENT",
             "description": "test description",
@@ -113,7 +113,7 @@ def test_post_events_api_with_specified_user(
 ):
     # create an event with a specified user (with appropriate permissions)
     create_event_response = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
             "title": "TEST EVENT",
             "description": "test description",
@@ -128,7 +128,7 @@ def test_post_events_api_with_specified_user(
 
     # create an event with a specified user (without appropriate permissions)
     create_event_response = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
             "title": "TEST EVENT",
             "description": "test description",
@@ -141,7 +141,7 @@ def test_post_events_api_with_specified_user(
 
     # create an event for a user that doesn't exist
     create_event_response = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
             "title": "TEST EVENT",
             "description": "test description",
@@ -160,7 +160,7 @@ def test_post_events_api_background_process(
     backend_service_account_headers,
 ):
     create_event_response = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
             "title": "Test",
             "description": "original description",
@@ -192,18 +192,22 @@ def test_post_events_api_background_process(
             if event.description == "MODIFIED":
                 wasModified = True
 
-        assert wasModified
+        assert wasModified, "Event was not modified"
 
 
 def test_event_query_and_prefix(
     client,
     backend_service_account_headers,
 ):
-    # Create some events
+    # Create some events with a unique prefix
+    prefix = random_lower_string(6)
+    first_event_title = f"{prefix}: Bar"
+    second_event_title = f"{prefix}: Baz"
+
     create_event_response_foo_bar = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
-            "title": "Foo: Bar",
+            "title": first_event_title,
             "description": "Notice the Title: Subtitle format",
             "level": "normal",
         },
@@ -212,9 +216,9 @@ def test_event_query_and_prefix(
     create_event_response_foo_bar.raise_for_status()
 
     create_event_response_foo_baz = client.post(
-        f"/v1/events",
+        "/v1/events",
         json={
-            "title": "Foo: Baz",
+            "title": second_event_title,
             "description": "Notice the Title: Subtitle format",
             "level": "normal",
         },
@@ -224,8 +228,8 @@ def test_event_query_and_prefix(
 
     # Test that we can query for a single string
     get_events_response = client.get(
-        f"/v1/events",
-        params={"query": "Foo: Bar"},
+        "/v1/events",
+        params={"query": first_event_title},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
@@ -234,8 +238,8 @@ def test_event_query_and_prefix(
 
     # Test that we can query for a list of strings
     get_events_response = client.get(
-        f"/v1/events",
-        params={"query": ["Foo: Bar", "Foo: Baz"]},
+        "/v1/events",
+        params={"query": [first_event_title, second_event_title]},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
@@ -244,8 +248,8 @@ def test_event_query_and_prefix(
 
     # Test that we can query for prefix with a single string
     get_events_response = client.get(
-        f"/v1/events",
-        params={"query": "Foo:", "match_prefix": True},
+        "/v1/events",
+        params={"query": prefix, "match_prefix": True},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
@@ -254,8 +258,8 @@ def test_event_query_and_prefix(
 
     # Test that we can query for prefix with a list of strings
     get_events_response = client.get(
-        f"/v1/events",
-        params={"query": ["Foo:"], "match_prefix": True},
+        "/v1/events",
+        params={"query": [prefix], "match_prefix": True},
         headers=backend_service_account_headers,
     )
     get_events_response.raise_for_status()
@@ -271,14 +275,14 @@ def test_event_api_info_filtering(
     # Create a few events
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 1234, "boolean": True},
     )
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 0, "boolean": False, "missing": "value"},
@@ -286,7 +290,7 @@ def test_event_api_info_filtering(
 
     # Test that we can get events for a work
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"info_jsonpath_match": "($.work_id == 0)"},
         headers=backend_service_account_headers,
     )
@@ -304,14 +308,14 @@ def test_event_api_info_filtering_raises(
 ):
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 1234, "boolean": True},
     )
 
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"info_jsonpath_match": "invalid json path"},
         headers=backend_service_account_headers,
     )
@@ -325,14 +329,14 @@ def test_event_crud_optional_filtering_by_string(
     # Create a few events
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 1234, "string": "match"},
     )
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 0, "string": "Not a Match"},
@@ -357,14 +361,14 @@ def test_event_crud_optional_filtering_missing_attribute(
     # Create a few events
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 1234, "boolean": True},
     )
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 0, "boolean": False, "missing": "value"},
@@ -387,14 +391,14 @@ def test_event_crud_optional_filtering_bool_attribute(
     # Create a few events
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 1234, "boolean": True},
     )
     crud.event.create(
         session,
-        title=f"test event for filtering by info",
+        title="test event for filtering by info",
         description="test description",
         level="normal",
         info={"work_id": 0, "boolean": False, "missing": "value"},
@@ -408,7 +412,7 @@ def test_event_crud_optional_filtering_bool_attribute(
     assert len(events) >= 1
     for e in events:
         assert "boolean" in e.info
-        assert e.info["boolean"] == True
+        assert e.info["boolean"] is True
 
 
 def test_event_api_filter_since_timestamp(
@@ -436,7 +440,7 @@ def test_event_api_filter_since_timestamp(
 
     # test that we can filter events using since
     get_events_response = client.get(
-        f"/v1/events",
+        "/v1/events",
         params={"limit": 2, "since": cutoff_time.isoformat()},
         headers=backend_service_account_headers,
     )

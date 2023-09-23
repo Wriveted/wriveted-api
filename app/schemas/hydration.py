@@ -612,13 +612,13 @@ class HydratedBookData(BaseModel):
             if (
                 self.info.summary_short
                 and len(self.info.summary_short) > 10
-                and not "synopsis coming soon" in self.info.summary_short.lower()
+                and "synopsis coming soon" not in self.info.summary_short.lower()
             ):
                 return self.info.summary_short
             if (
                 self.info.summary_long
                 and len(self.info.summary_long) > 10
-                and not "synopsis coming soon" in self.info.summary_long.lower()
+                and "synopsis coming soon" not in self.info.summary_long.lower()
             ):
                 return shorten(self.info.summary_long, width=250, placeholder="...")
 
@@ -631,7 +631,7 @@ class HydratedBookData(BaseModel):
         if max_age and min_age is None:
             min_age = max_age - 4
 
-        logger.debug(f"Estimated age as", min_age=min_age, max_age=max_age)
+        logger.debug("Estimated age as", min_age=min_age, max_age=max_age)
         self.labelset.min_age = min_age
         self.labelset.max_age = max_age
 

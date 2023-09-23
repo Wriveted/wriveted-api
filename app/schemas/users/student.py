@@ -18,4 +18,4 @@ class StudentBrief(StudentIdentity, ReaderBrief):
 
 
 class StudentDetail(ReaderDetail, StudentBrief):
-    pass
+    type: Literal[UserAccountType.STUDENT]

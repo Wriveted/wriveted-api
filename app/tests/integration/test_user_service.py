@@ -134,7 +134,7 @@ def test_generate_random_student_user_name_checks_existing_students(
 
     # Trigger impossible to satisfy demand
     with pytest.raises(ValueError):
-        impossible = new_random_username(
+        new_random_username(
             session=session,
             school_id=test_school.id,
             wordlist=wordlist,
@@ -149,7 +149,7 @@ def test_generate_random_student_user_name_checks_existing_students(
     with pytest.raises(IntegrityError):
         session.add(
             Student(
-                name=f"TestUser",
+                name="TestUser",
                 username=output,
                 email="a-new-email",
                 type=UserAccountType.STUDENT,

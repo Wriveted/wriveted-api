@@ -11,7 +11,7 @@ from app.schemas.collection import CollectionBrief
 from app.schemas.country import CountryDetail
 
 # pylint: disable=unused-import
-from app.schemas.school_identity import SchoolIdentity, SchoolWrivetedIdentity
+from app.schemas.school_identity import SchoolIdentity
 from app.schemas.users import UserBrief
 
 

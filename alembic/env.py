@@ -4,15 +4,10 @@ import os
 import sys
 from logging.config import fileConfig
 
-from alembic_utils.pg_extension import PGExtension
-from alembic_utils.pg_function import PGFunction
-from alembic_utils.pg_grant_table import PGGrantTable
-from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from alembic.ddl import DefaultImpl
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

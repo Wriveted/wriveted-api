@@ -28,8 +28,6 @@ async def add_editions_to_collection_by_isbn(
     collection: Collection,
     account,
 ):
-    existing_collection_count = collection.book_count
-
     logger.info(
         "Adding editions to collection by ISBN", account=account, collection=collection
     )

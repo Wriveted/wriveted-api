@@ -6,12 +6,10 @@ Create Date: 2022-01-03 12:15:33.797460
 
 """
 import sqlalchemy as sa
-from sqlalchemy import orm, select, update
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-from app.models import CollectionItem
 
 revision = "948ff66b643d"
 down_revision = "7b43e9a90443"

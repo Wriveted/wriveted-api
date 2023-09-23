@@ -6,7 +6,7 @@ Create Date: 2022-03-24 13:54:33.245721
 
 """
 # revision identifiers, used by Alembic.
-from sqlalchemy import orm, select, update
+from sqlalchemy import orm, select
 
 from alembic import op
 from app.models import School

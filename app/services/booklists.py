@@ -149,7 +149,7 @@ def _handle_upload_booklist_feature_image(
     Handle a feature image upload for a public booklist.
     """
     # generate folder and filename
-    folder = f"booklist-feature-images"
+    folder = "booklist-feature-images"
     filename = booklist_id
 
     # upload the image to the bucket

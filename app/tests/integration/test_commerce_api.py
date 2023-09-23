@@ -8,7 +8,7 @@ def test_stripe_webhook_requires_stripe_sig_header(
     backend_service_account_headers,
 ):
     webhook_response = client.post(
-        f"/v1/stripe/webhook",
+        "/v1/stripe/webhook",
         json={
             "title": "Test",
             "description": "original description",
@@ -27,7 +27,7 @@ def test_stripe_webhook_validates_signature(
     backend_service_account_headers,
 ):
     webhook_response = client.post(
-        f"/v1/stripe/webhook",
+        "/v1/stripe/webhook",
         json={
             "title": "Test",
             "description": "original description",

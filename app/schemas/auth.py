@@ -1,15 +1,15 @@
 import datetime
+from typing import Annotated, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.service_account import ServiceAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.parent import ParentDetail
-from app.schemas.users.reader import ReaderDetail
+from app.schemas.users.reader import PublicReaderDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail
-from app.schemas.users.user import UserDetail
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 
 
@@ -18,15 +18,18 @@ class AccountType(CaseInsensitiveStringEnum):
     service_account = "service_account"
 
 
-SpecificUserDetail = (
-    StudentDetail
-    | ReaderDetail
-    | SchoolAdminDetail
-    | EducatorDetail
-    | ParentDetail
-    | WrivetedAdminDetail
-    | UserDetail
-)
+SpecificUserDetail = Annotated[
+    Union[
+        StudentDetail,
+        SchoolAdminDetail,
+        EducatorDetail,
+        ParentDetail,
+        WrivetedAdminDetail,
+        PublicReaderDetail,
+        # UserDetail,
+    ],
+    Field(discriminator="type"),
+]
 
 
 class AuthenticatedAccountBrief(BaseModel):

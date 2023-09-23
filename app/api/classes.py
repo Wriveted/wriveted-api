@@ -82,8 +82,8 @@ async def get_filtered_classes(
             logger.warning("Denying request by non admin user for all classes")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to request all classes."
-                f" Try filtering by your school.",
+                detail="The current account is not allowed to request all classes."
+                " Try filtering by your school.",
             )
 
         school = None
@@ -95,7 +95,7 @@ async def get_filtered_classes(
             logger.warning("Lack of read permission on school", target_school=school)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"The current account is not allowed to view classes associated with that school",
+                detail="The current account is not allowed to view classes associated with that school",
             )
     # At this point we know that we have either a school id, or the request is from an admin
     # In both cases we are allowed to "read" the school.
@@ -165,7 +165,7 @@ async def add_class(
 async def get_class_detail(
     class_orm: ClassGroup = Permission("read", get_class_from_id),
 ):
-    return ClassGroupDetail.from_orm(class_orm)
+    return ClassGroupDetail.model_validate(class_orm)
 
 
 @router.patch(

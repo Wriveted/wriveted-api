@@ -5,13 +5,14 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.models.subscription import SubscriptionProvider, SubscriptionType
 from app.schemas.product import ProductBrief
 
 
 class SubscriptionBrief(BaseModel):
     id: str
-    type: Literal["family"]
-    provider: Literal["stripe"]
+    type: Literal[SubscriptionType.FAMILY]
+    provider: Literal[SubscriptionProvider.STRIPE]
     is_active: bool
     expiration: datetime | None = None
     product: ProductBrief

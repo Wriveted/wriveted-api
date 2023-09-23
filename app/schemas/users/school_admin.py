@@ -11,3 +11,4 @@ class SchoolAdminBrief(EducatorBrief):
 
 class SchoolAdminDetail(EducatorDetail, UserDetail, SchoolAdminBrief):
     school_admin_info: dict | None = None
+    type: Literal[UserAccountType.SCHOOL_ADMIN]

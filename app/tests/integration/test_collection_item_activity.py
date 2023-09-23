@@ -55,7 +55,7 @@ def test_collection_item_activity_creation_and_fetching(
 
     print("Set collection item as being currently read")
     user_collection_item_activity_create_response = client.post(
-        f"/v1/collection-item-activity",
+        "/v1/collection-item-activity",
         headers=test_user_account_headers,
         json={
             "reader_id": test_user_id,
@@ -99,7 +99,7 @@ def test_collection_item_activity_creation_and_fetching(
 
     print("Attempting to create collection item activity for another user")
     hacker_collection_item_activity_create_response = client.post(
-        f"/v1/collection-item-activity",
+        "/v1/collection-item-activity",
         headers=test_public_user_hacker_headers,
         json={
             "reader_id": test_user_id,
@@ -119,7 +119,7 @@ def test_collection_item_activity_creation_and_fetching(
 
     print("Attempting to add activity on a collection item from another user")
     hacker_collection_item_activity_create_response = client.post(
-        f"/v1/collection-item-activity",
+        "/v1/collection-item-activity",
         headers=test_public_user_hacker_headers,
         json={
             "reader_id": hacker_id,

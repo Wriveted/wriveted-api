@@ -89,7 +89,7 @@ def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Info*:",
+                    "text": "*Info*:",
                 },
             }
         )
@@ -105,7 +105,7 @@ def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Extra*:",
+                    "text": "*Extra*:",
                 },
             }
         )
@@ -184,6 +184,7 @@ def create_event(
 
 
 def process_events(event_id):
+    logger.info("Background processing")
     Session = get_session_maker()
     with Session() as session:
         event = crud.event.get(session, id=event_id)

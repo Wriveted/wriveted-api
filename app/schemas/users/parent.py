@@ -16,5 +16,6 @@ class ParentBrief(UserBrief):
 
 
 class ParentDetail(UserDetail, ParentBrief):
+    type: Literal[UserAccountType.PARENT]
     parent_info: dict | None = None
     subscription: SubscriptionDetail | None = None

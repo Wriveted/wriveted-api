@@ -1,7 +1,6 @@
 import csv
 
 import httpx
-from pydantic import AnyHttpUrl
 
 from examples.config import settings
 

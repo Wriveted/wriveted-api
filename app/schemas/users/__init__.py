@@ -1,1 +1,1 @@
-from .user_identity import *
+from app.schemas.users.user_identity import *

@@ -161,7 +161,7 @@ async def get_recommendations_with_fallback(
             display_title=edition.get_display_title(),
             authors_string=work.get_authors_string(),
             summary=labelset.huey_summary,
-            labels=LabelSetDetail.from_orm(labelset),
+            labels=LabelSetDetail.model_validate(labelset),
         )
         for (work, edition, labelset) in row_results
     ]
@@ -188,7 +188,7 @@ async def get_recommendations_with_fallback(
 
         crud.event.create(
             session,
-            title=f"Made a recommendation",
+            title="Made a recommendation",
             description=f"Made a recommendation of {len(filtered_books)} books",
             info={
                 "recommended": event_recommendation_data,

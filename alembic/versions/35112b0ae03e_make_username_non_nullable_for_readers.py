@@ -5,12 +5,9 @@ Revises: 77c90a741ba7
 Create Date: 2022-06-02 15:50:35.584586
 
 """
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-from sqlalchemy import select, update
 
-from alembic import op
 
 revision = "35112b0ae03e"
 down_revision = "77c90a741ba7"
