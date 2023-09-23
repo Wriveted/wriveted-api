@@ -1,10 +1,12 @@
 import enum
 from functools import lru_cache
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 from pydantic import AnyHttpUrl, DirectoryPath, HttpUrl, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
+from sqlalchemy.engine import make_url
 from structlog import get_logger
 
 logger = get_logger()
@@ -67,16 +69,17 @@ class Settings(BaseSettings):
     NIELSEN_ENABLE_CACHE: bool = False
     NIELSEN_CACHE_RESULTS: bool = True
 
-    SQLALCHEMY_DATABASE_URI: str | None = None
+    SQLALCHEMY_DRIVERNAME: str = "postgresql+psycopg2"
+    SQLALCHEMY_DATABASE_URI: URL | None = None
 
     @field_validator("SQLALCHEMY_DATABASE_URI", mode="before")
     @classmethod
     def assemble_sqlalchemy_connection(
         cls, v: Optional[str], info: FieldValidationInfo
-    ) -> Any:
+    ) -> URL:
         if isinstance(v, str):
             # If a string is provided (e.g. via environment variable) we just use that
-            return v
+            return make_url(v)
 
         values = info.data
         # Otherwise, assemble a sqlalchemy connection string from the other provided values.
@@ -84,6 +87,8 @@ class Settings(BaseSettings):
         db_user = values.get("POSTGRESQL_USER")
         db_password = values.get("POSTGRESQL_PASSWORD")
         db_name = values.get("POSTGRESQL_DATABASE")
+
+        logger.debug(f"Database host {db_host}. DB name {db_name}")
 
         query = None
         # Connect to Cloud SQL using unix socket instead of TCP socket
@@ -97,16 +102,19 @@ class Settings(BaseSettings):
             cloud_sql_instance_connection = (
                 f"{project}:{location}:{cloud_sql_instance_id}"
             )
-            query = f"host={socket_path}/{cloud_sql_instance_connection}"
-
-        scheme = "postgresql"
+            query = {"host": f"{socket_path}/{cloud_sql_instance_connection}"}
 
         # Assemble it all together:
-        connection_string = (
-            f"{scheme}://{db_user}:{db_password}@{db_host}/{db_name}?{query}"
+        url_object = URL.create(
+            values.get("SQLALCHEMY_DRIVERNAME"),
+            username=db_user,
+            password=db_password,
+            host=db_host,
+            database=db_name,
+            query=query,
         )
-        logger.debug(f"Connection string {connection_string}")
-        return connection_string
+        logger.debug(f"sqlalchemy connection URL {url_object}")
+        return url_object
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \

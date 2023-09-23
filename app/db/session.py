@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Tuple
 
 import sqlalchemy
-from sqlalchemy import create_engine
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.background import BackgroundTasks
 from structlog import get_logger
@@ -13,7 +13,7 @@ logger = get_logger()
 
 
 def database_connection(
-    database_uri: str,
+    database_uri: str | URL,
     pool_size=10,
     max_overflow=10,
 ) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
