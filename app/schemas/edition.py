@@ -29,7 +29,7 @@ class Genre(BaseModel):
 
     name: str
     source: GenreSource
-    code: str | None
+    code: str | None = None
 
 
 class EditionInfo(BaseModel):
