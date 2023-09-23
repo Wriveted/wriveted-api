@@ -8,7 +8,7 @@ from app.schemas import CaseInsensitiveStringEnum
 from app.schemas.edition import EditionDetail
 from app.schemas.image_url import ImageUrl
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.school import SchoolWrivetedIdentity
+from app.schemas.school_identity import SchoolWrivetedIdentity
 from app.schemas.users.user_identity import UserIdentity
 from app.schemas.work import WorkEnriched
 

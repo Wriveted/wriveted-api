@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
-from app.db import Base
+from app.db.base_class import Base
 from app.models.author_work_association import author_work_association_table
 from app.models.work import Work
 
