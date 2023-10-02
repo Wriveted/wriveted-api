@@ -9,6 +9,7 @@ from sqlalchemy.orm import Query, Session, aliased
 
 from app.db import Base
 
+T = TypeVar("T")
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
@@ -76,8 +77,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     @staticmethod
     def apply_pagination(
-        query: Select[ModelType], *, skip: int = None, limit: int = None
-    ) -> Select[ModelType]:
+        query: Select[T], *, skip: int = None, limit: int = None
+    ) -> Select[T]:
         return query.offset(skip).limit(limit)
 
     def count_query(self, db: Session, query) -> int:

@@ -20,7 +20,11 @@ from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
 from app.schemas.events.event import EventCreateIn
-from app.schemas.events.event_detail import EventDetail, EventListsResponse
+from app.schemas.events.event_detail import (
+    EventDetail,
+    EventListsResponse,
+    EventTypesResponse,
+)
 from app.schemas.pagination import Pagination
 from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
@@ -194,4 +198,21 @@ async def get_events(
 
     return EventListsResponse(
         pagination=Pagination(**pagination.to_dict(), total=None), data=filtered_events
+    )
+
+
+@router.get("/event-types", response_model=EventTypesResponse)
+async def get_event_types(
+    level: EventLevel = None,
+    pagination: PaginatedQueryParams = Depends(),
+    session: Session = Depends(get_session),
+):
+    event_types = crud.event.get_types(
+        session,
+        level=level,
+        skip=pagination.skip,
+        limit=pagination.limit,
+    )
+    return EventTypesResponse(
+        pagination=Pagination(**pagination.to_dict(), total=None), data=event_types
     )

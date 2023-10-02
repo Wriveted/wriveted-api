@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Union
 
-from sqlalchemy import cast, func, or_
+from sqlalchemy import cast, distinct, func, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.orm import Session
@@ -88,14 +88,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             event_query = event_query.where(or_(*filters))
 
         if level is not None:
-            # Include levels that are higher as well!
-            logging_levels = ["debug", "normal", "warning", "error"]
-            try:
-                level_index = logging_levels.index(level)
-            except ValueError:
-                # If the level is not in the list, just use the highest level
-                level_index = len(logging_levels) - 1
-            included_levels = logging_levels[level_index:]
+            included_levels = self.get_log_levels_above_level(level)
             event_query = event_query.where(Event.level.in_(included_levels))
 
         if school is not None:
@@ -119,6 +112,17 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             event_query = event_query.where(Event.timestamp >= since)
 
         return event_query
+
+    def get_log_levels_above_level(self, level):
+        # Include levels that are higher as well!
+        logging_levels = ["debug", "normal", "warning", "error"]
+        try:
+            level_index = logging_levels.index(level)
+        except ValueError:
+            # If the level is not in the list, just use the highest level
+            level_index = len(logging_levels) - 1
+        included_levels = logging_levels[level_index:]
+        return included_levels
 
     def get_all_with_optional_filters(
         self,
@@ -155,6 +159,22 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         except (ProgrammingError, DataError) as e:
             logger.error("Error querying events", error=e, **optional_filters)
             raise ValueError("Problem filtering events")
+
+    def get_types(
+        self,
+        db: Session,
+        level: EventLevel | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ):
+        s = select(distinct(Event.title))
+        if level is not None:
+            included_levels = self.get_log_levels_above_level(level)
+            s = s.where(Event.level.in_(included_levels))
+
+        query = self.apply_pagination(s, skip=skip, limit=limit)
+
+        return db.scalars(query).all()
 
 
 event = CRUDEvent(Event)
