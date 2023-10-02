@@ -13,3 +13,7 @@ class EventDetail(EventBrief):
 
 class EventListsResponse(PaginatedResponse):
     data: list[EventDetail]
+
+
+class EventTypesResponse(PaginatedResponse):
+    data: list[str]
