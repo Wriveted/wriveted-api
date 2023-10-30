@@ -61,7 +61,7 @@ optional = true
 [tool.poetry.group.embedding.dependencies]
 pypdf = "^3.5.2"
 beautifulsoup4 = "^4.11.2"
-unstructured = "^0.5.4"
+unstructured = "^0.10.27"
 chromadb = "^0.3.11"
 
 [build-system]
