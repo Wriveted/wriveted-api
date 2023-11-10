@@ -7,7 +7,7 @@ import openai
 from pydantic import ValidationError
 from structlog import get_logger
 
-import app.api
+import app.api.works
 from app import crud
 from app.config import get_settings
 from app.models.labelset import LabelOrigin
@@ -76,9 +76,10 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     editions.sort(key=lambda e: len(e.info), reverse=True)
 
     if not editions:
-        raise ValueError("Insufficient edition data to generate labels")
-
-    main_edition = editions[0]
+        logger.warning("Insufficient edition data to generate good labels")
+        main_edition = work.editions[0]
+    else:
+        main_edition = editions[0]
 
     huey_summary = (
         work.labelset.huey_summary
