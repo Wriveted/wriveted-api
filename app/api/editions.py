@@ -156,6 +156,7 @@ async def update_edition(
             else handle_edition_cover_image_update(
                 edition,
                 cover_url_data,
+                "wriveted"
             )
         )
         if cover_url:
