@@ -49,8 +49,8 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str = ""
     # See https://platform.openai.com/docs/models/model-endpoint-compatibility
-    # e.g. "gpt-3.5-turbo", "gpt-4"
-    OPENAI_MODEL: str = "gpt-4-1106-preview"
+    # e.g. "gpt-3.5-turbo", "gpt-4", "gpt-4-1106-preview"
+    OPENAI_MODEL: str = "gpt-4"
     OPENAI_TIMEOUT: float = 60.0
 
     LABEL_AFTER_HYDRATION: bool = True
