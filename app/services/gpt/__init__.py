@@ -78,6 +78,8 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     if not editions:
         logger.warning("Insufficient edition data to generate good labels")
         main_edition = work.editions[0]
+        if main_edition.info is None:
+            main_edition.info = {}
     else:
         main_edition = editions[0]
 
