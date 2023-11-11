@@ -92,13 +92,14 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     page_numbers = set()
 
     for e in editions[:20]:
-        for g in e.info.get("genres", []):
-            genre_data.add(f"{g['name']}")
+        if e.info is not None:
+            for g in e.info.get("genres", []):
+                genre_data.add(f"{g['name']}")
 
-        short_summaries.add(e.info.get("summary_short"))
+            short_summaries.add(e.info.get("summary_short"))
 
-        if pages := e.info.get("pages"):
-            page_numbers.add(pages)
+            if pages := e.info.get("pages"):
+                page_numbers.add(pages)
 
     genre_data = "\n".join(genre_data)
     median_page_number = median(page_numbers) if page_numbers else "unknown"

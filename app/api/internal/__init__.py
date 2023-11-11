@@ -127,7 +127,7 @@ async def handle_generate_labels(
             "Labels generated",
         )
     except Exception as e:
-        logger.error("Error generating labels. Ignoring.", e=e)
+        logger.error("Error generating labels. Ignoring.", exc_info=e)
         return {"msg": "error"}
     return {"msg": "ok"}
 
