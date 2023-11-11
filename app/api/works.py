@@ -126,6 +126,11 @@ async def get_work_by_id(
     session: Session = Depends(get_session),
 ):
     if full_detail:
+        if work.info and 'genres' not in work.info:
+            work.info['genres'] = []
+            work.info['other'] = {}
+            session.add(work)
+            session.commit()
         return WorkDetail.model_validate(work)
 
     else:
