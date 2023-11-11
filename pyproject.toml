@@ -55,14 +55,6 @@ pre-commit = "^3.3"
 locust = "^2.14"
 rich = "^13.3.2"
 
-[tool.poetry.group.embedding]
-optional = true
-
-[tool.poetry.group.embedding.dependencies]
-pypdf = "^3.5.2"
-beautifulsoup4 = "^4.11.2"
-unstructured = "^0.5.4"
-chromadb = "^0.3.11"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
