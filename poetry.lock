@@ -1091,19 +1091,6 @@ async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
 
 [[package]]
-name = "flask-basicauth"
-version = "0.2.0"
-description = "HTTP basic access authentication for Flask."
-optional = false
-python-versions = "*"
-files = [
-    {file = "Flask-BasicAuth-0.2.0.tar.gz", hash = "sha256:df5ebd489dc0914c224419da059d991eb72988a01cdd4b956d52932ce7d501ff"},
-]
-
-[package.dependencies]
-Flask = "*"
-
-[[package]]
 name = "flask-cors"
 version = "4.0.0"
 description = "A Flask extension adding a decorator for CORS support"
@@ -1116,6 +1103,21 @@ files = [
 
 [package.dependencies]
 Flask = ">=0.9"
+
+[[package]]
+name = "flask-login"
+version = "0.6.3"
+description = "User authentication and session management for Flask."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "Flask-Login-0.6.3.tar.gz", hash = "sha256:5e23d14a607ef12806c699590b89d0f0e0d67baeec599d75947bf9c147330333"},
+    {file = "Flask_Login-0.6.3-py3-none-any.whl", hash = "sha256:849b25b82a436bf830a054e74214074af59097171562ab10bfa999e6b78aae5d"},
+]
+
+[package.dependencies]
+Flask = ">=1.0.4"
+Werkzeug = ">=1.0.1"
 
 [[package]]
 name = "flupy"
@@ -2439,27 +2441,27 @@ test = ["hatch", "ipykernel", "openapi-core (>=0.18.0,<0.19.0)", "openapi-spec-v
 
 [[package]]
 name = "locust"
-version = "2.18.2"
+version = "2.23.1"
 description = "Developer friendly load testing framework"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "locust-2.18.2-py3-none-any.whl", hash = "sha256:a1916347bedcfa6598fcc6ba45022fcd31ed1352d84797650673296129223891"},
-    {file = "locust-2.18.2.tar.gz", hash = "sha256:802300a30b4d88555854e3687ff30a0cf5e73b35f264e45ec6f0aa2c8792569f"},
+    {file = "locust-2.23.1-py3-none-any.whl", hash = "sha256:96013a460a4b4d6d4fd46c70e6ff1fd2b6e03b48ddb1b48d1513d3134ba2cecf"},
+    {file = "locust-2.23.1.tar.gz", hash = "sha256:6cc729729e5ebf5852fc9d845302cfcf0ab0132f198e68b3eb0c88b438b6a863"},
 ]
 
 [package.dependencies]
-ConfigArgParse = ">=1.0"
+ConfigArgParse = ">=1.5.5"
 flask = ">=2.0.0"
-Flask-BasicAuth = ">=0.2.0"
 Flask-Cors = ">=3.0.10"
-gevent = ">=20.12.1"
-geventhttpclient = ">=2.0.2"
-msgpack = ">=0.6.2"
-psutil = ">=5.6.7"
+Flask-Login = ">=0.6.3"
+gevent = ">=22.10.2"
+geventhttpclient = ">=2.0.11"
+msgpack = ">=1.0.0"
+psutil = ">=5.9.1"
 pywin32 = {version = "*", markers = "platform_system == \"Windows\""}
-pyzmq = ">=22.2.1,<23.0.0 || >23.0.0"
-requests = ">=2.23.0"
+pyzmq = ">=25.0.0"
+requests = ">=2.26.0"
 roundrobin = ">=0.0.2"
 Werkzeug = ">=2.0.0"
 
@@ -5086,4 +5088,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "81176f56e7ea20a423ec61398fd77782bcd037753ff2444dadda2173f02a66a1"
+content-hash = "80ee1c5b0915af9e08ddd79117b3b17138584f613af7c9c34f5c7f64010203d3"

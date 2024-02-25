@@ -52,7 +52,7 @@ google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^1.0"
 pre-commit = "^3.3"
-locust = "^2.14"
+locust = "^2.23"
 rich = "^13.3.2"
 
 
