@@ -36,7 +36,7 @@ class HueyRecommendationFilterBase(BaseModel):
     age: Optional[int] = None
     reading_abilities: Optional[list[ReadingAbilityKey]] = None
     recommendable_only: Optional[bool] = None
-    exclude_isbns: Optional[list[str]] = None
+    exclude_isbns: Optional[list[str | None]] = None
     fallback: Optional[bool] = None
     # hueys_picks: Optional[bool]
 

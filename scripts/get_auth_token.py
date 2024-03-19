@@ -31,7 +31,10 @@ with SessionManager(get_session_maker()) as session:
     # print("Using secret key", config.get_settings().SECRET_KEY)
     print(create_user_access_token(user))
 
-    huey_service_token_id = "e8467650-bc8a-4ca7-9052-176b33026a21"
+    # This is the "kiosk" level service account
+    # huey_service_token_id = "e8467650-bc8a-4ca7-9052-176b33026a21"
+    # Admin backend service account for landbot
+    huey_service_token_id = "c072b7b8-02b2-407c-a56c-c126a125f234"
     huey_service_account = crud.service_account.get(session, id=huey_service_token_id)
     print(huey_service_account)
 
@@ -48,9 +51,9 @@ with SessionManager(get_session_maker()) as session:
     else:
         print("Service account already exists")
 
-    print("Generating service account auth token")
+    print("Generating long term service account auth token")
     access_token = create_access_token(
         subject=f"wriveted:service-account:{huey_service_token_id}",
-        expires_delta=timedelta(days=10),
+        expires_delta=timedelta(days=5 * 365),
     )
     print(access_token)
