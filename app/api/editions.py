@@ -153,11 +153,7 @@ async def update_edition(
         cover_url = (
             cover_url_data
             if is_url(cover_url_data)
-            else handle_edition_cover_image_update(
-                edition,
-                cover_url_data,
-                "wriveted"
-            )
+            else handle_edition_cover_image_update(edition, cover_url_data, "wriveted")
         )
         if cover_url:
             update_data["cover_url"] = cover_url
