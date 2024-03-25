@@ -5,13 +5,13 @@ from fastapi import HTTPException
 from sqlalchemy import asc, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, contains_eager, raiseload
 from structlog import get_logger
 
 from app import crud
 from app.crud import CRUDBase
 from app.crud.base import deep_merge_dicts
-from app.models import Edition
+from app.models import Author, Edition, Work
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
 from app.models.collection_item_activity import (
@@ -88,12 +88,14 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         except NoResultFound:
             logger.info(
                 "Creating new collection",
-                user_id=str(collection_data.user_id)
-                if collection_data.user_id
-                else None,
-                school_id=str(collection_data.school_id)
-                if collection_data.school_id
-                else None,
+                user_id=(
+                    str(collection_data.user_id) if collection_data.user_id else None
+                ),
+                school_id=(
+                    str(collection_data.school_id)
+                    if collection_data.school_id
+                    else None
+                ),
                 name=collection_data.name,
                 num_items=len(collection_data.items or []),
             )
@@ -206,11 +208,11 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 if is_url(image_data):
                     info_update_dict["cover_image"] = image_data
                 else:
-                    info_update_dict[
-                        "cover_image"
-                    ] = handle_collection_item_cover_image_update(
-                        item_orm_object,
-                        image_data,
+                    info_update_dict["cover_image"] = (
+                        handle_collection_item_cover_image_update(
+                            item_orm_object,
+                            image_data,
+                        )
                     )
 
             deep_merge_dicts(info_dict, info_update_dict)
@@ -311,7 +313,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 isbn = edition.isbn
             except AssertionError:
                 # Invalid isbn, just skip
-                logger.warning("Skipping invalid isbn", isbn=item.edition_isbn)
+                logger.warning("Skipping invalid isbn", isbn=isbn)
                 return
 
         info_dict = {}
@@ -444,7 +446,28 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             select(CollectionItem)
             .join(
                 CollectionItem.edition, isouter=True
-            )  # Note would be a joined load anyway, but now we can filter with it
+            )  # Explicit join for sorting - it would be a joined load anyway, but now we can filter with it
+            .join(Edition.work, isouter=True)
+            .options(
+                contains_eager(CollectionItem.edition).lazyload(Edition.illustrators),
+                contains_eager(CollectionItem.edition).lazyload(Edition.collections),
+                contains_eager(CollectionItem.edition).defer(Edition.collection_count),
+                contains_eager(CollectionItem.edition)
+                .contains_eager(Edition.work)
+                .raiseload(Work.labelset),
+                contains_eager(CollectionItem.edition)
+                .contains_eager(Edition.work)
+                .raiseload(Work.booklists),
+                contains_eager(CollectionItem.edition)
+                .contains_eager(Edition.work)
+                .raiseload(Work.series),
+                contains_eager(CollectionItem.edition)
+                .contains_eager(Edition.work)
+                .selectinload(Work.authors)
+                .raiseload(Author.books),
+                raiseload(CollectionItem.collection),
+                raiseload(CollectionItem.activity_log),
+            )
             .where(CollectionItem.collection_id == collection_id)
             .order_by(asc(Edition.title))
         )
@@ -498,7 +521,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         cte = statement.cte()
         aliased_model = aliased(CollectionItem, cte)
-        matching_count = db.scalar(select(func.count(aliased_model.id)))
+        count_query = select(func.count(aliased_model.id))
+        matching_count = db.scalar(count_query)
 
         paginated_items_query = self.apply_pagination(statement, skip=skip, limit=limit)
 

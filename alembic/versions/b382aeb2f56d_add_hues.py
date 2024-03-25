@@ -5,6 +5,7 @@ Revises: 5fff4615d51a
 Create Date: 2022-03-09 14:45:18.915196
 
 """
+
 from sqlalchemy import orm
 from sqlalchemy.ext.automap import automap_base
 

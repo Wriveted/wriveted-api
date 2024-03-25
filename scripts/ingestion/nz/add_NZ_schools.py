@@ -41,11 +41,15 @@ with open("nz-schools.csv") as csv_file:
                         "state": school["Education_Region"],
                         "suburb": school["Add1_Suburb"],
                         "city": school["Add1_City"],
-                        "postcode": school["Add1_Postal_Code"]
-                        if "Add1_Postal_Code" in school
-                        else school["Add2_Postal_Code"]
-                        if "Add2_Postal_Code"
-                        else None,
+                        "postcode": (
+                            school["Add1_Postal_Code"]
+                            if "Add1_Postal_Code" in school
+                            else (
+                                school["Add2_Postal_Code"]
+                                if "Add2_Postal_Code"
+                                else None
+                            )
+                        ),
                         "lat": school["Latitude"],
                         "long": school["Longitude"],
                     },

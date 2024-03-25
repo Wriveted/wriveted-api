@@ -29,6 +29,6 @@ class Illustrator(Base):
     editions = relationship(
         "Edition",
         secondary=illustrator_edition_association_table,
-        back_populates="illustrators"
+        back_populates="illustrators",
         # cascade="all, delete-orphan"
     )

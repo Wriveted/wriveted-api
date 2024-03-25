@@ -6,6 +6,7 @@ SQLAlchemy 1.4 version.
 
 
 """
+
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import ClauseElement, Executable
 

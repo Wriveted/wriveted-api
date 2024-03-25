@@ -5,6 +5,7 @@ Revises: dc4f1d12fa07
 Create Date: 2022-07-14 12:14:11.857497
 
 """
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine.reflection import Inspector

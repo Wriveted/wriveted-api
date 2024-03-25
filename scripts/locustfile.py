@@ -6,6 +6,7 @@ Open http://localhost:8089 and run a test setting the target to your local API: 
 
 https://docs.locust.io/en/stable/writing-a-locustfile.html
 """
+
 import os
 import random
 

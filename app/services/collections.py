@@ -89,6 +89,9 @@ async def add_editions_to_collection_by_isbn(
     try:
         session.commit()
     except IntegrityError:
+        logger.warning(
+            "IntegrityError when adding editions to collection", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Couldn't process input",

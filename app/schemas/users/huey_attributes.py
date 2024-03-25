@@ -7,18 +7,24 @@ from app.schemas.recommendations import HueKeys, ReadingAbilityKey
 
 
 class HueyAttributes(BaseModel):
-    birthdate: Annotated[
-        str,
-        StringConstraints(
-            pattern=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
-        ),
-    ] | None = None
-    last_visited: Annotated[
-        str,
-        StringConstraints(
-            pattern=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
-        ),
-    ] | None = None
+    birthdate: (
+        Annotated[
+            str,
+            StringConstraints(
+                pattern=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+            ),
+        ]
+        | None
+    ) = None
+    last_visited: (
+        Annotated[
+            str,
+            StringConstraints(
+                pattern=r"(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?"
+            ),
+        ]
+        | None
+    ) = None
 
     age: int | None = None
     reading_ability: list[ReadingAbilityKey] | None = None

@@ -110,7 +110,7 @@ class Work(Base):
                 }
                 for author in self.authors
             ],
-            "labelset": self.labelset.get_label_dict(session)
-            if self.labelset
-            else None,
+            "labelset": (
+                self.labelset.get_label_dict(session) if self.labelset else None
+            ),
         }

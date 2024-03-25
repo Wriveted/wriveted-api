@@ -35,6 +35,7 @@ def test_collection_item_activity_creation_and_fetching(
         {"edition_isbn": edition.isbn, "copies_total": 1, "copies_available": 1}
         for edition in test_unhydrated_editions
     ]
+    print(f"Sending {len(items)} items to collection")
     user_collection_update_response = client.put(
         f"/v1/collection/{user_collection_id}/items",
         headers=test_user_account_headers,
@@ -50,6 +51,7 @@ def test_collection_item_activity_creation_and_fetching(
     user_get_collection_item_response.raise_for_status()
 
     user_collection_item_data = user_get_collection_item_response.json()
+    assert len(user_collection_item_data["data"]) >= 1
     user_collection_item = user_collection_item_data["data"][0]
     collection_item_id = user_collection_item["id"]
 
