@@ -447,7 +447,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             .join(
                 CollectionItem.edition, isouter=True
             )  # Explicit join for sorting - it would be a joined load anyway, but now we can filter with it
-            .join(Edition.work, isouter=False)
+            .join(Edition.work, isouter=True)
             .options(
                 contains_eager(CollectionItem.edition).lazyload(Edition.illustrators),
                 contains_eager(CollectionItem.edition).lazyload(Edition.collections),
