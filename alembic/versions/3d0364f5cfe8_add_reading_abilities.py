@@ -5,6 +5,7 @@ Revises: b4e7bf4be9b6
 Create Date: 2022-03-09 22:03:47.064036
 
 """
+
 from sqlalchemy import orm
 
 from alembic import op

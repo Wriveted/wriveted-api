@@ -17,6 +17,7 @@ https://developers.google.com/workspace/guides/create-credentials
 (ensure there is a `credentials.json` in the current working directory)
 
 """
+
 import os.path
 
 import httpx

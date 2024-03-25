@@ -83,8 +83,7 @@ async def get_collection_details(
 async def get_collection_items(
     collection: Collection = Permission("read", get_collection_from_id),
     query: Optional[str] = Query(None, description="Query string for edition title"),
-    reader_id: str
-    | None = Query(
+    reader_id: str | None = Query(
         None, description="Filter by items that a specific Reader has interacted with"
     ),
     read_status: Optional[CollectionItemReadStatus] = Query(

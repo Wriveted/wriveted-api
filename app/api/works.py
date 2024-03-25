@@ -187,9 +187,11 @@ async def create_work_with_editions(
 
     authors = [
         # Authors could be int or AuthorCreateIn objects
-        crud.author.get(db=session, id=author_data)
-        if isinstance(author_data, int)
-        else crud.author.get_or_create(db=session, author_data=author_data)
+        (
+            crud.author.get(db=session, id=author_data)
+            if isinstance(author_data, int)
+            else crud.author.get_or_create(db=session, author_data=author_data)
+        )
         for author_data in work_data.authors
     ]
     logger.debug("Processed authors for new work", authors=authors)

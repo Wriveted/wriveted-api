@@ -60,9 +60,9 @@ def handle_user_creation(
                         "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
                         "template_data": {
                             "name": new_user.name,
-                            "children_string": children_string
-                            if children_to_create
-                            else "your child",
+                            "children_string": (
+                                children_string if children_to_create else "your child"
+                            ),
                         },
                     },
                     "user_id": str(new_user.id),

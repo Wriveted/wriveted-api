@@ -88,12 +88,14 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         except NoResultFound:
             logger.info(
                 "Creating new collection",
-                user_id=str(collection_data.user_id)
-                if collection_data.user_id
-                else None,
-                school_id=str(collection_data.school_id)
-                if collection_data.school_id
-                else None,
+                user_id=(
+                    str(collection_data.user_id) if collection_data.user_id else None
+                ),
+                school_id=(
+                    str(collection_data.school_id)
+                    if collection_data.school_id
+                    else None
+                ),
                 name=collection_data.name,
                 num_items=len(collection_data.items or []),
             )
@@ -206,11 +208,11 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 if is_url(image_data):
                     info_update_dict["cover_image"] = image_data
                 else:
-                    info_update_dict[
-                        "cover_image"
-                    ] = handle_collection_item_cover_image_update(
-                        item_orm_object,
-                        image_data,
+                    info_update_dict["cover_image"] = (
+                        handle_collection_item_cover_image_update(
+                            item_orm_object,
+                            image_data,
+                        )
                     )
 
             deep_merge_dicts(info_dict, info_update_dict)

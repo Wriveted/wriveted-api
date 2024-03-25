@@ -117,9 +117,9 @@ async def get_schools(
         postcode=postcode,
         query_string=q,
         is_active=is_active if has_details_permission else None,
-        is_collection_connected=connected_collection
-        if has_details_permission
-        else None,
+        is_collection_connected=(
+            connected_collection if has_details_permission else None
+        ),
         official_identifier=official_identifier,
         skip=pagination.skip,
         limit=pagination.limit,

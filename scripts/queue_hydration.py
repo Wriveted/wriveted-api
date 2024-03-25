@@ -1,6 +1,7 @@
 """
 This script hydrates all the books matching some criteria.
 """
+
 import os.path
 from typing import List
 

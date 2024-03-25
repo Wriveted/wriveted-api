@@ -5,6 +5,7 @@ Revises: 3076bbdb14d6
 Create Date: 2022-06-02 15:03:17.406912
 
 """
+
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
@@ -43,9 +44,11 @@ def upgrade():
             .where(readers_table.c.id == str(userid))
             .values(
                 first_name=name.split()[0] if name is not None else "",
-                last_name_initial=name.split()[1][0]
-                if name is not None and len(name.split()) > 1
-                else "",
+                last_name_initial=(
+                    name.split()[1][0]
+                    if name is not None and len(name.split()) > 1
+                    else ""
+                ),
             )
         )
 
