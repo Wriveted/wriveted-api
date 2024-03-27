@@ -12,6 +12,7 @@ from app.schemas.country import CountryDetail
 
 # pylint: disable=unused-import
 from app.schemas.school_identity import SchoolIdentity
+from app.schemas.subscription import SubscriptionBrief
 from app.schemas.users import UserBrief
 
 
@@ -74,6 +75,8 @@ class SchoolDetail(SchoolBrief):
     teacher_domain: Optional[AnyHttpUrl] = None
 
     booklists: list[BookListID]
+
+    subscriptions: list[SubscriptionBrief]
 
 
 class SchoolCreateIn(BaseModel):

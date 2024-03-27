@@ -35,13 +35,17 @@ class Subscription(Base):
     )
     parent = relationship("Parent", back_populates="subscription")
 
-    # school_id = mapped_column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("schools.id", name="fk_school_stripe_subscription", ondelete="CASCADE"),
-    #     nullable=True,
-    #     index=True,
-    # )
-    # school = relationship("School", back_populates="subscriptions")
+    school_id = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_school_stripe_subscription",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
+        index=True,
+    )
+    school = relationship("School", back_populates="subscriptions")
 
     type = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),

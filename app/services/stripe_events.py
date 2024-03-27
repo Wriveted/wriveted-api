@@ -78,10 +78,12 @@ def process_stripe_event(event_type: str, event_data):
 
     Session = get_session_maker()
     with Session() as session:
-        wriveted_user, stripe_customer = _extract_user_and_customer_from_stripe_object(
-            session, event_data, object_type
+        wriveted_user, wriveted_school, stripe_customer = (
+            _extract_user_and_customer_from_stripe_object(
+                session, event_data, object_type
+            )
         )
-        # we now have a stripe customer and, if it exists, equivalent wriveted user
+        # we now have a stripe customer and, if it exists, equivalent wriveted user and/or school
 
         match event_type:
             # Actionable events
@@ -139,6 +141,7 @@ def _extract_user_and_customer_from_stripe_object(
     )
 
     wriveted_user = None
+    wriveted_school = None
     # webhook is only listening to events that are guaranteed to include a customer id (for now)
     stripe_customer = _get_stripe_customer_from_stripe_object(
         stripe_object, stripe_object_type
@@ -154,6 +157,13 @@ def _extract_user_and_customer_from_stripe_object(
     if stripe_customer_wriveted_id:
         wriveted_user = crud.user.get(session, stripe_customer_wriveted_id)
         logger.info("Found wriveted user id in customer metadata", user=wriveted_user)
+
+    stripe_customer_school_id = metadata.get("wriveted_school_id") if metadata else None
+    if stripe_customer_school_id:
+        wriveted_school = crud.school.get(session, stripe_customer_school_id)
+        logger.info(
+            "Found Wriveted School in customer metadata", school=wriveted_school
+        )
 
     # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
     # note: empty values can sometimes be returned as the strings "undefined" or "null"
@@ -183,7 +193,7 @@ def _extract_user_and_customer_from_stripe_object(
     if wriveted_user:
         bind_contextvars(wriveted_user_id=str(wriveted_user.id))
 
-    return wriveted_user, stripe_customer
+    return wriveted_user, wriveted_school, stripe_customer
 
 
 def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
@@ -200,7 +210,7 @@ def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
 
 
 def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
-    logger.info("Invoice paid. Updating user subscription")
+    logger.info("Invoice paid. Updating subscription")
     # Get the subscription id from the invoice paid event
     stripe_subscription_id = event_data.get("subscription")
     stripe_customer_id = event_data.get("customer")
@@ -303,7 +313,7 @@ def _handle_checkout_session_completed(
         expiration=stripe_subscription.current_period_end,
     )
     logger.info(
-        "Creating or updating subscription in our database",
+        "Upserting subscription in our database",
         base_subscription_data=base_subscription_data,
         checkout_session_id=checkout_session_id,
     )
@@ -319,24 +329,33 @@ def _handle_checkout_session_completed(
     # fetch from db instead of stripe object in case we have a product name override
     product_name = crud.product.get(session, stripe_price_id).name
 
-    create_event(
+    event = create_event(
         session=session,
         title="Subscription started",
-        description="Subscription created or updated",
+        description=f"Subscription to {product_name} created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
+            "stripe_customer_name": stripe_customer.name,
             "stripe_customer_email": stripe_customer_email,
             "stripe_subscription_id": stripe_subscription_id,
             "stripe_product_id": stripe_price_id,
-            "stripe_product_name": product_name,
+            "product_name": product_name,
+            "wriveted_subscription_id": subscription.id,
         },
         account=wriveted_user,
         slack_channel=EventSlackChannel.MEMBERSHIPS,
         slack_extra={
+            "customer_name": stripe_customer.name,
             "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
             "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
             "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
         },
+    )
+
+    # Queue processing of the 'Subscription started' event
+    queue_background_task(
+        "process-event",
+        {"event_id": str(event.id)},
     )
 
     logger.info("Queueing subscription welcome email")

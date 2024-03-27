@@ -134,6 +134,12 @@ class School(Base):
         nullable=False,
     )
 
+    subscriptions = relationship(
+        "Subscription",
+        back_populates="school",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self):
         return (
             f"<School '{self.name}' ({self.official_identifier} - {self.country.name})>"

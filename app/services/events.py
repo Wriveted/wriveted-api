@@ -207,8 +207,36 @@ def process_events(event_id):
             #     # e.g. "Well done for reading 10 books this year!"
             #     # (not for a specific reading event, but for a milestone or other automated achievement)
             #     return process_supporter_achievement_feedback_event(session, event)
+            case "Subscription started":
+                return process_subscription_started_event(session, event)
             case _:
                 return
+
+
+def process_subscription_started_event(session: Session, event: Event):
+    """ """
+
+    logger.info("Processing subscription started event", info=event.info)
+
+    # Depending on the product send welcome emails etc
+    #
+    # queue_background_task(
+    #     "send-email",
+    #     {
+    #         "email_data": {
+    #             "from_email": "orders@hueybooks.com",
+    #             "from_name": "Huey Books",
+    #             "to_emails": [stripe_customer_email] if stripe_customer_email else [],
+    #             "subject": "Your Huey Books Membership",
+    #             "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
+    #             "template_data": {
+    #                 "name": stripe_customer.name,
+    #                 "checkout_session_id": checkout_session_id,
+    #             },
+    #         },
+    #         "user_id": str(wriveted_user.id) if wriveted_user else None,
+    #     },
+    # )
 
 
 def process_book_review_event(session: Session, event: Event):
