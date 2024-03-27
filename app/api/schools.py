@@ -127,7 +127,7 @@ async def get_schools(
 
     logger.debug(f"Returning {len(schools)} schools")
 
-    # Sanitize results based on logged in user's permissions
+    # Sanitize results based on logged-in user's permissions
     if not has_details_permission:
         for school in schools:
             school.state = None
