@@ -1,3 +1,13 @@
+# Wriveted API
+
+The core API applicationfor Huey Books, written in Python. Responsible for the REST API (implemented as a Python FastAPI 
+server using Pydantic models), implements most business login, as well as the database models and an internal task server.
+
+
+<p align="center">
+  <img alt="Deployment Context" src="https://raw.githubusercontent.com/wriveted/wriveted-api/main/.github/context.png" width="150" />
+</p>
+
 This repository implements a REST API to add, edit, and remove information about
 Users, Books, Schools and Library Collections for Wriveted.
 
@@ -6,6 +16,78 @@ The API is designed for use by multiple users:
 - Library Management Systems. In particular see the section on updating and setting Schools collections.
 - Wriveted Staff either directly via scripts or via an admin UI.
 - End users via Huey the Bookbot, Huey Books, or other Wriveted applications.
+
+A single docker image contains the implemention of two separate Python FastAPI server applications. The image is
+deployed as two services in GCP Cloud Run and is backed by a Postgresql database hosted in Cloud SQL. Background
+tasks such as log processing, emailing and book labeling is carried out by the “internal” application, with Google
+Cloud Tasks providing task queuing and retries between these services.
+
+
+<p align="center">
+  <img alt="Containers" src="https://raw.githubusercontent.com/wriveted/wriveted-api/main/.github/containers.png" width="150" />
+</p>
+
+The public facing API (with a few minor exceptions) is documented using OpenAPI at https://api.wriveted.com/v1/docs
+
+# Data
+
+Wriveted makes extensive use of a Postgresql database hosted in Cloud SQL. The database is the source of truth for all our
+book, collection and user data.
+
+We use the Python library SqlAlchemy for defining the database schema (all tables, views, functions). Alembic is used for schema migrations.
+
+The best starting point would be to read through the SqlAlchemy models at https://github.com/Wriveted/wriveted-api/tree/main/app/models. 
+All modifications to the database structure requires a new alembic migration.
+
+We deploy two instances of the database, one for development and one for production. A nightly job creates a snapshot of production 
+and tests the backup/restore process by restoring the backup from production to development.
+
+Our user models use [joined-table inheritance](https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance) which are worth reading up on before modifying the schema of any user tables.
+
+# Security
+
+## Authentication
+
+User Authentication is carried out with Google Identity Platform - via the Firebase API. Google SSO login as well as password-less email “magic link” login is used.
+
+Users and login methods can be configured via [Firebase Console](https://console.firebase.google.com/u/2/project/wriveted-api/authentication/users), or [GCP](https://console.cloud.google.com/customer-identity/users?authuser=2&hl=en&project=wriveted-api). Our user interface applications first require user’s to authenticate using Firebase, then the firebase token is exchanged for a Wriveted token (JWT) by calling `/v1/auth/firebase` ([docs](https://api.wriveted.com/v1/docs#/Security/secure_user_endpoint_v1_auth_firebase_get)).
+
+## 🚨 Authorization
+
+The API implements RBAC + row level access control on resources. Each user or service account
+is linked to roles (e.g. `"admin"`, `"lms"`, or `"student"`) and principals (e.g. `user-xyz`,
+`school-1`). Endpoints have access control lists that specify what permissions are required for
+different principals to access the resource at that endpoint. For example to access a school
+the access control list could look like this:
+
+```python
+from fastapi_permissions import Allow, Deny
+
+
+class School:
+    id = ...
+
+    ...
+
+    def __acl__(self):
+        return [
+            (Allow, "role:admin", "create"),
+            (Allow, "role:admin", "read"),
+            (Allow, "role:admin", "update"),
+            (Allow, "role:admin", "delete"),
+            (Allow, "role:admin", "batch"),
+
+            (Allow, "role:lms", "batch"),
+            (Allow, "role:lms", "update"),
+
+            (Deny, "role:student", "update"),
+            (Deny, "role:student", "delete"),
+
+            (Allow, f"school:{self.id}", "read"),
+            (Allow, f"school:{self.id}", "update"),
+        ]
+```
+
 
 # Development
 
@@ -155,44 +237,6 @@ Then apply all migrations with:
 
 ```shell
 poetry run alembic upgrade head
-```
-
-# Security
-
-## 🚨 Authorization
-
-The API implements RBAC + row level access control on resources. Each user or service account
-is linked to roles (e.g. `"admin"`, `"lms"`, or `"student"`) and principals (e.g. `user-xyz`,
-`school-1`). Endpoints have access control lists that specify what permissions are required for
-different principals to access the resource at that endpoint. For example to access a school
-the access control list could look like this:
-
-```python
-from fastapi_permissions import Allow, Deny
-
-
-class School:
-    id = ...
-
-    ...
-
-    def __acl__(self):
-        return [
-            (Allow, "role:admin", "create"),
-            (Allow, "role:admin", "read"),
-            (Allow, "role:admin", "update"),
-            (Allow, "role:admin", "delete"),
-            (Allow, "role:admin", "batch"),
-
-            (Allow, "role:lms", "batch"),
-            (Allow, "role:lms", "update"),
-
-            (Deny, "role:student", "update"),
-            (Deny, "role:student", "delete"),
-
-            (Allow, f"school:{self.id}", "read"),
-            (Allow, f"school:{self.id}", "update"),
-        ]
 ```
 
 # Logs
