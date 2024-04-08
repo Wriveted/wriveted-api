@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         "https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest"
     )
     NIELSEN_CLIENT_ID: str = "WrivetedWebServices"
-    NIELSEN_CLIENT_PASSWORD: str = "Wriveted5196"
+    NIELSEN_CLIENT_PASSWORD: str
 
 
 settings = Settings()

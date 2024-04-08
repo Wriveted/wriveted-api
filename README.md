@@ -39,10 +39,10 @@ For example to connect to the docker-compose database:
 
 ```
 // Terminal
-export SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@localhost/postgres
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
 
 // Powershell
-$Env:SQLALCHEMY_DATABASE_URI = "postgresql://postgres:xvc8kcn@localhost/postgres"
+$Env:SQLALCHEMY_DATABASE_URI = "postgresql://postgres:password@localhost/postgres"
 ```
 
 Then create a new migration:
@@ -62,8 +62,8 @@ poetry run alembic upgrade head
 
 ## Running locally
 
-Can use `docker-compose` to bring up an API and postgresql database locally.
-You can also run your own database, or proxy to a cloud SQL instance.
+You can use `docker-compose` to bring up an API and postgresql database locally.
+You can also run your own database, or proxy to a Cloud SQL instance.
 
 Note, you will have to manually apply the migrations.
 
@@ -128,7 +128,7 @@ alter default privileges in schema public grant USAGE, SELECT on sequences to cl
 
 ## Production Database Migrations
 
-For now, we have to manually apply database migrations.
+Manually apply database migrations.
 
 Login to GCP:
 
@@ -148,7 +148,7 @@ Export the devops credentials for the production database. Note the actual passw
 [Secret Manager](https://console.cloud.google.com/security/secret-manager?project=wriveted-api):
 
 ```
-export SQLALCHEMY_DATABASE_URI=postgresql://postgres:gJduFxMylJN1v44B@localhost/postgres
+export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
 ```
 
 Then apply all migrations with:
@@ -197,18 +197,15 @@ class School:
 
 # Logs
 
-Available in Cloud Run:
+Production logs are available in Cloud Run:
 
 https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
 
-# Limitations
 
-Not much effort has been putting into scaling. Running half a dozen `test_collection_updates.py` examples
-concurrently will stress the system - each execution might take 90 seconds or so.
 
 # Pre-Commit Checks
 
-Install pre-commit hooks to apply `black` formatter and sort imports with:
+Install pre-commit hooks with:
 
 ```
 poetry run pre-commit install

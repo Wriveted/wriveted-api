@@ -1,7 +1,7 @@
 
 # Importing Australian Schools
 
-Download a JSON file of all schools in australia
+Download a JSON file of all schools in Australia
 ```
 https://asl.acara.edu.au/School-Search
 ```
