@@ -8,10 +8,9 @@ from app.models import ServiceAccount
 from app.schemas.users.user_create import UserCreateIn
 from app.services.security import create_access_token
 
-# os.environ["POSTGRESQL_SERVER"] = "localhost/"
 os.environ["POSTGRESQL_SERVER"] = "localhost"
 # os.environ['POSTGRESQL_PASSWORD'] = ''
-# os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"
+# os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"      # Local Compose "secret"
 
 # Note we have to set at least the above environment variables before importing our application code
 

@@ -2,12 +2,12 @@ version: "3.8"
 services:
 
   db:
-    image: postgres:15
+    image: postgres:16
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
-      - POSTGRES_PASSWORD=xvc8kcn
+      - POSTGRES_PASSWORD=password
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - SLACK_BOT_TOKEN=unused-key-for-testing
@@ -26,8 +26,8 @@ services:
     depends_on:
       - db
     environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
-      - POSTGRESQL_PASSWORD=xvc8kcn
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
+      - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
@@ -40,8 +40,8 @@ services:
     depends_on:
       - db
     environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
-      - POSTGRESQL_PASSWORD=xvc8kcn
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
+      - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
@@ -71,8 +71,8 @@ services:
     depends_on:
       - db
     environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:xvc8kcn@db/postgres
-      - POSTGRESQL_PASSWORD=xvc8kcn
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
+      - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
