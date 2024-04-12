@@ -1,11 +1,10 @@
 # Wriveted API
 
-The core API applicationfor Huey Books, written in Python. Responsible for the REST API (implemented as a Python FastAPI 
+The core API applicationfor Huey Books, written in Python. Responsible for the REST API (implemented as a Python FastAPI
 server using Pydantic models), implements most business login, as well as the database models and an internal task server.
 
-
 <p align="center">
-  <img alt="Deployment Context" src="https://raw.githubusercontent.com/wriveted/wriveted-api/main/.github/context.png" width="150" />
+  <img alt="Deployment Context" src="https://github.com/Wriveted/wriveted-api/blob/main/.github/context.png?raw=true" width="50%" />
 </p>
 
 This repository implements a REST API to add, edit, and remove information about
@@ -22,9 +21,8 @@ deployed as two services in GCP Cloud Run and is backed by a Postgresql database
 tasks such as log processing, emailing and book labeling is carried out by the “internal” application, with Google
 Cloud Tasks providing task queuing and retries between these services.
 
-
 <p align="center">
-  <img alt="Containers" src="https://raw.githubusercontent.com/wriveted/wriveted-api/main/.github/containers.png" width="150" />
+  <img alt="Containers" src="https://github.com/Wriveted/wriveted-api/blob/main/.github/containers.png?raw=true" width="50%" />
 </p>
 
 The public facing API (with a few minor exceptions) is documented using OpenAPI at https://api.wriveted.com/v1/docs
@@ -36,10 +34,10 @@ book, collection and user data.
 
 We use the Python library SqlAlchemy for defining the database schema (all tables, views, functions). Alembic is used for schema migrations.
 
-The best starting point would be to read through the SqlAlchemy models at https://github.com/Wriveted/wriveted-api/tree/main/app/models. 
+The best starting point would be to read through the SqlAlchemy models at https://github.com/Wriveted/wriveted-api/tree/main/app/models.
 All modifications to the database structure requires a new alembic migration.
 
-We deploy two instances of the database, one for development and one for production. A nightly job creates a snapshot of production 
+We deploy two instances of the database, one for development and one for production. A nightly job creates a snapshot of production
 and tests the backup/restore process by restoring the backup from production to development.
 
 Our user models use [joined-table inheritance](https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance) which are worth reading up on before modifying the schema of any user tables.
@@ -87,7 +85,6 @@ class School:
             (Allow, f"school:{self.id}", "update"),
         ]
 ```
-
 
 # Development
 
@@ -244,8 +241,6 @@ poetry run alembic upgrade head
 Production logs are available in Cloud Run:
 
 https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api
-
-
 
 # Pre-Commit Checks
 
