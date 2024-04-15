@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
+import app.services.collections as collections_service
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
@@ -458,7 +459,7 @@ async def update_collection(
     form:
 
     ```json
-    { "isbn": "978...", "action": "add" }
+    { "edition_isbn": "978...", "action": "add" }
     ```
 
     Existing collection items can be referred to by their ISBN, or by
@@ -477,9 +478,11 @@ async def update_collection(
     logger.info("Updating collection", collection=collection, account=account)
 
     try:
-        crud.collection.update(
-            db=session,
-            db_obj=collection,
+
+        await collections_service.update_collection(
+            session=session,
+            collection=collection,
+            account=account,
             obj_in=collection_update_data,
             merge_dicts=merge_dicts,
             ignore_conflicts=ignore_conflicts,
@@ -502,7 +505,7 @@ async def update_collection(
             detail="Duplicate entries in collection - use ignore_conflicts to ignore this error",
         )
 
-    logger.debug("Committing transaction")
+    logger.debug("Checking size of collection after changes applied")
     session.commit()
     count = session.execute(
         select(func.count(CollectionItem.id)).where(

@@ -2,7 +2,7 @@ from typing import Any, Optional, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import asc, delete, func, select, update
+from sqlalchemy import asc, delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased, contains_eager, raiseload
@@ -102,7 +102,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             collection = self.create(db, obj_in=collection_data, commit=commit)
             return collection, True
 
-    def update(
+    async def aupdate(
         self,
         db: Session,
         *,
@@ -112,20 +112,33 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ) -> Collection:
-        if item_changes := getattr(obj_in, "items", []):
-            del obj_in.items
+        item_changes = getattr(obj_in, "items", [])
         if item_changes is None:
             item_changes = []
 
-        # Update the collection object
+        if hasattr(obj_in, "items"):
+            del obj_in.items
+        logger.debug("Updating the base collection object")
         collection_orm_object = super().update(
-            db=db, db_obj=db_obj, obj_in=obj_in, merge_dicts=merge_dicts
+            db=db, db_obj=db_obj, obj_in=obj_in, merge_dicts=merge_dicts, commit=False
         )
+        logger.debug("Flushing the collection object")
+        db.flush()
+
+        logger.info(
+            f"Applying {len(item_changes)} item changes in crud.collection.aupdate",
+            collection_id=str(db_obj.id),
+            collection_name=db_obj.name,
+        )
+        summary_counts = {"added": 0, "removed": 0, "updated": 0}
 
         # If provided, update the items one by one
         for change in item_changes:
             match change.action:
                 case CollectionUpdateType.ADD:
+                    logger.warning(
+                        "Adding items in crud.collection.update - probably shouldn't be done here"
+                    )
                     try:
                         self.add_item_to_collection(
                             db=db,
@@ -134,6 +147,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                             commit=False,
                             ignore_conflicts=ignore_conflicts,
                         )
+                        summary_counts["added"] += 1
                     except IntegrityError as e:
                         raise e
                 case CollectionUpdateType.UPDATE:
@@ -143,6 +157,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                         item_update=change,
                         commit=False,
                     )
+                    summary_counts["updated"] += 1
                 case CollectionUpdateType.REMOVE:
                     self._remove_item_from_collection(
                         db=db,
@@ -150,10 +165,19 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                         item_to_remove=change,
                         commit=False,
                     )
+                    summary_counts["removed"] += 1
+        logger.debug("Processed all items in crud.collection.aupdate")
+        collection_orm_object.updated_at = text("DEFAULT")
+        logger.debug("Flushing changes to DB")
 
+        db.flush()
         if commit:
+            logger.debug(
+                "Committing changes",
+                collection_id=str(db_obj.id),
+                collection_name=db_obj.name,
+            )
             db.commit()
-            db.refresh(collection_orm_object)
 
         return collection_orm_object
 
@@ -202,6 +226,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             )
 
         if item_update.info is not None:
+            logger.debug("Updating info for collection item")
             item_orm_object = db.scalar(select_query)
             if item_orm_object is None:
                 logger.warning("Skipping update of info for missing item in collection")
@@ -310,9 +335,8 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):
-        isbn = item.edition_isbn
 
-        if isbn is not None:
+        if item.edition_isbn is not None:
             try:
                 edition = crud.edition.get_or_create_unhydrated(
                     db=db, isbn=item.edition_isbn, commit=True

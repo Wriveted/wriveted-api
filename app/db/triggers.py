@@ -16,10 +16,11 @@ works_update_edition_title_from_work_trigger = PGTrigger(
     definition="AFTER INSERT OR UPDATE OF title ON public.works FOR EACH ROW EXECUTE FUNCTION update_edition_title_from_work()",
 )
 
-collection_items_update_collections_trigger = PGTrigger(
-    schema="public",
-    signature="update_collections_trigger",
-    on_entity="public.collection_items",
-    is_constraint=False,
-    definition="AFTER INSERT OR UPDATE ON public.collection_items FOR EACH ROW EXECUTE FUNCTION update_collections_function()",
-)
+# Removed as not great for bulk updates. Instead we update the updated at in application code!
+# collection_items_update_collections_trigger = PGTrigger(
+#     schema="public",
+#     signature="update_collections_trigger",
+#     on_entity="public.collection_items",
+#     is_constraint=False,
+#     definition="AFTER INSERT OR UPDATE ON public.collection_items FOR EACH ROW EXECUTE FUNCTION update_collections_function()",
+# )

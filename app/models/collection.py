@@ -26,7 +26,10 @@ class Collection(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
 
     items: Mapped[List["CollectionItem"]] = relationship(
-        "CollectionItem", back_populates="collection", cascade="all, delete-orphan"
+        "CollectionItem",
+        back_populates="collection",
+        lazy="select",
+        cascade="all, delete-orphan",
     )
 
     book_count: Mapped[int] = column_property(

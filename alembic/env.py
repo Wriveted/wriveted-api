@@ -29,8 +29,7 @@ from app.db.functions import (
     update_edition_title,
     update_edition_title_from_work,
 )
-from app.db.triggers import (
-    collection_items_update_collections_trigger,
+from app.db.triggers import (  # collection_items_update_collections_trigger,
     editions_update_edition_title_trigger,
     works_update_edition_title_from_work_trigger,
 )
@@ -44,7 +43,7 @@ register_entities(
         # Triggers
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
-        collection_items_update_collections_trigger,
+        # collection_items_update_collections_trigger,
         # Extensions
         public_fuzzystrmatch,
     ]
