@@ -2,7 +2,7 @@ from typing import Any, Optional, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import asc, delete, func, select
+from sqlalchemy import asc, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased, contains_eager, raiseload
@@ -182,21 +182,30 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         item_update: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
-        base_query = select(CollectionItem).where(
+        # In the main flow issues an uncommitted update statement to postgresql
+        # https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-queryguide-update-delete-where
+        update_query = update(CollectionItem).where(
+            CollectionItem.collection_id == collection_id
+        )
+        select_query = select(CollectionItem).where(
             CollectionItem.collection_id == collection_id
         )
         if item_update.id is not None:
-            select_query = base_query.where(CollectionItem.id == item_update.id)
+            update_query = update_query.where(CollectionItem.id == item_update.id)
+            select_query = select_query.where(CollectionItem.id == item_update.id)
         else:
-            select_query = base_query.where(
+            update_query = update_query.where(
                 CollectionItem.edition_isbn == item_update.edition_isbn
             )
-        item_orm_object = db.scalar(select_query)
-        if item_orm_object is None:
-            logger.warning("Skipping update of missing item in collection")
-            return
+            select_query = select_query.where(
+                CollectionItem.edition_isbn == item_update.edition_isbn
+            )
 
         if item_update.info is not None:
+            item_orm_object = db.scalar(select_query)
+            if item_orm_object is None:
+                logger.warning("Skipping update of info for missing item in collection")
+                return
             info_dict = dict(item_orm_object.info)
             info_update_dict = item_update.info.dict(exclude_unset=True)
 
@@ -218,20 +227,18 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             deep_merge_dicts(info_dict, info_update_dict)
             item_orm_object.info = info_dict
 
+        update_data = {}
         if item_update.copies_available:
-            item_orm_object.copies_available = item_update.copies_available
+            update_data["copies_available"] = item_update.copies_available
 
         if item_update.copies_total:
-            item_orm_object.copies_total = item_update.copies_total
+            update_data["copies_total"] = item_update.copies_total
+
+        db.execute(update_query.values(update_data))
 
         if commit:
-            logger.debug(
-                "Committing item update", collection_item_id=item_orm_object.id
-            )
+            logger.debug("Committing item update")
             db.commit()
-            db.refresh(item_orm_object)
-
-        return item_orm_object
 
     def _remove_item_from_collection(
         self,
