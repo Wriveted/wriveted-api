@@ -314,6 +314,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             constraint="unique_editions_per_collection",
             set_={
                 "copies_available": stmt.excluded.copies_available,
+                "copies_total": stmt.excluded.copies_total,
             },
         )
 
