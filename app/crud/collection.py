@@ -304,7 +304,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 "edition_isbn": item.edition_isbn,
                 "copies_available": item.copies_available or 1,
                 "copies_total": item.copies_total or 1,
-                "info": item.info or {},
+                "info": item.info.model_dump(mode="json", exclude_unset=True) or {},
             }
             for item in items
         ]
@@ -315,6 +315,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             set_={
                 "copies_available": stmt.excluded.copies_available,
                 "copies_total": stmt.excluded.copies_total,
+                "info": CollectionItem.info.concat(stmt.excluded.info),
             },
         )
 
