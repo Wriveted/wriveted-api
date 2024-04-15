@@ -60,7 +60,7 @@ def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPay
     try:
         return get_payload_from_access_token(token)
     except (jwt.JWTError, ValidationError) as e:
-        logger.exception("Invalid access token", error=e)
+        logger.warning("Invalid access token", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
