@@ -14,20 +14,89 @@ from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
-from app.schemas.collection import CollectionItemCreateIn
+from app.schemas.collection import (
+    CollectionAndItemsUpdateIn,
+    CollectionItemCreateIn,
+    CollectionUpdateType,
+)
 from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
 
 
-# Mostly the same as add_editions_to_collection, but only processes a list of isbns.
-# Due to the lack of EditionCreateIns, any created editions will be unhydrated
+async def update_collection(
+    session,
+    collection: Collection,
+    account,
+    obj_in: CollectionAndItemsUpdateIn,
+    merge_dicts: bool = True,
+    ignore_conflicts: bool = False,
+):
+    item_changes = getattr(obj_in, "items", [])
+    if item_changes is None:
+        item_changes = []
+
+    if len(item_changes) > 0:
+        logger.info(
+            f"Applying {len(item_changes)} changes",
+            collection_id=str(collection.id),
+            collection_name=collection.name,
+        )
+    summary_counts = {"added": 0, "removed": 0, "updated": 0}
+    # If provided, update the items one by one
+    # First process in bulk to add any new editions
+
+    added_items = [
+        change for change in item_changes if change.action == CollectionUpdateType.ADD
+    ]
+    if len(added_items) > 0:
+        await add_editions_to_collection_by_isbn(
+            session, added_items, collection, account
+        )
+        # Remove the added items from item_changes as we've processed those in bulk
+        item_changes_excluding_added = [
+            item for item in item_changes if item.action != CollectionUpdateType.ADD
+        ]
+        obj_in.items = item_changes_excluding_added
+        logger.info(f"Update items now has {len(obj_in.items)} items")
+        session.flush()
+
+    # TOOD could do most of the update changes in bulk via upsert
+
+    logger.debug("Updating the collection object")
+    collection = await crud.collection.aupdate(
+        db=session,
+        db_obj=collection,
+        obj_in=obj_in,
+        merge_dicts=merge_dicts,
+        ignore_conflicts=ignore_conflicts,
+        commit=False,
+    )
+    logger.debug(
+        "Committing update to collection",
+        collection_id=str(collection.id),
+        collection_name=collection.name,
+    )
+    session.commit()
+    logger.debug(
+        "Committed update to collection",
+        collection_id=str(collection.id),
+        collection_name=collection.name,
+    )
+
+    return collection
+
+
 async def add_editions_to_collection_by_isbn(
     session,
     collection_data: List[CollectionItemCreateIn],
     collection: Collection,
     account,
 ):
+    """
+    Mostly the same as add_editions_to_collection, but only processes a list of isbns.
+    Due to the lack of EditionCreateIns, any created editions will be unhydrated
+    """
     logger.info(
         "Adding editions to collection by ISBN", account=account, collection=collection
     )
@@ -88,6 +157,7 @@ async def add_editions_to_collection_by_isbn(
 
     try:
         session.commit()
+        logger.debug("Changes committed to collection")
     except IntegrityError:
         logger.warning(
             "IntegrityError when adding editions to collection", exc_info=True

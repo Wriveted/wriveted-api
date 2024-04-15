@@ -180,6 +180,7 @@ class Settings(BaseSettings):
         WARNING = "WARNING"
 
     LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
+    SQLALCHEMY_LOGGING_LEVEL: LoggingLevel = LoggingLevel.WARNING
     AUTH_LOGGING_LEVEL: LoggingLevel = LoggingLevel.INFO
 
     METABASE_SITE_URL: HttpUrl = "https://metabase-lg5ntws4da-ts.a.run.app"

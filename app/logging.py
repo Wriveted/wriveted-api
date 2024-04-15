@@ -58,6 +58,7 @@ def init_logging(settings: Settings):
         },
         "loggers": {
             "": {"handlers": ["default"], "level": "INFO"},
+            "sqlalchemy": {"level": settings.SQLALCHEMY_LOGGING_LEVEL},
             "app": {"level": settings.LOGGING_LEVEL},
             "app.api.auth": {"level": settings.AUTH_LOGGING_LEVEL},
             "app.api.works": {"level": "DEBUG"},
