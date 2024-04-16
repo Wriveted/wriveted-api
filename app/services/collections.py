@@ -46,24 +46,35 @@ async def update_collection(
     # If provided, update the items one by one
     # First process in bulk to add any new editions
 
-    added_items = [
-        change for change in item_changes if change.action == CollectionUpdateType.ADD
-    ]
+    added_items = []
+    updated_items = []
+    for change in item_changes:
+        if change.action == CollectionUpdateType.ADD:
+            added_items.append(change)
+        elif change.action == CollectionUpdateType.UPDATE:
+            updated_items.append(change)
+
     if len(added_items) > 0:
         await add_editions_to_collection_by_isbn(
             session, added_items, collection, account
         )
-        # Remove the added items from item_changes as we've processed those in bulk
-        item_changes_excluding_added = [
-            item for item in item_changes if item.action != CollectionUpdateType.ADD
-        ]
-        obj_in.items = item_changes_excluding_added
-        logger.info(f"Update items now has {len(obj_in.items)} items")
         session.flush()
+        logger.debug("Added editions", collection_id=str(collection.id))
 
-    # TOOD could do most of the update changes in bulk via upsert
+    if len(updated_items) > 0:
+        # Note this will create new editions - may need to change.
+        await add_editions_to_collection_by_isbn(
+            session, updated_items, collection, account
+        )
+        session.flush()
+        logger.debug("Updated editions", collection_id=str(collection.id))
 
-    logger.debug("Updating the collection object")
+    obj_in.items = [item for item in item_changes if CollectionUpdateType.REMOVE]
+    logger.info(f"Update items now has {len(obj_in.items)} items")
+
+    logger.debug(
+        "Updating the collection object itself", collection_id=str(collection.id)
+    )
     collection = await crud.collection.aupdate(
         db=session,
         db_obj=collection,
