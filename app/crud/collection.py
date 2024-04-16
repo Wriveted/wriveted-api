@@ -304,11 +304,15 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 "edition_isbn": item.edition_isbn,
                 "copies_available": item.copies_available or 1,
                 "copies_total": item.copies_total or 1,
-                "info": item.info.model_dump(mode="json", exclude_unset=True) or {},
+                "info": (
+                    item.info.model_dump(mode="json", exclude_unset=True)
+                    if item.info is not None
+                    else {}
+                ),
             }
             for item in items
         ]
-
+        # We could do a COPY here if we only want to create items, this updates any existing items:
         stmt = pg_upsert(CollectionItem)
         stmt = stmt.on_conflict_do_update(
             constraint="unique_editions_per_collection",
