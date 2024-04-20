@@ -49,9 +49,15 @@ async def update_collection(
     added_items = []
     updated_items = []
     for change in item_changes:
-        if change.action == CollectionUpdateType.ADD and hasattr(change, "isbn"):
+        if (
+            change.action == CollectionUpdateType.ADD
+            and change.edition_isbn is not None
+        ):
             added_items.append(change)
-        elif change.action == CollectionUpdateType.UPDATE and hasattr(change, "isbn"):
+        elif (
+            change.action == CollectionUpdateType.UPDATE
+            and change.edition_isbn is not None
+        ):
             updated_items.append(change)
 
     if len(added_items) > 0:
@@ -72,7 +78,7 @@ async def update_collection(
     obj_in.items = [
         item
         for item in item_changes
-        if CollectionUpdateType.REMOVE or not hasattr(item, "isbn")
+        if CollectionUpdateType.REMOVE or item.edition_isbn is None
     ]
     logger.info(f"Update items now has {len(obj_in.items)} items")
 
