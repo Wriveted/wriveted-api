@@ -44,14 +44,14 @@ async def update_collection(
         )
     summary_counts = {"added": 0, "removed": 0, "updated": 0}
     # If provided, update the items one by one
-    # First process in bulk to add any new editions
+    # First process in bulk editions added or updated by ISBN
 
     added_items = []
     updated_items = []
     for change in item_changes:
-        if change.action == CollectionUpdateType.ADD:
+        if change.action == CollectionUpdateType.ADD and hasattr(change, "isbn"):
             added_items.append(change)
-        elif change.action == CollectionUpdateType.UPDATE:
+        elif change.action == CollectionUpdateType.UPDATE and hasattr(change, "isbn"):
             updated_items.append(change)
 
     if len(added_items) > 0:
@@ -69,13 +69,17 @@ async def update_collection(
         session.flush()
         logger.debug("Updated editions", collection_id=str(collection.id))
 
-    obj_in.items = [item for item in item_changes if CollectionUpdateType.REMOVE]
+    obj_in.items = [
+        item
+        for item in item_changes
+        if CollectionUpdateType.REMOVE or not hasattr(item, "isbn")
+    ]
     logger.info(f"Update items now has {len(obj_in.items)} items")
 
     logger.debug(
         "Updating the collection object itself", collection_id=str(collection.id)
     )
-    collection = await crud.collection.aupdate(
+    collection = crud.collection.update(
         db=session,
         db_obj=collection,
         obj_in=obj_in,
