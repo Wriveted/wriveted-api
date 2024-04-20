@@ -36,6 +36,7 @@ jobs:
       run: poetry install --no-interaction --no-root
     - name: 🔎 Check connection to PostgreSQL
       run: |
+        source $(poetry env info --path)/bin/activate
         python app/db/check_can_connect_to_db.py
     - name: ⚡ Run forward migrations
       run: |

@@ -2,7 +2,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from starlette import status
@@ -261,6 +261,7 @@ def reset_collection(session, collection: Collection, account):
     Reset a collection to its initial state, removing all items
     """
     crud.collection.delete_all_items(db=session, db_obj=collection, commit=False)
+    collection.updated_at = text("default")
 
     crud.event.create(
         session=session,
