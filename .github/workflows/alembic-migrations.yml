@@ -29,13 +29,16 @@ jobs:
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
       with:
-        postgresql version: '15'  # See https://hub.docker.com/_/postgres for available versions
+        postgresql version: '16'  # See https://hub.docker.com/_/postgres for available versions
         postgresql user: postgres
         postgresql password: secret
     - name: 🔧 Install dependencies
       if: steps.python.outputs.cache-hit != 'true'
       run: |
         poetry install
+    - name: 🔎 Check connection to PostgreSQL
+      run: |
+        python app/db/check_can_connect_to_db.py
     - name: ⚡ Run forward migrations
       run: |
         poetry run alembic upgrade head
