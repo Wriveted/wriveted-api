@@ -199,7 +199,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         self,
         db: Session,
         *,
-        collection_id: int,
+        collection_id: UUID,
         item_update: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
