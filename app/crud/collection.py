@@ -102,7 +102,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
             collection = self.create(db, obj_in=collection_data, commit=commit)
             return collection, True
 
-    async def aupdate(
+    def update(
         self,
         db: Session,
         *,
@@ -126,7 +126,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db.flush()
 
         logger.info(
-            f"Applying {len(item_changes)} item changes in crud.collection.aupdate",
+            f"Applying {len(item_changes)} item changes",
             collection_id=str(db_obj.id),
             collection_name=db_obj.name,
         )
@@ -136,9 +136,6 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         for change in item_changes:
             match change.action:
                 case CollectionUpdateType.ADD:
-                    logger.warning(
-                        "Adding items in crud.collection.update - probably shouldn't be done here"
-                    )
                     try:
                         self.add_item_to_collection(
                             db=db,
@@ -166,7 +163,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                         commit=False,
                     )
                     summary_counts["removed"] += 1
-        logger.debug("Processed all items in crud.collection.aupdate")
+        logger.debug("Processed all collection items")
         collection_orm_object.updated_at = text("DEFAULT")
         logger.debug("Flushing changes to DB")
 
@@ -342,10 +339,11 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         ignore_conflicts: bool = False,
     ):
 
-        if item.edition_isbn is not None:
+        isbn = item.edition_isbn
+        if isbn is not None:
             try:
                 edition = crud.edition.get_or_create_unhydrated(
-                    db=db, isbn=item.edition_isbn, commit=True
+                    db=db, isbn=isbn, commit=True
                 )
                 isbn = edition.isbn
             except AssertionError:
@@ -364,7 +362,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 else:
                     info_dict["cover_image"] = handle_new_collection_item_cover_image(
                         str(collection_orm_object.id),
-                        item.edition_isbn,
+                        isbn,
                         info_dict["cover_image"],
                     )
 

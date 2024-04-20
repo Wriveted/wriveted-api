@@ -92,7 +92,7 @@ def test_user_can_update_collection_items_by_id(
     client, session, test_user_account, test_user_account_headers, test_user_collection
 ):
     item_count = len(test_user_collection.items)
-    # Test that the user can remove items from a collection by ID
+    # Test that the user can update items from a collection by ID
     patch_collection_response = client.patch(
         f"/v1/collection/{test_user_collection.id}",
         json={
