@@ -9,7 +9,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110"
+fastapi = "^0.110.2"
 uvicorn = {extras = ["standard"], version = "^0.29"}
 alembic = "^1.11"
 structlog = "^24.1.0"
@@ -18,16 +18,16 @@ SQLAlchemy = "^2.0"
 httpx = "^0.27"
 fastapi-cloudauth = "^0.4.3"
 cryptography = "^42.0"
-pydantic = {extras = ["email"], version = "^2.3"}
+pydantic = {extras = ["email"], version = "^2.7"}
 fastapi_permissions = "^0.2.7"
-gunicorn = "^21.2"
+gunicorn = "^22.0"
 tenacity = "^8.2"
 sendgrid = "^6.10"
 mock = "^5.0.1"
 webencodings = "^0.5.1"
 google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
-setuptools = "^68.2"
+setuptools = "^69.5"
 humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
 pillow = "^10.0"
