@@ -22,9 +22,9 @@ jobs:
       uses: snok/install-poetry@v1
     - name: 🐍 Set up Python
       id: python
-      uses: actions/setup-python@v4.6.0
+      uses: actions/setup-python@v4.7.0
       with:
-        python-version: "3.11"
+        python-version-file: "pyproject.toml"
         cache: 'poetry'
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
@@ -33,9 +33,7 @@ jobs:
         postgresql user: postgres
         postgresql password: secret
     - name: 🔧 Install dependencies
-      if: steps.python.outputs.cache-hit != 'true'
-      run: |
-        poetry install
+      run: poetry install --no-interaction --no-root
     - name: 🔎 Check connection to PostgreSQL
       run: |
         python app/db/check_can_connect_to_db.py
