@@ -60,7 +60,7 @@ def test_collection_timestamps(
     assert user_collection["updated_at"] != creation_time
 
 
-def test_collection_patch_update_adds_books(
+def test_collection_patch_update_ignores_new_books(
     client,
     test_unhydrated_editions,
     test_user_account,
@@ -100,6 +100,8 @@ def test_collection_patch_update_adds_books(
         }
         for edition in test_unhydrated_editions
     ]
+    # Set the first action to "add" to check we still support both at once
+    items[0]["action"] = "add"
     user_collection_update_response = client.patch(
         f"/v1/collection/{user_collection_id}",
         headers=test_user_account_headers,
@@ -114,7 +116,7 @@ def test_collection_patch_update_adds_books(
     user_get_collection_response.raise_for_status()
 
     user_collection = user_get_collection_response.json()
-    assert user_collection["book_count"] == len(test_unhydrated_editions)
+    assert user_collection["book_count"] == 1
     assert user_collection["updated_at"] != creation_time
 
 
@@ -461,7 +463,7 @@ def test_collection_management(
     # Update the collection by changing the loan status of a subset of the books.
     books_to_update = original_collection[:UPDATED_NUMBER_OF_BOOKS]
     print("Bulk updating loan status via `PATCH .../collection/{id}/items` API")
-    time.sleep(0.5)
+    time.sleep(0.1)
     collection_changes = [
         {
             "action": "update",
