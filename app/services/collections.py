@@ -2,9 +2,11 @@ from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select, text
+from sqlalchemy import Column, Integer, MetaData, String, Table, select, text, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import Session, aliased
+from sqlalchemy.sql.ddl import CreateTable
 from starlette import status
 from structlog import get_logger
 
@@ -44,7 +46,7 @@ async def update_collection(
         )
     summary_counts = {"added": 0, "removed": 0, "updated": 0}
     # If provided, update the items one by one
-    # First process in bulk editions added or updated by ISBN
+    # First process in bulk editions added or updated by ISBN (could add support for bulk update by ID if needed)
 
     added_items = []
     updated_items = []
@@ -68,9 +70,11 @@ async def update_collection(
         logger.debug("Added editions", collection_id=str(collection.id))
 
     if len(updated_items) > 0:
-        # Note this will create new editions - may need to change.
-        await add_editions_to_collection_by_isbn(
-            session, updated_items, collection, account
+        logger.info(
+            "Updating existing editions in bulk", collection_id=str(collection.id)
+        )
+        await bulk_update_editions_in_collection_by_isbn(
+            session, updated_items, collection, commit=False
         )
         session.flush()
         logger.debug("Updated editions", collection_id=str(collection.id))
@@ -187,6 +191,65 @@ async def add_editions_to_collection_by_isbn(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Couldn't process input",
         )
+
+
+def _generate_temp_update_table_ddl(engine):
+    metadata = MetaData()
+    temp_table = Table(
+        "temp_collection_update",
+        metadata,
+        Column("edition_isbn", String, primary_key=True),
+        Column("copies_available", Integer),
+        Column("copies_total", Integer),
+        Column("info", JSONB, server_default=text("'{}'::jsonb"), nullable=False),
+        prefixes=["TEMPORARY"],
+    )
+
+    # Using the SQLAlchemy engine to compile the SQL expression into a string
+    return temp_table, str(CreateTable(temp_table).compile(bind=engine))
+
+
+async def bulk_update_editions_in_collection_by_isbn(
+    db: Session,
+    items: List[CollectionItemCreateIn],
+    collection_orm_object: Collection,
+    commit: bool = False,
+):
+
+    temp_table, ddl = _generate_temp_update_table_ddl(db.bind)
+    logger.debug("Creating temporary table", ddl=ddl)
+    db.execute(text(ddl))
+    logger.debug("Created temporary table for bulk update")
+    try:
+        # Insert raw data into the temporary table
+        db.execute(
+            temp_table.insert(),
+            [item.model_dump(mode="json", exclude_unset=True) for item in items],
+        )
+
+        logger.debug("Perform the update to collection_items from the temporary table")
+        update_stmt = (
+            update(CollectionItem)
+            .where(CollectionItem.edition_isbn == temp_table.c.edition_isbn)
+            .where(CollectionItem.collection_id == collection_orm_object.id)
+            .values(
+                copies_available=temp_table.c.copies_available,
+                copies_total=temp_table.c.copies_total,
+                info=CollectionItem.info.concat(temp_table.c.info),
+            )
+        )
+        db.execute(update_stmt)
+        db.execute(text("drop table if exists temp_collection_update"))
+
+        if commit:
+            db.commit()
+
+    except Exception as e:
+        logger.error(f"Error during bulk update: {str(e)}")
+        db.rollback()
+        raise
+
+    logger.info("Bulk update via temporary table completed successfully.")
 
 
 def get_collection_info_with_criteria(
