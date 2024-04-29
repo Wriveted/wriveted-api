@@ -1,8 +1,10 @@
+from collections.abc import AsyncGenerator
 from functools import lru_cache
 from typing import Tuple
 
 import sqlalchemy
 from sqlalchemy import URL, create_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.background import BackgroundTasks
 from structlog import get_logger
@@ -43,13 +45,40 @@ def database_connection(
         # new connection from the pool. After the specified amount of time, an
         # exception will be thrown.
         pool_timeout=120,
-        # Enable the SqlAlchemy 2.0 engine and connection API
-        future=True,
     )
     SessionLocal = sessionmaker(
         autocommit=False, autoflush=False, bind=engine, future=True
     )
     return engine, SessionLocal
+
+
+@lru_cache()
+def get_async_session_maker(settings: Settings = None):
+    if settings is None:
+        settings = get_settings()
+
+    engine = create_async_engine(
+        settings.SQLALCHEMY_ASYNC_URI,
+        # Pool size is the maximum number of permanent connections to keep.
+        # defaults to 5
+        pool_size=settings.DATABASE_POOL_SIZE,
+        # Temporarily exceeds the set pool_size if no connections are available.
+        # Default is 10
+        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        # 'pool_recycle' is the maximum number of seconds a connection can persist.
+        # Connections that live longer than the specified amount of time will be
+        # reestablished on checkout.
+        # https://docs.sqlalchemy.org/en/14/core/pooling.html#setting-pool-recycle
+        pool_recycle=900,  # 15 minutes,
+        # 'pool_timeout' is the maximum number of seconds to wait when retrieving a
+        # new connection from the pool. After the specified amount of time, an
+        # exception will be thrown.
+        pool_timeout=120,
+    )
+
+    return async_sessionmaker(
+        engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
 
 
 @lru_cache()
@@ -93,3 +122,12 @@ def get_session(
             yield session
         finally:
             session.close()
+
+
+async def get_async_session() -> AsyncGenerator:
+    logger.debug("Getting async db session")
+    session_factory = get_async_session_maker()
+    async with session_factory() as session:
+        logger.debug("Got async db session")
+        yield session
+        logger.debug("Cleaning up async db session")

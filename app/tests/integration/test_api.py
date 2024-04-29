@@ -14,6 +14,12 @@ def test_read_version(client):
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_db_healthcheck_endpoint(client):
+    response = client.get("v1/healthcheck/db")
+    assert response.status_code == status.HTTP_200_OK
+    assert "random" in response.json()
+
+
 def test_auth_me_api_requires_auth(client):
     response = client.get("v1/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

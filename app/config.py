@@ -116,6 +116,52 @@ class Settings(BaseSettings):
         logger.debug(f"sqlalchemy connection URL {url_object}")
         return url_object
 
+    SQLALCHEMY_ASYNC_URI: URL | None = None
+
+    @field_validator("SQLALCHEMY_ASYNC_URI", mode="before")
+    @classmethod
+    def assemble_async_sqlalchemy_connection(
+        cls, v: Optional[str], info: FieldValidationInfo
+    ) -> URL:
+        if isinstance(v, str):
+            # If a string is provided (e.g. via environment variable) we just use that
+            return make_url(v)
+
+        values = info.data
+        # Otherwise, assemble a sqlalchemy connection string from the other provided values.
+        db_host = values.get("POSTGRESQL_SERVER")
+        db_user = values.get("POSTGRESQL_USER")
+        db_password = values.get("POSTGRESQL_PASSWORD")
+        db_name = values.get("POSTGRESQL_DATABASE")
+
+        logger.debug(f"Database host {db_host}. DB name {db_name}")
+
+        query = None
+        # Connect to Cloud SQL using unix socket instead of TCP socket
+        # https://cloud.google.com/sql/docs/postgres/connect-run?authuser=1#connecting_to
+        socket_path = values.get("POSTGRESQL_DATABASE_SOCKET_PATH")
+
+        if socket_path is not None:
+            project = values.get("GCP_PROJECT_ID")
+            location = values.get("GCP_LOCATION")
+            cloud_sql_instance_id = values.get("GCP_CLOUD_SQL_INSTANCE_ID")
+            cloud_sql_instance_connection = (
+                f"{project}:{location}:{cloud_sql_instance_id}"
+            )
+            query = {"host": f"{socket_path}/{cloud_sql_instance_connection}"}
+
+        # Assemble it all together:
+        url_object = URL.create(
+            "postgresql+asyncpg",
+            username=db_user,
+            password=db_password,
+            host=db_host,
+            database=db_name,
+            query=query,
+        )
+        logger.debug(f"sqlalchemy async connection URL {url_object}")
+        return url_object
+
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of allowed request origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://actual.domain.com"]'
