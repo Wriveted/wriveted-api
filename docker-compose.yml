@@ -41,6 +41,7 @@ services:
       - db
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
+      - SQLALCHEMY_ASYNC_URI=postgresql+asyncpg://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db/
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78

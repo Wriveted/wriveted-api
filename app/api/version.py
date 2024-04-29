@@ -6,10 +6,12 @@ from textwrap import dedent
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
 from alembic.runtime.migration import MigrationContext
+from app.api.dependencies.async_db_dep import DBSessionDep
 from app.db.session import get_session
 
 
@@ -51,6 +53,15 @@ async def get_version(session: Session = Depends(get_session)):
         "python_version": platform.python_version(),
         "database_revision": current_db_rev,
         "cloud_run_revision": cloud_run_revision,
+    }
+
+
+@router.get("/healthcheck/db", include_in_schema=False)
+async def get_experimental(session: DBSessionDep):
+    return {
+        "random": await session.scalar(
+            text("SELECT floor(random() * (1000 - 1 + 1)) + 1")
+        ),
     }
 
 
