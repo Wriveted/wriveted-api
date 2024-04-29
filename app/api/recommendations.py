@@ -29,7 +29,7 @@ config = get_settings()
 
 
 @router.post("/recommend", response_model=HueyOutput)
-async def get_recommendations(
+def get_recommendations(
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit: Optional[int] = Query(5, description="Maximum number of items to return"),
@@ -51,7 +51,7 @@ async def get_recommendations(
     else:
         school = None
 
-    recommended_books, query_parameters = await get_recommendations_with_fallback(
+    recommended_books, query_parameters = get_recommendations_with_fallback(
         session,
         account,
         school,
@@ -66,7 +66,7 @@ async def get_recommendations(
     )
 
 
-async def get_recommendations_with_fallback(
+def get_recommendations_with_fallback(
     session,
     account,
     school: School,
