@@ -5,12 +5,11 @@ search_view_v1 = PGMaterializedView(
     signature="search_view_v1",
     definition="""
 SELECT w.id AS work_id,
-       a.id AS author_id,
+       jsonb_agg(a.id) AS author_ids,
        s.id as series_id,
        setweight(to_tsvector('english', coalesce(w.title, '')), 'A') ||
        setweight(to_tsvector('english', coalesce(w.subtitle, '')), 'C') ||
-       setweight(to_tsvector('english', coalesce(a.first_name, '')), 'C') ||
-       setweight(to_tsvector('english', coalesce(a.last_name, '')), 'B') ||
+       setweight(to_tsvector('english', (SELECT string_agg(coalesce(first_name || ' ' || last_name, ''), ' ') FROM public.authors WHERE id IN (SELECT author_id FROM public.author_work_association WHERE work_id = w.id))), 'C') ||
        setweight(to_tsvector('english', coalesce(s.title, '')), 'B')
                                           AS document
 FROM public.works w
@@ -22,6 +21,8 @@ LEFT JOIN
     public.series_works_association swa ON swa.work_id = w.id
 LEFT JOIN
     public.series s ON s.id = swa.series_id
+GROUP BY
+    w.id, s.id
     """,
     with_data=True,
 )
