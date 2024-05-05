@@ -43,3 +43,16 @@ update_collections_function = PGFunction(
       $function$
     """,
 )
+
+refresh_search_view_v1_function = PGFunction(
+    schema="public",
+    signature="refresh_search_view_v1_function()",
+    definition="""returns trigger LANGUAGE plpgsql
+      AS $function$
+        BEGIN
+        REFRESH MATERIALIZED VIEW search_view_v1;
+        RETURN NEW;
+      END;
+      $function$
+    """,
+)

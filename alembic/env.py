@@ -25,14 +25,19 @@ sys.path.insert(
 from app.db.base_class import Base  # noqa
 from app.db.extensions import public_fuzzystrmatch
 from app.db.functions import (
+    refresh_search_view_v1_function,
     update_collections_function,
     update_edition_title,
     update_edition_title_from_work,
 )
 from app.db.triggers import (
+    authors_update_search_v1_trigger,
     editions_update_edition_title_trigger,
+    series_update_search_v1_trigger,
     works_update_edition_title_from_work_trigger,
+    works_update_search_v1_trigger,
 )
+from app.db.views import search_view_v1
 
 register_entities(
     [
@@ -40,9 +45,15 @@ register_entities(
         update_edition_title,
         update_edition_title_from_work,
         update_collections_function,
+        refresh_search_view_v1_function,
+        # Views
+        search_view_v1,
         # Triggers
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
+        authors_update_search_v1_trigger,
+        works_update_search_v1_trigger,
+        series_update_search_v1_trigger,
         # Extensions
         public_fuzzystrmatch,
     ]
