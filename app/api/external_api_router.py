@@ -16,6 +16,7 @@ from app.api.labelset import router as labelset_router
 from app.api.recommendations import router as recommendations_router
 from app.api.schools import public_router as school_router_public
 from app.api.schools import router as school_router
+from app.api.search import router as search_router
 from app.api.service_accounts import router as service_account_router
 from app.api.supporters import router as supporter_router
 from app.api.users import router as user_router
@@ -46,3 +47,4 @@ api_router.include_router(supporter_router)
 api_router.include_router(version_router)
 api_router.include_router(work_router)
 api_router.include_router(recommendations_router)
+api_router.include_router(search_router)
