@@ -14,6 +14,7 @@ series_works_association_table = Table(
         "work_id",
         ForeignKey("works.id", name="fk_series_works_assoc_work_id"),
         primary_key=True,
+        index=True,
     ),
     Column("primary_works", Boolean, default=True),
     Column("order_id", Integer),

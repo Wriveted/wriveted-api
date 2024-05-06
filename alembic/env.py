@@ -26,18 +26,20 @@ from app.db.base_class import Base  # noqa
 from app.db.extensions import public_fuzzystrmatch
 from app.db.functions import (
     refresh_search_view_v1_function,
+    refresh_work_collection_frequency_view_function,
     update_collections_function,
     update_edition_title,
     update_edition_title_from_work,
 )
 from app.db.triggers import (
     authors_update_search_v1_trigger,
+    collection_item_update_frequencies_trigger,
     editions_update_edition_title_trigger,
     series_update_search_v1_trigger,
     works_update_edition_title_from_work_trigger,
     works_update_search_v1_trigger,
 )
-from app.db.views import search_view_v1
+from app.db.views import collection_frequency_view, search_view_v1
 
 register_entities(
     [
@@ -46,7 +48,9 @@ register_entities(
         update_edition_title_from_work,
         update_collections_function,
         refresh_search_view_v1_function,
+        refresh_work_collection_frequency_view_function,
         # Views
+        collection_frequency_view,
         search_view_v1,
         # Triggers
         editions_update_edition_title_trigger,
@@ -54,6 +58,7 @@ register_entities(
         authors_update_search_v1_trigger,
         works_update_search_v1_trigger,
         series_update_search_v1_trigger,
+        collection_item_update_frequencies_trigger,
         # Extensions
         public_fuzzystrmatch,
     ]
