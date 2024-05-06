@@ -1,5 +1,23 @@
 from alembic_utils.pg_materialized_view import PGMaterializedView
 
+collection_frequency_view = PGMaterializedView(
+    schema="public",
+    signature="work_collection_frequency",
+    definition="""
+SELECT
+    e.work_id,
+    SUM(ci.copies_total) AS collection_frequency
+FROM
+    public.editions e
+JOIN
+    public.collection_items ci ON ci.edition_isbn = e.isbn
+GROUP BY
+    e.work_id
+    """,
+    with_data=True,
+)
+
+
 search_view_v1 = PGMaterializedView(
     schema="public",
     signature="search_view_v1",

@@ -56,3 +56,16 @@ refresh_search_view_v1_function = PGFunction(
       $function$
     """,
 )
+
+refresh_work_collection_frequency_view_function = PGFunction(
+    schema="public",
+    signature="refresh_work_collection_frequency_view_function()",
+    definition="""returns trigger LANGUAGE plpgsql
+      AS $function$
+        BEGIN
+        REFRESH MATERIALIZED VIEW work_collection_frequency;
+        RETURN NEW;
+      END;
+      $function$
+    """,
+)

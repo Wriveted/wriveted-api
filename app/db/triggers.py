@@ -48,3 +48,15 @@ series_update_search_v1_trigger = PGTrigger(
     FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
     """,
 )
+
+# This could really be done less frequently - like once a week
+collection_item_update_frequencies_trigger = PGTrigger(
+    schema="public",
+    signature="update_work_collection_frequency_from_collection_item_trigger",
+    on_entity="public.collection_items",
+    is_constraint=False,
+    definition="""
+    AFTER INSERT OR UPDATE OR DELETE ON public.collection_items 
+    FOR EACH STATEMENT EXECUTE FUNCTION refresh_work_collection_frequency_view_function()
+    """,
+)
