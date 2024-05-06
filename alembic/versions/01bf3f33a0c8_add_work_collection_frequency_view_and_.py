@@ -43,6 +43,12 @@ def upgrade():
     )
 
     op.create_entity(public_work_collection_frequency)
+    op.create_index(
+        None,
+        "work_collection_frequency",
+        ["work_id"],
+        unique=True,
+    )
 
     public_collection_items_update_work_collection_frequency_from_collection_item_trigger = PGTrigger(
         schema="public",
