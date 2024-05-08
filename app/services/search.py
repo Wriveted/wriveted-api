@@ -102,8 +102,13 @@ async def book_search(
     )
     # Filter to include only results where at least one author matches the provided author_id
     if author_id is not None:
-
-        stmt = stmt.where(awa.c.author_id == author_id)
+        author_subquery = (
+            select(1)
+            .where((awa.c.work_id == Work.id) & (awa.c.author_id == author_id))
+            .exists()
+            .correlate(Work)
+        )
+        stmt = stmt.where(author_subquery)
 
     # # Apply conditional where clause for search query
     if query_param is not None:
