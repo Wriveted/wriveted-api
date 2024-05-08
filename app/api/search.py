@@ -23,16 +23,17 @@ logger = get_logger()
 )
 async def get_book_search(
     session: DBSessionDep,
-    query: Optional[str] = Query(None, description="Query string"),
-    # author_id: Optional[int] = Query(None, description="Author's Wriveted Id"),
+    query: str = Query("", description="Query string"),
+    author_id: Optional[int] = Query(None, description="Author's Wriveted Id"),
     # type: Optional[WorkType] = Query(WorkType.BOOK),
     pagination: PaginatedQueryParams = Depends(),
 ):
     logger.info("Searching for books", query=query)
-    results = await book_search(session, query, pagination)
+    results = await book_search(
+        session, query_param=query, pagination=pagination, author_id=author_id
+    )
     logger.info("Search results", results=results)
     return SearchResults(
-        event_id="",
-        input=SearchQueryInput(query=query),
+        input=SearchQueryInput(query=query, author_id=author_id),
         books=results,
     )

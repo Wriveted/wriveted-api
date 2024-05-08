@@ -27,6 +27,7 @@ class WorkBrief(BaseModel):
     subtitle: str | None = None
 
     authors: List[AuthorBrief]
+
     model_config = ConfigDict(from_attributes=True)
 
 
