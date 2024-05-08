@@ -1,29 +1,16 @@
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.work import WorkBrief
+
 
 class SearchQueryInput(BaseModel):
-    query: str
-    # author_id: Optional[int] = None
+    query: str | None = None
+    author_id: int | None = None
     # type
 
 
-class BookSearchResult(BaseModel):
-    work_id: str
-    author_ids: list[str]
-    series_id: str | None
-
-    work_title_headline: str
-    work_subtitle_headline: str
-    series_title_headline: str
-
-    author_first_headline: str
-    author_last_headline: str
-
-
 class SearchResults(BaseModel):
-    event_id: str
-
     input: SearchQueryInput
-    books: list[BookSearchResult]
+    books: list[WorkBrief]
 
     model_config = ConfigDict(from_attributes=True)

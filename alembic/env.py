@@ -23,7 +23,7 @@ sys.path.insert(
 )
 
 from app.db.base_class import Base  # noqa
-from app.db.extensions import public_fuzzystrmatch
+from app.db.extensions import pgvector_ex
 from app.db.functions import (
     refresh_search_view_v1_function,
     refresh_work_collection_frequency_view_function,
@@ -43,6 +43,9 @@ from app.db.views import collection_frequency_view, search_view_v1
 
 register_entities(
     [
+        # Extensions
+        # pg_cron_ex,
+        pgvector_ex,
         # Functions
         update_edition_title,
         update_edition_title_from_work,
@@ -59,8 +62,6 @@ register_entities(
         works_update_search_v1_trigger,
         series_update_search_v1_trigger,
         collection_item_update_frequencies_trigger,
-        # Extensions
-        public_fuzzystrmatch,
     ]
 )
 
