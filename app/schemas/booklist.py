@@ -71,7 +71,7 @@ class BookListCreateIn(BaseModel):
     slug: str | None = None
     sharing: ListSharingType | None = None
 
-    school_id: str | None = None
+    school_id: str | None = Field(None, coerce_numbers_to_str=True)
     user_id: str | None = None
 
     info: BookListOptionalInfo | None = None
