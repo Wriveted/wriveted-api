@@ -61,15 +61,6 @@ def upgrade():
         public_collection_items_update_work_collection_frequency_from_collection_item_trigger
     )
 
-    public_collection_items_update_collections_trigger = PGTrigger(
-        schema="public",
-        signature="update_collections_trigger",
-        on_entity="public.collection_items",
-        is_constraint=False,
-        definition="AFTER INSERT OR UPDATE ON public.collection_items FOR EACH ROW EXECUTE FUNCTION update_collections_function()",
-    )
-    op.drop_entity(public_collection_items_update_collections_trigger)
-
     # ### end Alembic commands ###
 
 
