@@ -1,5 +1,11 @@
 from alembic_utils.pg_function import PGFunction
 
+public_encode_uri_component = PGFunction(
+    schema="public",
+    signature="encode_uri_component(text)",
+    definition="returns text\n LANGUAGE sql\n IMMUTABLE STRICT\nAS $function$\n    select string_agg(\n        case\n            when bytes > 1 or c !~ '[0-9a-zA-Z_.!~*''()-]+' then\n                regexp_replace(encode(convert_to(c, 'utf-8')::bytea, 'hex'), '(..)', E'%\\\\1', 'g')\n            else\n                c\n        end,\n        ''\n    )\n    from (\n        select c, octet_length(c) bytes\n        from regexp_split_to_table($1, '') c\n    ) q;\n$function$",
+)
+
 update_edition_title = PGFunction(
     schema="public",
     signature="update_edition_title()",
