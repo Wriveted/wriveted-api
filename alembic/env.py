@@ -25,6 +25,7 @@ sys.path.insert(
 from app.db.base_class import Base  # noqa
 from app.db.extensions import pgvector_ex
 from app.db.functions import (
+    public_encode_uri_component,
     refresh_search_view_v1_function,
     refresh_work_collection_frequency_view_function,
     update_collections_function,
@@ -32,12 +33,8 @@ from app.db.functions import (
     update_edition_title_from_work,
 )
 from app.db.triggers import (
-    authors_update_search_v1_trigger,
-    collection_item_update_frequencies_trigger,
     editions_update_edition_title_trigger,
-    series_update_search_v1_trigger,
     works_update_edition_title_from_work_trigger,
-    works_update_search_v1_trigger,
 )
 from app.db.views import collection_frequency_view, search_view_v1
 
@@ -52,16 +49,13 @@ register_entities(
         update_collections_function,
         refresh_search_view_v1_function,
         refresh_work_collection_frequency_view_function,
+        public_encode_uri_component,
         # Views
         collection_frequency_view,
         search_view_v1,
         # Triggers
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
-        authors_update_search_v1_trigger,
-        works_update_search_v1_trigger,
-        series_update_search_v1_trigger,
-        collection_item_update_frequencies_trigger,
     ]
 )
 

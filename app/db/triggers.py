@@ -16,47 +16,47 @@ works_update_edition_title_from_work_trigger = PGTrigger(
     definition="AFTER INSERT OR UPDATE OF title ON public.works FOR EACH ROW EXECUTE FUNCTION update_edition_title_from_work()",
 )
 
-works_update_search_v1_trigger = PGTrigger(
-    schema="public",
-    signature="update_search_v1_from_works_trigger",
-    on_entity="public.works",
-    is_constraint=False,
-    definition="""
-    AFTER INSERT OR UPDATE OF title OR DELETE ON public.works 
-    FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
-    """,
-)
+# works_update_search_v1_trigger = PGTrigger(
+#     schema="public",
+#     signature="update_search_v1_from_works_trigger",
+#     on_entity="public.works",
+#     is_constraint=False,
+#     definition="""
+#     AFTER INSERT OR UPDATE OF title OR DELETE ON public.works
+#     FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
+#     """,
+# )
 
-authors_update_search_v1_trigger = PGTrigger(
-    schema="public",
-    signature="update_search_v1_from_authors_trigger",
-    on_entity="public.authors",
-    is_constraint=False,
-    definition="""
-    AFTER INSERT OR UPDATE OR DELETE ON public.authors 
-    FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
-    """,
-)
-
-series_update_search_v1_trigger = PGTrigger(
-    schema="public",
-    signature="update_search_v1_from_series_trigger",
-    on_entity="public.series",
-    is_constraint=False,
-    definition="""
-    AFTER INSERT OR UPDATE OR DELETE ON public.series 
-    FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
-    """,
-)
-
-# This could really be done less frequently - like once a week
-collection_item_update_frequencies_trigger = PGTrigger(
-    schema="public",
-    signature="update_work_collection_frequency_from_collection_item_trigger",
-    on_entity="public.collection_items",
-    is_constraint=False,
-    definition="""
-    AFTER INSERT OR UPDATE OR DELETE ON public.collection_items 
-    FOR EACH STATEMENT EXECUTE FUNCTION refresh_work_collection_frequency_view_function()
-    """,
-)
+# authors_update_search_v1_trigger = PGTrigger(
+#     schema="public",
+#     signature="update_search_v1_from_authors_trigger",
+#     on_entity="public.authors",
+#     is_constraint=False,
+#     definition="""
+#     AFTER INSERT OR UPDATE OR DELETE ON public.authors
+#     FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
+#     """,
+# )
+#
+# series_update_search_v1_trigger = PGTrigger(
+#     schema="public",
+#     signature="update_search_v1_from_series_trigger",
+#     on_entity="public.series",
+#     is_constraint=False,
+#     definition="""
+#     AFTER INSERT OR UPDATE OR DELETE ON public.series
+#     FOR EACH STATEMENT EXECUTE FUNCTION refresh_search_view_v1_function()
+#     """,
+# )
+#
+# # This could really be done less frequently - like once a week
+# collection_item_update_frequencies_trigger = PGTrigger(
+#     schema="public",
+#     signature="update_work_collection_frequency_from_collection_item_trigger",
+#     on_entity="public.collection_items",
+#     is_constraint=False,
+#     definition="""
+#     AFTER INSERT OR UPDATE OR DELETE ON public.collection_items
+#     FOR EACH STATEMENT EXECUTE FUNCTION refresh_work_collection_frequency_view_function()
+#     """,
+# )
