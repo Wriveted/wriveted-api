@@ -13,6 +13,7 @@ from app.db.session import get_session
 from app.models.event import EventSlackChannel
 from app.schemas.feedback import SendEmailPayload, SendSmsPayload
 from app.schemas.users.huey_attributes import HueyAttributes
+from app.services import search
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.commerce import (
     get_sendgrid_api,
@@ -161,4 +162,12 @@ async def handle_hydrate_bulk(
     logger.info(f"Internal API hydrating {len(isbns)} isbns")
     await hydrate_bulk(session, isbns)
 
+    return {"msg": "ok"}
+
+
+@router.post("/update-search-index")
+async def handle_update_search_index(session: Session = Depends(get_session)):
+    logger.info("Internal API updating search index")
+    search.update_search_view_v1(session)
+    logger.info("Processing search data updated event")
     return {"msg": "ok"}
