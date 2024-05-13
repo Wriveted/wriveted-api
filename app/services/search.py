@@ -150,3 +150,11 @@ async def book_search(
         )
         for row in res
     ]
+
+
+def update_search_view_v1(session):
+    logger.info("Refreshing search view v1")
+    stmt = select([func.refresh_search_view_v1_function()])
+    session.execute(stmt)
+    session.commit()
+    logger.info("Refreshed search view v1")
