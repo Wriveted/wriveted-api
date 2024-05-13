@@ -5,7 +5,7 @@ from app.db import Base
 
 
 class Product(Base):
-    # in all current cases this is to the be a Stripe 'price' id
+    # in all current cases this is the Stripe 'price' id
     id = mapped_column(String, primary_key=True)
 
     name = mapped_column(String, nullable=False)
