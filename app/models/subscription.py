@@ -45,7 +45,7 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    school = relationship("School", back_populates="subscriptions")
+    school = relationship("School", back_populates="subscription")
 
     type = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),

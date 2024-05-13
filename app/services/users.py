@@ -41,7 +41,7 @@ def handle_user_creation(
                 child = crud.user.create(db=session, obj_in=child_data, commit=True)
                 if generate_pathway_lists:
                     generate_reading_pathway_lists(
-                        child.id, HueyAttributes.parse_obj(child.huey_attributes)
+                        child.id, HueyAttributes.model_validate(child.huey_attributes)
                     )
                 children.append(child)
 

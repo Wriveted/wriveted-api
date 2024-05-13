@@ -211,7 +211,7 @@ def save_editions(
                 series_number=book_data.series_number,
             )
             authors = [
-                crud.author.get_or_create(session, AuthorCreateIn.parse_obj(a))
+                crud.author.get_or_create(session, AuthorCreateIn.model_validate(a))
                 for a in book_data.authors
             ]
 
@@ -226,7 +226,7 @@ def save_editions(
         logger.info("Estimated labelset", data=estimated_labelset)
 
         # Update the labelset with the estimated labelset
-        labelset_patch = LabelSetCreateIn.parse_obj(estimated_labelset)
+        labelset_patch = LabelSetCreateIn.model_validate(estimated_labelset)
         logger.info("Patching labelset", labelset_id=labelset.id, data=labelset_patch)
         labelset = crud.labelset.patch(
             session,

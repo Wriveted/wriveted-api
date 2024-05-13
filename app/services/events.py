@@ -275,7 +275,7 @@ def process_reading_logged_event(session: Session, event: Event):
     logger.info("Processing reading logged event")
 
     try:
-        log_data = ReadingLogEvent.parse_obj(event.info)
+        log_data = ReadingLogEvent.model_validate(event.info)
     except ValidationError as e:
         logger.warning("Error parsing reading logged event", error=e, event=event)
         return
@@ -310,7 +310,7 @@ def process_supporter_reading_feedback_event(session: Session, event: Event):
     logger.info("Processing supporter feedback event")
 
     try:
-        feedback_data = ReadingLogEventFeedback.parse_obj(event.info)
+        feedback_data = ReadingLogEventFeedback.model_validate(event.info)
     except ValidationError as e:
         logger.warning("Error parsing supporter feedback event", error=e, event=event)
         return
@@ -397,7 +397,7 @@ def get_liked_books_from_book_review_event(session: Session, event: Event):
                 liked_items.append(liked_booklist_item)
 
     else:
-        info: HueyBookReviewedInfo = HueyBookReviewedInfo.parse_obj(event.info)
+        info: HueyBookReviewedInfo = HueyBookReviewedInfo.model_validate(event.info)
         logger.debug("Processing a book review", raw_review=info)
         liked_booklist_item = booklist_item_update_from_isbn(
             session, info.isbn, info.liked
