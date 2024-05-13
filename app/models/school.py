@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from fastapi_permissions import All, Allow, Deny
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.models.school_admin import SchoolAdmin
@@ -118,6 +119,13 @@ class School(Base):
         "ServiceAccount",
         secondary=service_account_school_association_table,
         back_populates="schools",
+    )
+
+    subscription: Mapped[Optional["Subscription"]] = relationship(
+        "Subscription",
+        back_populates="school",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     created_at = mapped_column(
