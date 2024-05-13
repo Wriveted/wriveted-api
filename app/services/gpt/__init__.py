@@ -67,68 +67,7 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
     all_usages = []
 
     logger.debug("Requesting completion from OpenAI", work_id=work.id)
-    # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
-    editions = [
-        ed
-        for ed in work.editions[:20]
-        if ed.info is not None and ed.title == work.title
-    ]
-    editions.sort(key=lambda e: len(e.info), reverse=True)
-
-    if not editions:
-        logger.warning("Insufficient edition data to generate good labels")
-        main_edition = work.editions[0]
-        if main_edition.info is None:
-            main_edition.info = {}
-    else:
-        main_edition = editions[0]
-
-    huey_summary = (
-        work.labelset.huey_summary
-        if work.labelset and work.labelset.huey_summary
-        else ""
-    )
-
-    genre_data = set()
-    short_summaries = set()
-    page_numbers = set()
-
-    for e in editions[:20]:
-        if e.info is not None:
-            for g in e.info.get("genres", []):
-                genre_data.add(f"{g['name']}")
-
-            short_summaries.add(e.info.get("summary_short"))
-
-            if pages := e.info.get("pages"):
-                page_numbers.add(pages)
-
-    genre_data = "\n".join(genre_data)
-    median_page_number = median(page_numbers) if page_numbers else "unknown"
-    short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
-
-    display_title = work.get_display_title()
-    authors_string = work.get_authors_string()
-    long_summary = main_edition.info.get("summary_long", "") or ""
-    keywords = main_edition.info.get("keywords", "") or ""
-    other_info = dedent(
-        f"""
-    - {main_edition.info.get('cbmctext')}
-    - {main_edition.info.get('prodct')}
-    """
-    )
-    user_provided_values = {
-        "display_title": display_title,
-        "authors_string": authors_string,
-        "huey_summary": huey_summary[:1500],
-        "short_summaries": short_summaries[:1500],
-        "long_summary": long_summary[:1500],
-        "keywords": keywords[:1500],
-        "other_info": other_info,
-        "number_of_pages": median_page_number,
-        "genre_data": genre_data[:1500],
-    }
-    user_content = user_prompt_template.format(**user_provided_values) + suffix
+    user_content = prepare_context_for_labelling(work)
 
     logger.info("Prompt: ", prompt=user_content)
 
@@ -193,6 +132,66 @@ def extract_labels(work: Work, prompt: str = None, retries: int = 2):
         output=parsed_data,
         usage=GptUsage(usages=all_usages),
     )
+
+
+def prepare_context_for_labelling(work):
+    # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
+    editions = [
+        ed
+        for ed in work.editions[:20]
+        if ed.info is not None and ed.title == work.title
+    ]
+    editions.sort(key=lambda e: len(e.info), reverse=True)
+    if not editions:
+        logger.warning("Insufficient edition data to generate good labels")
+        main_edition = work.editions[0]
+        if main_edition.info is None:
+            main_edition.info = {}
+    else:
+        main_edition = editions[0]
+    huey_summary = (
+        work.labelset.huey_summary
+        if work.labelset and work.labelset.huey_summary
+        else ""
+    )
+    genre_data = set()
+    short_summaries = set()
+    page_numbers = set()
+    for e in editions[:20]:
+        if e.info is not None:
+            for g in e.info.get("genres", []):
+                genre_data.add(f"{g['name']}")
+
+            short_summaries.add(e.info.get("summary_short"))
+
+            if pages := e.info.get("pages"):
+                page_numbers.add(pages)
+    genre_data = "\n".join(genre_data)
+    median_page_number = median(page_numbers) if page_numbers else "unknown"
+    short_summaries = "\n".join(f"- {s}" for s in short_summaries if s is not None)
+    display_title = work.get_display_title()
+    authors_string = work.get_authors_string()
+    long_summary = main_edition.info.get("summary_long", "") or ""
+    keywords = main_edition.info.get("keywords", "") or ""
+    other_info = dedent(
+        f"""
+    - {main_edition.info.get('cbmctext')}
+    - {main_edition.info.get('prodct')}
+    """
+    )
+    user_provided_values = {
+        "display_title": display_title,
+        "authors_string": authors_string,
+        "huey_summary": huey_summary[:1500],
+        "short_summaries": short_summaries[:1500],
+        "long_summary": long_summary[:1500],
+        "keywords": keywords[:1500],
+        "other_info": other_info,
+        "number_of_pages": median_page_number,
+        "genre_data": genre_data[:1500],
+    }
+    user_content = user_prompt_template.format(**user_provided_values) + suffix
+    return user_content
 
 
 def work_to_gpt_labelset_update(work: Work):

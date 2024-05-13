@@ -48,7 +48,7 @@ asyncpg = "^0.29.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.3"
-jupyterlab = "^4.0"
+
 black = {extras = ["jupyter"], version = "^24.3"}
 google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
@@ -56,6 +56,16 @@ google-auth-oauthlib = "^1.0"
 pre-commit = "^3.3"
 locust = "^2.14"
 rich = "^13.3.2"
+
+
+[tool.poetry.group.ml.dependencies]
+jupyterlab = "^4.2"
+google-cloud-aiplatform = "^1.51.0"
+langchain = "^0.1.20"
+langchain-google-genai = "^1.0.3"
+langchain-google-vertexai = "^1.0.3"
+langchain-google-community = "^1.0.3"
+wikipedia = "^1.4.0"
 
 
 [build-system]

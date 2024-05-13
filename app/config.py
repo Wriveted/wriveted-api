@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     GCP_HUEY_MEDIA_BUCKET: str = "wriveted-huey-media"
     GCP_BOOK_DATA_BUCKET: str = "wriveted-book-data"
 
+    GOOGLE_API_KEY: str = ""
+    GOOGLE_CSE_ID: str = ""
+
     GCP_CLOUD_TASKS_NAME: Optional[str] = None  # 'background-tasks'
     GCP_CLOUD_TASKS_SERVICE_ACCOUNT: str = (
         "background-tasks@wriveted-api.iam.gserviceaccount.com"
