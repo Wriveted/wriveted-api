@@ -17,8 +17,8 @@ def get_raw_payload_from_access_token(token) -> dict[str, Any]:
 
 class TokenPayload(BaseModel):
     sub: str
-    iat: datetime
-    exp: datetime
+    iat: datetime.datetime
+    exp: datetime.datetime
 
     @field_validator("sub")
     @classmethod
