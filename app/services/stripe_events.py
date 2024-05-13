@@ -252,13 +252,18 @@ def _handle_checkout_session_completed(
     # we can then use this information to create a new subscription in our database (if needed),
     # and link the customer to the user (if needed).
     stripe_subscription_id = event_data.get("subscription")
-
+    client_reference_id = event_data.get("client_reference_id")
+    logger.info(
+        "Client reference id from checkout session",
+        client_reference_id=client_reference_id,
+    )
     # Note this checkout complete could get fired for non-subscription purchases
     if stripe_subscription_id is None:
-        logger.info(
+        logger.warning(
             "Checkout session completed for non-subscription purchase. Ignoring"
         )
         return
+
     stripe_subscription = StripeSubscription.retrieve(stripe_subscription_id)
 
     stripe_customer_id = stripe_subscription.customer
@@ -266,8 +271,7 @@ def _handle_checkout_session_completed(
     stripe_customer_email = stripe_customer.get("email")
 
     if not stripe_customer_email:
-        logger.warning("Checkout session emitted without an email address. Ignoring")
-        return
+        logger.warning("Checkout session emitted without an email address")
 
     checkout_session_id = event_data.get("id")
 
@@ -295,11 +299,21 @@ def _handle_checkout_session_completed(
         if wriveted_user and wriveted_user.type == UserAccountType.PARENT
         else None
     )
+    school = None
+    if client_reference_id is not None:
+        try:
+            school = crud.school.get_by_wriveted_id_or_404(
+                session, wriveted_id=client_reference_id
+            )
+        except Exception as e:
+            logger.error("Error getting school", exc_info=e)
+
     base_subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
         product_id=stripe_price_id,
         stripe_customer_id=stripe_subscription.customer,
         parent_id=wriveted_parent_id,
+        school_id=school.wriveted_identifier if school else None,
         expiration=stripe_subscription.current_period_end,
     )
     logger.info(
@@ -331,32 +345,37 @@ def _handle_checkout_session_completed(
             "stripe_product_name": product_name,
         },
         account=wriveted_user,
-        slack_channel=EventSlackChannel.MEMBERSHIPS,
+        slack_channel=(
+            None if "test" in stripe_subscription_id else EventSlackChannel.MEMBERSHIPS
+        ),
         slack_extra={
             "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
-            "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
-            "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
+            # "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
+            # "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
         },
     )
 
-    logger.info("Queueing subscription welcome email")
-    queue_background_task(
-        "send-email",
-        {
-            "email_data": {
-                "from_email": "orders@hueybooks.com",
-                "from_name": "Huey Books",
-                "to_emails": [stripe_customer_email] if stripe_customer_email else [],
-                "subject": "Your Huey Books Membership",
-                "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
-                "template_data": {
-                    "name": stripe_customer.name,
-                    "checkout_session_id": checkout_session_id,
+    if wriveted_parent_id is not None:
+        logger.info("Queueing subscription welcome email")
+        queue_background_task(
+            "send-email",
+            {
+                "email_data": {
+                    "from_email": "orders@hueybooks.com",
+                    "from_name": "Huey Books",
+                    "to_emails": (
+                        [stripe_customer_email] if stripe_customer_email else []
+                    ),
+                    "subject": "Your Huey Books Membership",
+                    "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
+                    "template_data": {
+                        "name": stripe_customer.name,
+                        "checkout_session_id": checkout_session_id,
+                    },
                 },
+                "user_id": str(wriveted_user.id) if wriveted_user else None,
             },
-            "user_id": str(wriveted_user.id) if wriveted_user else None,
-        },
-    )
+        )
 
     return subscription
 

@@ -30,6 +30,7 @@ class SubscriptionCreateIn(BaseModel):
     id: str
     stripe_customer_id: str
     parent_id: str | None = None
+    school_id: str | None = None
     product_id: str
     is_active: bool | None = None
     info: dict | None = None
