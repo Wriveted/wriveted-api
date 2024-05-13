@@ -35,13 +35,17 @@ class Subscription(Base):
     )
     parent = relationship("Parent", back_populates="subscription")
 
-    # school_id = mapped_column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("schools.id", name="fk_school_stripe_subscription", ondelete="CASCADE"),
-    #     nullable=True,
-    #     index=True,
-    # )
-    # school = relationship("School", back_populates="subscriptions")
+    school_id = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_school_stripe_subscription",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
+        index=True,
+    )
+    school = relationship("School", back_populates="subscriptions")
 
     type = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),
@@ -79,7 +83,14 @@ class Subscription(Base):
     latest_checkout_session_id = mapped_column(String, nullable=True, index=True)
 
     def __acl__(self):
-        return [
+        res = [
             (Allow, "role:admin", All),
-            (Allow, f"user:{self.user_id}", "read"),
         ]
+
+        if self.parent_id is not None:
+            res.append((Allow, f"user:{self.parent_id}", "read"))
+
+        if self.school_id is not None:
+            res.append((Allow, f"school:{self.school_id}", "read"))
+
+        return res

@@ -9,7 +9,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110.2"
+fastapi = "^0.111.0"
 uvicorn = {extras = ["standard"], version = "^0.29"}
 alembic = "^1.11"
 structlog = "^24.1.0"
@@ -21,7 +21,7 @@ cryptography = "^42.0"
 pydantic = {extras = ["email"], version = "^2.7"}
 fastapi_permissions = "^0.2.7"
 gunicorn = "^22.0"
-tenacity = "^8.2"
+tenacity = "^8.3"
 sendgrid = "^6.10"
 mock = "^5.0.1"
 webencodings = "^0.5.1"
@@ -31,7 +31,7 @@ setuptools = "^69.5"
 humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
 pillow = "^10.0"
-stripe = "^6.5"
+stripe = "^9.6"
 slack-sdk = "^3.19.5"
 alembic-utils = "^0.8.1"
 phonenumbers = "^8.13.6"
