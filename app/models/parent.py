@@ -47,7 +47,7 @@ class Parent(User):
 
     def __repr__(self):
         active = "Active" if self.is_active else "Inactive"
-        return f"<Parent {self.name} - {self.children} - {active}>"
+        return f"<Parent {self.name} - {self.readers} - {active}>"
 
     def get_principals(self):
         principals = super().get_principals()
