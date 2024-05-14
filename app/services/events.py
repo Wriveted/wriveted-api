@@ -203,12 +203,20 @@ def process_events(event_id):
                 return {"msg": "ok"}
             case "Reader timeline event: Reading logged":
                 return process_reading_logged_event(session, event)
+            case "Subscription started":
+                return process_subscription_started_event(session, event)
             # case "Supporter encouragement: Achievement feedback sent":
             #     # e.g. "Well done for reading 10 books this year!"
             #     # (not for a specific reading event, but for a milestone or other automated achievement)
             #     return process_supporter_achievement_feedback_event(session, event)
             case _:
                 return
+
+
+def process_subscription_started_event(session: Session, event: Event):
+    """ """
+
+    logger.info("Placeholder to process subscription started event", info=event.info)
 
 
 def process_book_review_event(session: Session, event: Event):

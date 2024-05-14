@@ -200,7 +200,7 @@ def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
 
 
 def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
-    logger.info("Invoice paid. Updating user subscription")
+    logger.info("Invoice paid. Updating subscription")
     # Get the subscription id from the invoice paid event
     stripe_subscription_id = event_data.get("subscription")
     stripe_customer_id = event_data.get("customer")
@@ -317,7 +317,7 @@ def _handle_checkout_session_completed(
         expiration=stripe_subscription.current_period_end,
     )
     logger.info(
-        "Creating or updating subscription in our database",
+        "Upserting subscription in our database",
         base_subscription_data=base_subscription_data,
         checkout_session_id=checkout_session_id,
     )
@@ -333,26 +333,36 @@ def _handle_checkout_session_completed(
     # fetch from db instead of stripe object in case we have a product name override
     product_name = crud.product.get(session, stripe_price_id).name
 
-    create_event(
+    event = create_event(
         session=session,
         title="Subscription started",
         description="Subscription created or updated",
         info={
             "stripe_customer_id": stripe_customer_id,
+            "stripe_customer_name": stripe_customer.name,
             "stripe_customer_email": stripe_customer_email,
             "stripe_subscription_id": stripe_subscription_id,
             "stripe_product_id": stripe_price_id,
             "stripe_product_name": product_name,
+            "product_name": product_name,
+            "wriveted_subscription_id": subscription.id,
         },
         account=wriveted_user,
         slack_channel=(
             None if "test" in stripe_subscription_id else EventSlackChannel.MEMBERSHIPS
         ),
         slack_extra={
+            "customer_name": stripe_customer.name,
             "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
             # "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
             # "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
         },
+    )
+
+    # Queue processing of the 'Subscription started' event
+    queue_background_task(
+        "process-event",
+        {"event_id": str(event.id)},
     )
 
     if wriveted_parent_id is not None:
