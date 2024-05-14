@@ -321,7 +321,7 @@ def _handle_checkout_session_completed(
         product_id=stripe_price_id,
         stripe_customer_id=stripe_subscription.customer,
         parent_id=wriveted_parent_id,
-        school_id=school.wriveted_identifier if school else None,
+        school_id=str(school.wriveted_identifier) if school else None,
         expiration=stripe_subscription.current_period_end,
     )
     logger.info(
