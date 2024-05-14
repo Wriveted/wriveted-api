@@ -242,6 +242,9 @@ class Settings(BaseSettings):
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+
+    ENABLE_OTEL_GOOGLE_EXPORTER: bool = False
+
     model_config = SettingsConfigDict(case_sensitive=True, use_enum_values=True)
 
 
