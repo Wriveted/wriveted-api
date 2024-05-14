@@ -28,6 +28,7 @@ class SubscriptionDetail(SubscriptionBrief):
 
 class SubscriptionCreateIn(BaseModel):
     id: str
+    type: SubscriptionType = SubscriptionType.FAMILY
     stripe_customer_id: str
     parent_id: str | None = None
     school_id: str | None = None

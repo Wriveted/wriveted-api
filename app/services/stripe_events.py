@@ -329,9 +329,8 @@ def _handle_checkout_session_completed(
         base_subscription_data=base_subscription_data,
         checkout_session_id=checkout_session_id,
     )
-    subscription, _created = crud.subscription.get_or_create(
-        session, base_subscription_data
-    )
+    subscription = crud.subscription.upsert(session, base_subscription_data)
+    logger.debug("Upserted subscription in our database", subscription=subscription)
 
     # update the subscription in our database with the latest information
     # we store the checkout session id in the subscription so that we can
@@ -434,6 +433,7 @@ def _handle_subscription_created(
     )
     subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
+        type=SubscriptionType.FAMILY if wriveted_parent_id else SubscriptionType.SCHOOL,
         is_active=stripe_subscription_status in {"active", "past_due"},
         product_id=stripe_price_id,
         stripe_customer_id=event_data.get("customer"),
@@ -442,6 +442,9 @@ def _handle_subscription_created(
         expiration=stripe_subscription_expiry,
     )
 
+    logger.debug(
+        "Creating subscription in our database", subscription_data=subscription_data
+    )
     subscription, created = crud.subscription.get_or_create(session, subscription_data)
     if created:
         logger.info("Created a new subscription", subscription=subscription)
