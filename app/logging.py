@@ -4,8 +4,30 @@ from typing import List
 
 import structlog
 import uvicorn
+from opentelemetry import trace
+from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 from app.config import Settings
+
+
+def init_tracing(app, settings: Settings):
+    trace.set_tracer_provider(TracerProvider())
+
+    cloud_trace_exporter = CloudTraceSpanExporter(
+        project_id=settings.GCP_PROJECT_ID,
+    )
+    trace.get_tracer_provider().add_span_processor(
+        SimpleSpanProcessor(cloud_trace_exporter)
+    )
+
+    HTTPXClientInstrumentor().instrument()
+    FastAPIInstrumentor().instrument_app(app)
+    SQLAlchemyInstrumentor().instrument()
 
 
 def init_logging(settings: Settings):
