@@ -18,12 +18,13 @@ from app.config import Settings
 def init_tracing(app, settings: Settings):
     trace.set_tracer_provider(TracerProvider())
 
-    cloud_trace_exporter = CloudTraceSpanExporter(
-        project_id=settings.GCP_PROJECT_ID,
-    )
-    trace.get_tracer_provider().add_span_processor(
-        SimpleSpanProcessor(cloud_trace_exporter)
-    )
+    if settings.ENABLE_OTEL_GOOGLE_EXPORTER:
+        cloud_trace_exporter = CloudTraceSpanExporter(
+            project_id=settings.GCP_PROJECT_ID,
+        )
+        trace.get_tracer_provider().add_span_processor(
+            SimpleSpanProcessor(cloud_trace_exporter)
+        )
 
     HTTPXClientInstrumentor().instrument()
     FastAPIInstrumentor().instrument_app(app)
