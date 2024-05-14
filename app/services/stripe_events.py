@@ -358,7 +358,7 @@ def _handle_checkout_session_completed(
         },
         account=wriveted_user,
         slack_channel=(
-            None if "test" in stripe_subscription_id else EventSlackChannel.MEMBERSHIPS
+            None if "test" in checkout_session_id else EventSlackChannel.MEMBERSHIPS
         ),
         slack_extra={
             "customer_name": stripe_customer.name,
