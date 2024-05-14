@@ -10,7 +10,7 @@ from structlog import get_logger
 
 from app.api.external_api_router import api_router
 from app.config import get_settings
-from app.logging import init_logging
+from app.logging import init_logging, init_tracing
 
 api_docs = textwrap.dedent(
     """
@@ -63,6 +63,8 @@ app = FastAPI(
     debug=settings.DEBUG,
     # version=metadata.version("wriveted-api"),
 )
+
+init_tracing(app, settings)
 
 
 @app.exception_handler(RequestValidationError)
