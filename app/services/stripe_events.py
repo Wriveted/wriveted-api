@@ -124,7 +124,7 @@ def process_stripe_event(event_type: str, event_data):
                     "Stripe subscription created",
                     stripe_subscription_id=event_data.get("subscription"),
                 )
-                _handle_subscription_created(session, wriveted_user, event_data)
+                _handle_subscription_created(session, wriveted_user, school, event_data)
 
             case "payment_intent.succeeded":
                 logger.info("Payment succeeded")
@@ -400,7 +400,9 @@ def _handle_checkout_session_completed(
     return subscription
 
 
-def _handle_subscription_created(session, wriveted_user: User, event_data: dict):
+def _handle_subscription_created(
+    session, wriveted_user: User, school: School | None, event_data: dict
+):
     stripe_subscription_id = event_data.get("id")
     assert event_data.get("object") == "subscription"
 
@@ -436,6 +438,7 @@ def _handle_subscription_created(session, wriveted_user: User, event_data: dict)
         product_id=stripe_price_id,
         stripe_customer_id=event_data.get("customer"),
         parent_id=wriveted_parent_id,
+        school_id=str(school.wriveted_identifier) if school else None,
         expiration=stripe_subscription_expiry,
     )
 
