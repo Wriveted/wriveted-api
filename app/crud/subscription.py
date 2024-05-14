@@ -46,5 +46,20 @@ class CRUDSubscription(
         )
         return db.execute(q).scalar_one_or_none()
 
+    def upsert(
+        self,
+        db: Session,
+        subscription_data: SubscriptionCreateIn,
+        commit: bool = True,
+    ) -> Subscription:
+        sub, created = self.get_or_create(
+            db=db, subscription_data=subscription_data, commit=commit
+        )
+        if not created:
+            sub = self.update(
+                db=db, db_obj=sub, obj_in=subscription_data, commit=commit
+            )
+        return sub
+
 
 subscription = CRUDSubscription(Subscription)

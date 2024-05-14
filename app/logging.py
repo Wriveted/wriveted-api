@@ -31,6 +31,24 @@ def init_tracing(app, settings: Settings):
     SQLAlchemyInstrumentor().instrument()
 
 
+def add_open_telemetry_spans(_, __, event_dict):
+    span = trace.get_current_span()
+    if not span.is_recording():
+        event_dict["span"] = None
+        return event_dict
+
+    ctx = span.get_span_context()
+    parent = getattr(span, "parent", None)
+
+    event_dict["span"] = {
+        "span_id": hex(ctx.span_id),
+        "trace_id": hex(ctx.trace_id),
+        "parent_span_id": None if not parent else hex(parent.span_id),
+    }
+
+    return event_dict
+
+
 def init_logging(settings: Settings):
     """
 
@@ -41,6 +59,7 @@ def init_logging(settings: Settings):
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
+        add_open_telemetry_spans,
         # Don't need a timestamp as cloudrun already adds one
         # structlog.processors.TimeStamper(fmt='iso'),
         structlog.processors.StackInfoRenderer(),
