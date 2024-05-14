@@ -13,7 +13,7 @@ from app.db.session import get_session_maker
 from app.models import School, User
 from app.models.event import EventSlackChannel
 from app.models.product import Product
-from app.models.subscription import Subscription
+from app.models.subscription import Subscription, SubscriptionType
 from app.models.user import UserAccountType
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
@@ -88,7 +88,7 @@ def process_stripe_event(event_type: str, event_data):
         match event_type:
             # Actionable events
             case "invoice.paid":
-                _handle_invoice_paid(session, wriveted_user, event_data)
+                _handle_invoice_paid(session, wriveted_user, school, event_data)
             case "checkout.session.completed":
                 _handle_checkout_session_completed(
                     session, wriveted_user, school, event_data
@@ -102,13 +102,15 @@ def process_stripe_event(event_type: str, event_data):
                 logger.info(
                     "Subscription updated. Updating underlying product or plan if necessary"
                 )
-                _handle_subscription_updated(session, wriveted_user, event_data)
+                _handle_subscription_updated(session, wriveted_user, school, event_data)
 
             case "customer.subscription.deleted":
                 # Sent when a customer’s subscription ends
                 # https://stripe.com/docs/api/subscriptions/object
-                logger.info("Subscription deleted. Removing subscription from user")
-                _handle_subscription_cancelled(session, wriveted_user, event_data)
+                logger.info("Subscription deleted")
+                _handle_subscription_cancelled(
+                    session, wriveted_user, school, event_data
+                )
 
             # Log-and-move-on events
             case "customer.created":
@@ -216,7 +218,9 @@ def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
     return stripe_customer
 
 
-def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
+def _handle_invoice_paid(
+    session, wriveted_user: User | None, school: School | None, event_data: dict
+):
     logger.info("Invoice paid. Updating subscription")
     # Get the subscription id from the invoice paid event
     stripe_subscription_id = event_data.get("subscription")
@@ -252,7 +256,7 @@ def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
             "stripe_subscription_id": stripe_subscription_id,
             "expiration": str(subscription.expiration),
         },
-        account=wriveted_user,
+        account=wriveted_user or school,
     )
 
 
@@ -441,7 +445,7 @@ def _handle_subscription_created(session, wriveted_user: User, event_data: dict)
 
 
 def _handle_subscription_updated(
-    session, wriveted_user: User, event_data: dict
+    session, wriveted_user: User, school: School | None, event_data: dict
 ) -> Optional[Subscription]:
     stripe_subscription_id = event_data.get("id")
     assert event_data.get("object") == "subscription"
@@ -467,11 +471,10 @@ def _handle_subscription_updated(
             )
 
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
-    if not subscription or not wriveted_user:
+    if not subscription:
         logger.warning(
-            "Ignoring subscription update event for missing subscription or user",
+            "Ignoring subscription update event for missing subscription",
             subscription=subscription,
-            wriveted_user=wriveted_user,
         )
         return
 
@@ -481,30 +484,44 @@ def _handle_subscription_updated(
     subscription.expiration = datetime.utcfromtimestamp(
         event_data["current_period_end"]
     )
-    if wriveted_user and subscription.parent_id is None:
+
+    if (
+        wriveted_user
+        and subscription.type == SubscriptionType.FAMILY
+        and subscription.parent_id is None
+    ):
         # we have a wriveted user, but no wriveted id on the subscription
-        logger.info(
-            "Updating subscription with Wriveted user id",
-            stripe_subscription_id=stripe_subscription_id,
-        )
+        logger.info("Updating family subscription with Wriveted user id")
         subscription.parent_id = wriveted_user.id
+
+    if (
+        school
+        and subscription.type == SubscriptionType.SCHOOL
+        and subscription.school_id is None
+    ):
+        # we have a school, but no school id on the subscription
+        logger.info("Updating school subscription with school id")
+        subscription.school_id = school.wriveted_identifier
 
     crud.event.create(
         session=session,
         title="Subscription updated",
-        description=f"User {wriveted_user.id} updated their subscription to {product.name}",
+        description=f"Subscription updated on Stripe",
         info={
+            "product": product.name,
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": stripe_price_id,
             "status": stripe_subscription_status,
         },
-        account=wriveted_user,
+        account=wriveted_user or school,
     )
 
     return subscription
 
 
-def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dict):
+def _handle_subscription_cancelled(
+    session, wriveted_user: User, school: School | None, event_data: dict
+):
     stripe_subscription_id = event_data.get("id")
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
 
@@ -522,7 +539,7 @@ def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dic
                 "product_id": product.id,
                 "product_name": product.name,
             },
-            account=wriveted_user,
+            account=wriveted_user or school,
         )
     else:
         logger.info(
