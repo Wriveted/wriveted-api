@@ -48,7 +48,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
 
         # If an event was worth recording in the database we probably also want to log it
         logger.info(
-            f"{title}\n{description}",
+            f"{title} - {description}",
             level=level,
             school=school,
             user=user,

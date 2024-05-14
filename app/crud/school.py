@@ -104,6 +104,13 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
                 detail=f"School with id {official_id} in {country_code} not found.",
             )
 
+    def get_by_wriveted_id(self, db: Session, wriveted_id: str) -> Optional[School]:
+        query = select(School).where(School.wriveted_identifier == wriveted_id)
+        try:
+            return db.execute(query).scalar_one()
+        except NoResultFound:
+            return None
+
     def get_by_wriveted_id_or_404(self, db: Session, wriveted_id: str):
         query = select(School).where(School.wriveted_identifier == wriveted_id)
         try:

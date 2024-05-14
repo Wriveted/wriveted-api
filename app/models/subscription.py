@@ -94,3 +94,6 @@ class Subscription(Base):
             res.append((Allow, f"school:{self.school_id}", "read"))
 
         return res
+
+    def __repr__(self):
+        return f"<Subscription {self.id} - {self.type} - {self.product_id}>"

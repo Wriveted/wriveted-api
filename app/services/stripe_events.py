@@ -10,7 +10,7 @@ from structlog.contextvars import bind_contextvars
 
 from app import crud
 from app.db.session import get_session_maker
-from app.models import User
+from app.models import School, User
 from app.models.event import EventSlackChannel
 from app.models.product import Product
 from app.models.subscription import Subscription
@@ -78,17 +78,21 @@ def process_stripe_event(event_type: str, event_data):
 
     Session = get_session_maker()
     with Session() as session:
-        wriveted_user, stripe_customer = _extract_user_and_customer_from_stripe_object(
-            session, event_data, object_type
+        wriveted_user, school, stripe_customer = (
+            _extract_user_and_customer_from_stripe_object(
+                session, event_data, object_type
+            )
         )
-        # we now have a stripe customer and, if it exists, equivalent wriveted user
+        # we now have a stripe customer and, if they exist, an equivalent wriveted user/school
 
         match event_type:
             # Actionable events
             case "invoice.paid":
                 _handle_invoice_paid(session, wriveted_user, event_data)
             case "checkout.session.completed":
-                _handle_checkout_session_completed(session, wriveted_user, event_data)
+                _handle_checkout_session_completed(
+                    session, wriveted_user, school, event_data
+                )
 
             case "customer.subscription.updated":
                 # Sent when the subscription is successfully started, after the payment is confirmed.
@@ -139,6 +143,7 @@ def _extract_user_and_customer_from_stripe_object(
     )
 
     wriveted_user = None
+    school = None
     # webhook is only listening to events that are guaranteed to include a customer id (for now)
     stripe_customer = _get_stripe_customer_from_stripe_object(
         stripe_object, stripe_object_type
@@ -155,7 +160,7 @@ def _extract_user_and_customer_from_stripe_object(
         wriveted_user = crud.user.get(session, stripe_customer_wriveted_id)
         logger.info("Found wriveted user id in customer metadata", user=wriveted_user)
 
-    # check for any custom client_reference_id injected by our frontend (a Wriveted user id)
+    # check for any custom client_reference_id injected by our frontend (a Wriveted user id or school id)
     # note: empty values can sometimes be returned as the strings "undefined" or "null"
     client_reference_id = stripe_object.get("client_reference_id")
     if client_reference_id == "undefined" or client_reference_id == "null":
@@ -174,6 +179,18 @@ def _extract_user_and_customer_from_stripe_object(
                     "Client reference id matches User associated with Stripe customer id",
                     referenced_user_id=referenced_user.id,
                 )
+        elif school := crud.school.get_by_wriveted_id(
+            session, wriveted_id=client_reference_id
+        ):
+            logger.info(
+                "Client reference id matches School",
+                school_id=school.wriveted_identifier,
+                school_name=school.name,
+            )
+            bind_contextvars(
+                school_id=school.wriveted_identifier, school_name=school.name
+            )
+
         else:
             logger.warning(
                 "Client reference id does not match any user",
@@ -183,7 +200,7 @@ def _extract_user_and_customer_from_stripe_object(
     if wriveted_user:
         bind_contextvars(wriveted_user_id=str(wriveted_user.id))
 
-    return wriveted_user, stripe_customer
+    return wriveted_user, school, stripe_customer
 
 
 def _get_stripe_customer_from_stripe_object(stripe_object, stripe_object_type):
@@ -240,7 +257,7 @@ def _handle_invoice_paid(session, wriveted_user: User, event_data: dict):
 
 
 def _handle_checkout_session_completed(
-    session, wriveted_user: User, event_data: dict
+    session, wriveted_user: User, school: School | None, event_data: dict
 ) -> Subscription:
     """
 
@@ -250,7 +267,7 @@ def _handle_checkout_session_completed(
     # in this case we want to query the Stripe API for the subscription and customer,
     # as we know they exist and have been processed by Stripe.
     # we can then use this information to create a new subscription in our database (if needed),
-    # and link the customer to the user (if needed).
+    # and link the customer to the user or school (if needed).
     stripe_subscription_id = event_data.get("subscription")
     client_reference_id = event_data.get("client_reference_id")
     logger.info(
@@ -286,11 +303,6 @@ def _handle_checkout_session_completed(
 
     # ensure our db knows about the specified product
     stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
-    logger.info(
-        "Ensuring product exists in our database",
-        stripe_price_id=stripe_price_id,
-        stripe_subscription=stripe_subscription,
-    )
     _sync_stripe_price_with_wriveted_product(session, stripe_price_id)
 
     # create or update a base subscription in our database
@@ -299,14 +311,6 @@ def _handle_checkout_session_completed(
         if wriveted_user and wriveted_user.type == UserAccountType.PARENT
         else None
     )
-    school = None
-    if client_reference_id is not None:
-        try:
-            school = crud.school.get_by_wriveted_id_or_404(
-                session, wriveted_id=client_reference_id
-            )
-        except Exception as e:
-            logger.error("Error getting school", exc_info=e)
 
     base_subscription_data = SubscriptionCreateIn(
         id=stripe_subscription_id,
@@ -321,7 +325,9 @@ def _handle_checkout_session_completed(
         base_subscription_data=base_subscription_data,
         checkout_session_id=checkout_session_id,
     )
-    subscription = crud.subscription.get_or_create(session, base_subscription_data)[0]
+    subscription, _created = crud.subscription.get_or_create(
+        session, base_subscription_data
+    )
 
     # update the subscription in our database with the latest information
     # we store the checkout session id in the subscription so that we can
@@ -526,7 +532,7 @@ def _handle_subscription_cancelled(session, wriveted_user: User, event_data: dic
 
 
 def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> Product:
-    logger.info("Syncing Stripe price %s with Wriveted product", stripe_price_id)
+    logger.debug(f"Syncing Stripe price with Wriveted product")
     wriveted_product = crud.product.get(session, id=stripe_price_id)
     if not wriveted_product:
         logger.info("Creating new product in db")
@@ -535,6 +541,11 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
         wriveted_product = crud.product.create(
             session,
             obj_in=ProductCreateIn(id=stripe_price_id, name=stripe_product.name),
+        )
+        logger.info(
+            "Created new product in db",
+            product_id=stripe_price_id,
+            product_name=wriveted_product.name,
         )
     else:
         logger.debug(
