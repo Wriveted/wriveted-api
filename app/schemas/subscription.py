@@ -11,7 +11,7 @@ from app.schemas.product import ProductBrief
 
 class SubscriptionBrief(BaseModel):
     id: str
-    type: Literal[SubscriptionType.FAMILY]
+    type: SubscriptionType = SubscriptionType.FAMILY
     provider: Literal[SubscriptionProvider.STRIPE]
     is_active: bool
     expiration: datetime | None = None
