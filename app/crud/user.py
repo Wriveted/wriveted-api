@@ -5,6 +5,7 @@ from fastapi import Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -36,13 +37,21 @@ class CRUDUser(CRUDBase[User, UserCreateIn, UserUpdateIn]):
 
     # ----CRUD override----
 
+    async def aget_query(self, db: AsyncSession, id: Any):
+        query = select(User).where(User.id == id)
+        user = (await db.execute(query)).scalar_one_or_none()
+
+        return self._select_concrete_user_instance(id, query, user)
+
     def get_query(self, db: Session, id: Any) -> Query:
         query = select(User).where(User.id == id)
         user = db.execute(query).scalar_one_or_none()
 
+        return self._select_concrete_user_instance(id, query, user)
+
+    def _select_concrete_user_instance(self, id, query, user):
         if not user:
             return query
-
         match user.type:
             case UserAccountType.WRIVETED:
                 return select(WrivetedAdmin).where(WrivetedAdmin.id == id)

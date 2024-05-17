@@ -19,6 +19,7 @@ from starlette import status
 from structlog import get_logger
 
 from app import crud
+from app.api.dependencies.async_db_dep import DBSessionDep
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
@@ -84,8 +85,8 @@ def get_optional_user(
         return user
 
 
-def get_optional_service_account(
-    db: Session = Depends(get_session),
+async def get_optional_service_account(
+    db: DBSessionDep,
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -93,7 +94,7 @@ def get_optional_service_account(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "service-account":
-        return crud.service_account.get_or_404(db, id=identifier)
+        return crud.service_account.aget_or_404(db, id=identifier)
 
 
 def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:

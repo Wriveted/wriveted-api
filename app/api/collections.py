@@ -9,6 +9,7 @@ from structlog import get_logger
 import app.services.collections as collections_service
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
+from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id
 from app.api.dependencies.collection import (
     get_collection_from_id,
@@ -126,38 +127,15 @@ async def get_collection_items(
     response_model=CollectionInfo,
 )
 async def get_collection_info(
+    session: DBSessionDep,
     collection: Collection = Permission("read", get_collection_from_id),
-    session: Session = Depends(get_session),
 ):
     """
     Endpoint returning information about how much of the collection is labeled.
     """
     logger.debug("Getting collection info")
-    output = {}
 
-    hydrated_query = get_collection_info_with_criteria(collection.id, is_hydrated=True)
-    labelled_query = get_collection_info_with_criteria(
-        collection.id, is_hydrated=True, is_labelled=True
-    )
-    recommend_query = get_collection_info_with_criteria(
-        collection.id, is_hydrated=True, is_labelled=True, is_recommendable=True
-    )
-
-    # explain_results = session.execute(explain(recommend_query, analyze=True)).scalars().all()
-    # logger.info("Query plan")
-    # for entry in explain_results:
-    #     logger.info(entry)
-
-    output["total_editions"] = collection.book_count
-    output["hydrated"] = session.execute(
-        select(func.count()).select_from(hydrated_query)
-    ).scalar_one()
-    output["hydrated_and_labeled"] = session.execute(
-        select(func.count()).select_from(labelled_query)
-    ).scalar_one()
-    output["recommendable"] = session.execute(
-        select(func.count()).select_from(recommend_query)
-    ).scalar_one()
+    return await get_collection_info_with_criteria(session, collection.id)
 
     return output
 

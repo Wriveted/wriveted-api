@@ -1,6 +1,7 @@
 from typing import Optional
 
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from structlog import get_logger
 
@@ -21,8 +22,8 @@ from app.schemas.recommendations import ReadingAbilityKey
 logger = get_logger()
 
 
-def get_recommended_labelset_query(
-    session,
+async def get_recommended_labelset_query(
+    asession: AsyncSession,
     hues: Optional[list[str]] = None,
     collection_id: Optional[int] = None,
     age: Optional[int] = None,
@@ -31,13 +32,9 @@ def get_recommended_labelset_query(
     exclude_isbns: Optional[list[str]] = None,
 ):
     """
-    Return a (complicated) select query for labelsets filtering by hue,
-    and optional school, reading ability and age range.
-
-    The returned query can be used directly to access recommended works:
-
-    Can raise sqlalchemy.exc.NoResultFound if for example an invalid reading_ability key
-    is passed.
+    Return a select query for labelsets filtering by hue, collection, age, and reading ability.
+    Filters for recommendable only items and excludes certain ISBNs.
+    The query uses a CTE for latest labelsets and orders results randomly.
     """
     latest_labelset_subquery = (
         select(LabelSet)
@@ -63,7 +60,7 @@ def get_recommended_labelset_query(
     # Now add the optional filters
     if collection_id is not None:
         # Filter for works in a collection
-        collection = crud.collection.get_or_404(db=session, id=collection_id)
+        collection = await crud.collection.aget_or_404(db=asession, id=collection_id)
         query = (
             query.join(
                 CollectionItem, CollectionItem.edition_isbn == Edition.isbn

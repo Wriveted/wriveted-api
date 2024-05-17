@@ -2,14 +2,14 @@ import json
 from typing import Any, Optional, Tuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
 from app import crud
+from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings
 from app.db.explain import explain
-from app.db.session import get_session
 from app.models import EventLevel, School
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import (
@@ -29,12 +29,12 @@ config = get_settings()
 
 
 @router.post("/recommend", response_model=HueyOutput)
-def get_recommendations(
+async def get_recommendations(
+    asession: DBSessionDep,
     data: HueyRecommendationFilter,
     background_tasks: BackgroundTasks,
     limit: Optional[int] = Query(5, description="Maximum number of items to return"),
     account=Depends(get_current_active_user_or_service_account),
-    session: Session = Depends(get_session),
 ):
     """
     Fetch labeled works as recommended by Huey.
@@ -44,15 +44,15 @@ def get_recommendations(
     logger.debug("Recommendation endpoint called", parameters=data)
 
     if data.wriveted_identifier is not None:
-        school = crud.school.get_by_wriveted_id_or_404(
-            db=session, wriveted_id=data.wriveted_identifier
+        school = await crud.school.aget_by_wriveted_id_or_404(
+            db=asession, wriveted_id=data.wriveted_identifier
         )
         # TODO check account is allowed to `read` school
     else:
         school = None
 
-    recommended_books, query_parameters = get_recommendations_with_fallback(
-        session,
+    recommended_books, query_parameters = await get_recommendations_with_fallback(
+        asession,
         account,
         school,
         data=data,
@@ -66,8 +66,8 @@ def get_recommendations(
     )
 
 
-def get_recommendations_with_fallback(
-    session,
+async def get_recommendations_with_fallback(
+    asession: AsyncSession,
     account,
     school: School,
     data: HueyRecommendationFilter,
@@ -91,7 +91,9 @@ def get_recommendations_with_fallback(
         "limit": limit + 5,
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
-    row_results = get_recommended_editions_and_labelsets(session, **query_parameters)
+    row_results = await get_recommended_editions_and_labelsets(
+        asession, **query_parameters
+    )
     logger.debug("Have got recommendation results from database")
     fallback_level = 0
     if data.fallback and len(row_results) < 3:
@@ -102,8 +104,8 @@ def get_recommendations_with_fallback(
             f"Desired query returned {len(row_results)} books. Trying fallback method 1 of looking outside school collection",
             query_parameters=query_parameters,
         )
-        row_results = get_recommended_editions_and_labelsets(
-            session, **query_parameters
+        row_results = await get_recommended_editions_and_labelsets(
+            asession, **query_parameters
         )
     if len(row_results) < 3:
         logger.debug(
@@ -116,8 +118,8 @@ def get_recommendations_with_fallback(
             f"Desired query returned {len(row_results)} books. Trying fallback method 2 of including all hues",
             query_parameters=query_parameters,
         )
-        row_results = get_recommended_editions_and_labelsets(
-            session, **query_parameters
+        row_results = await get_recommended_editions_and_labelsets(
+            asession, **query_parameters
         )
     if len(row_results) < 3:
         fallback_level += 1
@@ -147,8 +149,8 @@ def get_recommendations_with_fallback(
                 f"Desired query returned {len(row_results)} books. Trying fallback method 3 of increasing the age",
                 query_parameters=query_parameters,
             )
-        row_results = get_recommended_editions_and_labelsets(
-            session, **query_parameters
+        row_results = await get_recommended_editions_and_labelsets(
+            asession, **query_parameters
         )
 
     # Note the row_results are an iterable of (work, edition, labelset) orm instances
@@ -186,8 +188,8 @@ def get_recommendations_with_fallback(
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [json.loads(b.json()) for b in filtered_books[:10]]
 
-        crud.event.create(
-            session,
+        await crud.event.acreate(
+            asession,
             title="Made a recommendation",
             description=f"Made a recommendation of {len(filtered_books)} books",
             info={
@@ -200,8 +202,8 @@ def get_recommendations_with_fallback(
         )
     else:
         if len(row_results) == 0:
-            crud.event.create(
-                session,
+            await crud.event.acreate(
+                asession,
                 title="No books",
                 description="No books met the criteria for recommendation",
                 info={
@@ -215,8 +217,8 @@ def get_recommendations_with_fallback(
     return filtered_books, query_parameters
 
 
-def get_recommended_editions_and_labelsets(
-    session,
+async def get_recommended_editions_and_labelsets(
+    asession: AsyncSession,
     school_id,
     hues,
     reading_abilities,
@@ -227,7 +229,7 @@ def get_recommended_editions_and_labelsets(
 ):
     collection_id = None
     if school_id is not None:
-        school = crud.school.get(session, id=school_id)
+        school = await crud.school.aget(asession, id=school_id)
         logger.debug("Recommendation request for school", school=school)
         if school.collection is not None:
             collection_id = school.collection.id
@@ -237,8 +239,8 @@ def get_recommended_editions_and_labelsets(
                 school=school,
             )
 
-    query = get_recommended_labelset_query(
-        session,
+    query = await get_recommended_labelset_query(
+        asession,
         hues=hues,
         collection_id=collection_id,
         age=age,
@@ -246,12 +248,15 @@ def get_recommended_editions_and_labelsets(
         recommendable_only=recommendable_only,
         exclude_isbns=exclude_isbns,
     )
+    logger.info("Query for recommendations", query=query)
 
-    if config.DEBUG:
-        explain_results = session.execute(explain(query, analyze=True)).scalars().all()
+    if True:
+        explain_results = (
+            (await asession.execute(explain(query, analyze=True))).scalars().all()
+        )
         logger.info("Query plan")
         for entry in explain_results:
             logger.info(entry)
 
-    row_results = session.execute(query.limit(limit)).all()
+    row_results = (await asession.execute(query.limit(limit))).all()
     return row_results

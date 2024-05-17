@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import Select, delete, func, insert, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
 
@@ -30,13 +31,31 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def get_query(self, db: Session, id: Any) -> Select[ModelType]:
         return select(self.model).where(self.model.id == id)
 
+    async def aget_query(self, db: AsyncSession, id: Any) -> Select[ModelType]:
+        # Usually the same as get_query, but can be overridden if needed (see User)
+        return self.get_query(db, id=id)
+
     def get(self, db: Session, id: Any) -> Optional[ModelType]:
         """return object with given id or None"""
         return db.execute(self.get_query(db=db, id=id)).scalar_one_or_none()
 
+    async def aget(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+        """return object with given id or None"""
+        return (await db.execute(await self.aget_query(db, id=id))).scalar_one_or_none()
+
     def get_or_404(self, db: Session, id: Any) -> ModelType:
         """raises an HTTPException if object is not found."""
         thing = self.get(db, id=id)
+        if thing is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Resource {self.model.__name__} with id {id} not found.",
+            )
+        return thing
+
+    async def aget_or_404(self, db: AsyncSession, id: Any) -> ModelType:
+        """raises an HTTPException if object is not found."""
+        thing = await self.aget(db, id=id)
         if thing is None:
             raise HTTPException(
                 status_code=404,
