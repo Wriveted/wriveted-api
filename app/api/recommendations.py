@@ -2,6 +2,7 @@ import json
 from typing import Any, Optional, Tuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from opentelemetry import trace
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -236,16 +237,25 @@ def get_recommended_editions_and_labelsets(
                 "School recommendation was requested, but school doesn't have a collection!",
                 school=school,
             )
+    with trace.get_tracer("wriveted.tracer").start_as_current_span(
+        "recomendation"
+    ) as span:
+        span.set_attribute("school_id", school_id)
+        span.set_attribute("hues", hues)
+        span.set_attribute("reading_abilities", reading_abilities)
+        span.set_attribute("age", age)
+        span.set_attribute("recommendable_only", recommendable_only)
+        span.set_attribute("limit", limit)
 
-    query = get_recommended_labelset_query(
-        session,
-        hues=hues,
-        collection_id=collection_id,
-        age=age,
-        reading_abilities=reading_abilities,
-        recommendable_only=recommendable_only,
-        exclude_isbns=exclude_isbns,
-    )
+        query = get_recommended_labelset_query(
+            session,
+            hues=hues,
+            collection_id=collection_id,
+            age=age,
+            reading_abilities=reading_abilities,
+            recommendable_only=recommendable_only,
+            exclude_isbns=exclude_isbns,
+        )
 
     if config.DEBUG:
         explain_results = session.execute(explain(query, analyze=True)).scalars().all()

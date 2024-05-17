@@ -9,6 +9,8 @@ from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.propagate import set_global_textmap
+from opentelemetry.propagators.cloud_trace_propagator import CloudTraceFormatPropagator
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
@@ -25,6 +27,8 @@ def init_tracing(app, settings: Settings):
         trace.get_tracer_provider().add_span_processor(
             SimpleSpanProcessor(cloud_trace_exporter)
         )
+        # Set the X-Cloud-Trace-Context header
+        set_global_textmap(CloudTraceFormatPropagator())
 
     HTTPXClientInstrumentor().instrument()
     FastAPIInstrumentor().instrument_app(app)
@@ -36,6 +40,7 @@ def add_open_telemetry_spans(_, __, event_dict):
     if not span.is_recording():
         event_dict["span"] = None
         return event_dict
+    event_dict["trace_sampled"] = span.is_recording()
 
     ctx = span.get_span_context()
     parent = getattr(span, "parent", None)

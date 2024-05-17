@@ -3644,6 +3644,20 @@ wrapt = ">=1.11.2"
 instruments = ["sqlalchemy"]
 
 [[package]]
+name = "opentelemetry-propagator-gcp"
+version = "1.6.0"
+description = "Google Cloud propagator for OpenTelemetry"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "opentelemetry-propagator-gcp-1.6.0.tar.gz", hash = "sha256:6395556dd57612b69bdd93448325afbb0f2ea02d912f9fccf836c99b5776914a"},
+    {file = "opentelemetry_propagator_gcp-1.6.0-py3-none-any.whl", hash = "sha256:4c5f56050ab590aebde1c8caa266dfb5932dc3ea3c6e394b47d5325a9b7452f3"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.0,<2.0"
+
+[[package]]
 name = "opentelemetry-resourcedetector-gcp"
 version = "1.6.0a0"
 description = "Google Cloud resource detector for OpenTelemetry"
@@ -6198,4 +6212,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "f8604aaf8f73da6bab79f07d7ea2e663286d4270c0a49fc433a0fb7f2de0c0e4"
+content-hash = "c1cb5b628f04ca1fc4c91bbc11eb658a8208ad395edb5c91a0e5a824dd69c97d"
