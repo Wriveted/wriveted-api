@@ -535,6 +535,8 @@ def _handle_subscription_cancelled(
         logger.info("Marking subscription as inactive", subscription=subscription)
         product = subscription.product
         subscription.is_active = False
+        if "ended_at" in event_data and event_data["ended_at"] is not None:
+            subscription.expiration = datetime.utcfromtimestamp(event_data["ended_at"])
 
         crud.event.create(
             session=session,
@@ -544,6 +546,7 @@ def _handle_subscription_cancelled(
                 "stripe_subscription_id": stripe_subscription_id,
                 "product_id": product.id,
                 "product_name": product.name,
+                "cancellation_details": event_data.get("cancellation_reason", {}),
             },
             account=wriveted_user or school,
         )
