@@ -12,7 +12,7 @@ from app.schemas.country import CountryDetail
 
 # pylint: disable=unused-import
 from app.schemas.school_identity import SchoolIdentity
-from app.schemas.subscription import SubscriptionDetail
+from app.schemas.subscription import SubscriptionBrief, SubscriptionDetail
 from app.schemas.users import UserBrief
 
 
@@ -38,6 +38,7 @@ class SchoolInfo(BaseModel):
 class SchoolBrief(SchoolIdentity):
     name: str
     state: SchoolState | None = None
+    subscription: SubscriptionBrief | None = None
     collection: CollectionBrief | None = None
 
 
@@ -51,6 +52,7 @@ class SchoolBookbotInfo(BaseModel):
     name: str
     state: SchoolState
     bookbot_type: SchoolBookbotType
+
     model_config = ConfigDict(from_attributes=True)
 
 

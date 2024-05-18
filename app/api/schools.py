@@ -131,6 +131,7 @@ async def get_schools(
     if not has_details_permission:
         for school in schools:
             school.state = None
+            school.active_subscription = None
 
     if not has_collection_permission:
         for school in schools:
@@ -150,8 +151,11 @@ async def get_school(
     return school
 
 
-@public_router.get("/school/{wriveted_identifier}/exists")
-async def school_exists(school: School = Depends(get_school_from_wriveted_id)):
+@public_router.get(
+    "/school/{wriveted_identifier}/exists",
+    dependencies=[Depends(get_school_from_wriveted_id)],
+)
+async def school_exists():
     """
     Whether a school exists. Used for the publicly-accessible Bookbot chat links.
     """
@@ -173,6 +177,7 @@ async def get_school_bookbot_type(
         "name": school.name,
         "type": school.bookbot_type,
         "experiments": school.info["experiments"],
+        "supporter": school.subscription is not None and school.subscription.is_active,
     }
 
 
