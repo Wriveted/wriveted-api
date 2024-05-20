@@ -376,19 +376,20 @@ def update_or_create_liked_books(
                 user_id=user.id if user is not None else None,
                 school_id=school.id if school is not None else None,
                 info={"description": "List of all books liked in a Chat"},
-                items=liked_items,
             ),
         )
-    else:
-        # Update with any newly liked items. Existing likes will be skipped
-        logger.info("Updating existing booklist", booklist_id=booklist.id)
-        booklist = crud.booklist.update(
-            db=session, db_obj=booklist, obj_in=BookListUpdateIn(items=liked_items)
-        )
+
+    # Update with any newly liked items. Existing likes will be skipped
+    logger.info("Updating booklist", booklist_id=booklist.id)
+    booklist = crud.booklist.update(
+        db=session, db_obj=booklist, obj_in=BookListUpdateIn(items=liked_items)
+    )
     return booklist
 
 
-def get_liked_books_from_book_review_event(session: Session, event: Event):
+def get_liked_books_from_book_review_event(
+    session: Session, event: Event
+) -> list[BookListItemUpdateIn]:
     liked_items = []
     logger.info("Getting liked books from event", event_info=event.info)
 
