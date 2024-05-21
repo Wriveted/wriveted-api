@@ -10,7 +10,7 @@ from structlog import get_logger
 
 from app.api.internal import router as internal_api_router
 from app.config import get_settings
-from app.logging import init_logging
+from app.logging import init_logging, init_tracing
 
 api_docs = textwrap.dedent(
     """
@@ -43,6 +43,7 @@ internal_app = FastAPI(
     redoc_url="/v1/redoc",
 )
 
+init_tracing(internal_app, settings)
 
 # Load the Stripe API key
 stripe.api_key = settings.STRIPE_SECRET_KEY
