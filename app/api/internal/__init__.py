@@ -9,6 +9,7 @@ from structlog import get_logger
 from twilio.rest import Client as TwilioClient
 
 from app import crud
+from app.api.dependencies.async_db_dep import DBSessionDep
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
 from app.schemas.feedback import SendEmailPayload, SendSmsPayload
@@ -50,7 +51,7 @@ class ProcessEventPayload(BaseModel):
 
 
 @router.post("/process-event")
-async def process_event(data: ProcessEventPayload):
+def process_event(data: ProcessEventPayload):
     return process_events(
         event_id=data.event_id,
     )
@@ -63,7 +64,7 @@ class EventSlackAlertPayload(BaseModel):
 
 
 @router.post("/event-to-slack-alert")
-async def event_to_slack_alert(
+def event_to_slack_alert(
     data: EventSlackAlertPayload,
     session: Session = Depends(get_session),
 ):
@@ -79,7 +80,7 @@ class StripeInternalEventPayload(BaseModel):
 
 
 @router.post("/process-stripe-event")
-async def handle_stripe_event(data: StripeInternalEventPayload):
+def handle_stripe_event(data: StripeInternalEventPayload):
     logger.info("Internal API processing a stripe event", data=data)
 
     return process_stripe_event(
@@ -166,8 +167,8 @@ async def handle_hydrate_bulk(
 
 
 @router.post("/update-search-index")
-async def handle_update_search_index(session: Session = Depends(get_session)):
+async def handle_update_search_index(session: DBSessionDep):
     logger.info("Internal API updating search index")
-    search.update_search_view_v1(session)
+    await search.update_search_view_v1(session)
     logger.info("Processing search data updated event")
     return {"msg": "ok"}

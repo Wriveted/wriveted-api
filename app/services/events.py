@@ -118,7 +118,7 @@ def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
     return (output, text)
 
 
-def handle_event_to_slack_alert(
+async def handle_event_to_slack_alert(
     session: Session,
     event_id: int,
     slack_channel: EventSlackChannel,
