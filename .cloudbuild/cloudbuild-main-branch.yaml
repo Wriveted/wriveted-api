@@ -43,6 +43,7 @@ steps:
         DATABASE_MAX_OVERFLOW=5,
         GCP_CLOUD_TASKS_NAME=background-tasks,
         WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app,
+        ENABLE_OTEL_GOOGLE_EXPORTER=True,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
         NIELSEN_CLIENT_ID=WrivetedWebServices
       - >-
@@ -85,7 +86,8 @@ steps:
         GCP_CLOUD_TASKS_NAME=background-tasks,
         WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
-        NIELSEN_CLIENT_ID=WrivetedWebServices
+        NIELSEN_CLIENT_ID=WrivetedWebServices,
+        ENABLE_OTEL_GOOGLE_EXPORTER=True
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
@@ -119,7 +121,8 @@ steps:
         GCP_CLOUD_TASKS_NAME=background-tasks,
         WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
-        NIELSEN_CLIENT_ID=WrivetedWebServices
+        NIELSEN_CLIENT_ID=WrivetedWebServices,
+        ENABLE_OTEL_GOOGLE_EXPORTER=True
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
@@ -155,7 +158,8 @@ steps:
         GCP_CLOUD_TASKS_NAME=background-tasks,
         WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
-        NIELSEN_CLIENT_ID=WrivetedWebServices
+        NIELSEN_CLIENT_ID=WrivetedWebServices,
+        ENABLE_OTEL_GOOGLE_EXPORTER=True
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
