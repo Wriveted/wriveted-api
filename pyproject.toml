@@ -51,6 +51,8 @@ opentelemetry-instrumentation-httpx = "^0.45b0"
 opentelemetry-instrumentation-fastapi = "^0.45b0"
 opentelemetry-instrumentation-sqlalchemy = "^0.45b0"
 opentelemetry-propagator-gcp = "^1.6.0"
+opentelemetry-instrumentation-asyncpg = "^0.45b0"
+opentelemetry-instrumentation-psycopg2 = "^0.45b0"
 
 
 [tool.poetry.dev-dependencies]
@@ -74,6 +76,10 @@ langchain-google-vertexai = "^1.0.3"
 langchain-google-community = "^1.0.3"
 wikipedia = "^1.4.0"
 
+
+
+[tool.poetry.group.dev.dependencies]
+more-itertools = "^10.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

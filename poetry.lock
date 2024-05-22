@@ -3131,6 +3131,17 @@ docs = ["sphinx"]
 test = ["pytest", "pytest-cov"]
 
 [[package]]
+name = "more-itertools"
+version = "10.2.0"
+description = "More routines for operating on iterables, beyond itertools"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "more-itertools-10.2.0.tar.gz", hash = "sha256:8fccb480c43d3e99a00087634c06dd02b0d50fbf088b380de5a41a015ec239e1"},
+    {file = "more_itertools-10.2.0-py3-none-any.whl", hash = "sha256:686b06abe565edfab151cb8fd385a05651e1fdf8f0a14191e4439283421f8684"},
+]
+
+[[package]]
 name = "msgpack"
 version = "1.0.8"
 description = "MessagePack serializer"
@@ -3581,6 +3592,42 @@ opentelemetry-util-http = "0.45b0"
 instruments = ["asgiref (>=3.0,<4.0)"]
 
 [[package]]
+name = "opentelemetry-instrumentation-asyncpg"
+version = "0.45b0"
+description = "OpenTelemetry instrumentation for AsyncPG"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "opentelemetry_instrumentation_asyncpg-0.45b0-py3-none-any.whl", hash = "sha256:a5ff319c09bfb2beeccdf4b5b2401930a3fd07a4e34aaa7eefd9e7f206507263"},
+    {file = "opentelemetry_instrumentation_asyncpg-0.45b0.tar.gz", hash = "sha256:1782ea1b2b563db4ed821b1a6b7f1e2e6147256e5f3cde92cd20961378d378e9"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.45b0"
+opentelemetry-semantic-conventions = "0.45b0"
+
+[package.extras]
+instruments = ["asyncpg (>=0.12.0)"]
+
+[[package]]
+name = "opentelemetry-instrumentation-dbapi"
+version = "0.45b0"
+description = "OpenTelemetry Database API instrumentation"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "opentelemetry_instrumentation_dbapi-0.45b0-py3-none-any.whl", hash = "sha256:0678578d6a98300841b8ed743724ad17a9fb3a555a7cfc0f6bb61e8441c94618"},
+    {file = "opentelemetry_instrumentation_dbapi-0.45b0.tar.gz", hash = "sha256:f6753e13548e45a9cf86f92eaa6e9cd9a8803a56376819c7f7e6ea1aa7ff984c"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.45b0"
+opentelemetry-semantic-conventions = "0.45b0"
+wrapt = ">=1.0.0,<2.0.0"
+
+[[package]]
 name = "opentelemetry-instrumentation-fastapi"
 version = "0.45b0"
 description = "OpenTelemetry FastAPI Instrumentation"
@@ -3620,6 +3667,25 @@ opentelemetry-util-http = "0.45b0"
 
 [package.extras]
 instruments = ["httpx (>=0.18.0)"]
+
+[[package]]
+name = "opentelemetry-instrumentation-psycopg2"
+version = "0.45b0"
+description = "OpenTelemetry psycopg2 instrumentation"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "opentelemetry_instrumentation_psycopg2-0.45b0-py3-none-any.whl", hash = "sha256:53abba97fdf103af281e704300ba722b4ec4afb0127149967e25a1adb117d4d7"},
+    {file = "opentelemetry_instrumentation_psycopg2-0.45b0.tar.gz", hash = "sha256:60152afb9986f33ab15d49875847f845a54de06603be4c0bc24ce65413c39ca0"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.45b0"
+opentelemetry-instrumentation-dbapi = "0.45b0"
+
+[package.extras]
+instruments = ["psycopg2 (>=2.7.3.1)"]
 
 [[package]]
 name = "opentelemetry-instrumentation-sqlalchemy"
@@ -6191,4 +6257,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "c1cb5b628f04ca1fc4c91bbc11eb658a8208ad395edb5c91a0e5a824dd69c97d"
+content-hash = "aac6fe5c1a45364fa376f8f980fd612b106f2608a10917a53a3edeb5713bf58d"

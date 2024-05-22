@@ -6,9 +6,10 @@ import structlog
 import uvicorn
 from opentelemetry import trace
 from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from opentelemetry.propagate import set_global_textmap
 from opentelemetry.propagators.cloud_trace_propagator import CloudTraceFormatPropagator
 from opentelemetry.sdk.trace import TracerProvider
@@ -32,7 +33,9 @@ def init_tracing(app, settings: Settings):
 
     HTTPXClientInstrumentor().instrument()
     FastAPIInstrumentor().instrument_app(app)
-    SQLAlchemyInstrumentor().instrument()
+
+    Psycopg2Instrumentor().instrument()
+    AsyncPGInstrumentor().instrument()
 
 
 def add_open_telemetry_spans(_, __, event_dict):

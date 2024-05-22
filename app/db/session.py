@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import Tuple
 
 import sqlalchemy
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import URL, create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -90,6 +91,9 @@ def get_session_maker(settings: Settings = None):
         settings.SQLALCHEMY_DATABASE_URI,
         pool_size=settings.DATABASE_POOL_SIZE,
         max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    )
+    SQLAlchemyInstrumentor().instrument(
+        engine=engine,
     )
     return SessionLocal
 
