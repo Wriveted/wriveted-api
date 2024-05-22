@@ -49,11 +49,11 @@ class Parent(User):
         active = "Active" if self.is_active else "Inactive"
         return f"<Parent {self.name} - {self.readers} - {active}>"
 
-    def get_principals(self):
-        principals = super().get_principals()
+    async def get_principals(self):
+        principals = await super().get_principals()
 
-        if self.children:
-            principals.extend([f"parent:{child.id}" for child in self.children])
+        for child in await self.awaitable_attrs.children:
+            principals.append(f"parent:{child.id}")
 
         return principals
 

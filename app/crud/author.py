@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
@@ -55,10 +56,9 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
 
     def get_all_with_optional_filters_query(
         self,
-        db: Session,
         query_string: Optional[str] = None,
     ):
-        author_query = self.get_all_query(db=db)
+        author_query = self.get_all_query(db=None)
 
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
@@ -68,9 +68,9 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
 
         return author_query
 
-    def get_all_with_optional_filters(
+    async def get_all_with_optional_filters(
         self,
-        db: Session,
+        db: AsyncSession,
         query_string: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
@@ -79,11 +79,11 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
             "query_string": query_string,
         }
         query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(db=db, **optional_filters),
+            self.get_all_with_optional_filters_query(**optional_filters),
             skip=skip,
             limit=limit,
         )
-        return db.scalars(query).all()
+        return (await db.scalars(query)).all()
 
 
 author = CRUDAuthor(Author)

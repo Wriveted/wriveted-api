@@ -77,6 +77,10 @@ def get_async_session_maker(settings: Settings = None):
         pool_timeout=120,
     )
 
+    SQLAlchemyInstrumentor().instrument(
+        engine=engine.sync_engine, enable_commenter=False, commenter_options={}
+    )
+
     return async_sessionmaker(
         engine, autoflush=False, autocommit=False, expire_on_commit=False
     )

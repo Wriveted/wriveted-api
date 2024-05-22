@@ -79,12 +79,13 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         info = info or {}
         user_id = account.id if isinstance(account, User) else None
         service_account_id = account.id if isinstance(account, ServiceAccount) else None
+        school_id = school.id if school is not None else None
         info["description"] = description
         event = Event(
             title=title,
             info=info,
             level=level,
-            school=school,
+            school_id=school_id,
             user_id=user_id,
             service_account_id=service_account_id,
         )

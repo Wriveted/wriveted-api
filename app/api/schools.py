@@ -138,6 +138,8 @@ async def get_schools(
         for school in schools:
             school.collection = None
 
+    # Load the subscription data with
+
     return schools
 
 
@@ -222,12 +224,12 @@ async def bind_school(
 
 @router.patch("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def update_school(
+    session: DBSessionDep,
     patch: SchoolPatchOptions,
     school: School = Permission("update", get_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
-    session: Session = Depends(get_session),
 ):
     """
     Update a school.
@@ -237,7 +239,7 @@ async def update_school(
     """
     if patch.status:
         if patch.status != school.state:
-            crud.event.create(
+            await crud.event.acreate(
                 session=session,
                 title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
@@ -245,7 +247,7 @@ async def update_school(
                 account=account,
             )
         school.state = patch.status
-    crud.event.create(
+    await crud.event.acreate(
         session=session,
         title="School Updated",
         description=f"School '{school.name}' in {school.country.name} updated.",
@@ -253,7 +255,9 @@ async def update_school(
         account=account,
         commit=False,
     )
-    updated_orm_object = crud.school.update(db=session, obj_in=patch, db_obj=school)
+    updated_orm_object = await crud.school.aupdate(
+        session=session, obj_in=patch, db_obj=school
+    )
 
     return updated_orm_object
 
@@ -304,7 +308,7 @@ async def bulk_add_schools(
     ],
     response_model=SchoolDetail,
 )
-async def add_school(
+def add_school(
     school: SchoolCreateIn,
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
@@ -332,7 +336,7 @@ async def add_school(
 
 
 @router.delete("/school/{wriveted_identifier}")
-async def delete_school(
+def delete_school(
     school: School = Permission("delete", get_school_from_wriveted_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),

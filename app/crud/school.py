@@ -30,7 +30,8 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         is_collection_connected: Optional[bool] = None,
         official_identifier: Optional[str] = None,
     ):
-        school_query = self.get_all_query(db)
+        school_query = self.get_all_query(db).options(selectinload(School.subscription))
+
         if country_code is not None:
             school_query = school_query.where(School.country_code == country_code)
         if state is not None:
@@ -129,7 +130,15 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
             )
 
     async def aget_by_wriveted_id_or_404(self, db: AsyncSession, wriveted_id: str):
-        query = select(School).where(School.wriveted_identifier == wriveted_id)
+        query = (
+            select(School)
+            .where(School.wriveted_identifier == wriveted_id)
+            .options(selectinload(School.admins))
+            .options(selectinload(School.country))
+            .options(selectinload(School.subscription))
+            .options(selectinload(School.booklists))
+            .options(selectinload(School.collection))
+        )
         try:
             return (await db.execute(query)).scalar_one()
         except NoResultFound:

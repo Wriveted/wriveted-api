@@ -41,7 +41,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def aget(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
         """return object with given id or None"""
-        return (await db.execute(await self.aget_query(db, id=id))).scalar_one_or_none()
+        query = await self.aget_query(db, id=id)
+        return (await db.execute(query)).scalar_one_or_none()
 
     def get_or_404(self, db: Session, id: Any) -> ModelType:
         """raises an HTTPException if object is not found."""
@@ -164,6 +165,32 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         merge_dicts: bool = False,
         commit: bool = True,
     ) -> ModelType:
+        self._update_internal(db_obj, merge_dicts, obj_in)
+
+        db.add(db_obj)
+        if commit:
+            db.commit()
+            db.refresh(db_obj)
+        return db_obj
+
+    async def aupdate(
+        self,
+        session: AsyncSession,
+        *,
+        db_obj: ModelType,
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        merge_dicts: bool = False,
+        commit: bool = True,
+    ) -> ModelType:
+        self._update_internal(db_obj, merge_dicts, obj_in)
+
+        session.add(db_obj)
+        if commit:
+            await session.commit()
+            await session.refresh(db_obj)
+        return db_obj
+
+    def _update_internal(self, db_obj, merge_dicts, obj_in):
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -178,12 +205,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 if isinstance(attr, MutableDict):
                     # If only a nested field has been altered, SQLAlchemy won't know about it!
                     attr.changed()
-
-        db.add(db_obj)
-        if commit:
-            db.commit()
-            db.refresh(db_obj)
-        return db_obj
 
     def remove(self, db: Session, *, id: Any) -> ModelType:
         obj = self.get(db=db, id=id)

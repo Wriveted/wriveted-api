@@ -14,14 +14,12 @@ from fastapi.security import (
 from fastapi_permissions import Authenticated, Everyone
 from jose import jwt
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
 from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.config import get_settings
-from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
 from app.services.security import (
@@ -56,7 +54,9 @@ def get_auth_header_data(
     return token
 
 
-def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPayload:
+async def get_valid_token_data(
+    token: str = Depends(get_auth_header_data),
+) -> TokenPayload:
     # logger.debug("Headers contain an Authorization component")
     try:
         return get_payload_from_access_token(token)
@@ -68,8 +68,8 @@ def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPay
         ) from e
 
 
-def get_optional_user(
-    db: Session = Depends(get_session),
+async def get_optional_user(
+    db: DBSessionDep,
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -77,7 +77,7 @@ def get_optional_user(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "user-account":
-        user = crud.user.get(db, id=identifier)
+        user = await crud.user.aget(db, id=identifier)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -94,16 +94,18 @@ async def get_optional_service_account(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "service-account":
-        return crud.service_account.aget_or_404(db, id=identifier)
+        return await crud.service_account.aget_or_404(db, id=identifier)
 
 
-def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:
+async def get_current_user(
+    current_user: Optional[User] = Depends(get_optional_user),
+) -> User:
     if current_user is None:
         raise HTTPException(status_code=403, detail="API requires a user")
     return current_user
 
 
-def get_current_active_user(
+async def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if not current_user.is_active:
@@ -111,7 +113,7 @@ def get_current_active_user(
     return current_user
 
 
-def get_current_active_user_or_service_account(
+async def get_current_active_user_or_service_account(
     maybe_user: Optional[User] = Depends(get_optional_user),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account
@@ -126,7 +128,7 @@ def get_current_active_user_or_service_account(
         raise HTTPException(status_code=400, detail="Inactive account")
 
 
-def get_current_active_superuser_or_backend_service_account(
+async def get_current_active_superuser_or_backend_service_account(
     user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
@@ -140,7 +142,7 @@ def get_current_active_superuser_or_backend_service_account(
     return user_or_service_account
 
 
-def get_current_active_superuser(
+async def get_current_active_superuser(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
     """
@@ -151,7 +153,7 @@ def get_current_active_superuser(
     return current_user
 
 
-def get_active_principals(
+async def get_active_principals(
     maybe_user: Optional[User] = Depends(get_optional_user),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account
@@ -201,7 +203,7 @@ def get_active_principals(
         # we can call the get_principals method on the user object to get a cascading
         # list of principals.
         # i.e. a student will have calculated principals of a user, a reader, and a student
-        principals.extend(user.get_principals())
+        principals.extend(await user.get_principals())
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account
@@ -219,8 +221,8 @@ def get_active_principals(
                 principals.append("role:kiosk")
 
         # Service accounts can optionally be associated with multiple schools:
-        for school in service_account.schools:
-            principals.append(f"school:{school.id}")
+        # for school in service_account.schools:
+        #     principals.append(f"school:{school.id}")
 
     return principals
 

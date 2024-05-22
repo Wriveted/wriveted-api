@@ -73,4 +73,5 @@ class ServiceAccount(Base):
     def __acl__(self):
         return [
             (Allow, "role:admin", All),
-        ] + [(Allow, f"educator:{s.id}", All) for s in self.schools]
+        ]
+        # + [(Allow, f"educator:{s.id}", All) for s in self.schools]
