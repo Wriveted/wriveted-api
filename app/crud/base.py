@@ -7,9 +7,11 @@ from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
+from structlog import get_logger
 
 from app.db import Base
 
+logger = get_logger()
 T = TypeVar("T")
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -42,7 +44,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def aget(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
         """return object with given id or None"""
         query = await self.aget_query(db, id=id)
-        return (await db.execute(query)).scalar_one_or_none()
+        logger.debug("async get query", query=query)
+        res = await db.execute(query)
+        logger.debug("Query executed")
+        return res.scalar_one_or_none()
 
     def get_or_404(self, db: Session, id: Any) -> ModelType:
         """raises an HTTPException if object is not found."""

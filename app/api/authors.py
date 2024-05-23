@@ -22,9 +22,10 @@ async def get_authors(
     query: Optional[str] = Query(None, description="Query string"),
     pagination: PaginatedQueryParams = Depends(),
 ):
-    return await crud.author.get_all_with_optional_filters(
+    authors = await crud.author.get_all_with_optional_filters(
         session, query_string=query, skip=pagination.skip, limit=pagination.limit
     )
+    return authors
 
 
 @router.get("/authors/{author_id}", response_model=AuthorDetail)

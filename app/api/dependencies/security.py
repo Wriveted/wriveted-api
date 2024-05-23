@@ -14,12 +14,13 @@ from fastapi.security import (
 from fastapi_permissions import Authenticated, Everyone
 from jose import jwt
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
 from app import crud
-from app.api.dependencies.async_db_dep import DBSessionDep
 from app.config import get_settings
+from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
 from app.services.security import (
@@ -68,8 +69,8 @@ async def get_valid_token_data(
         ) from e
 
 
-async def get_optional_user(
-    db: DBSessionDep,
+def get_optional_user(
+    db: Session = Depends(get_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -77,7 +78,7 @@ async def get_optional_user(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "user-account":
-        user = await crud.user.aget(db, id=identifier)
+        user = crud.user.get(db, id=identifier)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -85,8 +86,8 @@ async def get_optional_user(
         return user
 
 
-async def get_optional_service_account(
-    db: DBSessionDep,
+def get_optional_service_account(
+    db: Session = Depends(get_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
     # The subject of the JWT is either a user identifier or service account identifier
@@ -94,7 +95,7 @@ async def get_optional_service_account(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "service-account":
-        return await crud.service_account.aget_or_404(db, id=identifier)
+        return crud.service_account.get_or_404(db, id=identifier)
 
 
 async def get_current_user(
@@ -113,7 +114,7 @@ async def get_current_active_user(
     return current_user
 
 
-async def get_current_active_user_or_service_account(
+def get_current_active_user_or_service_account(
     maybe_user: Optional[User] = Depends(get_optional_user),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account

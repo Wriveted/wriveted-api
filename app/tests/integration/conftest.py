@@ -4,11 +4,17 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from httpx import AsyncClient
 from starlette.testclient import TestClient
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
-from app.db.session import database_connection, get_session_maker
+from app.db.session import (
+    database_connection,
+    get_async_session_maker,
+    get_session_maker,
+)
 from app.main import app, get_settings
 from app.models import Collection, School, SchoolState, ServiceAccountType, Student
 from app.models.class_group import ClassGroup
@@ -41,6 +47,16 @@ def client():
         yield c
 
 
+@pytest.fixture(
+    scope="session",
+    params=[
+        pytest.param(("asyncio", {"use_uvloop": True}), id="asyncio+uvloop"),
+    ],
+)
+def anyio_backend(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
 def test_data_path():
     return Path(__file__).parent.parent / "data"
@@ -52,10 +68,31 @@ def settings():
 
 
 @pytest.fixture(scope="session")
+def test_app() -> FastAPI:
+    """Create a test app with overridden dependencies."""
+    # app.dependency_overrides[get_db_session] = lambda: db_session
+
+    return app
+
+
+@pytest.fixture
+async def async_client(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
 def session(settings):
     session_maker = get_session_maker()
     session = session_maker()
     return session
+
+
+@pytest.fixture()
+async def async_session(settings):
+    session_factory = get_async_session_maker(settings)
+    async with session_factory() as session:
+        yield session
 
 
 @pytest.fixture(scope="session")

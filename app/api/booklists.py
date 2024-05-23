@@ -62,7 +62,7 @@ bulk_booklist_access_control_list = [
     ],
     response_model=BookListBrief,
 )
-async def add_booklist(
+def add_booklist(
     booklist: BookListCreateIn,
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
@@ -170,7 +170,7 @@ async def add_booklist(
     "/lists",
     response_model=BookListsResponse,
 )
-async def get_booklists(
+def get_booklists(
     list_type: Optional[ListType] = None,
     sharing_type: Optional[ListSharingType] = None,
     pagination: PaginatedQueryParams = Depends(),
@@ -216,7 +216,7 @@ async def get_booklists(
     "/list/{booklist_identifier}",
     response_model=(BookListDetailEnriched | BookListDetail),
 )
-async def get_booklist_detail(
+def get_booklist_detail(
     enriched: bool = Query(
         default=False,
         title="Enrich items in response",
@@ -238,7 +238,7 @@ async def get_booklist_detail(
     response_model=BookListBrief,
     responses={422: {"description": "Unprocessable request"}},
 )
-async def update_booklist(
+def update_booklist(
     changes: BookListUpdateIn,
     booklist: BookList = Permission("update", get_booklist_from_wriveted_id),
     session: Session = Depends(get_session),
@@ -284,7 +284,7 @@ async def update_booklist(
     "/list/{booklist_identifier}",
     response_model=BookListBrief,
 )
-async def delete_booklist(
+def delete_booklist(
     booklist: BookList = Permission("delete", get_booklist_from_wriveted_id),
     session: Session = Depends(get_session),
 ):
@@ -301,7 +301,7 @@ async def delete_booklist(
     "/public-lists",
     response_model=BookListsResponse,
 )
-async def get_public_booklists(
+def get_public_booklists(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -331,7 +331,7 @@ async def get_public_booklists(
     "/public-list/{booklist_slug}",
     response_model=(BookListDetailEnriched | BookListDetail),
 )
-async def get_public_booklist_detail(
+def get_public_booklist_detail(
     enriched: bool = Query(
         default=False,
         title="Enrich items in response",

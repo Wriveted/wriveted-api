@@ -83,11 +83,11 @@ async def get_recommendations_with_fallback(
     school_id = school.id if school is not None else None
     query_parameters = {
         "school_id": school_id,
-        "hues": data.hues,
-        "reading_abilities": data.reading_abilities,
+        "hues": data.hues or [],
+        "reading_abilities": data.reading_abilities or [],
         "age": data.age,
         "recommendable_only": data.recommendable_only,
-        "exclude_isbns": data.exclude_isbns,
+        "exclude_isbns": data.exclude_isbns or [],
         "limit": limit + 5,
     }
     logger.info("About to make a recommendation", query_parameters=query_parameters)
@@ -142,13 +142,15 @@ async def get_recommendations_with_fallback(
                 f"Desired query returned {len(row_results)} books. Trying fallback method 3 of including widening the reading ability",
                 query_parameters=query_parameters,
             )
-        else:
+        elif query_parameters["age"] is not None:
             logger.warning("Incrementing age")
             query_parameters["age"] += 2
             logger.info(
-                f"Desired query returned {len(row_results)} books. Trying fallback method 3 of increasing the age",
+                f"Desired query returned {len(row_results)} books. Trying fallback method of increasing the age",
                 query_parameters=query_parameters,
             )
+        else:
+            logger.warning("No recommendations available")
         row_results = await get_recommended_editions_and_labelsets(
             asession, **query_parameters
         )
