@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app import crud
-from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.collection import get_collection_from_id
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
+from app.models import Student
 from app.models.collection import Collection
 from app.models.user import User
 
@@ -66,16 +66,14 @@ class MaybeHasReaderId(BaseModel):
     reader_id: UUID | None = None
 
 
-async def get_and_validate_collection_with_optional_reader(
-    async_session: DBSessionDep,
+def get_and_validate_collection_with_optional_reader(
     data: MaybeHasReaderId,
     collection: Collection = Depends(get_collection_from_id),
     active_principals=Depends(get_active_principals),
+    session: Session = Depends(get_session),
 ):
     reader = (
-        (await crud.user.aget_or_404(db=async_session, id=data.reader_id))
-        if data.reader_id
-        else None
+        crud.user.get_or_404(db=session, id=data.reader_id) if data.reader_id else None
     )
     if reader is not None:
         if not has_permission(active_principals, "update", reader):
@@ -83,7 +81,14 @@ async def get_and_validate_collection_with_optional_reader(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="The current account is not allowed to perform an operation associated with that reader",
             )
-        reader_principals = await get_active_principals(reader)
+
+        # We can't easily call the async dependency reader.get_principals here
+        # so we just check if the reader belongs to the collection's school, or is the owner of the collection
+
+        # reader_principals = reader.get_principals()
+        reader_principals = [f"user:{reader.id}"]
+        if isinstance(reader, Student):
+            reader_principals.append(f"school:{reader.school.id}")
         if not has_permission(reader_principals, "read", collection):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -382,6 +382,7 @@ def test_class_group(
         json={"name": "Test Class", "school_id": str(test_school.wriveted_identifier)},
         timeout=120,
     )
+    print(new_test_class_response.status_code)
     new_test_class_response.raise_for_status()
     class_info = new_test_class_response.json()
     print("Yielding from group fixture", class_info)

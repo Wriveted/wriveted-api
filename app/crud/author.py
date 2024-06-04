@@ -3,7 +3,6 @@ from typing import Any, List, Optional
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
@@ -68,9 +67,9 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
 
         return author_query
 
-    async def get_all_with_optional_filters(
+    def get_all_with_optional_filters(
         self,
-        db: AsyncSession,
+        db: Session,
         query_string: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
@@ -83,7 +82,7 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
             skip=skip,
             limit=limit,
         )
-        return (await db.scalars(query)).all()
+        return db.scalars(query).all()
 
 
 author = CRUDAuthor(Author)

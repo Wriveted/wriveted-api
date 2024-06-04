@@ -38,12 +38,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             session.refresh(event)
 
         # If an event was worth recording in the database we probably also want to log it
-        logger.info(
-            f"{title} - {description}",
-            level=level,
-            school=school,
-            account=account,
-        )
+        logger.info(f"{title} - {description}", level=level)
         return event
 
     async def acreate(
@@ -70,7 +65,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             f"{title} - {description}",
             level=level,
             school=school,
-            account=account,
+            account_id=account.id,
         )
         return event
 

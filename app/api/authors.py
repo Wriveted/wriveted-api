@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.schemas.author import AuthorBrief, AuthorDetail
@@ -17,15 +16,14 @@ router = APIRouter(
 
 
 @router.get("/authors", response_model=List[AuthorBrief])
-async def get_authors(
-    session: DBSessionDep,
+def get_authors(
+    session: Session = Depends(get_session),
     query: Optional[str] = Query(None, description="Query string"),
     pagination: PaginatedQueryParams = Depends(),
 ):
-    authors = await crud.author.get_all_with_optional_filters(
+    return crud.author.get_all_with_optional_filters(
         session, query_string=query, skip=pagination.skip, limit=pagination.limit
     )
-    return authors
 
 
 @router.get("/authors/{author_id}", response_model=AuthorDetail)

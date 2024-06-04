@@ -126,7 +126,7 @@ async def get_filtered_classes(
     ],
     response_model=ClassGroupBriefWithJoiningCode,
 )
-async def add_class(
+def add_class(
     class_data: ClassGroupCreateIn,
     school: School = Permission("update", get_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
@@ -134,7 +134,7 @@ async def add_class(
     ),
     session: Session = Depends(get_session),
 ):
-    logger.info("Creating a class", school=school)
+    logger.info("Creating a class")
 
     if class_data.school_id is None:
         class_data.school_id = str(school.wriveted_identifier)

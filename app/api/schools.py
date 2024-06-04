@@ -10,7 +10,10 @@ from structlog import get_logger
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.async_db_dep import DBSessionDep
-from app.api.dependencies.school import get_school_from_wriveted_id
+from app.api.dependencies.school import (
+    aget_school_from_wriveted_id,
+    get_school_from_wriveted_id,
+)
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
@@ -226,7 +229,7 @@ async def bind_school(
 async def update_school(
     session: DBSessionDep,
     patch: SchoolPatchOptions,
-    school: School = Permission("update", get_school_from_wriveted_id),
+    school: School = Permission("update", aget_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),

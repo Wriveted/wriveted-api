@@ -151,6 +151,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             db.refresh(db_obj)
         return db_obj
 
+    async def acreate(
+        self, db: AsyncSession, *, obj_in: CreateSchemaType, commit=True
+    ) -> ModelType:
+        db_obj = self.build_orm_object(obj_in, session=None)
+        db.add(db_obj)
+
+        if commit:
+            await db.commit()
+            await db.refresh(db_obj)
+
+        return db_obj
+
     def build_orm_object(self, obj_in: CreateSchemaType, session: Session) -> ModelType:
         """An uncommitted ORM object from the input data"""
         obj_in_data = jsonable_encoder(obj_in)
