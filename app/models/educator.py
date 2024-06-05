@@ -38,8 +38,8 @@ class Educator(User):
         active = "Active" if self.is_active else "Inactive"
         return f"<Educator {self.name} - {self.school} - {active}>"
 
-    def get_principals(self):
-        principals = super().get_principals()
+    async def get_principals(self):
+        principals = await super().get_principals()
 
         principals.extend(["role:educator", f"educator:{self.school_id}"])
 

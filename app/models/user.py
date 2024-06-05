@@ -105,12 +105,12 @@ class User(Base):
         lazy="dynamic",
     )
 
-    def get_principals(self):
+    async def get_principals(self):
         principals = [f"user:{self.id}"]
 
-        for association in self.supportee_associations:
-            if association.is_active:
-                principals.append(f"supporter:{association.reader_id}")
+        # for association in await self.awaitable_attrs.supportee_associations:
+        #     if association.is_active:
+        #         principals.append(f"supporter:{association.reader_id}")
 
         return principals
 

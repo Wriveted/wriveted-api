@@ -4,6 +4,7 @@ from typing import Any, Union
 from sqlalchemy import cast, distinct, func, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -28,18 +29,8 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         account: Union[ServiceAccount, User] = None,
         commit: bool = True,
     ):
-        description = description or ""
-        info = info or {}
-        user = account if isinstance(account, User) else None
-        service_account = account if isinstance(account, ServiceAccount) else None
-        info["description"] = description
-        event = Event(
-            title=title,
-            info=info,
-            level=level,
-            school=school,
-            user=user,
-            service_account=service_account,
+        description, event = self._create_internal(
+            account, description, info, level, school, title
         )
         session.add(event)
         if commit:
@@ -47,14 +38,54 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             session.refresh(event)
 
         # If an event was worth recording in the database we probably also want to log it
+        logger.info(f"{title} - {description}", level=level)
+        return event
+
+    async def acreate(
+        self,
+        session: AsyncSession,
+        title: str,
+        description: str = None,
+        info: dict = None,
+        level: EventLevel = EventLevel.NORMAL,
+        school: School = None,
+        account: Union[ServiceAccount, User] = None,
+        commit: bool = True,
+    ):
+        description, event = self._create_internal(
+            account, description, info, level, school, title
+        )
+        session.add(event)
+        if commit:
+            await session.commit()
+            await session.refresh(event)
+
+        # If an event was worth recording in the database we probably also want to log it
         logger.info(
             f"{title} - {description}",
             level=level,
             school=school,
-            user=user,
-            service_account=service_account,
+            account_id=account.id,
         )
         return event
+
+    def _create_internal(self, account, description, info, level, school, title):
+        description = description or ""
+        info = info or {}
+        user_id = account.id if isinstance(account, User) else None
+        service_account_id = account.id if isinstance(account, ServiceAccount) else None
+        school_id = school.id if school is not None else None
+        info["description"] = description
+        event = Event(
+            title=title,
+            info=info,
+            level=level,
+            school_id=school_id,
+            user_id=user_id,
+            service_account_id=service_account_id,
+        )
+
+        return description, event
 
     def get_all_with_optional_filters_query(
         self,

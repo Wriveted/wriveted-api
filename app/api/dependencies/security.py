@@ -55,7 +55,9 @@ def get_auth_header_data(
     return token
 
 
-def get_valid_token_data(token: str = Depends(get_auth_header_data)) -> TokenPayload:
+async def get_valid_token_data(
+    token: str = Depends(get_auth_header_data),
+) -> TokenPayload:
     # logger.debug("Headers contain an Authorization component")
     try:
         return get_payload_from_access_token(token)
@@ -96,13 +98,15 @@ def get_optional_service_account(
         return crud.service_account.get_or_404(db, id=identifier)
 
 
-def get_current_user(current_user: Optional[User] = Depends(get_optional_user)) -> User:
+async def get_current_user(
+    current_user: Optional[User] = Depends(get_optional_user),
+) -> User:
     if current_user is None:
         raise HTTPException(status_code=403, detail="API requires a user")
     return current_user
 
 
-def get_current_active_user(
+async def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if not current_user.is_active:
@@ -125,7 +129,7 @@ def get_current_active_user_or_service_account(
         raise HTTPException(status_code=400, detail="Inactive account")
 
 
-def get_current_active_superuser_or_backend_service_account(
+async def get_current_active_superuser_or_backend_service_account(
     user_or_service_account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
@@ -139,7 +143,7 @@ def get_current_active_superuser_or_backend_service_account(
     return user_or_service_account
 
 
-def get_current_active_superuser(
+async def get_current_active_superuser(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
     """
@@ -150,7 +154,7 @@ def get_current_active_superuser(
     return current_user
 
 
-def get_active_principals(
+async def get_active_principals(
     maybe_user: Optional[User] = Depends(get_optional_user),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account
@@ -200,7 +204,7 @@ def get_active_principals(
         # we can call the get_principals method on the user object to get a cascading
         # list of principals.
         # i.e. a student will have calculated principals of a user, a reader, and a student
-        principals.extend(user.get_principals())
+        principals.extend(await user.get_principals())
 
     elif maybe_service_account is not None and maybe_service_account.is_active:
         service_account = maybe_service_account
@@ -218,8 +222,8 @@ def get_active_principals(
                 principals.append("role:kiosk")
 
         # Service accounts can optionally be associated with multiple schools:
-        for school in service_account.schools:
-            principals.append(f"school:{school.id}")
+        # for school in service_account.schools:
+        #     principals.append(f"school:{school.id}")
 
     return principals
 

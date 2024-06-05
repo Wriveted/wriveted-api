@@ -70,7 +70,12 @@ class ServiceAccount(Base):
         summary = f"{self.type} {active}"
         return f"<ServiceAccount {self.name} - {summary}>"
 
-    def __acl__(self):
-        return [
+    async def __acl__(self):
+        principals = [
             (Allow, "role:admin", All),
-        ] + [(Allow, f"educator:{s.id}", All) for s in self.schools]
+        ]
+
+        for school in await self.awaitable_attrs.schools:
+            principals.append(f"educator:{school.id}")
+
+        return principals

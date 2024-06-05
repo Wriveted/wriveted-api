@@ -4,11 +4,14 @@ from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import Select, delete, func, insert, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Query, Session, aliased
+from structlog import get_logger
 
 from app.db import Base
 
+logger = get_logger()
 T = TypeVar("T")
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -30,13 +33,35 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def get_query(self, db: Session, id: Any) -> Select[ModelType]:
         return select(self.model).where(self.model.id == id)
 
+    async def aget_query(self, db: AsyncSession, id: Any) -> Select[ModelType]:
+        # Usually the same as get_query, but can be overridden if needed (see User)
+        return self.get_query(db, id=id)
+
     def get(self, db: Session, id: Any) -> Optional[ModelType]:
         """return object with given id or None"""
         return db.execute(self.get_query(db=db, id=id)).scalar_one_or_none()
 
+    async def aget(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+        """return object with given id or None"""
+        query = await self.aget_query(db, id=id)
+        logger.debug("async get query", query=query)
+        res = await db.execute(query)
+        logger.debug("Query executed")
+        return res.scalar_one_or_none()
+
     def get_or_404(self, db: Session, id: Any) -> ModelType:
         """raises an HTTPException if object is not found."""
         thing = self.get(db, id=id)
+        if thing is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Resource {self.model.__name__} with id {id} not found.",
+            )
+        return thing
+
+    async def aget_or_404(self, db: AsyncSession, id: Any) -> ModelType:
+        """raises an HTTPException if object is not found."""
+        thing = await self.aget(db, id=id)
         if thing is None:
             raise HTTPException(
                 status_code=404,
@@ -126,6 +151,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             db.refresh(db_obj)
         return db_obj
 
+    async def acreate(
+        self, db: AsyncSession, *, obj_in: CreateSchemaType, commit=True
+    ) -> ModelType:
+        db_obj = self.build_orm_object(obj_in, session=None)
+        db.add(db_obj)
+
+        if commit:
+            await db.commit()
+            await db.refresh(db_obj)
+
+        return db_obj
+
     def build_orm_object(self, obj_in: CreateSchemaType, session: Session) -> ModelType:
         """An uncommitted ORM object from the input data"""
         obj_in_data = jsonable_encoder(obj_in)
@@ -145,6 +182,32 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         merge_dicts: bool = False,
         commit: bool = True,
     ) -> ModelType:
+        self._update_internal(db_obj, merge_dicts, obj_in)
+
+        db.add(db_obj)
+        if commit:
+            db.commit()
+            db.refresh(db_obj)
+        return db_obj
+
+    async def aupdate(
+        self,
+        session: AsyncSession,
+        *,
+        db_obj: ModelType,
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        merge_dicts: bool = False,
+        commit: bool = True,
+    ) -> ModelType:
+        self._update_internal(db_obj, merge_dicts, obj_in)
+
+        session.add(db_obj)
+        if commit:
+            await session.commit()
+            await session.refresh(db_obj)
+        return db_obj
+
+    def _update_internal(self, db_obj, merge_dicts, obj_in):
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -159,12 +222,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 if isinstance(attr, MutableDict):
                     # If only a nested field has been altered, SQLAlchemy won't know about it!
                     attr.changed()
-
-        db.add(db_obj)
-        if commit:
-            db.commit()
-            db.refresh(db_obj)
-        return db_obj
 
     def remove(self, db: Session, *, id: Any) -> ModelType:
         obj = self.get(db=db, id=id)

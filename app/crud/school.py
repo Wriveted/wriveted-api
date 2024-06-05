@@ -3,7 +3,8 @@ from typing import Optional, Sequence
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, selectinload
 from structlog import get_logger
 
 from app.crud import CRUDBase
@@ -29,7 +30,8 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         is_collection_connected: Optional[bool] = None,
         official_identifier: Optional[str] = None,
     ):
-        school_query = self.get_all_query(db)
+        school_query = self.get_all_query(db).options(selectinload(School.subscription))
+
         if country_code is not None:
             school_query = school_query.where(School.country_code == country_code)
         if state is not None:
@@ -57,11 +59,17 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
             school_query = school_query.where(
                 School.official_identifier == official_identifier
             )
+        # select in load country
+        school_query = (
+            school_query.options(selectinload(School.country))
+            .options(selectinload(School.admins))
+            .options(selectinload(School.collection))
+        )
         return school_query
 
-    def get_all_with_optional_filters(
+    async def get_all_with_optional_filters(
         self,
-        db: Session,
+        db: AsyncSession,
         country_code: Optional[str] = None,
         state: Optional[str] = None,
         postcode: Optional[str] = None,
@@ -86,7 +94,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
             skip=skip,
             limit=limit,
         )
-        return db.execute(query).scalars().all()
+        return (await db.execute(query)).scalars().all()
 
     def get_by_official_id_or_404(
         self, db: Session, country_code: str, official_id: str
@@ -115,6 +123,24 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         query = select(School).where(School.wriveted_identifier == wriveted_id)
         try:
             return db.execute(query).scalar_one()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail=f"School with wriveted_id {wriveted_id} not found.",
+            )
+
+    async def aget_by_wriveted_id_or_404(self, db: AsyncSession, wriveted_id: str):
+        query = (
+            select(School)
+            .where(School.wriveted_identifier == wriveted_id)
+            .options(selectinload(School.admins))
+            .options(selectinload(School.country))
+            .options(selectinload(School.subscription))
+            .options(selectinload(School.booklists))
+            .options(selectinload(School.collection))
+        )
+        try:
+            return (await db.execute(query)).scalar_one()
         except NoResultFound:
             raise HTTPException(
                 status_code=404,

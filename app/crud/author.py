@@ -55,10 +55,9 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
 
     def get_all_with_optional_filters_query(
         self,
-        db: Session,
         query_string: Optional[str] = None,
     ):
-        author_query = self.get_all_query(db=db)
+        author_query = self.get_all_query(db=None)
 
         if query_string is not None:
             # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
@@ -79,7 +78,7 @@ class CRUDAuthor(CRUDBase[Author, AuthorCreateIn, Any]):
             "query_string": query_string,
         }
         query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(db=db, **optional_filters),
+            self.get_all_with_optional_filters_query(**optional_filters),
             skip=skip,
             limit=limit,
         )

@@ -9,7 +9,11 @@ from structlog import get_logger
 
 from app import crud
 from app.api.common.pagination import PaginatedQueryParams
-from app.api.dependencies.school import get_school_from_wriveted_id
+from app.api.dependencies.async_db_dep import DBSessionDep
+from app.api.dependencies.school import (
+    aget_school_from_wriveted_id,
+    get_school_from_wriveted_id,
+)
 from app.api.dependencies.security import (
     get_active_principals,
     get_current_active_user_or_service_account,
@@ -74,6 +78,7 @@ bulk_school_access_control_list = [
     ],
 )
 async def get_schools(
+    session: DBSessionDep,
     country_code: Optional[str] = Query(None, description="Filter schools by country"),
     state: Optional[str] = Query(None, description="Filter schools by state"),
     postcode: Optional[str] = Query(None, description="Filter schools by postcode"),
@@ -91,7 +96,6 @@ async def get_schools(
     ),
     pagination: PaginatedQueryParams = Depends(),
     principals: List = Depends(get_active_principals),
-    session: Session = Depends(get_session),
 ):
     """
     List of schools showing only publicly available information.
@@ -110,7 +114,7 @@ async def get_schools(
         principals, "read-collection", bulk_school_access_control_list
     )
 
-    schools = crud.school.get_all_with_optional_filters(
+    schools = await crud.school.get_all_with_optional_filters(
         session,
         country_code=country_code,
         state=state,
@@ -136,6 +140,9 @@ async def get_schools(
     if not has_collection_permission:
         for school in schools:
             school.collection = None
+
+    # Load the subscription data with
+
     return schools
 
 
@@ -220,12 +227,12 @@ async def bind_school(
 
 @router.patch("/school/{wriveted_identifier}", response_model=SchoolDetail)
 async def update_school(
+    session: DBSessionDep,
     patch: SchoolPatchOptions,
-    school: School = Permission("update", get_school_from_wriveted_id),
+    school: School = Permission("update", aget_school_from_wriveted_id),
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
     ),
-    session: Session = Depends(get_session),
 ):
     """
     Update a school.
@@ -235,7 +242,7 @@ async def update_school(
     """
     if patch.status:
         if patch.status != school.state:
-            crud.event.create(
+            await crud.event.acreate(
                 session=session,
                 title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
@@ -243,7 +250,7 @@ async def update_school(
                 account=account,
             )
         school.state = patch.status
-    crud.event.create(
+    await crud.event.acreate(
         session=session,
         title="School Updated",
         description=f"School '{school.name}' in {school.country.name} updated.",
@@ -251,7 +258,9 @@ async def update_school(
         account=account,
         commit=False,
     )
-    updated_orm_object = crud.school.update(db=session, obj_in=patch, db_obj=school)
+    updated_orm_object = await crud.school.aupdate(
+        session=session, obj_in=patch, db_obj=school
+    )
 
     return updated_orm_object
 
@@ -302,7 +311,7 @@ async def bulk_add_schools(
     ],
     response_model=SchoolDetail,
 )
-async def add_school(
+def add_school(
     school: SchoolCreateIn,
     account: Union[User, ServiceAccount] = Depends(
         get_current_active_user_or_service_account
@@ -330,7 +339,7 @@ async def add_school(
 
 
 @router.delete("/school/{wriveted_identifier}")
-async def delete_school(
+def delete_school(
     school: School = Permission("delete", get_school_from_wriveted_id),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),

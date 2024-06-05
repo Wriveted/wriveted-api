@@ -2,9 +2,21 @@ from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import Column, Integer, MetaData, String, Table, select, text, update
+from sqlalchemy import (
+    Column,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    and_,
+    func,
+    select,
+    text,
+    update,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.ddl import CreateTable
 from starlette import status
@@ -252,11 +264,13 @@ async def bulk_update_editions_in_collection_by_isbn(
     logger.info("Bulk update via temporary table completed successfully.")
 
 
-def get_collection_info_with_criteria(
+async def get_collection_info_with_criteria(
+    session: AsyncSession,
     collection_id: UUID,
-    is_hydrated: bool = False,
-    is_labelled: bool = False,
-    is_recommendable: bool = False,
+    # is_hydrated: bool = False,
+    # is_labelled: bool = False,
+    # is_recommendable: bool = False,
+    # cte_label: str = "latestlabelset",
 ):
     """
     Return a (complicated) select query for labelsets, editions, and works filtering by
@@ -265,44 +279,92 @@ def get_collection_info_with_criteria(
     Can raise sqlalchemy.exc.NoResultFound if for example an invalid reading_ability key
     is passed.
     """
-    latest_labelset_subquery = (
-        select(LabelSet)
-        .distinct(LabelSet.work_id)
-        .order_by(LabelSet.work_id, LabelSet.id.desc())
-        .cte(name="latestlabelset")
-    )
-    aliased_labelset = aliased(LabelSet, latest_labelset_subquery)
+
     query = (
-        select(Work, Edition, aliased_labelset)
-        .select_from(aliased_labelset)
-        .distinct(Work.id)
-        .order_by(Work.id)
-        .join(Work, aliased_labelset.work_id == Work.id)
+        select(
+            func.count().label("total"),
+            func.count()
+            .filter(and_(Edition.title.is_not(None), Edition.cover_url.is_not(None)))
+            .label("hydrated"),
+            func.count()
+            .filter(
+                and_(
+                    Edition.title.is_not(None),
+                    Edition.cover_url.is_not(None),
+                    LabelSet.hues.any(),
+                    LabelSet.reading_abilities.any(),
+                    LabelSet.min_age >= 0,
+                    LabelSet.max_age > 0,
+                    LabelSet.huey_summary.is_not(None),
+                )
+            )
+            .label("labelled"),
+            func.count()
+            .filter(
+                and_(
+                    Edition.title.is_not(None),
+                    Edition.cover_url.is_not(None),
+                    LabelSet.hues.any(),
+                    LabelSet.reading_abilities.any(),
+                    LabelSet.min_age >= 0,
+                    LabelSet.max_age > 0,
+                    LabelSet.huey_summary.is_not(None),
+                    LabelSet.recommend_status == RecommendStatus.GOOD,
+                )
+            )
+            .label("recommendable"),
+        )
+        .select_from(Work)
         .join(Edition, Edition.work_id == Work.id)
-        # .join(LabelSetHue, LabelSetHue.labelset_id == aliased_labelset.id)
-        # .join(LabelSetReadingAbility, LabelSetReadingAbility.labelset_id == aliased_labelset.id)
+        .join(CollectionItem, CollectionItem.edition_isbn == Edition.isbn)
+        .join(LabelSet, LabelSet.work_id == Work.id, isouter=True)
+        .where(CollectionItem.collection_id == collection_id)
     )
 
-    # Filter for works in a given collection
-    query = query.join(
-        CollectionItem, CollectionItem.edition_isbn == Edition.isbn
-    ).where(CollectionItem.collection_id == collection_id)
+    # if config.DEBUG:
+    #     explain_results = (await session.execute(explain(query, analyze=True))).scalars().all()
+    #     logger.info("Query plan")
+    #     for entry in explain_results:
+    #         logger.info(entry)
 
+    result = (await session.execute(query)).fetchone()
+    return {
+        "total_editions": result.total,
+        "hydrated": result.hydrated,
+        "hydrated_and_labeled": result.labelled,
+        "recommendable": result.recommendable,
+    }
+
+    # Start from CollectionItem which has fewer records
+    query = (
+        select(Work, Edition, LabelSet)
+        .join(
+            CollectionItem, CollectionItem.collection_id == collection_id
+        )  # Start with CollectionItem
+        .join(Edition, Edition.isbn == CollectionItem.edition_isbn)
+        .join(Work, Work.id == Edition.work_id)
+        .join(
+            LabelSet, LabelSet.work_id == Work.id, isouter=True
+        )  # Outer join because labeling is optional
+        .distinct(Work.id)
+    )
+
+    # Filter as early as possible
     if is_hydrated:
         query = query.where(Edition.title.is_not(None))
         query = query.where(Edition.cover_url.is_not(None))
 
     if is_labelled:
         query = (
-            query.where(aliased_labelset.hues.any())
-            .where(aliased_labelset.reading_abilities.any())
-            .where(aliased_labelset.min_age >= 0)
-            .where(aliased_labelset.max_age > 0)
-            .where(aliased_labelset.huey_summary.is_not(None))
+            query.where(LabelSet.hues.any())
+            .where(LabelSet.reading_abilities.any())
+            .where(LabelSet.min_age >= 0)
+            .where(LabelSet.max_age > 0)
+            .where(LabelSet.huey_summary.is_not(None))
         )
 
     if is_recommendable:
-        query = query.where(aliased_labelset.recommend_status == RecommendStatus.GOOD)
+        query = query.where(LabelSet.recommend_status == RecommendStatus.GOOD)
 
     return query
 

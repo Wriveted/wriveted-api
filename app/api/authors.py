@@ -16,10 +16,10 @@ router = APIRouter(
 
 
 @router.get("/authors", response_model=List[AuthorBrief])
-async def get_authors(
+def get_authors(
+    session: Session = Depends(get_session),
     query: Optional[str] = Query(None, description="Query string"),
     pagination: PaginatedQueryParams = Depends(),
-    session: Session = Depends(get_session),
 ):
     return crud.author.get_all_with_optional_filters(
         session, query_string=query, skip=pagination.skip, limit=pagination.limit
@@ -30,4 +30,4 @@ async def get_authors(
 async def get_author_detail_by_id(
     author_id: str, session: Session = Depends(get_session)
 ):
-    return crud.author.get_or_404(db=session, id=author_id)
+    return await crud.author.aget_or_404(db=session, id=author_id)

@@ -49,7 +49,7 @@ services:
       - WRIVETED_INTERNAL_API=http://internal:8888
       - SQLALCHEMY_WARN_20=true
     ports:
-      - "8000:8000"
+      - "8000"
     volumes:
       - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro
@@ -79,7 +79,7 @@ services:
       - WRIVETED_INTERNAL_API=http://internal:8888
       - SQLALCHEMY_WARN_20=true
     ports:
-      - "8888:8888"
+      - "8888"
     volumes:
       - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro

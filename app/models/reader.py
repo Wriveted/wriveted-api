@@ -53,11 +53,12 @@ class Reader(User):
         MutableDict.as_mutable(JSONB), nullable=True, default={}
     )
 
-    def get_principals(self):
-        principals = super().get_principals()
+    async def get_principals(self):
+        principals = await super().get_principals()
 
         principals.append("role:reader")
-        if self.parent:
+
+        if self.parent_id is not None:
             principals.append(f"child:{self.parent_id}")
 
         return principals
