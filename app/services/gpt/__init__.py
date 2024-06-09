@@ -62,7 +62,7 @@ def gpt_query(system_prompt, user_content, extra_messages=None):
     )
 
 
-def extract_labels(work: Work, prompt: str = None, retries: int = 2):
+def label_with_gpt(work: Work, prompt: str = None, retries: int = 2):
     target_prompt = prompt or system_prompt
     all_usages = []
 
@@ -195,51 +195,58 @@ def prepare_context_for_labelling(work):
 
 
 def work_to_gpt_labelset_update(work: Work):
-    gpt_data = extract_labels(work, retries=2)
+    gpt_data = label_with_gpt(work, retries=2)
 
     output = gpt_data.output
 
-    labelset_data = {}
+    labelset_create = create_labelset_from_ml_labelled_work(output)
+    return labelset_create
 
+
+def create_labelset_from_ml_labelled_work(gpt_labeled_work: GptWorkData):
+    labelset_data = {}
     # reading abilities
-    labelset_data["reading_ability_keys"] = output.reading_ability
+    labelset_data["reading_ability_keys"] = gpt_labeled_work.reading_ability
     labelset_data["reading_ability_origin"] = LabelOrigin.GPT4
 
     # hues
-    if output.hues:
-        labelset_data["hue_primary_key"] = output.hues[0]
-    if len(output.hues) > 1:
-        labelset_data["hue_secondary_key"] = output.hues[1]
-    if len(output.hues) > 2:
-        labelset_data["hue_tertiary_key"] = output.hues[2]
-    labelset_data["hue_origin"] = LabelOrigin.GPT4
+    hues = [
+            k
+            for k, v in sorted(gpt_labeled_work.hue_map.items(), key=lambda item: -item[1])[:3]
+            if v > 0.1
+        ] if len(gpt_labeled_work.hue_map) > 1 else gpt_labeled_work.hues
+
+    if len(hues) > 0:
+        labelset_data["hue_primary_key"] = hues[0]
+    if len(hues) > 1:
+        labelset_data["hue_secondary_key"] = hues[1]
+    if len(hues) > 2:
+        labelset_data["hue_tertiary_key"] = hues[2]
+
+    labelset_data["hue_origin"] = LabelOrigin.VERTEXAI
 
     # summary
-    labelset_data["huey_summary"] = output.short_summary
-    labelset_data["summary_origin"] = LabelOrigin.GPT4
-
+    labelset_data["huey_summary"] = gpt_labeled_work.short_summary
+    labelset_data["summary_origin"] = LabelOrigin.VERTEXAI
     # other
     labelset_info = {}
-    labelset_info["long_summary"] = output.long_summary
-    labelset_info["genres"] = output.genres
-    labelset_info["styles"] = output.styles
-    labelset_info["characters"] = output.characters
-    labelset_info["hue_map"] = output.hue_map
-    labelset_info["series"] = output.series
-    labelset_info["series_number"] = output.series_number
-    labelset_info["gender"] = output.gender
-    labelset_info["awards"] = output.awards
-    labelset_info["notes"] = output.notes
-    labelset_info["controversial_themes"] = output.controversial_themes
-
+    labelset_info["long_summary"] = gpt_labeled_work.long_summary
+    labelset_info["genres"] = gpt_labeled_work.genres
+    labelset_info["styles"] = gpt_labeled_work.styles
+    labelset_info["characters"] = gpt_labeled_work.characters
+    labelset_info["hue_map"] = gpt_labeled_work.hue_map
+    labelset_info["series"] = gpt_labeled_work.series
+    labelset_info["series_number"] = gpt_labeled_work.series_number
+    labelset_info["gender"] = gpt_labeled_work.gender if hasattr(gpt_labeled_work, "gender") else None
+    labelset_info["awards"] = gpt_labeled_work.awards
+    labelset_info["notes"] = gpt_labeled_work.notes
+    labelset_info["controversial_themes"] = gpt_labeled_work.controversial_themes
     labelset_data["info"] = labelset_info
 
     # mark as needing to be checked
     labelset_data["checked"] = None
-
-    labelset_data["recommend_status"] = output.recommend_status
-    labelset_data["recommend_status_origin"] = LabelOrigin.GPT4
-
+    labelset_data["recommend_status"] = gpt_labeled_work.recommend_status
+    labelset_data["recommend_status_origin"] = LabelOrigin.VERTEXAI
     labelset_create = LabelSetCreateIn(**labelset_data)
     return labelset_create
 

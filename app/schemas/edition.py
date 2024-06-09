@@ -25,6 +25,7 @@ class Genre(BaseModel):
         THEMA = "THEMA"
         LOCSH = "LOCSH"
         HUMAN = "HUMAN"
+        VERTEXAI = "VERTEXAI"
         OTHER = "OTHER"
 
     name: str

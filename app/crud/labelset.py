@@ -16,6 +16,7 @@ from app.schemas.labelset import LabelSetCreateIn
 
 ORIGIN_WEIGHTS = {
     "HUMAN": 5,
+    "VERTEXAI": 4,
     "GPT4": 4,
     "CLUSTER_RELEVANCE": 3,
     "CLUSTER_ZAINAB": 2,
