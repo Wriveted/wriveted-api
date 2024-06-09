@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     POSTGRESQL_DATABASE: str = "postgres"
     POSTGRESQL_USER: str = "postgres"
     POSTGRESQL_PASSWORD: str
+    POSTGRESQL_PORT: int = 5432
 
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 10
@@ -90,6 +91,7 @@ class Settings(BaseSettings):
         db_user = values.get("POSTGRESQL_USER")
         db_password = values.get("POSTGRESQL_PASSWORD")
         db_name = values.get("POSTGRESQL_DATABASE")
+        db_port = values.get("POSTGRESQL_PORT")
 
         logger.debug(f"Database host {db_host}. DB name {db_name}")
 
@@ -113,6 +115,7 @@ class Settings(BaseSettings):
             username=db_user,
             password=db_password,
             host=db_host,
+            port=db_port,
             database=db_name,
             query=query,
         )
@@ -136,6 +139,7 @@ class Settings(BaseSettings):
         db_user = values.get("POSTGRESQL_USER")
         db_password = values.get("POSTGRESQL_PASSWORD")
         db_name = values.get("POSTGRESQL_DATABASE")
+        db_port = values.get("POSTGRESQL_PORT")
 
         logger.debug(f"Database host {db_host}. DB name {db_name}")
 
@@ -159,6 +163,7 @@ class Settings(BaseSettings):
             username=db_user,
             password=db_password,
             host=db_host,
+            port=db_port,
             database=db_name,
             query=query,
         )

@@ -23,7 +23,7 @@ sys.path.insert(
 )
 
 from app.db.base_class import Base  # noqa
-from app.db.extensions import pgvector_ex
+#from app.db.extensions import pgvector_ex
 from app.db.functions import (
     public_encode_uri_component,
     refresh_search_view_v1_function,
@@ -42,7 +42,7 @@ register_entities(
     [
         # Extensions
         # pg_cron_ex,
-        pgvector_ex,
+        #pgvector_ex,
         # Functions
         update_edition_title,
         update_edition_title_from_work,
