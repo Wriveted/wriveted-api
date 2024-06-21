@@ -3,9 +3,10 @@ from typing import Any, Dict, Generic, List, Optional, Sequence, Type, TypeVar, 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import Select, delete, func, insert, select
+from sqlalchemy import Select, delete, func, insert, select, Insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Query, Session, aliased
 from structlog import get_logger
 
@@ -162,6 +163,17 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             await db.refresh(db_obj)
 
         return db_obj
+
+    def upsert_statement(self, obj_in: CreateSchemaType) -> Insert[ModelType]:
+        """Return an upsert statement for the given object"""
+        return pg_insert(self.model).values(jsonable_encoder(obj_in)).on_conflict_do_nothing()
+
+    def upsert(self, db: Session, obj_in: CreateSchemaType, commit=True):
+        """Return an upsert statement for the given object"""
+        upsert_stmt = self.upsert_statement(obj_in)
+        db.execute(upsert_stmt)
+        if commit:
+            db.commit()
 
     def build_orm_object(self, obj_in: CreateSchemaType, session: Session) -> ModelType:
         """An uncommitted ORM object from the input data"""

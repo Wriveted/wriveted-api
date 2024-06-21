@@ -303,7 +303,15 @@ def _handle_checkout_session_completed(
             stripe_customer_id=stripe_customer_id,
         )
         stripe_customer.metadata["wriveted_id"] = str(wriveted_user.id)
-        stripe_customer.save()
+        try:
+            stripe_customer.save()
+        except Exception as e:
+            # Can fail if e.g. current stripe api key doesn't have "rak_customer_write" permission
+            logger.error(
+                "Failed to update Stripe customer metadata with Wriveted user id",
+                stripe_customer_id=stripe_customer_id,
+                error=str(e),
+            )
 
     # ensure our db knows about the specified product
     stripe_price_id = stripe_subscription["items"]["data"][0]["price"]["id"]
@@ -558,16 +566,19 @@ def _handle_subscription_cancelled(
 
 
 def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> Product:
+    # Note multiple stripe events will all occur at essentially the same time.
+    # We upsert into product table to avoid conflict
+
     logger.debug(f"Syncing Stripe price with Wriveted product")
     wriveted_product = crud.product.get(session, id=stripe_price_id)
     if not wriveted_product:
         logger.info("Creating new product in db")
         stripe_price = StripePrice.retrieve(stripe_price_id)
         stripe_product = StripeProduct.retrieve(stripe_price.product)
-        wriveted_product = crud.product.create(
-            session,
-            obj_in=ProductCreateIn(id=stripe_price_id, name=stripe_product.name),
-        )
+
+        crud.product.upsert(session, ProductCreateIn(id=stripe_price_id, name=stripe_product.name))
+        wriveted_product = crud.product.get(session, id=stripe_price_id)
+
         logger.info(
             "Created new product in db",
             product_id=stripe_price_id,
