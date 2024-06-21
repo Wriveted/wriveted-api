@@ -78,7 +78,7 @@ def get_async_session_maker(settings: Settings = None):
     )
 
     SQLAlchemyInstrumentor().instrument(
-        engine=engine.sync_engine, enable_commenter=False, commenter_options={}
+        engine=engine.sync_engine, enable_commenter=True, commenter_options={}
     )
 
     return async_sessionmaker(
@@ -98,6 +98,7 @@ def get_session_maker(settings: Settings = None):
     )
     SQLAlchemyInstrumentor().instrument(
         engine=engine,
+        enable_commenter=True,
     )
     return SessionLocal
 

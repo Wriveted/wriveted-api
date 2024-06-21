@@ -45,7 +45,8 @@ steps:
         WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app,
         ENABLE_OTEL_GOOGLE_EXPORTER=True,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
-        NIELSEN_CLIENT_ID=WrivetedWebServices
+        NIELSEN_CLIENT_ID=WrivetedWebServices,
+        OTEL_SERVICE_NAME=nonprod-api
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
@@ -87,7 +88,8 @@ steps:
         WRIVETED_INTERNAL_API=https://wriveted-api-development-main-branch-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
         NIELSEN_CLIENT_ID=WrivetedWebServices,
-        ENABLE_OTEL_GOOGLE_EXPORTER=True
+        ENABLE_OTEL_GOOGLE_EXPORTER=True,
+        OTEL_SERVICE_NAME=nonprod-api-internal
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
@@ -122,7 +124,8 @@ steps:
         WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
         NIELSEN_CLIENT_ID=WrivetedWebServices,
-        ENABLE_OTEL_GOOGLE_EXPORTER=True
+        ENABLE_OTEL_GOOGLE_EXPORTER=True,
+        OTEL_SERVICE_NAME=wriveted-api
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
@@ -159,7 +162,8 @@ steps:
         WRIVETED_INTERNAL_API=https://wriveted-api-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
         NIELSEN_CLIENT_ID=WrivetedWebServices,
-        ENABLE_OTEL_GOOGLE_EXPORTER=True
+        ENABLE_OTEL_GOOGLE_EXPORTER=True,
+        OTEL_SERVICE_NAME=wriveted-api-internal
       - >-
         --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,

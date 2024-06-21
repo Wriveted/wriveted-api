@@ -355,21 +355,19 @@ def _handle_checkout_session_completed(
         title="Subscription started",
         description="Subscription created or updated",
         info={
-            "stripe_customer_id": stripe_customer_id,
-            "stripe_customer_name": stripe_customer.name,
+            # "stripe_customer_id": stripe_customer_id,
+            # "stripe_customer_name": stripe_customer.name,
             "stripe_customer_email": stripe_customer_email,
-            "stripe_subscription_id": stripe_subscription_id,
+            "subscription_id": stripe_subscription_id,
             "stripe_product_id": stripe_price_id,
-            "stripe_product_name": product_name,
             "product_name": product_name,
-            "wriveted_subscription_id": subscription.id,
         },
         account=wriveted_user,
         slack_channel=(
             None if "test" in checkout_session_id else EventSlackChannel.MEMBERSHIPS
         ),
         slack_extra={
-            "customer_name": stripe_customer.name,
+            # "customer_name": stripe_customer.name,
             "customer_link": f"https://dashboard.stripe.com/customers/{stripe_customer_id}",
             # "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
             # "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
@@ -527,6 +525,7 @@ def _handle_subscription_updated(
             "product_id": stripe_price_id,
             "status": stripe_subscription_status,
         },
+        school=school,
         account=wriveted_user or school,
     )
 
