@@ -137,8 +137,6 @@ async def get_collection_info(
 
     return await get_collection_info_with_criteria(session, collection.id)
 
-    return output
-
 
 # note the order of the endpoints in this file is important:
 # to avoid ambiguity the /items and /info endpoints must be defined before this /{isbn} endpoint
@@ -456,7 +454,6 @@ async def update_collection(
     logger.info("Updating collection", collection=collection, account=account)
 
     try:
-
         await collections_service.update_collection(
             session=session,
             collection=collection,

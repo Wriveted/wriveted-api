@@ -338,7 +338,6 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):
-
         isbn = item.edition_isbn
         if isbn is not None:
             try:

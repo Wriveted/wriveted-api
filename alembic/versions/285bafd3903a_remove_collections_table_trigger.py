@@ -7,8 +7,6 @@ Create Date: 2024-04-20 13:32:54.231456
 """
 
 import sqlalchemy as sa
-from alembic_utils.pg_trigger import PGTrigger
-from sqlalchemy import text as sql_text
 from sqlalchemy.dialects import postgresql
 
 from alembic import op

@@ -1,4 +1,3 @@
-import select
 import uuid
 
 from fastapi import Depends, HTTPException, Path

@@ -134,7 +134,7 @@ def label_with_gpt(work: Work, prompt: str = None, retries: int = 2):
     )
 
 
-def prepare_context_for_labelling(work):
+def prepare_context_for_labelling(work, extra: str | None = None):
     # TODO: Get a better list of related editions. E.g levenstein distance to title, largest info blobs or biggest delta in info blob content etc
     editions = [
         ed
@@ -179,6 +179,7 @@ def prepare_context_for_labelling(work):
     - {main_edition.info.get('prodct')}
     """
     )
+    extra = extra or ""
     user_provided_values = {
         "display_title": display_title,
         "authors_string": authors_string,
@@ -189,6 +190,7 @@ def prepare_context_for_labelling(work):
         "other_info": other_info,
         "number_of_pages": median_page_number,
         "genre_data": genre_data[:1500],
+        "extra": extra[:5000],
     }
     user_content = user_prompt_template.format(**user_provided_values) + suffix
     return user_content
@@ -207,14 +209,20 @@ def create_labelset_from_ml_labelled_work(gpt_labeled_work: GptWorkData):
     labelset_data = {}
     # reading abilities
     labelset_data["reading_ability_keys"] = gpt_labeled_work.reading_ability
-    labelset_data["reading_ability_origin"] = LabelOrigin.GPT4
+    labelset_data["reading_ability_origin"] = LabelOrigin.VERTEXAI
 
     # hues
-    hues = [
+    hues = (
+        [
             k
-            for k, v in sorted(gpt_labeled_work.hue_map.items(), key=lambda item: -item[1])[:3]
+            for k, v in sorted(
+                gpt_labeled_work.hue_map.items(), key=lambda item: -item[1]
+            )[:3]
             if v > 0.1
-        ] if len(gpt_labeled_work.hue_map) > 1 else gpt_labeled_work.hues
+        ]
+        if len(gpt_labeled_work.hue_map) > 1
+        else gpt_labeled_work.hues
+    )
 
     if len(hues) > 0:
         labelset_data["hue_primary_key"] = hues[0]
@@ -224,6 +232,11 @@ def create_labelset_from_ml_labelled_work(gpt_labeled_work: GptWorkData):
         labelset_data["hue_tertiary_key"] = hues[2]
 
     labelset_data["hue_origin"] = LabelOrigin.VERTEXAI
+
+    # Age
+    labelset_data["age_origin"] = LabelOrigin.VERTEXAI
+    labelset_data["min_age"] = gpt_labeled_work.min_age
+    labelset_data["max_age"] = gpt_labeled_work.max_age
 
     # summary
     labelset_data["huey_summary"] = gpt_labeled_work.short_summary
@@ -237,14 +250,17 @@ def create_labelset_from_ml_labelled_work(gpt_labeled_work: GptWorkData):
     labelset_info["hue_map"] = gpt_labeled_work.hue_map
     labelset_info["series"] = gpt_labeled_work.series
     labelset_info["series_number"] = gpt_labeled_work.series_number
-    labelset_info["gender"] = gpt_labeled_work.gender if hasattr(gpt_labeled_work, "gender") else None
+    labelset_info["gender"] = (
+        gpt_labeled_work.gender if hasattr(gpt_labeled_work, "gender") else None
+    )
     labelset_info["awards"] = gpt_labeled_work.awards
     labelset_info["notes"] = gpt_labeled_work.notes
     labelset_info["controversial_themes"] = gpt_labeled_work.controversial_themes
     labelset_data["info"] = labelset_info
 
     # mark as needing to be checked
-    labelset_data["checked"] = None
+    # labelset_data["checked"] = None
+    labelset_data["checked"] = True
     labelset_data["recommend_status"] = gpt_labeled_work.recommend_status
     labelset_data["recommend_status_origin"] = LabelOrigin.VERTEXAI
     labelset_create = LabelSetCreateIn(**labelset_data)

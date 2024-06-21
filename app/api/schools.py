@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
@@ -190,7 +191,7 @@ async def get_school_bookbot_type(
 
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
 async def get_school_bookbot_info(
-    school: School = Permission("read", get_school_from_wriveted_id)
+    school: School = Permission("read", get_school_from_wriveted_id),
 ):
     """
     Retrieve bookbot related info on a particular school.
@@ -299,7 +300,7 @@ async def bulk_add_schools(
     try:
         session.commit()
         return {"msg": f"Added {len(new_schools)} new schools"}
-    except:
+    except sqlalchemy.exc.IntegrityError:
         logger.warning("there was an issue importing bulk school data")
         raise HTTPException(500, "Error bulk importing schools")
 
