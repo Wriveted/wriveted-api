@@ -69,7 +69,7 @@ def event_to_slack_alert(
     session: Session = Depends(get_session),
 ):
     logger.info("Internal API preparing to send event to slack", data=data)
-    return handle_event_to_slack_alert(
+    handle_event_to_slack_alert(
         session, data.event_id, data.slack_channel, extra=data.slack_extra
     )
 

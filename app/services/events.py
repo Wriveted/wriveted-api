@@ -42,7 +42,7 @@ event_level_emoji = {
 }
 
 
-def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
+def _parse_event_to_slack_message(event: Event, extra: dict = None) -> (str, str):
     """
     Parse an event into a Slack message using the Block Kit format.
     """
@@ -118,9 +118,9 @@ def _parse_event_to_slack_message(event: Event, extra: dict = None) -> str:
     return (output, text)
 
 
-async def handle_event_to_slack_alert(
+def handle_event_to_slack_alert(
     session: Session,
-    event_id: int,
+    event_id: str,
     slack_channel: EventSlackChannel,
     extra: dict = None,
 ):
@@ -139,7 +139,7 @@ async def handle_event_to_slack_alert(
         _response = client.chat_postMessage(
             channel=slack_channel, blocks=payload, text=text
         )
-        logger.info("Slack alert posted successfully")
+        logger.debug("Slack alert posted successfully")
     except SlackApiError as e:
         logger.error("Error sending Slack alert: {}".format(e))
 
