@@ -6,7 +6,6 @@ Create Date: 2024-05-12 10:49:20.909122
 
 """
 
-from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_trigger import PGTrigger
 
 from alembic import op
