@@ -190,7 +190,7 @@ async def get_school_bookbot_type(
 
 @router.get("/school/{wriveted_identifier}/bookbot", response_model=SchoolBookbotInfo)
 async def get_school_bookbot_info(
-    school: School = Permission("read", get_school_from_wriveted_id)
+    school: School = Permission("read", get_school_from_wriveted_id),
 ):
     """
     Retrieve bookbot related info on a particular school.

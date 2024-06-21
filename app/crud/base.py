@@ -166,7 +166,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def upsert_statement(self, obj_in: CreateSchemaType) -> Insert[ModelType]:
         """Return an upsert statement for the given object"""
-        return pg_insert(self.model).values(jsonable_encoder(obj_in)).on_conflict_do_nothing()
+        return (
+            pg_insert(self.model)
+            .values(jsonable_encoder(obj_in))
+            .on_conflict_do_nothing()
+        )
 
     def upsert(self, db: Session, obj_in: CreateSchemaType, commit=True):
         """Return an upsert statement for the given object"""

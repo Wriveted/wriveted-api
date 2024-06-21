@@ -58,7 +58,6 @@ opentelemetry-instrumentation-psycopg2 = "^0.45b0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.2.1"
-black = {extras = ["jupyter"], version = "^24.3"}
 google-api-python-client = "^2.66"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^1.0"
@@ -81,6 +80,7 @@ wikipedia = "^1.4.0"
 [tool.poetry.group.dev.dependencies]
 more-itertools = "^10.2.0"
 pytest-asyncio = "^0.23.7"
+ruff = "^0.4.10"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -90,6 +90,12 @@ build-backend = "poetry.core.masonry.api"
 profile = "black"
 
 [tool.ruff]
+
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+
 # Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
@@ -104,7 +110,3 @@ exclude = [
     "tests",
     ]
 
-# Same as Black.
-line-length = 88
-
-target-version = "py311"

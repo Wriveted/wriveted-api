@@ -456,7 +456,6 @@ async def update_collection(
     logger.info("Updating collection", collection=collection, account=account)
 
     try:
-
         await collections_service.update_collection(
             session=session,
             collection=collection,

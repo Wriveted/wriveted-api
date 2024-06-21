@@ -576,7 +576,9 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
         stripe_price = StripePrice.retrieve(stripe_price_id)
         stripe_product = StripeProduct.retrieve(stripe_price.product)
 
-        crud.product.upsert(session, ProductCreateIn(id=stripe_price_id, name=stripe_product.name))
+        crud.product.upsert(
+            session, ProductCreateIn(id=stripe_price_id, name=stripe_product.name)
+        )
         wriveted_product = crud.product.get(session, id=stripe_price_id)
 
         logger.info(

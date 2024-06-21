@@ -227,7 +227,6 @@ async def bulk_update_editions_in_collection_by_isbn(
     collection_orm_object: Collection,
     commit: bool = False,
 ):
-
     temp_table, ddl = _generate_temp_update_table_ddl(db.bind)
     logger.debug("Creating temporary table", ddl=ddl)
     db.execute(text(ddl))
