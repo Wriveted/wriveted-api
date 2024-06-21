@@ -520,7 +520,7 @@ def _handle_subscription_updated(
     crud.event.create(
         session=session,
         title="Subscription updated",
-        description=f"Subscription updated on Stripe",
+        description="Subscription updated on Stripe",
         info={
             "product": product.name,
             "stripe_subscription_id": stripe_subscription_id,
@@ -569,7 +569,7 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
     # Note multiple stripe events will all occur at essentially the same time.
     # We upsert into product table to avoid conflict
 
-    logger.debug(f"Syncing Stripe price with Wriveted product")
+    logger.debug("Syncing Stripe price with Wriveted product")
     wriveted_product = crud.product.get(session, id=stripe_price_id)
     if not wriveted_product:
         logger.info("Creating new product in db")

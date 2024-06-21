@@ -87,7 +87,7 @@ async def compare_bulk_editions(
 async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     try:
         isbn = get_definitive_isbn(isbn)
-    except:
+    except AssertionError:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid isbn")
 
     return crud.edition.get_or_404(db=session, id=isbn)
