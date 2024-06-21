@@ -11,13 +11,6 @@ repos:
       # Run the formatter.
       - id: ruff-format
 
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.17.1
-    hooks:
-      - id: pylint
-        args: [--disable=all, --enable=unused-import]
-        exclude: (^scripts|^alembic|^docs|^examples|^deployment)
-
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
