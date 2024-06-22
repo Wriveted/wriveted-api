@@ -87,6 +87,9 @@ async def get_schools(
     is_active: Optional[bool] = Query(
         None, description="Return active or inactive schools. Default is all."
     ),
+    has_active_subscription: Optional[bool] = Query(
+        None, description="Return schools with active subscription. Default is all."
+    ),
     connected_collection: Optional[bool] = Query(
         None,
         description="Return schools that have connected their collection. Default is all.",
@@ -125,6 +128,7 @@ async def get_schools(
         is_collection_connected=(
             connected_collection if has_details_permission else None
         ),
+        has_active_subscription=has_active_subscription,
         official_identifier=official_identifier,
         skip=pagination.skip,
         limit=pagination.limit,

@@ -4,11 +4,11 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, contains_eager, selectinload
 from structlog import get_logger
 
 from app.crud import CRUDBase
-from app.models import ClassGroup, Event, School, Student
+from app.models import ClassGroup, Event, School, Student, Subscription
 from app.models.collection import Collection
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
@@ -28,9 +28,12 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
         is_collection_connected: Optional[bool] = None,
+        has_active_subscription: Optional[bool] = None,
         official_identifier: Optional[str] = None,
     ):
-        school_query = self.get_all_query(db).options(selectinload(School.subscription))
+        school_query = self.get_all_query(db).options(
+            selectinload(School.subscription).selectinload(Subscription.product),
+        )
 
         if country_code is not None:
             school_query = school_query.where(School.country_code == country_code)
@@ -55,6 +58,10 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
             school_query = school_query.join(Collection).where(
                 Collection.book_count > 0
             )
+        if has_active_subscription is not None:
+            school_query = school_query.join(Subscription).where(
+                Subscription.is_active == has_active_subscription
+            )
         if official_identifier is not None:
             school_query = school_query.where(
                 School.official_identifier == official_identifier
@@ -76,6 +83,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
         query_string: Optional[str] = None,
         is_active: Optional[bool] = None,
         is_collection_connected: Optional[bool] = None,
+        has_active_subscription: Optional[bool] = None,
         official_identifier: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
@@ -89,6 +97,7 @@ class CRUDSchool(CRUDBase[School, SchoolCreateIn, SchoolPatchOptions]):
                 query_string=query_string,
                 is_active=is_active,
                 is_collection_connected=is_collection_connected,
+                has_active_subscription=has_active_subscription,
                 official_identifier=official_identifier,
             ),
             skip=skip,
