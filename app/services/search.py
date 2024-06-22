@@ -154,7 +154,7 @@ async def book_search(
 
 async def update_search_view_v1(session: AsyncSession):
     logger.info("Refreshing search view v1")
-    stmt = select([func.refresh_search_view_v1_function()])
+    stmt = select(func.refresh_search_view_v1_function())
     await session.execute(stmt)
     await session.commit()
     logger.info("Refreshed search view v1")
