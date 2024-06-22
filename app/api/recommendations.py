@@ -250,15 +250,16 @@ async def get_recommended_editions_and_labelsets(
         recommendable_only=recommendable_only,
         exclude_isbns=exclude_isbns,
     )
-    logger.info("Query for recommendations", query=query)
 
-    if True:
-        explain_results = (
-            (await asession.execute(explain(query, analyze=True))).scalars().all()
-        )
-        logger.info("Query plan")
-        for entry in explain_results:
-            logger.info(entry)
+    logger.debug("Recommendation query prepared")
+
+    # if True:
+    #     explain_results = (
+    #         (await asession.execute(explain(query, analyze=True))).scalars().all()
+    #     )
+    #     logger.info("Query plan")
+    #     for entry in explain_results:
+    #         logger.info(entry)
 
     row_results = (await asession.execute(query.limit(limit))).all()
     return row_results

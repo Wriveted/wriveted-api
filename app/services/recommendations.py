@@ -57,6 +57,18 @@ async def get_recommended_labelset_query(
         )
     )
 
+    # For debugging, print the query plan
+    # from app.db.explain import explain
+    # if False:
+    #     # result = await asession.execute(query.limit(1000))
+    #     explain_results = (
+    #         (await asession.execute(explain(query, analyze=True))).scalars().all()
+    #     )
+    #     logger.info("Query plan")
+    #     for entry in explain_results:
+    #         logger.info(entry)
+    #
+
     # Now add the optional filters
     if collection_id is not None:
         # Filter for works in a collection
