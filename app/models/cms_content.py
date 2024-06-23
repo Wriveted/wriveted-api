@@ -26,10 +26,7 @@ class CMSContent(Base):
         UUID(as_uuid=True),
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
-        unique=True,
         primary_key=True,
-        index=True,
-        nullable=False,
     )
 
     type: Mapped[ContentType] = mapped_column(

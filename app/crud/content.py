@@ -66,7 +66,7 @@ class CRUDContent(CRUDBase[CMSContent, Any, Any]):
         try:
             return (await db.scalars(query)).all()
         except (ProgrammingError, DataError) as e:
-            logger.error("Error querying events", error=e, **optional_filters)
+            logger.error("Error querying digital content", error=e, **optional_filters)
             raise ValueError("Problem filtering content")
 
 
