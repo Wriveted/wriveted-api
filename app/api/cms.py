@@ -52,6 +52,15 @@ async def get_cms_content(
             skip=pagination.skip,
             limit=pagination.limit,
         )
+        logger.info(
+            "Retrieved digital content",
+            content_type=content_type,
+            query=query,
+            data=data,
+            jsonpath_match=jsonpath_match,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
