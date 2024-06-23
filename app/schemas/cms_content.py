@@ -6,4 +6,4 @@ class CMSTypesResponse(PaginatedResponse):
 
 
 class CMSContentResponse(PaginatedResponse):
-    data: list[str]
+    data: list[any]
