@@ -10,6 +10,7 @@ from app.crud.collection_item_activity import (
     CRUDCollectionItemActivity,
     collection_item_activity,
 )
+from app.crud.content import CRUDContent, content
 from app.crud.edition import CRUDEdition, edition
 from app.crud.event import CRUDEvent, event
 from app.crud.illustrator import CRUDIllustrator, illustrator
