@@ -73,6 +73,9 @@ and tests the backup/restore process by restoring the backup from production to 
 
 Our user models use [joined-table inheritance](https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance) which are worth reading up on before modifying the schema of any user tables.
 
+A scrubbed dataset of labelled book data (that neatly fits on a free Supabase instance) is available from [Google Cloud](https://storage.googleapis.com/wriveted-huey-media/data/huey-books-scrubed-postgres_localhost-2024_07_13_18_14_43-dump.sql).
+
+
 # Security
 
 ## Authentication
@@ -155,7 +158,13 @@ export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
 $Env:SQLALCHEMY_DATABASE_URI = "postgresql://postgres:password@localhost/postgres"
 ```
 
-Then create a new migration:
+Apply all migrations:
+
+```shell
+poetry run alembic upgrade head
+```
+
+To create a new migration:
 
 ```shell
 poetry run alembic revision --autogenerate -m "Create first tables"
@@ -163,12 +172,6 @@ poetry run alembic revision --autogenerate -m "Create first tables"
 
 Open the generated file in `alembic/versions` and review it — is it empty?
 You may have to manually tweak the migration.
-
-Apply all migrations:
-
-```shell
-poetry run alembic upgrade head
-```
 
 ## Running locally
 
