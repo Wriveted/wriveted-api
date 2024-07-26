@@ -65,20 +65,24 @@ class Event(Base):
         "User", back_populates="events", foreign_keys=[user_id]
     )
 
-    # Partial indexes for school and user events
-
-    __table_args__ = (
-        Index("ix_events_school", "school_id", postgresql_where=school_id.is_not(None)),
-        Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
-        # Index("ix_events_info_work_id", "info", postgresql_where=info.has.is_not(None)),
-    )
-
     service_account_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("service_accounts.id", name="fk_event_service_account"),
         nullable=True,
     )
     service_account: Mapped[Optional["ServiceAccount"]] = relationship(
         "ServiceAccount", foreign_keys=[service_account_id], back_populates="events"
+    )
+
+    # Partial covering indexes for school, user, and service account foreign relations
+    __table_args__ = (
+        Index("ix_events_school", "school_id", postgresql_where=school_id.is_not(None)),
+        Index("ix_events_user", "user_id", postgresql_where=user_id.is_not(None)),
+        Index(
+            "ix_events_service",
+            "service_account_id",
+            postgresql_where=service_account_id.is_not(None),
+        ),
+        # Index("ix_events_info_work_id", "info", postgresql_where=info.has.is_not(None)),
     )
 
     def __repr__(self):
