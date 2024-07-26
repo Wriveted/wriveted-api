@@ -133,6 +133,20 @@ class LabelSet(Base):
     checked: Mapped[bool] = mapped_column(Boolean(), nullable=True)
     checked_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
+    # Partial covering indexes for labeller foreign relations
+    __table_args__ = (
+        Index(
+            "ix_labelset_user_id",
+            "labelled_by_user_id",
+            postgresql_where=labelled_by_user_id.is_not(None),
+        ),
+        Index(
+            "ix_labelset_service_account_id",
+            "labelled_by_sa_id",
+            postgresql_where=labelled_by_sa_id.is_not(None),
+        ),
+    )
+
     def __repr__(self):
         return f"<LabelSet id={self.id} - '{self.work.title}' ages: {self.min_age}-{self.max_age} >"
 
