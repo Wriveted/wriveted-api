@@ -27,7 +27,7 @@ mock = "^5.0.1"
 webencodings = "^0.5.1"
 google-cloud-tasks = "^2.10.4"
 # Google cloud tasks assumes setuptools but doesn't explicitly depend on it
-setuptools = "^69.5"
+setuptools = "^72.0"
 humanize = "^4.4.0"
 google-cloud-storage = "^2.6.0"
 pillow = "^10.0"
