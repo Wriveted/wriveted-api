@@ -69,7 +69,7 @@ rich = "^13.3.2"
 [tool.poetry.group.ml.dependencies]
 jupyterlab = "^4.2"
 google-cloud-aiplatform = "^1.51.0"
-langchain = "^0.1.20"
+langchain = "^0.2.10"
 langchain-google-genai = "^1.0.3"
 langchain-google-vertexai = "^1.0.3"
 langchain-google-community = "^1.0.3"
