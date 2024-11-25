@@ -81,12 +81,12 @@ async def get_recommended_labelset_query(
             # .order_by(Work.id, CollectionItem.copies_available.desc())
         )
 
-    if hues is not None:
+    if hues is not None and len(hues) > 0:
         # Labelset Ids from hues
         hue_ids_query = select(Hue.id).where(Hue.key.in_(hues))
         query = query.where(LabelSetHue.hue_id.in_(hue_ids_query))
 
-    if reading_abilities is not None:
+    if reading_abilities is not None and len(reading_abilities) > 0:
         # Labelset Ids from reading abilities
         reading_ability_ids_query = select(ReadingAbility.id).where(
             ReadingAbility.key.in_(reading_abilities)
@@ -110,7 +110,7 @@ async def get_recommended_labelset_query(
     # query = query.filter(~Edition.cover_url.contains("/open/"))
 
     # exclude certain editions using isbn
-    if exclude_isbns is not None:
+    if exclude_isbns is not None and len(exclude_isbns) > 0:
         query = query.where(~Edition.isbn.in_(exclude_isbns))
 
     # Now make a massive CTE so we can shuffle the results
