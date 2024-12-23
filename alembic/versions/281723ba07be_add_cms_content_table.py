@@ -19,6 +19,10 @@ depends_on = None
 
 
 def upgrade():
+    cms_types_enum = sa.Enum(
+        "JOKE", "QUESTION", "FACT", "QUOTE", name="enum_cms_content_type"
+    )
+
     op.create_table(
         "cms_content",
         sa.Column(
@@ -26,7 +30,7 @@ def upgrade():
         ),
         sa.Column(
             "type",
-            sa.Enum("JOKE", "QUESTION", "FACT", "QUOTE", name="enum_cms_content_type"),
+            cms_types_enum,
             nullable=False,
         ),
         sa.Column("content", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
@@ -56,3 +60,7 @@ def downgrade():
     op.drop_index(op.f("ix_cms_content_type"), table_name="cms_content")
     op.drop_index(op.f("ix_cms_content_id"), table_name="cms_content")
     op.drop_table("cms_content")
+
+    op.execute("DROP TYPE enum_cms_content_type")
+    genresource = sa.Enum(name="enum_cms_content_type")
+    genresource.drop(op.get_bind(), checkfirst=True)
