@@ -5,6 +5,7 @@ from app.api.authors import router as author_router
 from app.api.booklists import public_router as booklist_router_public
 from app.api.booklists import router as booklist_router
 from app.api.classes import router as class_group_router
+from app.api.cms import router as cms_content_router
 from app.api.collections import router as collections_router
 from app.api.commerce import router as commerce_router
 from app.api.dashboards import router as dashboard_router
@@ -25,13 +26,13 @@ from app.api.works import router as work_router
 
 api_router = APIRouter()
 
-
 api_router.include_router(auth_router)
 api_router.include_router(user_router)
 api_router.include_router(author_router)
 api_router.include_router(booklist_router)
 api_router.include_router(booklist_router_public)
 api_router.include_router(class_group_router)
+api_router.include_router(cms_content_router)
 api_router.include_router(collections_router)
 api_router.include_router(commerce_router)
 api_router.include_router(dashboard_router)
