@@ -2,7 +2,22 @@ from .author import Author
 from .booklist import BookList
 from .booklist_work_association import BookListItem
 from .class_group import ClassGroup
-from .cms_content import CMSContent, ContentType
+from .cms import (
+    CMSContent,
+    CMSContentVariant,
+    ConnectionType,
+    ContentStatus,
+    ContentType,
+    ConversationAnalytics,
+    ConversationHistory,
+    ConversationSession,
+    FlowConnection,
+    FlowDefinition,
+    FlowNode,
+    InteractionType,
+    NodeType,
+    SessionStatus,
+)
 from .collection import Collection
 from .collection_item import CollectionItem
 from .collection_item_activity import CollectionItemActivity

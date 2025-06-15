@@ -10,6 +10,7 @@ from structlog import get_logger
 
 from app.api.external_api_router import api_router
 from app.config import get_settings
+from app.events import lifespan
 from app.logging import init_logging, init_tracing
 
 api_docs = textwrap.dedent(
@@ -61,6 +62,7 @@ app = FastAPI(
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
     debug=settings.DEBUG,
+    lifespan=lifespan,
     # version=metadata.version("wriveted-api"),
 )
 

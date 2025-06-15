@@ -60,3 +60,12 @@ works_update_edition_title_from_work_trigger = PGTrigger(
 #     FOR EACH STATEMENT EXECUTE FUNCTION refresh_work_collection_frequency_view_function()
 #     """,
 # )
+
+conversation_sessions_notify_flow_event_trigger = PGTrigger(
+    schema="public",
+    signature="conversation_sessions_notify_flow_event_trigger",
+    on_entity="public.conversation_sessions",
+    is_constraint=False,
+    definition="""AFTER INSERT OR UPDATE OR DELETE ON public.conversation_sessions 
+                  FOR EACH ROW EXECUTE FUNCTION notify_flow_event()""",
+)

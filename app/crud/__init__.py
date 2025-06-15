@@ -4,13 +4,33 @@ from app.crud.base import CRUDBase
 
 from app.crud.author import CRUDAuthor, author
 from app.crud.booklist import CRUDBookList, booklist
+from app.crud.chat_repo import ChatRepository, chat_repo
 from app.crud.class_group import CRUDClassGroup, class_group
+from app.crud.cms import (
+    CRUDContent,
+    CRUDContentVariant,
+    CRUDConversationAnalytics,
+    CRUDConversationHistory,
+    CRUDConversationSession,
+    CRUDFlow,
+    CRUDFlowConnection,
+    CRUDFlowNode,
+    content,
+    content_variant,
+    conversation_analytics,
+    conversation_history,
+    conversation_session,
+    flow,
+    flow_connection,
+    flow_node,
+)
 from app.crud.collection import CRUDCollection, collection
 from app.crud.collection_item_activity import (
     CRUDCollectionItemActivity,
     collection_item_activity,
 )
-from app.crud.content import CRUDContent, content
+
+# Legacy content CRUD removed - use cms.content instead
 from app.crud.edition import CRUDEdition, edition
 from app.crud.event import CRUDEvent, event
 from app.crud.illustrator import CRUDIllustrator, illustrator

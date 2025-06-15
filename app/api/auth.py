@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal, Union, cast
 from uuid import UUID
 
 import requests
+import requests.exceptions
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_cloudauth.firebase import FirebaseClaims, FirebaseCurrentUser
 from pydantic import BaseModel
@@ -19,7 +20,7 @@ from app.api.dependencies.security import (
 )
 from app.config import get_settings
 from app.db.session import get_session
-from app.models import EventLevel, SchoolState, ServiceAccount, Student, User
+from app.models import EventLevel, Parent, SchoolState, ServiceAccount, Student, User
 from app.models.user import UserAccountType
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.users.educator import EducatorDetail
@@ -27,7 +28,7 @@ from app.schemas.users.parent import ParentDetail
 from app.schemas.users.reader import PublicReaderDetail
 from app.schemas.users.school_admin import SchoolAdminDetail
 from app.schemas.users.student import StudentDetail, StudentIdentity
-from app.schemas.users.user import UserDetail
+from app.schemas.users.user import UserDetail, UserInfo
 from app.schemas.users.user_create import UserCreateIn
 from app.schemas.users.wriveted_admin import WrivetedAdminDetail
 from app.services.security import TokenPayload
@@ -118,10 +119,10 @@ def secure_user_endpoint(
             name=name,
             email=email,
             # NOW ADD THE USER_DATA STUFF
-            info={
-                "sign_in_provider": raw_data["firebase"].get("sign_in_provider"),
-                "picture": picture,
-            },
+            info=UserInfo(
+                sign_in_provider=raw_data["firebase"].get("sign_in_provider"),
+                picture=picture,
+            ),
         )
         user, was_created = crud.user.get_or_create(session, user_data)
     else:
@@ -169,7 +170,7 @@ def secure_user_endpoint(
 
     if user.type == UserAccountType.PARENT and checkout_session_id:
         link_parent_with_subscription_via_checkout_session(
-            session, user, checkout_session_id
+            session, cast(Parent, user), checkout_session_id
         )
 
     return {
