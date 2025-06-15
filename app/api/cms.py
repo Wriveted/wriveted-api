@@ -11,8 +11,9 @@ from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user,
+    get_current_active_user_or_service_account,
 )
-from app.models import ContentType
+from app.models import ContentType, User
 from app.schemas.cms import (
     BulkContentRequest,
     BulkContentResponse,
@@ -105,6 +106,60 @@ async def list_content(
     )
 
 
+@router.get("/content/{content_type}", response_model=ContentResponse, deprecated=True)
+async def get_cms_content_by_type(
+    session: DBSessionDep,
+    content_type: ContentType = Path(description="What type of content to return"),
+    query: str | None = Query(
+        None, description="A query string to match against content"
+    ),
+    jsonpath_match: str = Query(
+        None,
+        description="Filter using a JSONPath over the content. The resulting value must be a boolean expression.",
+    ),
+    pagination: PaginatedQueryParams = Depends(),
+):
+    """
+    DEPRECATED: Get a filtered and paginated list of content by content type.
+
+    Use GET /content with content_type query parameter instead.
+    This endpoint will be removed in a future version.
+    """
+    logger.warning(
+        "DEPRECATED endpoint accessed",
+        endpoint="GET /content/{content_type}",
+        replacement="GET /content?content_type=...",
+        content_type=content_type,
+    )
+
+    try:
+        data = await crud.content.aget_all_with_optional_filters(
+            session,
+            content_type=content_type,
+            search=query,
+            jsonpath_match=jsonpath_match,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
+        logger.info(
+            "Retrieved digital content",
+            content_type=content_type,
+            query=query,
+            data=data,
+            jsonpath_match=jsonpath_match,
+            skip=pagination.skip,
+            limit=pagination.limit,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
+
+    return ContentResponse(
+        pagination=Pagination(**pagination.to_dict(), total=None), data=data
+    )
+
+
 @router.get("/content/{content_id}", response_model=ContentDetail)
 async def get_content(
     session: DBSessionDep,
@@ -125,11 +180,20 @@ async def get_content(
 async def create_content(
     session: DBSessionDep,
     content_data: ContentCreate,
-    current_user=Security(get_current_active_user),
+    current_user_or_service_account=Security(
+        get_current_active_user_or_service_account
+    ),
 ):
     """Create new content."""
+    # For service accounts, set the creator to null.
+    created_by = (
+        current_user_or_service_account.id
+        if isinstance(current_user_or_service_account, User)
+        else None
+    )
+
     content = await crud.content.acreate(
-        session, obj_in=content_data, created_by=current_user.id
+        session, obj_in=content_data, created_by=created_by
     )
     logger.info("Created content", content_id=content.id, type=content.type)
     return content
@@ -176,7 +240,7 @@ async def update_content_status(
     session: DBSessionDep,
     content_id: UUID = Path(description="Content ID"),
     status_update: ContentStatusUpdate = Body(...),
-    current_user=Security(get_current_active_user),
+    current_user=Security(get_current_active_user_or_service_account),
 ):
     """Update content workflow status."""
     content = await crud.content.aget(session, content_id)
@@ -210,7 +274,7 @@ async def update_content_status(
 async def bulk_content_operations(
     session: DBSessionDep,
     bulk_request: BulkContentRequest,
-    current_user=Security(get_current_active_user),
+    current_user=Security(get_current_active_user_or_service_account),
 ):
     """Perform bulk operations on content."""
     # Implementation would handle bulk create/update/delete
@@ -363,12 +427,18 @@ async def get_flow(
 async def create_flow(
     session: DBSessionDep,
     flow_data: FlowCreate,
-    current_user=Security(get_current_active_user),
+    current_user_or_service_account=Security(
+        get_current_active_user_or_service_account
+    ),
 ):
     """Create new flow."""
-    flow = await crud.flow.acreate(
-        session, obj_in=flow_data, created_by=current_user.id
+
+    created_by = (
+        current_user_or_service_account.id
+        if isinstance(current_user_or_service_account, User)
+        else None
     )
+    flow = await crud.flow.acreate(session, obj_in=flow_data, created_by=created_by)
     logger.info("Created flow", flow_id=flow.id, name=flow.name)
     return flow
 
@@ -396,7 +466,7 @@ async def publish_flow(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),
     publish_request: FlowPublishRequest = Body(...),
-    current_user=Security(get_current_active_user),
+    current_user=Security(get_current_active_user_or_service_account),
 ):
     """Publish or unpublish a flow."""
     flow = await crud.flow.aget(session, flow_id)
@@ -426,7 +496,7 @@ async def clone_flow(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),
     clone_request: FlowCloneRequest = Body(...),
-    current_user=Security(get_current_active_user),
+    current_user=Security(get_current_active_user_or_service_account),
 ):
     """Clone an existing flow."""
     source_flow = await crud.flow.aget(session, flow_id)
@@ -662,58 +732,3 @@ async def delete_flow_connection(
 
     await crud.flow_connection.aremove(session, id=connection_id)
     logger.info("Deleted flow connection", connection_id=connection_id, flow_id=flow_id)
-
-
-# Legacy endpoint - DEPRECATED - Use GET /content with content_type query param instead
-@router.get("/content/{content_type}", response_model=ContentResponse, deprecated=True)
-async def get_cms_content_by_type(
-    session: DBSessionDep,
-    content_type: ContentType = Path(description="What type of content to return"),
-    query: str | None = Query(
-        None, description="A query string to match against content"
-    ),
-    jsonpath_match: str = Query(
-        None,
-        description="Filter using a JSONPath over the content. The resulting value must be a boolean expression.",
-    ),
-    pagination: PaginatedQueryParams = Depends(),
-):
-    """
-    DEPRECATED: Get a filtered and paginated list of content by content type.
-
-    Use GET /content with content_type query parameter instead.
-    This endpoint will be removed in a future version.
-    """
-    logger.warning(
-        "DEPRECATED endpoint accessed",
-        endpoint="GET /content/{content_type}",
-        replacement="GET /content?content_type=...",
-        content_type=content_type,
-    )
-
-    try:
-        data = await crud.content.aget_all_with_optional_filters(
-            session,
-            content_type=content_type,
-            search=query,
-            jsonpath_match=jsonpath_match,
-            skip=pagination.skip,
-            limit=pagination.limit,
-        )
-        logger.info(
-            "Retrieved digital content",
-            content_type=content_type,
-            query=query,
-            data=data,
-            jsonpath_match=jsonpath_match,
-            skip=pagination.skip,
-            limit=pagination.limit,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
-
-    return ContentResponse(
-        pagination=Pagination(**pagination.to_dict(), total=None), data=data
-    )

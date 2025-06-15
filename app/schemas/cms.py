@@ -19,7 +19,7 @@ from app.schemas.pagination import PaginatedResponse
 class ContentCreate(BaseModel):
     type: ContentType
     content: Dict[str, Any]
-    meta_data: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = {}
     tags: Optional[List[str]] = []
     is_active: Optional[bool] = True
     status: Optional[ContentStatus] = ContentStatus.DRAFT
@@ -28,7 +28,7 @@ class ContentCreate(BaseModel):
 class ContentUpdate(BaseModel):
     type: Optional[ContentType] = None
     content: Optional[Dict[str, Any]] = None
-    meta_data: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = None
     tags: Optional[List[str]] = None
     is_active: Optional[bool] = None
     status: Optional[ContentStatus] = None
@@ -49,7 +49,7 @@ class ContentBrief(BaseModel):
 
 class ContentDetail(ContentBrief):
     content: Dict[str, Any]
-    meta_data: Dict[str, Any]
+    info: Dict[str, Any]
     created_by: Optional[UUID4] = None
 
 
@@ -104,7 +104,7 @@ class FlowCreate(BaseModel):
     version: str = Field(..., max_length=50)
     flow_data: Dict[str, Any]
     entry_node_id: str = Field(..., max_length=255)
-    meta_data: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = {}
 
 
 class FlowUpdate(BaseModel):
@@ -113,7 +113,7 @@ class FlowUpdate(BaseModel):
     version: Optional[str] = Field(None, max_length=50)
     flow_data: Optional[Dict[str, Any]] = None
     entry_node_id: Optional[str] = Field(None, max_length=255)
-    meta_data: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
 
@@ -134,7 +134,7 @@ class FlowDetail(FlowBrief):
     description: Optional[str] = None
     flow_data: Dict[str, Any]
     entry_node_id: str
-    meta_data: Dict[str, Any]
+    info: Dict[str, Any]
     created_by: Optional[UUID4] = None
     published_by: Optional[UUID4] = None
 
@@ -159,7 +159,7 @@ class NodeCreate(BaseModel):
     template: Optional[str] = Field(None, max_length=100)
     content: Dict[str, Any]
     position: Optional[Dict[str, Any]] = {"x": 0, "y": 0}
-    meta_data: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = {}
 
 
 class NodeUpdate(BaseModel):
@@ -167,7 +167,7 @@ class NodeUpdate(BaseModel):
     template: Optional[str] = Field(None, max_length=100)
     content: Optional[Dict[str, Any]] = None
     position: Optional[Dict[str, Any]] = None
-    meta_data: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = None
 
 
 class NodeDetail(BaseModel):
@@ -178,7 +178,7 @@ class NodeDetail(BaseModel):
     template: Optional[str] = None
     content: Dict[str, Any]
     position: Dict[str, Any]
-    meta_data: Dict[str, Any]
+    info: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -199,7 +199,7 @@ class ConnectionCreate(BaseModel):
     target_node_id: str = Field(..., max_length=255)
     connection_type: ConnectionType
     conditions: Optional[Dict[str, Any]] = {}
-    meta_data: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = {}
 
 
 class ConnectionDetail(BaseModel):
@@ -209,7 +209,7 @@ class ConnectionDetail(BaseModel):
     target_node_id: str
     connection_type: ConnectionType
     conditions: Dict[str, Any]
-    meta_data: Dict[str, Any]
+    info: Dict[str, Any]
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -233,7 +233,7 @@ class SessionDetail(BaseModel):
     session_token: str
     current_node_id: Optional[str] = None
     state: Dict[str, Any]
-    meta_data: Dict[str, Any]
+    info: Dict[str, Any]
     started_at: datetime
     last_activity_at: datetime
     ended_at: Optional[datetime] = None
