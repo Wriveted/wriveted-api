@@ -16,7 +16,7 @@ def test_update_edition_work(client, backend_service_account_headers, works_list
 
     update_response = client.patch(
         f"v1/edition/{test_edition.isbn}",
-        json=edition_update_with_new_work.dict(exclude_unset=True),
+        json=edition_update_with_new_work.model_dump(exclude_unset=True),
         headers=backend_service_account_headers,
     )
     update_response.raise_for_status()
@@ -28,7 +28,7 @@ def test_update_edition_work(client, backend_service_account_headers, works_list
 
     revert_response = client.patch(
         f"v1/edition/{test_edition.isbn}",
-        json=edition_update_with_og_work.dict(exclude_unset=True),
+        json=edition_update_with_og_work.model_dump(exclude_unset=True),
         headers=backend_service_account_headers,
     )
     revert_response.raise_for_status()
