@@ -229,7 +229,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
                 logger.warning("Skipping update of info for missing item in collection")
                 return
             info_dict = dict(item_orm_object.info)
-            info_update_dict = item_update.info.dict(exclude_unset=True)
+            info_update_dict = item_update.info.model_dump(exclude_unset=True)
 
             if image_data := info_update_dict.get("cover_image"):
                 logger.debug(
@@ -352,7 +352,7 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
 
         info_dict = {}
         if item.info is not None:
-            info_dict = item.info.dict(exclude_unset=True)
+            info_dict = item.info.model_dump(exclude_unset=True)
 
             if cover_image_data := info_dict.get("cover_image"):
                 logger.debug("Processing cover image for new collection item")
