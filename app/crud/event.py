@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
 
-from sqlalchemy import cast, distinct, func, or_, select
+from sqlalchemy import cast, distinct, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +22,11 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         self,
         session: Session,
         title: str,
-        description: str = None,
-        info: dict = None,
+        description: Optional[str] = None,
+        info: Optional[dict] = None,
         level: EventLevel = EventLevel.NORMAL,
-        school: School = None,
-        account: Union[ServiceAccount, User] = None,
+        school: Optional[School] = None,
+        account: Optional[Union[ServiceAccount, User]] = None,
         commit: bool = True,
     ):
         description, event = self._create_internal(
@@ -45,11 +45,11 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         self,
         session: AsyncSession,
         title: str,
-        description: str = None,
-        info: dict = None,
+        description: Optional[str] = None,
+        info: Optional[dict] = None,
         level: EventLevel = EventLevel.NORMAL,
-        school: School = None,
-        account: Union[ServiceAccount, User] = None,
+        school: Optional[School] = None,
+        account: Optional[Union[ServiceAccount, User]] = None,
         commit: bool = True,
     ):
         description, event = self._create_internal(
@@ -65,7 +65,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
             f"{title} - {description}",
             level=level,
             school=school,
-            account_id=account.id,
+            account_id=account.id if account else None,
         )
         return event
 
@@ -96,7 +96,7 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         school: School | None = None,
         user: User | None = None,
         service_account: ServiceAccount | None = None,
-        info_jsonpath_match: str = None,
+        info_jsonpath_match: Optional[str] = None,
         since: datetime | None = None,
     ):
         event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
@@ -116,7 +116,15 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
                     func.lower(Event.title).contains(query.lower())
                     for query in query_string
                 ]
-            event_query = event_query.where(or_(*filters))
+            if filters:
+                if len(filters) == 1:
+                    event_query = event_query.where(filters[0])
+                else:
+                    # Create OR condition from multiple filters
+                    combined_filter = filters[0]
+                    for f in filters[1:]:
+                        combined_filter = combined_filter | f
+                    event_query = event_query.where(combined_filter)
 
         if level is not None:
             included_levels = self.get_log_levels_above_level(level)

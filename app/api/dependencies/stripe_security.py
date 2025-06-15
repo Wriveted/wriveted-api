@@ -1,4 +1,4 @@
-import stripe as stripe
+import stripe
 from fastapi import Header, HTTPException, Request
 from starlette import status
 from structlog import get_logger

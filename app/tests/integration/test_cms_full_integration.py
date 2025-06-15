@@ -1,0 +1,594 @@
+"""
+Integration tests for CMS and Chat APIs with proper authentication.
+"""
+
+from datetime import datetime, timezone
+from uuid import uuid4
+
+import httpx
+import pytest
+
+from app.models import ServiceAccount, ServiceAccountType
+from app.models.cms import ContentStatus, ContentType
+from app.services.security import create_access_token
+
+
+@pytest.fixture
+async def backend_service_account(async_session):
+    """Create a backend service account for testing."""
+    service_account = ServiceAccount(
+        name=f"test-backend-{uuid4()}", type=ServiceAccountType.BACKEND, is_active=True
+    )
+
+    async_session.add(service_account)
+    await async_session.commit()
+    await async_session.refresh(service_account)
+
+    return service_account
+
+
+@pytest.fixture
+async def backend_auth_token(backend_service_account):
+    """Create a JWT token for backend service account."""
+    token = create_access_token(
+        subject=f"wriveted:service-account:{backend_service_account.id}",
+        expires_delta=None,
+    )
+    return token
+
+
+@pytest.fixture
+async def auth_headers(backend_auth_token):
+    """Create authorization headers."""
+    return {"Authorization": f"Bearer {backend_auth_token}"}
+
+
+class TestCMSContentAPI:
+    """Test CMS Content management with authentication."""
+
+    @pytest.mark.asyncio
+    async def test_create_cms_content_joke(self, async_client, auth_headers):
+        """Test creating a joke content item."""
+        joke_data = {
+            "type": "JOKE",
+            "content": {
+                "text": "Why do programmers prefer dark mode? Because light attracts bugs!",
+                "category": "programming",
+                "audience": "developers",
+            },
+            "status": "PUBLISHED",
+            "tags": ["programming", "humor", "developers"],
+            "metadata": {"source": "pytest_test", "difficulty": "easy", "rating": 4.2},
+        }
+
+        response = await async_client.post(
+            "/cms/content", json=joke_data, headers=auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["type"] == "JOKE"
+        assert data["status"] == "PUBLISHED"
+        assert "programming" in data["tags"]
+        assert data["metadata"]["source"] == "pytest_test"
+        assert "id" in data
+
+        return data["id"]
+
+    @pytest.mark.asyncio
+    async def test_create_cms_content_question(self, async_client, auth_headers):
+        """Test creating a question content item."""
+        question_data = {
+            "type": "QUESTION",
+            "content": {
+                "text": "What programming language would you like to learn next?",
+                "options": ["Python", "JavaScript", "Rust", "Go", "TypeScript"],
+                "response_type": "single_choice",
+                "allow_other": True,
+            },
+            "status": "PUBLISHED",
+            "tags": ["programming", "learning", "survey"],
+            "metadata": {"purpose": "skill_assessment", "weight": 1.5},
+        }
+
+        response = await async_client.post(
+            "/cms/content", json=question_data, headers=auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["type"] == "QUESTION"
+        assert data["content"]["allow_other"] is True
+        assert len(data["content"]["options"]) == 5
+
+        return data["id"]
+
+    @pytest.mark.asyncio
+    async def test_create_cms_content_message(self, async_client, auth_headers):
+        """Test creating a message content item."""
+        message_data = {
+            "type": "MESSAGE",
+            "content": {
+                "text": "Welcome to our interactive coding challenge! Let's start with something fun.",
+                "tone": "encouraging",
+                "context": "challenge_intro",
+            },
+            "status": "PUBLISHED",
+            "tags": ["welcome", "coding", "challenge"],
+            "metadata": {"template_version": "3.1", "localization_ready": True},
+        }
+
+        response = await async_client.post(
+            "/cms/content", json=message_data, headers=auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["type"] == "MESSAGE"
+        assert data["content"]["tone"] == "encouraging"
+        assert data["metadata"]["localization_ready"] is True
+
+        return data["id"]
+
+    @pytest.mark.asyncio
+    async def test_list_cms_content(self, async_client, auth_headers):
+        """Test listing all CMS content."""
+        # First create some content
+        await self.test_create_cms_content_joke(async_client, auth_headers)
+        await self.test_create_cms_content_question(async_client, auth_headers)
+
+        response = await async_client.get("/cms/content", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "data" in data
+        assert "pagination" in data
+        assert len(data["data"]) >= 2
+
+        # Check that we have different content types
+        content_types = {item["type"] for item in data["data"]}
+        assert "JOKE" in content_types or "QUESTION" in content_types
+
+    @pytest.mark.asyncio
+    async def test_filter_cms_content_by_type(self, async_client, auth_headers):
+        """Test filtering CMS content by type."""
+        # Create a joke
+        joke_id = await self.test_create_cms_content_joke(async_client, auth_headers)
+
+        # Filter by JOKE type
+        response = await async_client.get(
+            "/cms/content?content_type=JOKE", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["data"]) >= 1
+
+        # All returned items should be jokes
+        for item in data["data"]:
+            assert item["type"] == "JOKE"
+
+    @pytest.mark.asyncio
+    async def test_get_specific_cms_content(self, async_client, auth_headers):
+        """Test getting a specific content item by ID."""
+        # Create content first
+        content_id = await self.test_create_cms_content_message(
+            async_client, auth_headers
+        )
+
+        response = await async_client.get(
+            f"/cms/content/{content_id}", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == content_id
+        assert data["type"] == "MESSAGE"
+        assert data["content"]["tone"] == "encouraging"
+
+    @pytest.mark.asyncio
+    async def test_update_cms_content(self, async_client, auth_headers):
+        """Test updating CMS content."""
+        # Create content first
+        content_id = await self.test_create_cms_content_joke(async_client, auth_headers)
+
+        update_data = {
+            "content": {
+                "text": "Why do programmers prefer dark mode? Because light attracts bugs! (Updated)",
+                "category": "programming",
+                "audience": "all_developers",
+            },
+            "tags": ["programming", "humor", "developers", "updated"],
+        }
+
+        response = await async_client.put(
+            f"/cms/content/{content_id}", json=update_data, headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "(Updated)" in data["content"]["text"]
+        assert "updated" in data["tags"]
+        assert data["content"]["audience"] == "all_developers"
+
+
+class TestCMSFlowAPI:
+    """Test CMS Flow management with authentication."""
+
+    @pytest.mark.asyncio
+    async def test_create_flow_definition(self, async_client, auth_headers):
+        """Test creating a complete flow definition."""
+        flow_data = {
+            "name": "Programming Skills Assessment Flow",
+            "description": "A comprehensive flow to assess programming skills and provide recommendations",
+            "version": "2.1",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "welcome",
+                        "type": "MESSAGE",
+                        "content": {
+                            "text": "Welcome to our programming skills assessment! This will help us understand your experience level."
+                        },
+                        "position": {"x": 100, "y": 100},
+                    },
+                    {
+                        "id": "ask_experience",
+                        "type": "QUESTION",
+                        "content": {
+                            "text": "How many years of programming experience do you have?",
+                            "options": [
+                                "Less than 1 year",
+                                "1-3 years",
+                                "3-5 years",
+                                "5+ years",
+                            ],
+                            "variable": "experience_level",
+                        },
+                        "position": {"x": 100, "y": 200},
+                    },
+                    {
+                        "id": "ask_languages",
+                        "type": "QUESTION",
+                        "content": {
+                            "text": "Which programming languages are you comfortable with?",
+                            "options": [
+                                "Python",
+                                "JavaScript",
+                                "Java",
+                                "C++",
+                                "Go",
+                                "Rust",
+                            ],
+                            "variable": "known_languages",
+                            "multiple": True,
+                        },
+                        "position": {"x": 100, "y": 300},
+                    },
+                    {
+                        "id": "generate_assessment",
+                        "type": "ACTION",
+                        "content": {
+                            "action_type": "skill_assessment",
+                            "params": {
+                                "experience": "{experience_level}",
+                                "languages": "{known_languages}",
+                            },
+                        },
+                        "position": {"x": 100, "y": 400},
+                    },
+                    {
+                        "id": "show_results",
+                        "type": "MESSAGE",
+                        "content": {
+                            "text": "Based on your {experience_level} experience with {known_languages}, here's your personalized learning path!"
+                        },
+                        "position": {"x": 100, "y": 500},
+                    },
+                ],
+                "connections": [
+                    {
+                        "source": "welcome",
+                        "target": "ask_experience",
+                        "type": "DEFAULT",
+                    },
+                    {
+                        "source": "ask_experience",
+                        "target": "ask_languages",
+                        "type": "DEFAULT",
+                    },
+                    {
+                        "source": "ask_languages",
+                        "target": "generate_assessment",
+                        "type": "DEFAULT",
+                    },
+                    {
+                        "source": "generate_assessment",
+                        "target": "show_results",
+                        "type": "DEFAULT",
+                    },
+                ],
+            },
+            "entry_node_id": "welcome",
+            "metadata": {
+                "author": "pytest_integration_test",
+                "category": "assessment",
+                "estimated_duration": "4-6 minutes",
+                "skill_level": "all",
+            },
+            "is_published": True,
+            "is_active": True,
+        }
+
+        response = await async_client.post(
+            "/cms/flows", json=flow_data, headers=auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "Programming Skills Assessment Flow"
+        assert data["version"] == "2.1"
+        assert data["is_published"] is True
+        assert data["is_active"] is True
+        assert len(data["flow_data"]["nodes"]) == 5
+        assert len(data["flow_data"]["connections"]) == 4
+        assert data["entry_node_id"] == "welcome"
+
+        return data["id"]
+
+    @pytest.mark.asyncio
+    async def test_list_flows(self, async_client, auth_headers):
+        """Test listing all flows."""
+        # Create a flow first
+        await self.test_create_flow_definition(async_client, auth_headers)
+
+        response = await async_client.get("/cms/flows", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "data" in data
+        assert "pagination" in data
+        assert len(data["data"]) >= 1
+
+        # Check that at least one flow is from our test
+        flow_names = [flow["name"] for flow in data["data"]]
+        assert "Programming Skills Assessment Flow" in flow_names
+
+    @pytest.mark.asyncio
+    async def test_get_specific_flow(self, async_client, auth_headers):
+        """Test getting a specific flow by ID."""
+        # Create flow first
+        flow_id = await self.test_create_flow_definition(async_client, auth_headers)
+
+        response = await async_client.get(f"/cms/flows/{flow_id}", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == flow_id
+        assert data["name"] == "Programming Skills Assessment Flow"
+        assert len(data["flow_data"]["nodes"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_get_flow_nodes(self, async_client, auth_headers):
+        """Test getting nodes for a specific flow."""
+        # Create flow first
+        flow_id = await self.test_create_flow_definition(async_client, auth_headers)
+
+        response = await async_client.get(
+            f"/cms/flows/{flow_id}/nodes", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "data" in data
+        assert len(data["data"]) == 5
+
+        # Check that we have the expected node types
+        node_types = {node["node_type"] for node in data["data"]}
+        assert "MESSAGE" in node_types
+        assert "QUESTION" in node_types
+        assert "ACTION" in node_types
+
+    @pytest.mark.asyncio
+    async def test_get_flow_connections(self, async_client, auth_headers):
+        """Test getting connections for a specific flow."""
+        # Create flow first
+        flow_id = await self.test_create_flow_definition(async_client, auth_headers)
+
+        response = await async_client.get(
+            f"/cms/flows/{flow_id}/connections", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "data" in data
+        assert len(data["data"]) == 4
+
+        # Check connection structure
+        for connection in data["data"]:
+            assert "source_node_id" in connection
+            assert "target_node_id" in connection
+            assert "connection_type" in connection
+
+
+class TestChatAPI:
+    """Test Chat API functionality."""
+
+    @pytest.mark.asyncio
+    async def test_start_chat_session_with_published_flow(
+        self, async_client, auth_headers
+    ):
+        """Test starting a chat session with a published flow."""
+        # Create a published flow first
+        flow_test = TestCMSFlowAPI()
+        flow_id = await flow_test.test_create_flow_definition(
+            async_client, auth_headers
+        )
+
+        session_data = {
+            "flow_id": flow_id,
+            "user_id": None,
+            "initial_state": {"test_mode": True, "source": "pytest"},
+        }
+
+        response = await async_client.post("/chat/start", json=session_data)
+
+        assert response.status_code == 201
+        data = response.json()
+        assert "session_id" in data
+        assert "session_token" in data
+        assert data["session_id"] is not None
+        assert data["session_token"] is not None
+
+        return data["session_token"]
+
+    @pytest.mark.asyncio
+    async def test_get_session_state(self, async_client, auth_headers):
+        """Test getting session state."""
+        # Start a session first
+        session_token = await self.test_start_chat_session_with_published_flow(
+            async_client, auth_headers
+        )
+
+        response = await async_client.get(f"/chat/sessions/{session_token}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "active"
+        assert "state" in data
+        assert data["state"]["test_mode"] is True
+        assert data["state"]["source"] == "pytest"
+
+    @pytest.mark.asyncio
+    async def test_chat_session_with_unpublished_flow_fails(
+        self, async_client, auth_headers
+    ):
+        """Test that unpublished flows cannot be used for chat sessions."""
+        # Create an unpublished flow
+        flow_data = {
+            "name": "Unpublished Test Flow",
+            "description": "This flow should not be accessible for chat",
+            "version": "1.0",
+            "flow_data": {"nodes": [], "connections": []},
+            "entry_node_id": "start",
+            "is_published": False,  # Explicitly unpublished
+            "is_active": True,
+        }
+
+        flow_response = await async_client.post(
+            "/cms/flows", json=flow_data, headers=auth_headers
+        )
+        assert flow_response.status_code == 201
+        flow_id = flow_response.json()["id"]
+
+        # Try to start a session with the unpublished flow
+        session_data = {"flow_id": flow_id, "user_id": None, "initial_state": {}}
+
+        response = await async_client.post("/chat/start", json=session_data)
+
+        assert response.status_code == 400
+        assert (
+            "not found" in response.json()["detail"].lower()
+            or "not available" in response.json()["detail"].lower()
+        )
+
+
+class TestCMSAuthentication:
+    """Test CMS authentication requirements."""
+
+    @pytest.mark.asyncio
+    async def test_cms_content_requires_auth(self, async_client):
+        """Test that CMS content endpoints require authentication."""
+        # Try to access CMS content without auth
+        response = await async_client.get("/cms/content")
+        assert response.status_code == 401
+
+        # Try to create content without auth
+        response = await async_client.post("/cms/content", json={"type": "JOKE"})
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_cms_flows_requires_auth(self, async_client):
+        """Test that CMS flow endpoints require authentication."""
+        # Try to access flows without auth
+        response = await async_client.get("/cms/flows")
+        assert response.status_code == 401
+
+        # Try to create flow without auth
+        response = await async_client.post("/cms/flows", json={"name": "Test"})
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_chat_start_does_not_require_auth(self, async_client):
+        """Test that chat start endpoint does not require authentication."""
+        # This should fail for other reasons (invalid flow), but not auth
+        response = await async_client.post(
+            "/chat/start",
+            json={"flow_id": str(uuid4()), "user_id": None, "initial_state": {}},
+        )
+
+        # Should not be 401 (auth error), but 400 (flow not found)
+        assert response.status_code != 401
+        assert response.status_code == 400
+
+
+class TestCMSIntegrationWorkflow:
+    """Test complete CMS workflow integration."""
+
+    @pytest.mark.asyncio
+    async def test_complete_cms_to_chat_workflow(self, async_client, auth_headers):
+        """Test complete workflow from CMS content creation to chat session."""
+        # 1. Create CMS content
+        content_test = TestCMSContentAPI()
+        joke_id = await content_test.test_create_cms_content_joke(
+            async_client, auth_headers
+        )
+        question_id = await content_test.test_create_cms_content_question(
+            async_client, auth_headers
+        )
+        message_id = await content_test.test_create_cms_content_message(
+            async_client, auth_headers
+        )
+
+        # 2. Create a flow that could reference this content
+        flow_test = TestCMSFlowAPI()
+        flow_id = await flow_test.test_create_flow_definition(
+            async_client, auth_headers
+        )
+
+        # 3. Verify all content is accessible
+        content_response = await async_client.get("/cms/content", headers=auth_headers)
+        assert content_response.status_code == 200
+        content_data = content_response.json()
+
+        created_ids = {joke_id, question_id, message_id}
+        retrieved_ids = {item["id"] for item in content_data["data"]}
+        assert created_ids.issubset(retrieved_ids)
+
+        # 4. Start a chat session with the created flow
+        chat_test = TestChatAPI()
+        session_token = await chat_test.test_start_chat_session_with_published_flow(
+            async_client, auth_headers
+        )
+
+        # 5. Verify session is working
+        session_response = await async_client.get(f"/chat/sessions/{session_token}")
+        assert session_response.status_code == 200
+
+        session_data = session_response.json()
+        assert session_data["status"] == "active"
+
+        # 6. Verify we can list flows and see our created flow
+        flows_response = await async_client.get("/cms/flows", headers=auth_headers)
+        assert flows_response.status_code == 200
+        flows_data = flows_response.json()
+
+        flow_ids = {flow["id"] for flow in flows_data["data"]}
+        assert flow_id in flow_ids
+
+        print(f"✅ Complete workflow test passed!")
+        print(f"   - Created content items: {len(created_ids)}")
+        print(f"   - Created flow: {flow_id}")
+        print(f"   - Started chat session: {session_token[:20]}...")
+        print(f"   - Total flows available: {len(flows_data['data'])}")
+        print(f"   - Total content items: {len(content_data['data'])}")

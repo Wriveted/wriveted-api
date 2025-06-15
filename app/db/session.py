@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator
 from functools import lru_cache
-from typing import Tuple
+from typing import Optional, Tuple
 
 import sqlalchemy
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
@@ -19,7 +19,7 @@ def database_connection(
     database_uri: str | URL,
     pool_size=10,
     max_overflow=10,
-) -> Tuple[sqlalchemy.engine.Engine, sqlalchemy.orm.sessionmaker]:
+):
     # Ref: https://docs.sqlalchemy.org/en/14/core/pooling.html
     """
     Note Cloud SQL instance has a limited number of connections:
@@ -54,7 +54,7 @@ def database_connection(
 
 
 @lru_cache()
-def get_async_session_maker(settings: Settings = None):
+def get_async_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
 
@@ -87,7 +87,7 @@ def get_async_session_maker(settings: Settings = None):
 
 
 @lru_cache()
-def get_session_maker(settings: Settings = None):
+def get_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
 

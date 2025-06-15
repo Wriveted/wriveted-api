@@ -304,7 +304,7 @@ async def bulk_add_schools(
     try:
         session.commit()
         return {"msg": f"Added {len(new_schools)} new schools"}
-    except sqlalchemy.exc.IntegrityError:
+    except IntegrityError:
         logger.warning("there was an issue importing bulk school data")
         raise HTTPException(500, "Error bulk importing schools")
 
