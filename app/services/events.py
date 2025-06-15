@@ -153,7 +153,7 @@ def create_event(
     slack_channel: EventSlackChannel | None = None,
     slack_extra: dict = None,
     school: School = None,
-    account: Union[ServiceAccount, User] = None,
+    account: Optional[Union[ServiceAccount, User]] = None,
     commit: bool = True,
 ) -> Event:
     """

@@ -10,6 +10,9 @@ from twilio.rest import Client as TwilioClient
 
 from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
+
+# Import tasks router
+from app.api.internal.tasks import router as tasks_router
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
 from app.schemas.feedback import SendEmailPayload, SendSmsPayload
@@ -38,6 +41,9 @@ cloud_run_config = CloudRunEnvironment()
 logger = get_logger()
 
 router = APIRouter()
+
+# Include tasks sub-router
+router.include_router(tasks_router)
 
 
 @router.get("/version")
