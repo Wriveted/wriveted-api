@@ -25,7 +25,6 @@ class SpecialLists(BaseModel):
 
 
 class ReaderBase(BaseModel):
-    # type: Literal[UserAccountType.STUDENT, UserAccountType.PUBLIC]
     first_name: str | None = None
     last_name_initial: str | None = None
 

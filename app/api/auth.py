@@ -217,6 +217,8 @@ def student_user_auth(
         school=class_group.school,
     )
     school = class_group.school
+    if not school:
+        raise HTTPException(status_code=401, detail="Invalid class group")
 
     logger.debug("Get the user by username")
     # if the school doesn't match -> 401
