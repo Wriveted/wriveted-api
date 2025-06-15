@@ -55,15 +55,12 @@ class FlowEventListener:
         """Establish connection to PostgreSQL for listening to notifications."""
         try:
             # Parse the database URL for asyncpg connection
-            db_url = str(self.settings.SQLALCHEMY_DATABASE_URI)
-            if db_url.startswith("postgresql://"):
-                db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-            elif not db_url.startswith("postgresql+asyncpg://"):
-                # Fallback to direct connection params
-                db_url = "postgresql://postgres:password@localhost/postgres"
+            db_url = self.settings.SQLALCHEMY_ASYNC_URI
 
-            # Remove the +asyncpg part for asyncpg.connect
-            connection_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+            # Remove the +asyncpg part for asyncpg.connect and unhide the password
+            connection_url = db_url.render_as_string(False).replace(
+                "postgresql+asyncpg://", "postgresql://"
+            )
 
             self.connection = await asyncpg.connect(connection_url)
             logger.info("Connected to PostgreSQL for event listening")
