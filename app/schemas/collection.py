@@ -60,7 +60,7 @@ class CollectionItemFeedback(BaseModel):
 
 
 class CollectionItemInfo(BaseModel):
-    cover_image: AnyHttpUrl | None = None
+    cover_image: Optional[ImageUrl] = None
     title: str | None = None
     author: str | None = None
 
@@ -70,8 +70,10 @@ class CollectionItemInfo(BaseModel):
 
 
 class CollectionItemInfoCreateIn(CollectionItemInfo):
-    cover_image: ImageUrl | None = None
-    model_config = ConfigDict(str_max_length=(2**19) * 1.5, validate_assignment=True)
+    cover_image: Optional[ImageUrl] = None
+    model_config = ConfigDict(
+        str_max_length=int((2**19) * 1.5), validate_assignment=True
+    )
 
 
 class CoverImageUpdateIn(CollectionItemInfoCreateIn):
