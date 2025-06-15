@@ -23,6 +23,15 @@ def upgrade():
         "JOKE", "QUESTION", "FACT", "QUOTE", name="enum_cms_content_type"
     )
 
+    cms_status_enum = sa.Enum(
+        "DRAFT",
+        "PENDING_REVIEW",
+        "APPROVED",
+        "PUBLISHED",
+        "ARCHIVED",
+        name="enum_cms_content_status",
+    )
+
     op.create_table(
         "cms_content",
         sa.Column(
@@ -33,7 +42,23 @@ def upgrade():
             cms_types_enum,
             nullable=False,
         ),
-        sa.Column("content", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column(
+            "status", cms_status_enum, server_default=sa.text("'DRAFT'"), nullable=False
+        ),
+        sa.Column("version", sa.Integer(), server_default=sa.text("1"), nullable=False),
+        sa.Column("content", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "info",
+            postgresql.JSONB(astext_type=sa.Text()),
+            server_default=sa.text("'{}'::json"),
+            nullable=False,
+        ),
+        sa.Column(
+            "tags",
+            postgresql.ARRAY(sa.String()),
+            server_default=sa.text("'{}'::text[]"),
+            nullable=False,
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(),
@@ -46,14 +71,18 @@ def upgrade():
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.Column("user_id", sa.UUID(), nullable=True),
+        sa.Column("created_by", sa.UUID(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], name="fk_content_user", ondelete="CASCADE"
+            ["created_by"], ["users.id"], name="fk_content_user", ondelete="SET NULL"
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_cms_content_id"), "cms_content", ["id"], unique=True)
+
     op.create_index(op.f("ix_cms_content_type"), "cms_content", ["type"], unique=False)
+    op.create_index(
+        op.f("ix_cms_content_status"), "cms_content", ["status"], unique=False
+    )
+    op.create_index(op.f("ix_cms_content_tags"), "cms_content", ["tags"], unique=False)
 
 
 def downgrade():
