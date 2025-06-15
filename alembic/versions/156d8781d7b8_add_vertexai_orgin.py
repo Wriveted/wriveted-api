@@ -5,13 +5,14 @@ Revises: 7dd85b891761
 Create Date: 2024-06-09 18:29:19.197616
 
 """
-from alembic import op
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '156d8781d7b8'
-down_revision = '7dd85b891761'
+revision = "156d8781d7b8"
+down_revision = "7dd85b891761"
 branch_labels = None
 depends_on = None
 old_values = """'HUMAN', 'GPT4', 'PREDICTED_NIELSEN', 'NIELSEN_CBMC', 'NIELSEN_BIC', 'NIELSEN_THEMA', 'NIELSEN_IA', 'NIELSEN_RA', 'CLUSTER_RELEVANCE', 'CLUSTER_ZAINAB', 'OTHER'"""

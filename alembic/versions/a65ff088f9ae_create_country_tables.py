@@ -1,7 +1,7 @@
 """Create original tables
 
 Revision ID: a65ff088f9ae
-Revises: 
+Revises:
 Create Date: 2021-12-27 10:15:54.848632
 
 """
