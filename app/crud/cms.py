@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, text
+from sqlalchemy import and_, cast, func, or_, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,7 +64,7 @@ class CRUDContent(CRUDBase[CMSContent, ContentCreate, ContentUpdate]):
         if active is not None:
             query = query.where(CMSContent.is_active == active)
 
-        if search is not None:
+        if search is not None and len(search) > 0:
             # Full-text search on content JSONB field using contains operator
             query = query.where(
                 or_(
@@ -152,10 +152,9 @@ class CRUDContent(CRUDBase[CMSContent, ContentCreate, ContentUpdate]):
                 raise ValueError("Invalid JSONPath expression")
 
         try:
-            # Use count() instead of scalars()
-            count_query = (
-                func.count(CMSContent.id).select().select_from(query.subquery())
-            )
+            # Create a proper count query from the subquery
+            subquery = query.subquery()
+            count_query = select(func.count()).select_from(subquery)
             result = await db.scalar(count_query)
             return result or 0
         except (ProgrammingError, DataError) as e:
@@ -212,9 +211,8 @@ class CRUDContentVariant(
         )
 
         try:
-            count_query = (
-                func.count(CMSContentVariant.id).select().select_from(query.subquery())
-            )
+            subquery = query.subquery()
+            count_query = select(func.count()).select_from(subquery)
             result = await db.scalar(count_query)
             return result or 0
         except (ProgrammingError, DataError) as e:
@@ -294,9 +292,8 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
             query = query.where(FlowDefinition.is_active == active)
 
         try:
-            count_query = (
-                func.count(FlowDefinition.id).select().select_from(query.subquery())
-            )
+            subquery = query.subquery()
+            count_query = select(func.count()).select_from(subquery)
             result = await db.scalar(count_query)
             return result or 0
         except (ProgrammingError, DataError) as e:
@@ -361,7 +358,7 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
                 version=new_version,
                 flow_data=source_flow.flow_data.copy(),
                 entry_node_id=source_flow.entry_node_id,
-                metadata=source_flow.meta_data.copy(),
+                info=source_flow.info.copy(),
                 created_by=created_by,
                 is_published=False,
                 is_active=True,
@@ -464,7 +461,8 @@ class CRUDFlowNode(CRUDBase[FlowNode, NodeCreate, NodeUpdate]):
         query = self.get_all_query(db=db).where(FlowNode.flow_id == flow_id)
 
         try:
-            count_query = func.count(FlowNode.id).select().select_from(query.subquery())
+            subquery = query.subquery()
+            count_query = select(func.count()).select_from(subquery)
             result = await db.scalar(count_query)
             return result or 0
         except (ProgrammingError, DataError) as e:
@@ -550,9 +548,8 @@ class CRUDFlowConnection(CRUDBase[FlowConnection, ConnectionCreate, Any]):
         query = self.get_all_query(db=db).where(FlowConnection.flow_id == flow_id)
 
         try:
-            count_query = (
-                func.count(FlowConnection.id).select().select_from(query.subquery())
-            )
+            subquery = query.subquery()
+            count_query = select(func.count()).select_from(subquery)
             result = await db.scalar(count_query)
             return result or 0
         except (ProgrammingError, DataError) as e:

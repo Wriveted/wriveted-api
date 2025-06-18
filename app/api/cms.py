@@ -13,7 +13,9 @@ from app.api.dependencies.security import (
     get_current_active_user,
     get_current_active_user_or_service_account,
 )
-from app.models import ContentType, User
+from app.crud.cms import CRUDContent, CRUDFlow, CRUDFlowConnection
+from app.models import ContentType
+from app.models.user import User
 from app.schemas.cms import (
     BulkContentRequest,
     BulkContentResponse,
@@ -231,7 +233,8 @@ async def delete_content(
             status_code=status.HTTP_404_NOT_FOUND, detail="Content not found"
         )
 
-    await crud.content.aremove(session, id=content_id)
+    content_crud: CRUDContent = crud.content  # type: ignore
+    await content_crud.aremove(session, id=content_id)
     logger.info("Deleted content", content_id=content_id)
 
 
@@ -528,7 +531,8 @@ async def delete_flow(
             status_code=status.HTTP_404_NOT_FOUND, detail="Flow not found"
         )
 
-    await crud.flow.aremove(session, id=flow_id)
+    flow_crud: CRUDFlow = crud.flow  # type: ignore
+    await flow_crud.aremove(session, id=flow_id)
     logger.info("Deleted flow", flow_id=flow_id)
 
 
@@ -730,5 +734,6 @@ async def delete_flow_connection(
             status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found"
         )
 
-    await crud.flow_connection.aremove(session, id=connection_id)
+    connection_crud: CRUDFlowConnection = crud.flow_connection  # type: ignore
+    await connection_crud.aremove(session, id=connection_id)
     logger.info("Deleted flow connection", connection_id=connection_id, flow_id=flow_id)

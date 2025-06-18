@@ -64,8 +64,9 @@ async def upsert_contact(
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
 
+        data_dict = data.model_dump()
         payload = CustomSendGridContactData(
-            **data.dict(), custom_fields=validated_fields
+            email=data.email, **data_dict, custom_fields=validated_fields
         )
 
     else:

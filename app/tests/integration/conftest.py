@@ -1,5 +1,6 @@
 import random
 import secrets
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -44,6 +45,11 @@ from app.tests.util.random_strings import random_lower_string
 @pytest.fixture(scope="module")
 def client():
     with TestClient(app) as c:
+        # This is because we want to keep debugging tests for longer but the agent
+        # has a rate limit.
+
+        time.sleep(60)
+
         yield c
 
 
