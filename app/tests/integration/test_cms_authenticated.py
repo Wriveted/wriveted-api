@@ -14,6 +14,14 @@ from app.models.cms import ContentStatus, ContentType
 class TestCMSWithAuthentication:
     """Test CMS functionality with proper authentication."""
 
+    def test_delay(self):
+        """Test to rate limit agent"""
+        # This is because we want to keep debugging tests for longer but the agent
+        # has a rate limit.
+        import time
+
+        time.sleep(60)
+
     def test_cms_content_requires_authentication(self, client):
         """Test that CMS content endpoints require authentication."""
         # Try to access CMS content without auth
@@ -59,7 +67,7 @@ class TestCMSWithAuthentication:
             },
             "status": "PUBLISHED",
             "tags": ["programming", "humor", "developers"],
-            "metadata": {"source": "pytest_test", "difficulty": "easy", "rating": 4.2},
+            "info": {"source": "pytest_test", "difficulty": "easy", "rating": 4.2},
         }
 
         response = client.post(
@@ -68,13 +76,11 @@ class TestCMSWithAuthentication:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["type"] == "JOKE"
-        assert data["status"] == "PUBLISHED"
+        assert data["type"] == "joke"
+        assert data["status"] == "published"
         assert "programming" in data["tags"]
-        assert data["metadata"]["source"] == "pytest_test"
+        assert data["info"]["source"] == "pytest_test"
         assert "id" in data
-
-        return data["id"]
 
     def test_list_cms_content_with_auth(self, client, backend_service_account_headers):
         """Test listing CMS content with authentication."""
@@ -107,7 +113,7 @@ class TestCMSWithAuthentication:
 
         # All returned items should be jokes
         for item in data["data"]:
-            assert item["type"] == "JOKE"
+            assert item["type"] == "joke"
 
     def test_create_flow_definition_with_auth(
         self, client, backend_service_account_headers
@@ -141,9 +147,7 @@ class TestCMSWithAuthentication:
                 ],
             },
             "entry_node_id": "welcome",
-            "metadata": {"author": "pytest", "category": "assessment"},
-            "is_published": True,
-            "is_active": True,
+            "info": {"author": "pytest", "category": "assessment"},
         }
 
         response = client.post(
@@ -153,12 +157,10 @@ class TestCMSWithAuthentication:
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Test Programming Assessment"
-        assert data["is_published"] is True
+        assert data["is_published"] is False
         assert data["is_active"] is True
         assert len(data["flow_data"]["nodes"]) == 2
         assert len(data["flow_data"]["connections"]) == 1
-
-        return data["id"]
 
     def test_list_flows_with_auth(self, client, backend_service_account_headers):
         """Test listing flows with authentication."""
@@ -178,9 +180,41 @@ class TestCMSWithAuthentication:
     def test_get_flow_nodes_with_auth(self, client, backend_service_account_headers):
         """Test getting flow nodes with authentication."""
         # Create a flow first
-        flow_id = self.test_create_flow_definition_with_auth(
-            client, backend_service_account_headers
+        flow_data = {
+            "name": "Test Node Flow",
+            "description": "A flow for testing nodes",
+            "version": "1.0",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "welcome",
+                        "type": "MESSAGE",
+                        "content": {"text": "Welcome!"},
+                        "position": {"x": 100, "y": 100},
+                    },
+                    {
+                        "id": "ask_question",
+                        "type": "QUESTION",
+                        "content": {
+                            "text": "What's your name?",
+                            "variable": "user_name",
+                        },
+                        "position": {"x": 100, "y": 200},
+                    },
+                ],
+                "connections": [
+                    {"source": "welcome", "target": "ask_question", "type": "DEFAULT"}
+                ],
+            },
+            "entry_node_id": "welcome",
+            "info": {"test": "node_test"},
+        }
+
+        flow_response = client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
         )
+        assert flow_response.status_code == 201
+        flow_id = flow_response.json()["id"]
 
         response = client.get(
             f"/v1/cms/flows/{flow_id}/nodes", headers=backend_service_account_headers
@@ -193,8 +227,8 @@ class TestCMSWithAuthentication:
 
         # Check node types
         node_types = {node["node_type"] for node in data["data"]}
-        assert "MESSAGE" in node_types
-        assert "QUESTION" in node_types
+        assert "message" in node_types
+        assert "question" in node_types
 
     def test_start_chat_session_with_created_flow(
         self, client, backend_service_account_headers

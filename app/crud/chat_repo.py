@@ -62,7 +62,7 @@ class ChatRepository:
             user_id=user_id,
             session_token=session_token,
             state=state,
-            meta_data=meta_data or {},
+            info=meta_data or {},
             status=SessionStatus.ACTIVE,
             revision=1,
             state_hash=state_hash,

@@ -378,12 +378,14 @@ class FlowNode(Base):
         primaryjoin="and_(FlowNode.flow_id == FlowConnection.flow_id, FlowNode.node_id == FlowConnection.source_node_id)",
         back_populates="source_node",
         cascade="all, delete-orphan",
+        overlaps="connections",
     )
 
     target_connections: Mapped[list["FlowConnection"]] = relationship(
         "FlowConnection",
         primaryjoin="and_(FlowNode.flow_id == FlowConnection.flow_id, FlowNode.node_id == FlowConnection.target_node_id)",
         back_populates="target_node",
+        overlaps="connections,source_connections",
     )
 
     __table_args__ = (UniqueConstraint("flow_id", "node_id", name="uq_flow_node_id"),)
@@ -436,7 +438,9 @@ class FlowConnection(Base):
 
     # Relationships
     flow: Mapped["FlowDefinition"] = relationship(
-        "FlowDefinition", back_populates="connections"
+        "FlowDefinition",
+        back_populates="connections",
+        overlaps="source_connections,target_connections",
     )
 
     source_node: Mapped["FlowNode"] = relationship(
@@ -444,6 +448,7 @@ class FlowConnection(Base):
         primaryjoin="and_(FlowConnection.flow_id == FlowNode.flow_id, FlowConnection.source_node_id == FlowNode.node_id)",
         foreign_keys=[flow_id, source_node_id],
         back_populates="source_connections",
+        overlaps="connections,flow,target_connections",
     )
 
     target_node: Mapped["FlowNode"] = relationship(
@@ -451,6 +456,7 @@ class FlowConnection(Base):
         primaryjoin="and_(FlowConnection.flow_id == FlowNode.flow_id, FlowConnection.target_node_id == FlowNode.node_id)",
         foreign_keys=[flow_id, target_node_id],
         back_populates="target_connections",
+        overlaps="connections,flow,source_connections,source_node",
     )
 
     __table_args__ = (
@@ -527,9 +533,9 @@ class ConversationSession(Base):
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus, name="enum_session_status"),
+        Enum(SessionStatus, name="enum_conversation_session_status"),
         nullable=False,
-        server_default=text("'active'"),
+        server_default=text("'ACTIVE'"),
         index=True,
     )
 
