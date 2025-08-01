@@ -5,7 +5,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
@@ -13,6 +13,7 @@ from structlog import get_logger
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.crud.chat_repo import chat_repo
 from app.models.cms import ConversationSession, InteractionType
+from app.services.cel_evaluator import evaluate_cel_expression
 
 logger = get_logger()
 
@@ -38,41 +39,72 @@ class WebhookNodeTaskPayload(BaseModel):
     webhook_config: Dict[str, Any]
 
 
-# In-memory idempotency cache (in production, use Redis)
-_processed_tasks = set()
-
-
 @router.post("/action-node")
 async def process_action_node_task(
     payload: ActionNodeTaskPayload,
     session: DBSessionDep,
     x_idempotency_key: str = Header(alias="X-Idempotency-Key"),
-):
-    """Process an ACTION node task from Cloud Tasks."""
-
-    # Idempotency check
-    if x_idempotency_key in _processed_tasks:
-        logger.info("Skipping duplicate task", idempotency_key=x_idempotency_key)
-        return {"status": "already_processed", "idempotency_key": x_idempotency_key}
+) -> Dict[str, Any]:
+    """Process an ACTION node task from Cloud Tasks with database idempotency."""
 
     try:
         session_id = UUID(payload.session_id)
 
-        # Validate session revision (discard stale tasks)
+        acquired, existing_result = await chat_repo.acquire_idempotency_lock(
+            session,
+            idempotency_key=x_idempotency_key,
+            session_id=session_id,
+            node_id=payload.node_id,
+            session_revision=payload.session_revision,
+        )
+
+        if not acquired:
+            logger.info(
+                "Task already processed",
+                idempotency_key=x_idempotency_key,
+                existing_status=existing_result.get("status")
+                if existing_result
+                else None,
+            )
+            return existing_result or {}
+
+        current_session = await chat_repo.get_session_by_id(session, session_id)
+        if not current_session:
+            await chat_repo.complete_idempotency_record(
+                session,
+                x_idempotency_key,
+                success=True,
+                result_data={
+                    "status": "discarded_session_not_found",
+                    "reason": "Session was deleted",
+                },
+            )
+
+            logger.info(
+                "Session not found - likely deleted, discarding task",
+                session_id=session_id,
+                idempotency_key=x_idempotency_key,
+            )
+
+            return {
+                "status": "discarded_session_not_found",
+                "idempotency_key": x_idempotency_key,
+            }
+
         if not await chat_repo.validate_task_revision(
             session, session_id, payload.session_revision
         ):
+            await chat_repo.complete_idempotency_record(
+                session,
+                x_idempotency_key,
+                success=True,
+                result_data={
+                    "status": "discarded_stale",
+                    "reason": "Task revision is stale",
+                },
+            )
             return {"status": "discarded_stale", "idempotency_key": x_idempotency_key}
 
-        # Get current session
-        current_session = await chat_repo.get_session_by_token(
-            session, ""
-        )  # TODO: proper session lookup
-        if not current_session:
-            logger.error("Session not found", session_id=session_id)
-            raise HTTPException(404, "Session not found")
-
-        # Process the action
         await _execute_action(
             session,
             current_session,
@@ -81,8 +113,15 @@ async def process_action_node_task(
             payload.node_id,
         )
 
-        # Mark as processed
-        _processed_tasks.add(x_idempotency_key)
+        result_data = {
+            "status": "completed",
+            "idempotency_key": x_idempotency_key,
+            "action_type": payload.action_type,
+        }
+
+        await chat_repo.complete_idempotency_record(
+            session, x_idempotency_key, success=True, result_data=result_data
+        )
 
         logger.info(
             "Action node task completed",
@@ -92,13 +131,13 @@ async def process_action_node_task(
             idempotency_key=x_idempotency_key,
         )
 
-        return {
-            "status": "completed",
-            "idempotency_key": x_idempotency_key,
-            "action_type": payload.action_type,
-        }
+        return result_data
 
     except Exception as e:
+        await chat_repo.complete_idempotency_record(
+            session, x_idempotency_key, success=False, error_message=str(e)
+        )
+
         logger.error(
             "Action node task failed",
             error=str(e),
@@ -113,38 +152,87 @@ async def process_webhook_node_task(
     payload: WebhookNodeTaskPayload,
     session: DBSessionDep,
     x_idempotency_key: str = Header(alias="X-Idempotency-Key"),
-):
-    """Process a WEBHOOK node task from Cloud Tasks."""
-
-    # Idempotency check
-    if x_idempotency_key in _processed_tasks:
-        logger.info("Skipping duplicate task", idempotency_key=x_idempotency_key)
-        return {"status": "already_processed", "idempotency_key": x_idempotency_key}
+) -> Dict[str, Any]:
+    """Process a WEBHOOK node task from Cloud Tasks with database idempotency."""
 
     try:
         session_id = UUID(payload.session_id)
 
-        # Validate session revision (discard stale tasks)
+        acquired, existing_result = await chat_repo.acquire_idempotency_lock(
+            session,
+            idempotency_key=x_idempotency_key,
+            session_id=session_id,
+            node_id=payload.node_id,
+            session_revision=payload.session_revision,
+        )
+
+        if not acquired:
+            logger.info(
+                "Task already processed",
+                idempotency_key=x_idempotency_key,
+                existing_status=existing_result.get("status")
+                if existing_result
+                else None,
+                existing_result=existing_result,
+            )
+            if existing_result is None:
+                logger.error("DEBUG: existing_result is None, returning empty dict")
+                return {
+                    "error": "existing_result_is_none",
+                    "idempotency_key": x_idempotency_key,
+                }
+            return existing_result
+
+        current_session = await chat_repo.get_session_by_id(session, session_id)
+        if not current_session:
+            await chat_repo.complete_idempotency_record(
+                session,
+                x_idempotency_key,
+                success=True,
+                result_data={
+                    "status": "discarded_session_not_found",
+                    "reason": "Session was deleted",
+                },
+            )
+
+            logger.info(
+                "Session not found - likely deleted, discarding task",
+                session_id=session_id,
+                idempotency_key=x_idempotency_key,
+            )
+
+            return {
+                "status": "discarded_session_not_found",
+                "idempotency_key": x_idempotency_key,
+            }
+
         if not await chat_repo.validate_task_revision(
             session, session_id, payload.session_revision
         ):
+            await chat_repo.complete_idempotency_record(
+                session,
+                x_idempotency_key,
+                success=True,
+                result_data={
+                    "status": "discarded_stale",
+                    "reason": "Task revision is stale",
+                },
+            )
             return {"status": "discarded_stale", "idempotency_key": x_idempotency_key}
 
-        # Get current session
-        current_session = await chat_repo.get_session_by_token(
-            session, ""
-        )  # TODO: proper session lookup
-        if not current_session:
-            logger.error("Session not found", session_id=session_id)
-            raise HTTPException(404, "Session not found")
-
-        # Process the webhook
         result = await _execute_webhook(
             session, current_session, payload.webhook_config, payload.node_id
         )
 
-        # Mark as processed
-        _processed_tasks.add(x_idempotency_key)
+        result_data = {
+            "status": "completed",
+            "idempotency_key": x_idempotency_key,
+            "webhook_result": result,
+        }
+
+        await chat_repo.complete_idempotency_record(
+            session, x_idempotency_key, success=True, result_data=result_data
+        )
 
         logger.info(
             "Webhook node task completed",
@@ -154,13 +242,13 @@ async def process_webhook_node_task(
             idempotency_key=x_idempotency_key,
         )
 
-        return {
-            "status": "completed",
-            "idempotency_key": x_idempotency_key,
-            "webhook_result": result,
-        }
+        return result_data
 
     except Exception as e:
+        await chat_repo.complete_idempotency_record(
+            session, x_idempotency_key, success=False, error_message=str(e)
+        )
+
         logger.error(
             "Webhook node task failed",
             error=str(e),
@@ -176,7 +264,7 @@ async def _execute_action(
     action_type: str,
     params: Dict[str, Any],
     node_id: str,
-):
+) -> None:
     """Execute an action with the same logic as ActionNodeProcessor."""
 
     if action_type == "set_variable":
@@ -226,7 +314,7 @@ async def _execute_webhook(
         "flow_id": str(session.flow_id),
         "user_id": str(session.user_id) if session.user_id else None,
         "state": session.state,
-        "meta_data": session.meta_data,
+        "info": session.info,
         "node_id": node_id,
         "timestamp": datetime.utcnow().isoformat(),
     }
@@ -241,9 +329,6 @@ async def _execute_webhook(
 
     if url:
         try:
-            # TODO: Implement secret injection here
-            # headers = await _inject_secrets(headers)
-
             async with httpx.AsyncClient() as client:
                 response = await client.request(
                     method=method,
@@ -258,7 +343,7 @@ async def _execute_webhook(
 
                 try:
                     response_data = response.json()
-                except:
+                except Exception:
                     response_data = {"status": response.status_code}
 
                 # Store response in session state if configured
@@ -266,7 +351,7 @@ async def _execute_webhook(
                     variable = webhook_config.get(
                         "response_variable", "webhook_response"
                     )
-                    state_updates = {}
+                    state_updates: Dict[str, Any] = {}
                     _set_nested_value(state_updates, variable, response_data)
 
                     await chat_repo.update_session_state(
@@ -311,12 +396,12 @@ async def _execute_webhook(
 # Helper functions (same as in ActionNodeProcessor)
 async def _set_variable(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
     value = params.get("value")
 
     if variable:
-        state_updates = {}
+        state_updates: Dict[str, Any] = {}
         _set_nested_value(state_updates, variable, value)
         await chat_repo.update_session_state(
             db, session_id=session.id, state_updates=state_updates
@@ -325,13 +410,13 @@ async def _set_variable(
 
 async def _increment_variable(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
     amount = params.get("amount", 1)
 
     if variable:
         current = _get_nested_value(session.state or {}, variable) or 0
-        state_updates = {}
+        state_updates: Dict[str, Any] = {}
         _set_nested_value(state_updates, variable, current + amount)
         await chat_repo.update_session_state(
             db, session_id=session.id, state_updates=state_updates
@@ -340,7 +425,7 @@ async def _increment_variable(
 
 async def _append_to_list(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
     value = params.get("value")
 
@@ -350,7 +435,7 @@ async def _append_to_list(
             current = []
         current.append(value)
 
-        state_updates = {}
+        state_updates: Dict[str, Any] = {}
         _set_nested_value(state_updates, variable, current)
         await chat_repo.update_session_state(
             db, session_id=session.id, state_updates=state_updates
@@ -359,7 +444,7 @@ async def _append_to_list(
 
 async def _remove_from_list(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
     value = params.get("value")
 
@@ -367,7 +452,7 @@ async def _remove_from_list(
         current = _get_nested_value(session.state or {}, variable)
         if isinstance(current, list) and value in current:
             current.remove(value)
-            state_updates = {}
+            state_updates: Dict[str, Any] = {}
             _set_nested_value(state_updates, variable, current)
             await chat_repo.update_session_state(
                 db, session_id=session.id, state_updates=state_updates
@@ -376,11 +461,11 @@ async def _remove_from_list(
 
 async def _clear_variable(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
 
     if variable:
-        state_updates = {}
+        state_updates: Dict[str, Any] = {}
         _set_nested_value(state_updates, variable, None)
         await chat_repo.update_session_state(
             db, session_id=session.id, state_updates=state_updates
@@ -389,39 +474,26 @@ async def _clear_variable(
 
 async def _calculate(
     db: AsyncSession, session: ConversationSession, params: Dict[str, Any]
-):
+) -> None:
     variable = params.get("variable")
     expression = params.get("expression")
 
     if variable and expression:
         try:
-            # Replace variables in expression
+            # Prepare context with session state variables
             state = session.state or {}
+            context = {}
+
+            # Only include numeric values for mathematical expressions
             for var_name, var_value in state.items():
-                if isinstance(var_value, (int, float)):
-                    expression = expression.replace(f"{{{var_name}}}", str(var_value))
+                if isinstance(var_value, (int, float, bool)):
+                    context[var_name] = var_value
 
-            # Safe evaluation (only basic math)
-            import ast
-            import operator as op
+            # Evaluate expression using CEL
+            result = evaluate_cel_expression(expression, context)
 
-            allowed_operators = {
-                ast.Add: op.add,
-                ast.Sub: op.sub,
-                ast.Mult: op.mul,
-                ast.Div: op.truediv,
-                ast.Mod: op.mod,
-                ast.Pow: op.pow,
-            }
-
-            def eval_expr(expr):
-                return eval(
-                    compile(ast.parse(expr, mode="eval"), "<string>", "eval"),
-                    {"__builtins__": {}},
-                )
-
-            result = eval_expr(expression)
-            state_updates = {}
+            # Store result in session state
+            state_updates: Dict[str, Any] = {}
             _set_nested_value(state_updates, variable, result)
             await chat_repo.update_session_state(
                 db, session_id=session.id, state_updates=state_updates
@@ -434,7 +506,7 @@ async def _calculate(
 def _get_nested_value(data: Dict[str, Any], key_path: str) -> Any:
     """Get nested value from dictionary using dot notation."""
     keys = key_path.split(".")
-    value = data
+    value: Any = data
 
     try:
         for key in keys:
@@ -447,7 +519,7 @@ def _get_nested_value(data: Dict[str, Any], key_path: str) -> Any:
         return None
 
 
-def _set_nested_value(data: Dict[str, Any], key_path: str, value: Any):
+def _set_nested_value(data: Dict[str, Any], key_path: str, value: Any) -> None:
     """Set nested value in dictionary using dot notation."""
     keys = key_path.split(".")
     current = data

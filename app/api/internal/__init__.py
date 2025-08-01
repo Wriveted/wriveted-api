@@ -102,15 +102,15 @@ class GenerateReadingPathwaysPayload(BaseModel):
 
 
 @router.post("/generate-reading-pathways")
-def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
+async def handle_generate_reading_pathways(data: GenerateReadingPathwaysPayload):
     logger.info(
         "Internal API starting generating reading pathways", user_id=data.user_id
     )
-    generate_reading_pathway_lists(
+    await generate_reading_pathway_lists(
         user_id=data.user_id,
         attributes=data.attributes,
         limit=data.limit,
-        commit=False,  # NOTE commit disabled for testing
+        commit=True,
     )
 
     logger.info("Finished generating reading pathways", user_id=data.user_id)
