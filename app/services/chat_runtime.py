@@ -217,7 +217,10 @@ class QuestionNodeProcessor(NodeProcessor):
         # Store response in session state if variable is specified
         variable_name = node_content.get("variable")
         if variable_name:
-            state_updates = {variable_name: user_input}
+            # Store user input in temp scope for proper variable resolution
+            temp_scope = session.state.get("temp", {})
+            temp_scope[variable_name] = user_input
+            state_updates = {"temp": temp_scope}
 
             # Update session state
             session = await chat_repo.update_session_state(
@@ -465,6 +468,10 @@ class ChatRuntime:
                 )
                 result["messages"] = [next_result] if next_result else []
                 result["current_node_id"] = response["next_node"].node_id
+
+                # Check if the processed node has no further connections
+                if next_result and not next_result.get("next_node"):
+                    result["session_ended"] = True
             else:
                 result["session_ended"] = True
 
@@ -547,7 +554,6 @@ class ChatRuntime:
             "node_type": node.node_type.value,
             "content": node.content,
             "position": node.position,
-            "meta_data": node.meta_data,
         }
 
     def substitute_variables(

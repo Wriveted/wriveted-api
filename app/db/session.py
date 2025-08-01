@@ -7,7 +7,6 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import URL, create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
-from starlette.background import BackgroundTasks
 from structlog import get_logger
 
 from app.config import Settings, get_settings
@@ -53,7 +52,6 @@ def database_connection(
     return engine, SessionLocal
 
 
-@lru_cache()
 def get_async_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
@@ -86,7 +84,6 @@ def get_async_session_maker(settings: Optional[Settings] = None):
     )
 
 
-@lru_cache()
 def get_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
@@ -103,34 +100,13 @@ def get_session_maker(settings: Optional[Settings] = None):
     return SessionLocal
 
 
-# This was introduced in https://github.com/Wriveted/wriveted-api/pull/140 to deal with a deadlock issue from
-# https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/104#issuecomment-775858005
-# The issue has since been solved upstream so could be refactored out.
-# See https://github.com/Wriveted/wriveted-api/issues/139 for a setup
-class SessionManager:
-    def __init__(self, session_maker: sessionmaker):
-        self.session: Session = session_maker()
-
-    def __enter__(self):
-        return self.session
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self.session.close()
-
-
-def close_session(session: Session):
-    session.close()
-
-
-def get_session(
-    background_tasks: BackgroundTasks,
-):
-    with SessionManager(get_session_maker()) as session:
-        background_tasks.add_task(close_session, session)
-        try:
-            yield session
-        finally:
-            session.close()
+def get_session():
+    logger.debug("Getting sync db session")
+    session_factory = get_session_maker()
+    with session_factory() as session:
+        logger.debug("Got sync db session")
+        yield session
+        logger.debug("Cleaning up sync db session")
 
 
 async def get_async_session() -> AsyncGenerator:

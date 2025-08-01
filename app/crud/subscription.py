@@ -30,7 +30,9 @@ class CRUDSubscription(
     def get_by_stripe_customer_id(
         self, db: Session, *, stripe_customer_id: str
     ) -> Optional[Subscription]:
-        q = select(Subscription).where(Subscription.stripe_customer_id == stripe_customer_id)
+        q = select(Subscription).where(
+            Subscription.stripe_customer_id == stripe_customer_id
+        )
         return db.execute(q).scalar_one_or_none()
 
     def get_by_checkout_session_id(

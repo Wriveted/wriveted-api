@@ -1,8 +1,9 @@
+import asyncio
 import base64
 import hashlib
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import and_, func, select, update
@@ -16,8 +17,10 @@ from app.models.cms import (
     ConversationSession,
     FlowConnection,
     FlowNode,
+    IdempotencyRecord,
     InteractionType,
     SessionStatus,
+    TaskExecutionStatus,
 )
 
 logger = get_logger()
@@ -26,7 +29,7 @@ logger = get_logger()
 class ChatRepository:
     """Repository for chat-related database operations with concurrency support."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
     async def get_session_by_token(
@@ -174,7 +177,7 @@ class ChatRepository:
 
     async def get_session_history(
         self, db: AsyncSession, *, session_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[ConversationHistory]:
+    ) -> list[ConversationHistory]:
         """Get conversation history for a session."""
         result = await db.scalars(
             select(ConversationHistory)
@@ -183,7 +186,7 @@ class ChatRepository:
             .offset(skip)
             .limit(limit)
         )
-        return result.all()
+        return list(result.all())
 
     async def get_flow_node(
         self, db: AsyncSession, *, flow_id: UUID, node_id: str
@@ -198,7 +201,7 @@ class ChatRepository:
 
     async def get_node_connections(
         self, db: AsyncSession, *, flow_id: UUID, source_node_id: str
-    ) -> List[FlowConnection]:
+    ) -> list[FlowConnection]:
         """Get all connections from a specific node."""
         result = await db.scalars(
             select(FlowConnection)
@@ -210,7 +213,7 @@ class ChatRepository:
             )
             .order_by(FlowConnection.connection_type)
         )
-        return result.all()
+        return list(result.all())
 
     async def get_active_sessions_count(
         self,
@@ -292,6 +295,103 @@ class ChatRepository:
             return False
 
         return True
+
+    async def get_session_by_id(
+        self, db: AsyncSession, session_id: UUID
+    ) -> Optional[ConversationSession]:
+        """Get session by ID with eager loading of relationships."""
+        result = await db.scalars(
+            select(ConversationSession)
+            .where(ConversationSession.id == session_id)
+            .options(
+                selectinload(ConversationSession.flow),
+                selectinload(ConversationSession.user),
+            )
+        )
+        return result.first()
+
+    async def acquire_idempotency_lock(
+        self,
+        db: AsyncSession,
+        idempotency_key: str,
+        session_id: UUID,
+        node_id: str,
+        session_revision: int,
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+        """
+        Atomically acquire idempotency lock or return existing result.
+
+        Returns:
+            (acquired, result_data) where:
+            - acquired=True means this is first execution, proceed with task
+            - acquired=False means task was already processed, result_data contains response
+        """
+        try:
+            record = IdempotencyRecord(
+                idempotency_key=idempotency_key,
+                status=TaskExecutionStatus.PROCESSING,
+                session_id=session_id,
+                node_id=node_id,
+                session_revision=session_revision,
+            )
+
+            db.add(record)
+            await db.commit()
+
+            return True, None
+
+        except IntegrityError:
+            await db.rollback()
+
+            result = await db.scalars(
+                select(IdempotencyRecord).where(
+                    IdempotencyRecord.idempotency_key == idempotency_key
+                )
+            )
+            existing = result.first()
+
+            if not existing:
+                await asyncio.sleep(0.1)
+                return await self.acquire_idempotency_lock(
+                    db, idempotency_key, session_id, node_id, session_revision
+                )
+
+            if existing.status == TaskExecutionStatus.PROCESSING:
+                for _ in range(30):
+                    await asyncio.sleep(1)
+                    await db.refresh(existing)
+                    if existing.status != TaskExecutionStatus.PROCESSING:
+                        break  # type: ignore[unreachable]
+
+            return False, {
+                "status": existing.status.value,
+                "result_data": existing.result_data,
+                "error_message": existing.error_message,
+                "idempotency_key": idempotency_key,
+            }
+
+    async def complete_idempotency_record(
+        self,
+        db: AsyncSession,
+        idempotency_key: str,
+        success: bool,
+        result_data: Optional[Dict[str, Any]] = None,
+        error_message: Optional[str] = None,
+    ) -> None:
+        """Mark idempotency record as completed."""
+        await db.execute(
+            update(IdempotencyRecord)
+            .where(IdempotencyRecord.idempotency_key == idempotency_key)
+            .values(
+                status=TaskExecutionStatus.COMPLETED
+                if success
+                else TaskExecutionStatus.FAILED,
+                result_data=result_data,
+                error_message=error_message,
+                completed_at=func.current_timestamp(),
+            )
+        )
+        await db.commit()
 
 
 # Create singleton instance
