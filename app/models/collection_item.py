@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -11,9 +11,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
+if TYPE_CHECKING:
+    from app.models.collection import Collection
+    from app.models.collection_item_activity import CollectionItemActivity
+    from app.models.edition import Edition
+    from app.models.work import Work
+
 
 class CollectionItem(Base):
-    __tablename__ = "collection_items"
+    __tablename__ = "collection_items"  # type: ignore[assignment]
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, nullable=False, autoincrement=True
@@ -32,8 +38,8 @@ class CollectionItem(Base):
         "Edition", lazy="joined", passive_deletes=True
     )
     # Proxy the work from the edition
-    work: Mapped[Optional["Work"]] = association_proxy("edition", "work")
-    work_id: Mapped[Optional[int]] = association_proxy("edition", "work_id")
+    work: Any = association_proxy("edition", "work")
+    work_id: Any = association_proxy("edition", "work_id")
 
     collection_id: Mapped[UUID] = mapped_column(
         ForeignKey(
@@ -59,7 +65,7 @@ class CollectionItem(Base):
         cascade="all, delete-orphan",
     )
 
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
+    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
 
     copies_total: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     copies_available: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -99,10 +105,10 @@ class CollectionItem(Base):
             else None
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<CollectionItem '{self.get_display_title()}' @ '{self.collection.name}' ({self.copies_available}/{self.copies_total} available)>"
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, str]]:
         """
         Defines who can do what to the CollectionItem instance.
         """

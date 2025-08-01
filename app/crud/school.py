@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, contains_eager, selectinload
+from sqlalchemy.orm import Session, selectinload
 from structlog import get_logger
 
 from app.crud import CRUDBase

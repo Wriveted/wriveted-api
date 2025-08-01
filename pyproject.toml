@@ -54,16 +54,23 @@ opentelemetry-instrumentation-vertexai = "^0.34"
 opentelemetry-propagator-gcp = "^1.6.0"
 opentelemetry-instrumentation-asyncpg = "^0.50b0"
 opentelemetry-instrumentation-psycopg2 = "^0.50b0"
+common-expression-language = "^0.3.1"
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8"
+pytest-cov = "^5.0.0"
 google-api-python-client = "^2.156"
 google-auth-httplib2 = "^0.2"
 google-auth-oauthlib = "^1.0"
 pre-commit = "^4.0"
 locust = "^2.32"
 rich = "^13.3.2"
+more-itertools = "^10.2.0"
+pytest-asyncio = "^0.23.7"
+ruff = "^0.4.10"
+mypy = "^1.16.0"
+types-setuptools = "^80.9.0.20250529"
 
 
 #[tool.poetry.group.ml.dependencies]
@@ -77,10 +84,6 @@ rich = "^13.3.2"
 
 
 
-[tool.poetry.group.dev.dependencies]
-more-itertools = "^10.2.0"
-pytest-asyncio = "^0.23.7"
-ruff = "^0.4.10"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

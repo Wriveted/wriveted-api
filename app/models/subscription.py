@@ -1,13 +1,20 @@
+import uuid
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.parent import Parent
+    from app.models.product import Product
+    from app.models.school import School
 
 
 class SubscriptionProvider(CaseInsensitiveStringEnum):
@@ -21,11 +28,11 @@ class SubscriptionType(CaseInsensitiveStringEnum):
 
 
 class Subscription(Base):
-    __tablename__ = "subscriptions"
+    __tablename__ = "subscriptions"  # type: ignore[assignment]
 
-    id = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
 
-    parent_id = mapped_column(
+    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "parents.id", name="fk_parent_stripe_subscription", ondelete="CASCADE"
@@ -33,9 +40,9 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    parent = relationship("Parent", back_populates="subscription")
+    parent: Mapped[Optional["Parent"]] = relationship("Parent", back_populates="subscription")
 
-    school_id = mapped_column(
+    school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "schools.wriveted_identifier",
@@ -45,44 +52,44 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    school = relationship("School", back_populates="subscription")
+    school: Mapped[Optional["School"]] = relationship("School", back_populates="subscription")
 
-    type = mapped_column(
+    type: Mapped[SubscriptionType] = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),
         nullable=False,
         default=SubscriptionType.FAMILY,
     )
-    stripe_customer_id = mapped_column(String, nullable=False, index=True)
+    stripe_customer_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
     # Note a subscription may be inactive (e.g. the user has cancelled)
     # but still have an expiration date in the future.
-    is_active = mapped_column(Boolean(), default=False)
-    expiration = mapped_column(
+    is_active: Mapped[bool] = mapped_column(Boolean(), default=False)
+    expiration: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
     )
-    product_id = mapped_column(
+    product_id: Mapped[str] = mapped_column(
         String,
         ForeignKey("products.id", name="fk_product_stripe_subscription"),
         nullable=False,
         index=True,
     )
-    product = relationship("Product", back_populates="subscriptions")
+    product: Mapped["Product"] = relationship("Product", back_populates="subscriptions")
 
-    created_at = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    info = mapped_column(MutableDict.as_mutable(JSONB))
-    provider = mapped_column(
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    provider: Mapped[SubscriptionProvider] = mapped_column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),
         nullable=False,
         default=SubscriptionProvider.STRIPE,
     )
 
-    latest_checkout_session_id = mapped_column(String, nullable=True, index=True)
+    latest_checkout_session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, Any]]:
         res = [
             (Allow, "role:admin", All),
         ]
@@ -95,5 +102,5 @@ class Subscription(Base):
 
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Subscription {self.id} - {self.type} - {self.product_id}>"

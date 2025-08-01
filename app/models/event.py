@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -11,6 +11,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.school import School
+    from app.models.service_account import ServiceAccount
+    from app.models.user import User
 
 
 class EventLevel(CaseInsensitiveStringEnum):
@@ -27,6 +32,7 @@ class EventSlackChannel(CaseInsensitiveStringEnum):
 
 
 class Event(Base):
+    __tablename__ = "events"  # type: ignore[assignment]
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), default=uuid.uuid4, primary_key=True
     )
@@ -35,12 +41,12 @@ class Event(Base):
     title: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
 
     # Any properties for the event
-    info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True  # type: ignore[arg-type]
     )
 
     @hybrid_property
-    def description(self):
+    def description(self) -> Optional[str]:
         return self.info.get("description") if self.info else None
 
     level: Mapped[EventLevel] = mapped_column(
@@ -85,10 +91,10 @@ class Event(Base):
         # Index("ix_events_info_work_id", "info", postgresql_where=info.has.is_not(None)),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Event {self.title} - {self.description}>"
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, Any]]:
         acl = [
             (Allow, "role:admin", All),
         ]

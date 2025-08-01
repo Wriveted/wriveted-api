@@ -1,11 +1,10 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
 from app.models.subscription import Subscription
-from app.models.user import User
 from app.schemas.subscription import SubscriptionCreateIn, SubscriptionUpdateIn
 
 
@@ -30,12 +29,8 @@ class CRUDSubscription(
 
     def get_by_stripe_customer_id(
         self, db: Session, *, stripe_customer_id: str
-    ) -> Subscription:
-        q = (
-            select(User)
-            .join(Subscription)
-            .where(Subscription.stripe_customer_id == stripe_customer_id)
-        )
+    ) -> Optional[Subscription]:
+        q = select(Subscription).where(Subscription.stripe_customer_id == stripe_customer_id)
         return db.execute(q).scalar_one_or_none()
 
     def get_by_checkout_session_id(

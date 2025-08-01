@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import Boolean, DateTime, Enum, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,6 +12,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.booklist import BookList
+    from app.models.collection import Collection
+    from app.models.event import Event
 
 
 class UserAccountType(CaseInsensitiveStringEnum):
@@ -57,14 +62,14 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=True)
 
     @hybrid_property
-    def phone(self):
+    def phone(self) -> Optional[str]:
         return self.info.get("phone") if self.info else None
 
     # overall "name" string, most likely provided by SSO
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    info: Mapped[Dict] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -105,7 +110,7 @@ class User(Base):
         lazy="dynamic",
     )
 
-    async def get_principals(self):
+    async def get_principals(self) -> List[str]:
         principals = [f"user:{self.id}"]
 
         # for association in await self.awaitable_attrs.supportee_associations:
@@ -114,7 +119,7 @@ class User(Base):
 
         return principals
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, Any]]:
         """defines who can do what to the instance
         the function returns a list containing tuples in the form of
         (Allow or Deny, principal identifier, permission name)

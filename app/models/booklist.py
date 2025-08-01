@@ -105,7 +105,7 @@ class BookList(Base):
         "User", back_populates="booklists", foreign_keys=[user_id], lazy="joined"
     )
 
-    service_account_id: Mapped[uuid.UUID] = mapped_column(
+    service_account_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey(
             "service_accounts.id",
             name="fk_booklist_service_account",
@@ -113,14 +113,14 @@ class BookList(Base):
         ),
         nullable=True,
     )
-    service_account: Mapped["ServiceAccount"] = relationship(
+    service_account: Mapped[Optional["ServiceAccount"]] = relationship(
         "ServiceAccount", back_populates="booklists", foreign_keys=[service_account_id]
     )
 
     def __repr__(self):
         return f"<BookList '{self.name}'  type={self.type} id={self.id}>"
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, str]]:
         """
         Defines who can do what to the BookList instance.
         """

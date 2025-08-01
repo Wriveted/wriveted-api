@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
 from sqlalchemy import Enum, Integer, String, desc, nulls_last, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
@@ -7,9 +9,15 @@ from app.db import Base
 from app.db.common_types import intpk
 from app.models.author_work_association import author_work_association_table
 from app.models.booklist_work_association import BookListItem
-from app.models.edition import Edition
 from app.models.series_works_association import series_works_association_table
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.author import Author
+    from app.models.booklist import BookList
+    from app.models.edition import Edition
+    from app.models.labelset import LabelSet
+    from app.models.series import Series
 
 
 class WorkType(CaseInsensitiveStringEnum):
@@ -18,32 +26,34 @@ class WorkType(CaseInsensitiveStringEnum):
 
 
 class Work(Base):
+    __tablename__ = "works"  # type: ignore[assignment]
+
     id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    type = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
+    type: Mapped[WorkType] = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
 
     # series_id = mapped_column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
 
     # TODO may want to look at a TSVector GIN index for decent full text search
-    title = mapped_column(String(512), nullable=False, index=True)
-    subtitle = mapped_column(String(512), nullable=True)
-    leading_article = mapped_column(String(20), nullable=True)
+    title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+    subtitle: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    leading_article: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     # TODO computed columns for display_title / sort_title
 
-    info = mapped_column(MutableDict.as_mutable(JSONB))
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
 
-    editions = relationship(
+    editions: Mapped[List["Edition"]] = relationship(
         "Edition",
         cascade="all, delete-orphan",
         order_by="desc(Edition.cover_url.is_not(None))",
     )
 
-    series = relationship(
+    series: Mapped[List["Series"]] = relationship(
         "Series", secondary=series_works_association_table, back_populates="works"
     )
 
-    booklists = relationship(
+    booklists: Mapped[List["BookList"]] = relationship(
         "BookList",
         secondary=BookListItem.__tablename__,
         back_populates="works",
@@ -53,7 +63,7 @@ class Work(Base):
     # TODO edition count
 
     # Handle Multiple Authors via a secondary association table
-    authors = relationship(
+    authors: Mapped[List["Author"]] = relationship(
         "Author",
         secondary=author_work_association_table,
         back_populates="books",
@@ -61,7 +71,7 @@ class Work(Base):
         lazy="selectin",
     )
 
-    labelset = relationship(
+    labelset: Mapped[Optional["LabelSet"]] = relationship(
         "LabelSet",
         uselist=False,
         back_populates="work",
@@ -75,12 +85,14 @@ class Work(Base):
             else self.title
         )
 
-    def get_feature_edition(self, session):
+    def get_feature_edition(self, session: Any) -> Optional["Edition"]:
         """
         Get the best edition to feature for this work.
         Looks for cover images first, then falls back to the most recent edition.
         """
-        return session.scalars(
+        from app.models.edition import Edition
+        
+        result = session.scalars(
             select(Edition)
             .where(Edition.work_id == self.id)
             .order_by(
@@ -88,14 +100,15 @@ class Work(Base):
             )
             .limit(1)
         ).first()
+        return result  # type: ignore[no-any-return]
 
-    def get_authors_string(self):
+    def get_authors_string(self) -> str:
         return ", ".join(map(str, self.authors))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Work id={self.id} - '{self.title}'>"
 
-    def get_dict(self, session):
+    def get_dict(self, session: Any) -> Dict[str, Any]:
         return {
             "id": self.id,
             "type": self.type,

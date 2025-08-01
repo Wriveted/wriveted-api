@@ -1,13 +1,18 @@
 import uuid
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.collection_item_activity import CollectionItemActivity
+    from app.models.parent import Parent
+    from app.models.supporter_reader_association import SupporterReaderAssociation
 
 
 class Reader(User):
@@ -49,11 +54,11 @@ class Reader(User):
     )
 
     # reading_ability, age, last_visited, etc
-    huey_attributes = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}
+    huey_attributes: Mapped[Optional[dict]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
     )
 
-    async def get_principals(self):
+    async def get_principals(self) -> List[str]:
         principals = await super().get_principals()
 
         principals.append("role:reader")
@@ -63,7 +68,7 @@ class Reader(User):
 
         return principals
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, str]]:
         acl = super().__acl__()
 
         acl.extend(

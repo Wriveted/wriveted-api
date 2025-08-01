@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -24,8 +24,16 @@ from app.models.illustrator_edition_association import (
     illustrator_edition_association_table,
 )
 
+if TYPE_CHECKING:
+    from app.models.author import Author
+    from app.models.collection import Collection
+    from app.models.illustrator import Illustrator
+    from app.models.work import Work
+
 
 class Edition(Base):
+    __tablename__ = "editions"  # type: ignore[assignment]
+
     id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     isbn: Mapped[str] = mapped_column(
@@ -62,10 +70,10 @@ class Edition(Base):
 
     # Info contains stuff like edition number, language
     # media (paperback/hardback/audiobook), number of pages.
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
 
     # Proxy the authors from the related work
-    authors: Mapped[List["Author"]] = association_proxy("work", "authors")
+    authors = association_proxy("work", "authors")
 
     hydrated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     hydrated: Mapped[bool] = mapped_column(
@@ -113,11 +121,11 @@ class Edition(Base):
 
     # this method and its equivalent expression need the same method name to work
     @hybrid_property
-    def num_collections(self):
+    def num_collections(self) -> int:
         return self.collections.count()
 
-    @num_collections.expression
-    def num_collections(self):
+    @num_collections.expression  # type: ignore[no-redef]
+    def num_collections(cls) -> Any:
         return (
             select(
                 [
@@ -126,11 +134,11 @@ class Edition(Base):
                     )
                 ]
             )
-            .where(CollectionItem.__table__.c.edition_isbn == self.isbn)
+            .where(CollectionItem.__table__.c.edition_isbn == cls.isbn)
             .label("total_collections")
         )
 
     # -------------------------------------------------------------------------------------------------------------------------
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Edition '{self.isbn}', {self.get_display_title()}>"

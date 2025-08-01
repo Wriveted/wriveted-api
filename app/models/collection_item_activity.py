@@ -1,11 +1,16 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, List
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.collection_item import CollectionItem
+    from app.models.reader import Reader
 
 
 class CollectionItemReadStatus(CaseInsensitiveStringEnum):
@@ -18,7 +23,7 @@ class CollectionItemReadStatus(CaseInsensitiveStringEnum):
 
 
 class CollectionItemActivity(Base):
-    __tablename__ = "collection_item_activity_log"
+    __tablename__ = "collection_item_activity_log"  # type: ignore[assignment]
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, nullable=False, autoincrement=True
@@ -66,8 +71,8 @@ class CollectionItemActivity(Base):
         reader_id,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<CollectionItemActivity '{self.reader.name}' marked the book '{self.collection_item.get_display_title()}' as '{self.status}'>"
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, Any]]:
         return self.collection_item.__acl__()

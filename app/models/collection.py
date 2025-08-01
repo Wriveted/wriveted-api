@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from fastapi_permissions import All, Allow
+from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import DateTime, ForeignKey, String, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
@@ -11,8 +11,13 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 from app.db import Base
 from app.models.collection_item import CollectionItem
 
+if TYPE_CHECKING:
+    from app.models.school import School
+    from app.models.user import User
+
 
 class Collection(Base):
+    __tablename__ = "collections"  # type: ignore[assignment]
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
@@ -59,7 +64,7 @@ class Collection(Base):
     )
     user: Mapped[Optional["User"]] = relationship("User", back_populates="collection")
 
-    info: Mapped[Optional[Dict]] = mapped_column(MutableDict.as_mutable(JSONB))
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
@@ -71,8 +76,8 @@ class Collection(Base):
         nullable=False,
     )
 
-    def __repr__(self):
-        def association_string():
+    def __repr__(self) -> str:
+        def association_string() -> str:
             output = ""
             if self.school:
                 output += f"school={self.school} "
@@ -82,7 +87,7 @@ class Collection(Base):
 
         return f"<Collection '{self.name}' {association_string()} count={self.book_count} id={self.id}>"
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, Any]]:
         """
         Defines who can do what to the Collection instance.
         """

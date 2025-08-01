@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import Computed, Integer, String, and_, func, select
 from sqlalchemy.dialects.postgresql import JSONB
@@ -7,7 +7,9 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.base_class import Base
 from app.models.author_work_association import author_work_association_table
-from app.models.work import Work
+
+if TYPE_CHECKING:
+    from app.models.work import Work
 
 
 class Author(Base):
@@ -49,10 +51,10 @@ class Author(Base):
         deferred=True,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Author id={self.id} - '{self.first_name} {self.last_name} '>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.first_name is not None:
             return f"{self.first_name} {self.last_name}"
         else:

@@ -1,7 +1,7 @@
 import uuid
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from fastapi_permissions import Allow
+from fastapi_permissions import Allow  # type: ignore[import-untyped]
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
@@ -9,6 +9,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.subscription import Subscription
 from app.models.user import User, UserAccountType
+
+if TYPE_CHECKING:
+    from app.models.reader import Reader
 
 
 class Parent(User):
@@ -29,7 +32,7 @@ class Parent(User):
 
     # misc
     parent_info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}
+        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
     )
 
     subscription: Mapped[Optional["Subscription"]] = relationship(
@@ -39,17 +42,17 @@ class Parent(User):
         cascade="all, delete-orphan",
     )
 
-    readers = relationship(
+    readers: Mapped[List["Reader"]] = relationship(
         "Reader",
         back_populates="parent",
         foreign_keys="Reader.parent_id",
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         active = "Active" if self.is_active else "Inactive"
         return f"<Parent {self.name} - {self.readers} - {active}>"
 
-    async def get_principals(self):
+    async def get_principals(self) -> List[str]:
         principals = await super().get_principals()
 
         for child in await self.awaitable_attrs.children:
@@ -57,7 +60,7 @@ class Parent(User):
 
         return principals
 
-    def __acl__(self):
+    def __acl__(self) -> List[tuple[Any, str, str]]:
         """defines who can do what to the instance
         the function returns a list containing tuples in the form of
         (Allow or Deny, principal identifier, permission name)
