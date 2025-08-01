@@ -1,4 +1,3 @@
-import asyncio
 import csv
 import os
 import random
@@ -14,7 +13,7 @@ from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.services.background_tasks import queue_background_task
-from app.services.booklists import generate_reading_pathway_lists
+from app.services.booklists import generate_reading_pathway_lists_sync
 from app.services.events import create_event
 from app.services.util import oxford_comma_join
 
@@ -41,14 +40,11 @@ def handle_user_creation(
                 child_data.parent_id = new_user.id
                 child = crud.user.create(db=session, obj_in=child_data, commit=True)
                 if generate_pathway_lists:
-
-                    async def async_gen_reading_pathway_lists():
-                        await generate_reading_pathway_lists(
-                            child.id,
-                            HueyAttributes.model_validate(child.huey_attributes),
-                        )
-
-                    asyncio.run(async_gen_reading_pathway_lists())
+                    # Queue booklist generation as a background task
+                    generate_reading_pathway_lists_sync(
+                        child.id,
+                        HueyAttributes.model_validate(child.huey_attributes),
+                    )
                 children.append(child)
 
         if user_data.email:

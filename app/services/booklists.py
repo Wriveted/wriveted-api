@@ -21,6 +21,7 @@ from app.schemas.booklist import (
 from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
 from app.schemas.users.huey_attributes import HueyAttributes
+from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
 from app.services.gcp_storage import (
     base64_string_to_bucket,
@@ -32,7 +33,7 @@ logger = get_logger()
 settings = get_settings()
 
 
-def generate_reading_pathway_lists(
+async def generate_reading_pathway_lists(
     user_id: str, attributes: HueyAttributes, limit: int = 100, commit: bool = True
 ):
     """
@@ -41,6 +42,7 @@ def generate_reading_pathway_lists(
     """
 
     from app import crud
+    from app.db.session import get_async_session_maker
 
     logger.info(
         "Creating reading pathway booklists for user",
@@ -49,8 +51,8 @@ def generate_reading_pathway_lists(
         limit=limit,
     )
 
-    Session = get_session_maker()
-    with Session() as session:
+    AsyncSessionMaker = get_async_session_maker()
+    async with AsyncSessionMaker() as session:
         try:
             current_reading_ability = attributes.reading_ability[0]
         except (ValueError, TypeError, IndexError):
@@ -62,7 +64,7 @@ def generate_reading_pathway_lists(
 
         # Get the read now list by generating 10 books via standard recommendation
         current_reading_ability_key = current_reading_ability.name
-        read_now_query = services.recommendations.get_recommended_labelset_query(
+        read_now_query = await services.recommendations.get_recommended_labelset_query(
             session,
             hues=attributes.hues,
             age=attributes.age,
@@ -73,14 +75,14 @@ def generate_reading_pathway_lists(
         next_reading_ability_key = services.recommendations.gen_next_reading_ability(
             current_reading_ability
         ).name
-        read_next_query = services.recommendations.get_recommended_labelset_query(
+        read_next_query = await services.recommendations.get_recommended_labelset_query(
             session,
             hues=attributes.hues,
             age=attributes.age,
             reading_abilities=[next_reading_ability_key],
         )
 
-        now_results = session.execute(read_now_query.limit(limit)).all()
+        now_results = (await session.execute(read_now_query.limit(limit))).all()
         items_to_read_now = [
             BookListItemCreateIn(
                 work_id=work.id,
@@ -98,7 +100,7 @@ def generate_reading_pathway_lists(
             info={"description": "A collection of books to enjoy today"},
         )
 
-        next_results = session.execute(read_next_query.limit(limit)).all()
+        next_results = (await session.execute(read_next_query.limit(limit))).all()
         items_to_read_next = [
             BookListItemCreateIn(
                 work_id=work.id,
@@ -118,18 +120,18 @@ def generate_reading_pathway_lists(
             },
         )
 
-        read_now_orm = crud.booklist.create(
+        read_now_orm = await crud.booklist.acreate(
             session, obj_in=read_now_booklist_data, commit=commit
         )
-        read_next_orm = crud.booklist.create(
+        read_next_orm = await crud.booklist.acreate(
             session, obj_in=read_next_booklist_data, commit=commit
         )
 
-        crud.event.create(
+        await crud.event.acreate(
             session,
             title="Created reading pathway lists",
             description="Created Books To Read Now and Books To Read Later",
-            account=crud.user.get(session, user_id),
+            account=await crud.user.aget(session, user_id),
             commit=commit,
             info={
                 "attributes": attributes.dict(),
@@ -139,6 +141,29 @@ def generate_reading_pathway_lists(
         )
 
         return read_now_orm, read_next_orm
+
+
+def generate_reading_pathway_lists_sync(
+    user_id: str, attributes: HueyAttributes, limit: int = 100
+):
+    """
+    Synchronous wrapper that queues reading pathway list generation as a background task.
+    Use this for synchronous contexts where async is not available.
+    """
+    logger.info(
+        "Queueing reading pathway booklist generation",
+        user_id=user_id,
+        attributes=attributes.dict(),
+        limit=limit,
+    )
+
+    payload = {
+        "user_id": user_id,
+        "attributes": attributes.dict(),
+        "limit": limit,
+    }
+
+    return queue_background_task("generate-reading-pathways", payload)
 
 
 def _handle_upload_booklist_feature_image(

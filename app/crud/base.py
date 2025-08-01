@@ -3,10 +3,10 @@ from typing import Any, Dict, Generic, List, Optional, Sequence, Type, TypeVar, 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import Select, delete, func, insert, select, Insert
+from sqlalchemy import Insert, Select, delete, func, insert, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Query, Session, aliased
 from structlog import get_logger
 
@@ -244,6 +244,13 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if obj is not None:
             db.delete(obj)
             db.commit()
+        return obj
+
+    async def aremove(self, db: AsyncSession, *, id: Any) -> ModelType:
+        obj = await self.aget(db=db, id=id)
+        if obj is not None:
+            db.delete(obj)
+            await db.commit()
         return obj
 
     def remove_multi(self, db: Session, *, ids: Query):

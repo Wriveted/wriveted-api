@@ -8,10 +8,11 @@ condition logic, action execution, webhook calls, and composite node handling.
 import json
 from typing import Any, Dict, Optional, Tuple
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
-from app.crud.chat_repo import ChatRepository
-from app.models.cms import ConversationSession
+from app.models.cms import ConversationSession, FlowNode
+from app.services.cel_evaluator import evaluate_cel_expression
 from app.services.circuit_breaker import get_circuit_breaker
 from app.services.variable_resolver import VariableResolver
 
@@ -26,53 +27,104 @@ class ConditionNodeProcessor:
     the next node to execute in the conversation flow.
     """
 
-    def __init__(self, chat_repo: ChatRepository):
-        self.chat_repo = chat_repo
-        self.variable_resolver = VariableResolver()
+    def __init__(self, runtime):
+        self.runtime = runtime
+        self.logger = logger
 
     async def process(
         self,
+        db: AsyncSession,
+        node: FlowNode,
         session: ConversationSession,
-        node_content: Dict[str, Any],
-        user_input: Optional[str] = None,
-    ) -> Tuple[Optional[str], Dict[str, Any]]:
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
         Process a condition node by evaluating conditions against session state.
 
         Args:
+            db: Database session
+            node: FlowNode with condition configuration
             session: Current conversation session
-            node_content: Node configuration with conditions
-            user_input: User input (not used for condition nodes)
+            context: Additional context data
 
         Returns:
-            Tuple of (next_node_id, response_data)
+            Dict with condition evaluation result and next node
         """
         try:
+            node_content = node.content or {}
             conditions = node_content.get("conditions", [])
-            else_node = node_content.get("else")
+            default_path = node_content.get("default_path")
 
             # Evaluate each condition in order
             for condition in conditions:
                 if await self._evaluate_condition(condition.get("if"), session.state):
-                    next_node = condition.get("then")
+                    target_path = condition.get("then")
                     logger.info(
-                        "Condition matched, transitioning to node",
+                        "Condition matched, transitioning to path",
                         session_id=session.id,
-                        next_node=next_node,
+                        target_path=target_path,
                         condition=condition.get("if"),
                     )
-                    return next_node, {
+
+                    # Map condition result to connection type
+                    connection_type = self._map_path_to_connection(target_path)
+                    next_connection = await self._get_next_connection(
+                        db, node, connection_type
+                    )
+
+                    next_node = None
+                    if next_connection:
+                        from app.crud.chat_repo import chat_repo
+
+                        next_node = await chat_repo.get_flow_node(
+                            db,
+                            flow_id=node.flow_id,
+                            node_id=next_connection.target_node_id,
+                        )
+
+                    # If we have a next node, process it automatically
+                    if next_node:
+                        return await self.runtime.process_node(db, next_node, session)
+
+                    return {
+                        "type": "condition",
                         "condition_result": True,
                         "matched_condition": condition.get("if"),
+                        "target_path": target_path,
+                        "next_node": next_node,
+                        "node_id": node.node_id,
                     }
 
-            # No conditions matched, use else path
+            # No conditions matched, use default path
             logger.info(
-                "No conditions matched, using else path",
+                "No conditions matched, using default path",
                 session_id=session.id,
-                else_node=else_node,
+                default_path=default_path,
             )
-            return else_node, {"condition_result": False, "used_else": True}
+
+            connection_type = self._map_path_to_connection(default_path)
+            next_connection = await self._get_next_connection(db, node, connection_type)
+
+            next_node = None
+            if next_connection:
+                from app.crud.chat_repo import chat_repo
+
+                next_node = await chat_repo.get_flow_node(
+                    db, flow_id=node.flow_id, node_id=next_connection.target_node_id
+                )
+
+            # If we have a next node, process it automatically
+            if next_node:
+                return await self.runtime.process_node(db, next_node, session)
+
+            return {
+                "type": "condition",
+                "condition_result": False,
+                "used_default": True,
+                "default_path": default_path,
+                "next_node": next_node,
+                "node_id": node.node_id,
+            }
 
         except Exception as e:
             logger.error(
@@ -81,18 +133,97 @@ class ConditionNodeProcessor:
                 error=str(e),
                 exc_info=True,
             )
-            return None, {"error": "Failed to evaluate conditions"}
+            return {"type": "error", "error": "Failed to evaluate conditions"}
+
+    def _map_path_to_connection(self, path: str):
+        """Map condition path to connection type."""
+        from app.models.cms import ConnectionType
+
+        if path == "option_0":
+            return ConnectionType.OPTION_0
+        elif path == "option_1":
+            return ConnectionType.OPTION_1
+        else:
+            return ConnectionType.DEFAULT
+
+    async def _get_next_connection(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        connection_type=None,
+    ):
+        """Get the next connection from current node."""
+        from app.crud.chat_repo import chat_repo
+        from app.models.cms import ConnectionType as CT
+
+        if connection_type is None:
+            connection_type = CT.DEFAULT
+
+        connections = await chat_repo.get_node_connections(
+            db, flow_id=node.flow_id, source_node_id=node.node_id
+        )
+
+        # Try to find specific connection type
+        for conn in connections:
+            if conn.connection_type == connection_type:
+                return conn
+
+        # Fall back to default if not found
+        if connection_type != CT.DEFAULT:
+            for conn in connections:
+                if conn.connection_type == CT.DEFAULT:
+                    return conn
+
+        return None
 
     async def _evaluate_condition(
-        self, condition: Dict[str, Any], session_state: Dict[str, Any]
+        self, condition: Dict[str, Any] | str, session_state: Dict[str, Any]
     ) -> bool:
         """
         Evaluate a single condition against session state.
 
-        Supports logical operators (and, or, not) and comparison operators
-        (eq, ne, gt, gte, lt, lte, in, contains).
+        Supports both CEL expressions (strings) and JSON-based conditions (dicts).
+
+        CEL Examples (recommended):
+        - "user.age >= 18"
+        - "user.age >= 18 && user.status == 'active'"
+        - "size(user.preferences) > 0"
+        - "user.role in ['admin', 'moderator']"
+        - "has(user.email) && user.email.endsWith('@company.com')"
+
+        JSON Examples (legacy, maintained for backward compatibility):
+        - {"var": "user.age", "gte": 18}
+        - {"and": [{"var": "user.age", "gte": 18}, {"var": "user.status", "eq": "active"}]}
+        - {"or": [{"var": "user.role", "eq": "admin"}, {"var": "user.role", "eq": "moderator"}]}
         """
         if not condition:
+            return False
+
+        # Handle CEL expressions (string conditions)
+        if isinstance(condition, str):
+            try:
+                result = evaluate_cel_expression(condition, session_state)
+                logger.debug(
+                    "CEL condition evaluated",
+                    expression=condition,
+                    result=result,
+                    session_state_keys=list(session_state.keys()),
+                )
+                return bool(result)
+            except Exception as e:
+                logger.error(
+                    "CEL condition evaluation failed, defaulting to False",
+                    expression=condition,
+                    error=str(e),
+                )
+                return False
+
+        # Handle JSON-based conditions (legacy format)
+        if not isinstance(condition, dict):
+            logger.warning(
+                "Invalid condition type, expected dict or str",
+                condition_type=type(condition),
+            )
             return False
 
         # Handle logical operators
@@ -161,7 +292,7 @@ class ActionNodeProcessor:
     proper idempotency and error handling for async execution.
     """
 
-    def __init__(self, chat_repo: ChatRepository):
+    def __init__(self, chat_repo):
         self.chat_repo = chat_repo
         self.variable_resolver = VariableResolver()
 
@@ -170,6 +301,7 @@ class ActionNodeProcessor:
         session: ConversationSession,
         node_content: Dict[str, Any],
         user_input: Optional[str] = None,
+        custom_resolver: Optional[VariableResolver] = None,
     ) -> Tuple[Optional[str], Dict[str, Any]]:
         """
         Process an action node by executing all specified actions.
@@ -178,6 +310,7 @@ class ActionNodeProcessor:
             session: Current conversation session
             node_content: Node configuration with actions
             user_input: User input (not used for action nodes)
+            custom_resolver: Optional custom variable resolver for composite nodes
 
         Returns:
             Tuple of (next_node_id, response_data)
@@ -196,7 +329,9 @@ class ActionNodeProcessor:
                 action_id = f"{idempotency_key}:{i}"
 
                 try:
-                    result = await self._execute_action(action, session, action_id)
+                    result = await self._execute_action(
+                        action, session, action_id, custom_resolver
+                    )
                     action_results.append(result)
 
                     # Update session state if action modified it
@@ -243,13 +378,17 @@ class ActionNodeProcessor:
             return "error", {"error": "Failed to process actions"}
 
     async def _execute_action(
-        self, action: Dict[str, Any], session: ConversationSession, action_id: str
+        self,
+        action: Dict[str, Any],
+        session: ConversationSession,
+        action_id: str,
+        custom_resolver: Optional[VariableResolver] = None,
     ) -> Dict[str, Any]:
         """Execute a single action and return results."""
         action_type = action.get("type")
 
         if action_type == "set_variable":
-            return await self._set_variable_action(action, session)
+            return await self._set_variable_action(action, session, custom_resolver)
         elif action_type == "api_call":
             return await self._api_call_action(action, session, action_id)
         elif action_type == "webhook":
@@ -258,7 +397,10 @@ class ActionNodeProcessor:
             raise ValueError(f"Unknown action type: {action_type}")
 
     async def _set_variable_action(
-        self, action: Dict[str, Any], session: ConversationSession
+        self,
+        action: Dict[str, Any],
+        session: ConversationSession,
+        custom_resolver: Optional[VariableResolver] = None,
     ) -> Dict[str, Any]:
         """Execute a set_variable action."""
         variable = action.get("variable")
@@ -267,11 +409,15 @@ class ActionNodeProcessor:
         if not variable:
             raise ValueError("set_variable action requires 'variable' field")
 
-        # Resolve value if it contains variable references
-        if isinstance(value, str):
+        # Resolve value if it contains variable references (handle both strings and complex objects)
+        if custom_resolver:
+            resolver = custom_resolver
+        else:
             from app.services.variable_resolver import create_session_resolver
 
             resolver = create_session_resolver(session.state)
+
+        if isinstance(value, str):
             resolved_value = resolver.substitute_variables(value)
             try:
                 # Try to parse as JSON if it looks like structured data
@@ -279,17 +425,38 @@ class ActionNodeProcessor:
                     resolved_value = json.loads(resolved_value)
             except json.JSONDecodeError:
                 pass  # Keep as string
+        elif isinstance(value, (dict, list)):
+            # Recursively resolve variables in complex objects
+            resolved_value = resolver.substitute_object(value)
         else:
             resolved_value = value
 
         # Set the variable in session state
         self._set_nested_value(session.state, variable, resolved_value)
 
+        # For composite scope variables, also provide structured state updates
+        state_updates = {}
+        if variable.startswith(("input.", "output.", "local.", "temp.")):
+            # Parse composite scope variable paths (e.g., "output.processed_name" -> scope="output", key="processed_name")
+            parts = variable.split(".", 1)
+            if len(parts) == 2:
+                scope, key = parts
+                if scope in [
+                    "output",
+                    "local",
+                    "temp",
+                ]:  # Don't update read-only input scope
+                    state_updates[variable] = resolved_value
+                    # Also provide the structured update for composite scope
+                    state_updates[f"_composite_scope_{scope}_{key}"] = resolved_value
+        else:
+            state_updates[variable] = resolved_value
+
         return {
             "type": "set_variable",
             "variable": variable,
             "value": resolved_value,
-            "state_updates": {variable: resolved_value},
+            "state_updates": state_updates,
         }
 
     async def _api_call_action(
@@ -381,7 +548,7 @@ class WebhookNodeProcessor:
     and response mapping for robust external integrations.
     """
 
-    def __init__(self, chat_repo: ChatRepository):
+    def __init__(self, chat_repo):
         self.chat_repo = chat_repo
         self.variable_resolver = VariableResolver()
 
@@ -546,7 +713,7 @@ class CompositeNodeProcessor:
     execution of child nodes with proper isolation.
     """
 
-    def __init__(self, chat_repo: ChatRepository):
+    def __init__(self, chat_repo):
         self.chat_repo = chat_repo
         self.variable_resolver = VariableResolver()
 
@@ -593,7 +760,24 @@ class CompositeNodeProcessor:
 
                     # Update composite scope with results
                     if result.get("state_updates"):
-                        composite_scope.update(result["state_updates"])
+                        for key, value in result["state_updates"].items():
+                            if key.startswith("_composite_scope_"):
+                                # Handle composite scope structured updates
+                                # Format: "_composite_scope_output_processed_name" -> scope="output", key="processed_name"
+                                # Remove the prefix "_composite_scope_" and split by first underscore
+                                remainder = key[
+                                    len("_composite_scope_") :
+                                ]  # "output_processed_name"
+                                parts = remainder.split(
+                                    "_", 1
+                                )  # ["output", "processed_name"]
+                                if len(parts) == 2:
+                                    scope, key_part = parts
+                                    if scope in composite_scope:
+                                        composite_scope[scope][key_part] = value
+                            else:
+                                # Handle regular state updates by setting them using dot notation
+                                self._set_nested_value(composite_scope, key, value)
 
                 except Exception as child_error:
                     logger.error(
@@ -603,6 +787,7 @@ class CompositeNodeProcessor:
                         error=str(child_error),
                         exc_info=True,
                     )
+                    # Return error in the expected format for the test
                     return "error", {
                         "error": f"Child node {i} failed: {str(child_error)}",
                         "execution_results": execution_results,
@@ -647,16 +832,22 @@ class CompositeNodeProcessor:
         # Map inputs to composite scope
         for input_name, input_source in inputs.items():
             try:
-                resolved_value = resolver.substitute_variables(
-                    f"{{{{{input_source}}}}}"
-                )
-                # Try to parse as JSON if it's a string that looks like structured data
-                if isinstance(resolved_value, str):
-                    try:
-                        if resolved_value.startswith(("{", "[")):
-                            resolved_value = json.loads(resolved_value)
-                    except json.JSONDecodeError:
-                        pass  # Keep as string
+                # Check if input_source is a direct reference to a session state key (e.g., "user", "context")
+                # without the dot notation, which means we want the entire object
+                if "." not in input_source and input_source in session.state:
+                    resolved_value = session.state[input_source]
+                else:
+                    # Use variable resolution for dot notation paths (e.g., "user.name")
+                    resolved_value = resolver.substitute_variables(
+                        f"{{{{{input_source}}}}}"
+                    )
+                    # Try to parse as JSON if it's a string that looks like structured data
+                    if isinstance(resolved_value, str):
+                        try:
+                            if resolved_value.startswith(("{", "[")):
+                                resolved_value = json.loads(resolved_value)
+                        except json.JSONDecodeError:
+                            pass  # Keep as string
 
                 composite_scope["input"][input_name] = resolved_value
 
@@ -691,10 +882,30 @@ class CompositeNodeProcessor:
         if node_type == "action":
             # Create a temporary action processor for the child node
             action_processor = ActionNodeProcessor(self.chat_repo)
-            action_processor.variable_resolver = temp_resolver
 
-            # Execute actions with composite scope
-            _, result = await action_processor.process(session, node_content)
+            # Execute actions with composite scope using the temp_resolver
+            next_node, result = await action_processor.process(
+                session, node_content, custom_resolver=temp_resolver
+            )
+
+            # Check if the action processor returned an error
+            if next_node == "error":
+                # Propagate the error up to the composite processor
+                raise Exception(result.get("error", "Unknown action processing error"))
+
+            # Extract state_updates from action_results and put them at the top level
+            consolidated_state_updates = {}
+            if "action_results" in result:
+                for action_result in result["action_results"]:
+                    if "state_updates" in action_result:
+                        consolidated_state_updates.update(
+                            action_result["state_updates"]
+                        )
+
+            # Add consolidated state_updates to the result
+            if consolidated_state_updates:
+                result["state_updates"] = consolidated_state_updates
+
             return result
 
         elif node_type == "condition":

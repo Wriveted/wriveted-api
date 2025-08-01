@@ -256,13 +256,14 @@ def _handle_invoice_paid(
             "stripe_subscription_id": stripe_subscription_id,
             "expiration": str(subscription.expiration),
         },
-        account=wriveted_user or school,
+        school=school,
+        account=wriveted_user,
     )
 
 
 def _handle_checkout_session_completed(
-    session, wriveted_user: User, school: School | None, event_data: dict
-) -> Subscription:
+    session, wriveted_user: Optional[User], school: School | None, event_data: dict
+) -> Optional[Subscription]:
     """
 
     # https://stripe.com/docs/api/checkout/sessions/object
@@ -348,7 +349,8 @@ def _handle_checkout_session_completed(
     subscription.latest_checkout_session_id = checkout_session_id
 
     # fetch from db instead of stripe object in case we have a product name override
-    product_name = crud.product.get(session, stripe_price_id).name
+    product = crud.product.get(session, stripe_price_id)
+    product_name = product.name if product else "Unknown Product"
 
     event = create_event(
         session=session,
@@ -364,7 +366,9 @@ def _handle_checkout_session_completed(
         },
         account=wriveted_user,
         slack_channel=(
-            None if "test" in checkout_session_id else EventSlackChannel.MEMBERSHIPS
+            None
+            if checkout_session_id and "test" in checkout_session_id
+            else EventSlackChannel.MEMBERSHIPS
         ),
         slack_extra={
             # "customer_name": stripe_customer.name,
@@ -406,10 +410,11 @@ def _handle_checkout_session_completed(
 
 
 def _handle_subscription_created(
-    session, wriveted_user: User, school: School | None, event_data: dict
+    session, wriveted_user: Optional[User], school: School | None, event_data: dict
 ):
     stripe_subscription_id = event_data.get("id")
     assert event_data.get("object") == "subscription"
+    assert stripe_subscription_id is not None, "Subscription ID is required"
 
     stripe_subscription_status = event_data["status"]
     stripe_subscription_expiry = event_data["current_period_end"]
@@ -442,7 +447,9 @@ def _handle_subscription_created(
         type=SubscriptionType.FAMILY if wriveted_parent_id else SubscriptionType.SCHOOL,
         is_active=stripe_subscription_status in {"active", "past_due"},
         product_id=stripe_price_id,
-        stripe_customer_id=event_data.get("customer"),
+        stripe_customer_id=str(event_data.get("customer"))
+        if event_data.get("customer")
+        else "",
         parent_id=wriveted_parent_id,
         school_id=str(school.wriveted_identifier) if school else None,
         expiration=stripe_subscription_expiry,
@@ -457,7 +464,7 @@ def _handle_subscription_created(
 
 
 def _handle_subscription_updated(
-    session, wriveted_user: User, school: School | None, event_data: dict
+    session, wriveted_user: Optional[User], school: School | None, event_data: dict
 ) -> Optional[Subscription]:
     stripe_subscription_id = event_data.get("id")
     assert event_data.get("object") == "subscription"
@@ -520,20 +527,20 @@ def _handle_subscription_updated(
         title="Subscription updated",
         description="Subscription updated on Stripe",
         info={
-            "product": product.name,
+            "product": product.name if product else "Unknown Product",
             "stripe_subscription_id": stripe_subscription_id,
             "product_id": stripe_price_id,
             "status": stripe_subscription_status,
         },
         school=school,
-        account=wriveted_user or school,
+        account=wriveted_user,
     )
 
     return subscription
 
 
 def _handle_subscription_cancelled(
-    session, wriveted_user: User, school: School | None, event_data: dict
+    session, wriveted_user: Optional[User], school: School | None, event_data: dict
 ):
     stripe_subscription_id = event_data.get("id")
     subscription = crud.subscription.get(session, id=stripe_subscription_id)
@@ -548,14 +555,15 @@ def _handle_subscription_cancelled(
         crud.event.create(
             session=session,
             title="Subscription cancelled",
-            description=f"User cancelled their subscription to {product.name}",
+            description=f"User cancelled their subscription to {product.name if product else 'Unknown Product'}",
             info={
                 "stripe_subscription_id": stripe_subscription_id,
-                "product_id": product.id,
-                "product_name": product.name,
+                "product_id": product.id if product else "unknown",
+                "product_name": product.name if product else "Unknown Product",
                 "cancellation_details": event_data.get("cancellation_reason", {}),
             },
-            account=wriveted_user or school,
+            school=school,
+            account=wriveted_user,
         )
     else:
         logger.info(
@@ -564,7 +572,9 @@ def _handle_subscription_cancelled(
         )
 
 
-def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> Product:
+def _sync_stripe_price_with_wriveted_product(
+    session, stripe_price_id: str
+) -> Optional[Product]:
     # Note multiple stripe events will all occur at essentially the same time.
     # We upsert into product table to avoid conflict
 
@@ -583,12 +593,16 @@ def _sync_stripe_price_with_wriveted_product(session, stripe_price_id: str) -> P
         logger.info(
             "Created new product in db",
             product_id=stripe_price_id,
-            product_name=wriveted_product.name,
+            product_name=wriveted_product.name
+            if wriveted_product
+            else "Unknown Product",
         )
     else:
         logger.debug(
             "Product already exists in db",
             product_id=stripe_price_id,
-            product_name=wriveted_product.name,
+            product_name=wriveted_product.name
+            if wriveted_product
+            else "Unknown Product",
         )
     return wriveted_product

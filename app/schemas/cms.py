@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
 from app.models.cms import (
     ConnectionType,
@@ -23,6 +23,13 @@ class ContentCreate(BaseModel):
     tags: Optional[List[str]] = []
     is_active: Optional[bool] = True
     status: Optional[ContentStatus] = ContentStatus.DRAFT
+
+    @field_validator("content")
+    @classmethod
+    def validate_content_not_empty(cls, v):
+        if not v:
+            raise ValueError("Content cannot be empty")
+        return v
 
 
 class ContentUpdate(BaseModel):
@@ -99,7 +106,9 @@ class VariantPerformanceUpdate(BaseModel):
 
 # Flow Schemas
 class FlowCreate(BaseModel):
-    name: str = Field(..., max_length=255)
+    name: str = Field(
+        ..., min_length=1, max_length=255, description="Flow name cannot be empty"
+    )
     description: Optional[str] = None
     version: str = Field(..., max_length=50)
     flow_data: Dict[str, Any]
@@ -108,7 +117,7 @@ class FlowCreate(BaseModel):
 
 
 class FlowUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=255)
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     version: Optional[str] = Field(None, max_length=50)
     flow_data: Optional[Dict[str, Any]] = None
