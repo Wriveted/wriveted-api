@@ -3,6 +3,8 @@ Chatbot-specific API integrations for Wriveted platform services.
 
 These endpoints provide simplified, chatbot-optimized interfaces to existing
 Wriveted services like recommendations, user profiles, and reading assessments.
+
+In Landbot days this was part of the flow.
 """
 
 from typing import Any, Dict, List, Optional, cast
@@ -10,12 +12,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import distinct, func, select
 from structlog import get_logger
 
 from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import get_current_active_user_or_service_account
-from app.models import Student
+from app.models import CollectionItem, Edition, Hue, LabelSet, Student, Work
+from app.models.collection_item_activity import (
+    CollectionItemActivity,
+    CollectionItemReadStatus,
+)
+from app.models.labelset_hue_association import LabelSetHue
 
 # from app.schemas.recommendations import ReadingAbilityKey  # Future use for reading level mapping
 from app.services.recommendations import get_recommended_labelset_query
@@ -374,12 +382,74 @@ async def get_user_profile(
                     else None
                 )
 
-        # Get reading statistics (simplified implementation)
-        # In a full implementation, these would query actual user activity tables
-        profile.books_read_count = 0  # Would count from reading_activity table
-        profile.favorite_genres = []  # Would analyze reading history for preferences
-        profile.reading_history = []  # Would get recent books from activity
-        profile.interests = []  # Would get from user preferences or analysis
+        # Get reading statistics.
+        # Populate books_read_count
+        books_read_count_query = select(
+            func.count(distinct(CollectionItemActivity.collection_item_id))
+        ).where(
+            CollectionItemActivity.reader_id == user_id,
+            CollectionItemActivity.status == CollectionItemReadStatus.READ,
+        )
+        profile.books_read_count = (await db.scalar(books_read_count_query)) or 0
+
+        # Populate reading_history
+        reading_history_query = (
+            select(
+                Work.title,
+                Work.primary_author_name,
+                Edition.isbn,
+                Edition.cover_url,
+                CollectionItemActivity.timestamp,
+            )
+            .join(
+                CollectionItem,
+                CollectionItemActivity.collection_item_id == CollectionItem.id,
+            )
+            .join(Edition, CollectionItem.edition_id == Edition.id)
+            .join(Work, Edition.work_id == Work.id)
+            .where(CollectionItemActivity.reader_id == user_id)
+            .order_by(CollectionItemActivity.timestamp.desc())
+            .limit(10)  # Limit to 10 most recent books
+        )
+        recent_activities = (await db.execute(reading_history_query)).all()
+
+        profile.reading_history = []
+        for title, author, isbn, cover_url, timestamp in recent_activities:
+            profile.reading_history.append(
+                {
+                    "title": title,
+                    "author": author,
+                    "isbn": isbn,
+                    "cover_url": cover_url,
+                    "last_activity_at": timestamp.isoformat(),
+                }
+            )
+
+        # Populate favorite_genres and interests
+        favorite_genres_query = (
+            select(Hue.name, func.count(Hue.name).label("genre_count"))
+            .join(LabelSetHue, Hue.id == LabelSetHue.hue_id)
+            .join(LabelSet, LabelSetHue.labelset_id == LabelSet.id)
+            .join(Work, LabelSet.work_id == Work.id)
+            .join(Edition, Work.id == Edition.work_id)
+            .join(CollectionItem, Edition.id == CollectionItem.edition_id)
+            .join(
+                CollectionItemActivity,
+                CollectionItem.id == CollectionItemActivity.collection_item_id,
+            )
+            .where(
+                CollectionItemActivity.reader_id == user_id,
+                CollectionItemActivity.status == CollectionItemReadStatus.READ,
+            )
+            .group_by(Hue.name)
+            .order_by(func.count(Hue.name).desc())
+            .limit(5)
+        )
+        favorite_genres_results = (await db.execute(favorite_genres_query)).all()
+        profile.favorite_genres = [genre for genre, count in favorite_genres_results]
+        profile.interests = (
+            profile.favorite_genres
+        )  # For now, interests are derived from favorite genres
 
         return profile
 
@@ -509,11 +579,3 @@ def _get_next_steps(reading_level: str, score: float) -> List[str]:
         next_steps.append("Ask questions about what you read")
 
     return next_steps
-
-
-# TODO: Future implementation for user data queries
-# These functions would be implemented to query actual user activity:
-# - _get_books_read_count: Count from reading_activity table
-# - _get_favorite_genres: Analyze reading history for preferences
-# - _get_recent_reading_history: Get recent books from activity
-# - _get_user_interests: Get from user preferences or behavioral analysis

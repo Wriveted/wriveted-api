@@ -34,7 +34,8 @@ router = APIRouter()
 
 
 @router.get("/version", response_model=Version)
-async def get_version(session: Session = Depends(get_session)):
+def get_version(session: Session = Depends(get_session)):
+    # Alembic MigrationContext requires a sync connection
     database_context = MigrationContext.configure(session.connection())
     current_db_rev = database_context.get_current_revision()
 

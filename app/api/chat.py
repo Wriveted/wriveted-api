@@ -21,8 +21,14 @@ from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.csrf import CSRFProtected
-from app.api.dependencies.security import get_current_active_user
+from app.api.dependencies.security import (
+    get_current_active_superuser_or_backend_service_account,
+    get_current_active_user,
+    get_optional_user,
+)
 from app.crud.chat_repo import chat_repo
+from app.crud.cms import CRUDConversationSession
+from app.models import User
 from app.models.cms import SessionStatus
 from app.schemas.cms import (
     ConversationHistoryResponse,
@@ -48,11 +54,10 @@ router = APIRouter(
     "/start", response_model=SessionStartResponse, status_code=status.HTTP_201_CREATED
 )
 async def start_conversation(
-    request: Request,
     response: Response,
     session: DBSessionDep,
     session_data: SessionCreate = Body(...),
-    # current_user=Security(get_optional_current_user),  # TODO: Implement optional auth
+    current_user: Optional[User] = Security(get_optional_user),
 ):
     """Start a new conversation session."""
 
@@ -60,11 +65,14 @@ async def start_conversation(
     session_token = secrets.token_urlsafe(32)
 
     try:
+        # Determine user_id for the session
+        user_id_for_session = current_user.id if current_user else session_data.user_id
+
         # Create session using runtime
         conversation_session = await chat_runtime.start_session(
             session,
             flow_id=session_data.flow_id,
-            user_id=session_data.user_id,  # TODO: Add optional current_user.id
+            user_id=user_id_for_session,
             session_token=session_token,
             initial_state=session_data.initial_state,
         )
@@ -333,7 +341,10 @@ async def update_session_state(
 
 
 # Admin endpoints for session management
-@router.get("/admin/sessions", dependencies=[Security(get_current_active_user)])
+@router.get(
+    "/admin/sessions",
+    dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
 async def list_sessions(
     session: DBSessionDep,
     user_id: Optional[UUID] = Query(None, description="Filter by user ID"),
@@ -380,6 +391,7 @@ async def delete_session(
         )
 
     # This will cascade delete the history due to foreign key constraints
-    await crud.conversation_session.aremove(session, id=session_id)
+    conversation_crud: CRUDConversationSession = crud.conversation_session  # type: ignore
+    await conversation_crud.aremove(session, id=session_id)
 
     logger.info("Deleted conversation session", session_id=session_id)

@@ -108,60 +108,6 @@ async def list_content(
     )
 
 
-@router.get("/content/{content_type}", response_model=ContentResponse, deprecated=True)
-async def get_cms_content_by_type(
-    session: DBSessionDep,
-    content_type: ContentType = Path(description="What type of content to return"),
-    query: str | None = Query(
-        None, description="A query string to match against content"
-    ),
-    jsonpath_match: str = Query(
-        None,
-        description="Filter using a JSONPath over the content. The resulting value must be a boolean expression.",
-    ),
-    pagination: PaginatedQueryParams = Depends(),
-):
-    """
-    DEPRECATED: Get a filtered and paginated list of content by content type.
-
-    Use GET /content with content_type query parameter instead.
-    This endpoint will be removed in a future version.
-    """
-    logger.warning(
-        "DEPRECATED endpoint accessed",
-        endpoint="GET /content/{content_type}",
-        replacement="GET /content?content_type=...",
-        content_type=content_type,
-    )
-
-    try:
-        data = await crud.content.aget_all_with_optional_filters(
-            session,
-            content_type=content_type,
-            search=query,
-            jsonpath_match=jsonpath_match,
-            skip=pagination.skip,
-            limit=pagination.limit,
-        )
-        logger.info(
-            "Retrieved digital content",
-            content_type=content_type,
-            query=query,
-            data=data,
-            jsonpath_match=jsonpath_match,
-            skip=pagination.skip,
-            limit=pagination.limit,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from e
-
-    return ContentResponse(
-        pagination=Pagination(**pagination.to_dict(), total=None), data=data
-    )
-
-
 @router.get("/content/{content_id}", response_model=ContentDetail)
 async def get_content(
     session: DBSessionDep,
