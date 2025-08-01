@@ -1,7 +1,10 @@
+import uuid
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.educator import Educator
 from app.models.user import UserAccountType
@@ -15,7 +18,7 @@ class SchoolAdmin(Educator):
 
     __tablename__ = "school_admins"
 
-    id = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "educators.id", name="fk_school_admin_inherits_educator", ondelete="CASCADE"
@@ -26,15 +29,15 @@ class SchoolAdmin(Educator):
     __mapper_args__ = {"polymorphic_identity": UserAccountType.SCHOOL_ADMIN}
 
     # class_history? other misc
-    school_admin_info = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}
+    school_admin_info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         active = "Active" if self.is_active else "Inactive"
         return f"<School Admin {self.name} - {self.school} - {active}>"
 
-    async def get_principals(self):
+    async def get_principals(self) -> List[str]:
         principals = await super().get_principals()
         principals.append(f"schooladmin:{self.school_id}")
         return principals

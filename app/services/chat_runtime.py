@@ -1,4 +1,3 @@
-import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, cast
@@ -495,7 +494,8 @@ class ChatRuntime:
                 db, session_id=session.id, status=SessionStatus.COMPLETED
             )
 
-        return result
+        # Serialize any FlowNode objects in the result
+        return self._serialize_node_result(result)
 
     async def get_initial_node(
         self, db: AsyncSession, flow_id: UUID, session: ConversationSession
@@ -510,9 +510,45 @@ class ChatRuntime:
         )
 
         if entry_node:
-            return await self.process_node(db, entry_node, session)
+            result = await self.process_node(db, entry_node, session)
+            # Ensure any FlowNode objects are serialized
+            return self._serialize_node_result(result)
 
         return None
+
+    def _serialize_node_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize node processing result, converting FlowNode objects to dicts."""
+        if result is None:
+            return None
+
+        serialized = result.copy()
+
+        # Convert FlowNode objects to dictionaries
+        for key, value in result.items():
+            if isinstance(value, FlowNode):
+                serialized[key] = self._flow_node_to_dict(value)
+            elif isinstance(value, list):
+                serialized[key] = [
+                    self._flow_node_to_dict(item)
+                    if isinstance(item, FlowNode)
+                    else item
+                    for item in value
+                ]
+            elif isinstance(value, dict):
+                serialized[key] = self._serialize_node_result(value)
+
+        return serialized
+
+    def _flow_node_to_dict(self, node: FlowNode) -> Dict[str, Any]:
+        """Convert FlowNode to dictionary for API serialization."""
+        return {
+            "id": str(node.id),
+            "node_id": node.node_id,
+            "node_type": node.node_type.value,
+            "content": node.content,
+            "position": node.position,
+            "meta_data": node.meta_data,
+        }
 
     def substitute_variables(
         self,

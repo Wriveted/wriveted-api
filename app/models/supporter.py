@@ -1,4 +1,5 @@
 import uuid
+from typing import Dict, Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -22,10 +23,10 @@ class Supporter(User):
     __mapper_args__ = {"polymorphic_identity": UserAccountType.SUPPORTER}
 
     # misc
-    supporter_info = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}
+    supporter_info: Mapped[Optional[Dict]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         active = "Active" if self.is_active else "Inactive"
         return f"<Supporter {self.name} - {active}>"

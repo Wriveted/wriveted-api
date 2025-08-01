@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -20,6 +21,10 @@ from app.models.hue import Hue
 from app.models.labelset_hue_association import LabelSetHue, Ordinal
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.reading_ability import ReadingAbility
+    from app.models.work import Work
 
 
 class RecommendStatus(CaseInsensitiveStringEnum):
@@ -49,12 +54,12 @@ class LabelOrigin(CaseInsensitiveStringEnum):
 # this is what Huey will look at when making recommendations, and the fields can sometimes be computed
 # by combining data from editions' metdata.
 class LabelSet(Base):
-    id = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    work_id = mapped_column(
+    work_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("works.id", name="fk_labelset_work"), nullable=True, index=True
     )
-    work = relationship("Work", back_populates="labelset")
+    work: Mapped[Optional["Work"]] = relationship("Work", back_populates="labelset")
 
     # Create an index used to find the most recent labelsets for a work
     Index(
@@ -65,27 +70,27 @@ class LabelSet(Base):
 
     # Handle Multiple Hues via a secondary association table,
     # discerned via an 'ordinal' (primary/secondary/tertiary)
-    hues = relationship(
+    hues: Mapped[List["Hue"]] = relationship(
         "Hue",
         secondary=LabelSetHue.__table__,
         lazy="selectin",
     )
 
-    hue_origin = mapped_column(Enum(LabelOrigin), nullable=True)
+    hue_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    huey_summary = mapped_column(Text, nullable=True)
-    summary_origin = mapped_column(Enum(LabelOrigin), nullable=True)
+    huey_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summary_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    reading_abilities = relationship(
+    reading_abilities: Mapped[List["ReadingAbility"]] = relationship(
         "ReadingAbility",
         secondary=LabelSetReadingAbility.__table__,
         back_populates="labelsets",
         lazy="selectin",
     )
-    reading_ability_origin = mapped_column(Enum(LabelOrigin), nullable=True)
+    reading_ability_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    min_age = mapped_column(Integer, nullable=True)
-    max_age = mapped_column(Integer, nullable=True)
+    min_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     Index(
         "index_age_range",
         min_age,
@@ -93,9 +98,9 @@ class LabelSet(Base):
         postgresql_where=and_(min_age.is_not(None), max_age.is_not(None)),
     )
 
-    age_origin = mapped_column(Enum(LabelOrigin), nullable=True)
+    age_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
 
-    recommend_status = mapped_column(
+    recommend_status: Mapped[RecommendStatus] = mapped_column(
         Enum(RecommendStatus), nullable=False, server_default="GOOD"
     )
     Index(
@@ -104,17 +109,17 @@ class LabelSet(Base):
         postgresql_where=(recommend_status == RecommendStatus.GOOD),
     )
 
-    recommend_status_origin = mapped_column(Enum(LabelOrigin), nullable=True)
+    recommend_status_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
 
     # both service accounts and users could potentially label works
-    labelled_by_user_id = mapped_column(
+    labelled_by_user_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", name="fk_labeller-user_labelset"), nullable=True
     )
-    labelled_by_sa_id = mapped_column(
+    labelled_by_sa_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("service_accounts.id", name="fk_labeller-sa_labelset"), nullable=True
     )
 
-    info: Mapped[dict | None] = mapped_column(MutableDict.as_mutable(JSONB))
+    info: Mapped[Optional[dict]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -130,8 +135,8 @@ class LabelSet(Base):
         nullable=False,
     )
 
-    checked: Mapped[bool] = mapped_column(Boolean(), nullable=True)
-    checked_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    checked: Mapped[Optional[bool]] = mapped_column(Boolean(), nullable=True)
+    checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Partial covering indexes for labeller foreign relations
     __table_args__ = (
@@ -147,15 +152,17 @@ class LabelSet(Base):
         ),
     )
 
-    def __repr__(self):
-        return f"<LabelSet id={self.id} - '{self.work.title}' ages: {self.min_age}-{self.max_age} >"
+    def __repr__(self) -> str:
+        work_title = self.work.title if self.work else "No Work"
+        return f"<LabelSet id={self.id} - '{work_title}' ages: {self.min_age}-{self.max_age} >"
 
-    def __str__(self):
+    def __str__(self) -> str:
         hues = [h.name for h in self.hues]
         reading_abilities = [ra.key for ra in self.reading_abilities]
-        return f"'{self.work.title}' reading ability: {reading_abilities} ages: {self.min_age}-{self.max_age} Hues: {hues}"
+        work_title = self.work.title if self.work else "No Work"
+        return f"'{work_title}' reading ability: {reading_abilities} ages: {self.min_age}-{self.max_age} Hues: {hues}"
 
-    def get_label_dict(self, session):
+    def get_label_dict(self, session: Any) -> Dict[str, Any]:
         label_dict = {}
 
         for hue, ordinal in (

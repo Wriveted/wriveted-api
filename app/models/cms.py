@@ -19,10 +19,8 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import TypeDecorator
 
 from app.db import Base
 from app.schemas import CaseInsensitiveStringEnum
@@ -61,6 +59,12 @@ class InteractionType(CaseInsensitiveStringEnum):
     MESSAGE = "message"
     INPUT = "input"
     ACTION = "action"
+
+
+class TaskExecutionStatus(CaseInsensitiveStringEnum):
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class SessionStatus(CaseInsensitiveStringEnum):
@@ -623,7 +627,7 @@ class ConversationAnalytics(Base):
 
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
-    metrics: Mapped[dict] = mapped_column(
+    metrics: Mapped[Dict[str, Any]] = mapped_column(
         MutableDict.as_mutable(JSONB),
         nullable=False,  # type: ignore[arg-type]
     )
@@ -645,3 +649,49 @@ class ConversationAnalytics(Base):
 
     def __repr__(self) -> str:
         return f"<ConversationAnalytics {self.flow_id} {self.node_id} {self.date}>"
+
+
+class IdempotencyRecord(Base):
+    __tablename__ = "task_idempotency_records"  # type: ignore[assignment]
+
+    idempotency_key: Mapped[str] = mapped_column(
+        String(255), primary_key=True, index=True
+    )
+
+    status: Mapped[TaskExecutionStatus] = mapped_column(
+        Enum(TaskExecutionStatus, name="enum_task_execution_status"),
+        nullable=False,
+        server_default=text("'PROCESSING'"),
+        index=True,
+    )
+
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+
+    node_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    session_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    result_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        server_default=text("NULL"),
+    )
+
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
+
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP + INTERVAL '24 hours')"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<IdempotencyRecord {self.idempotency_key} {self.status}>"
