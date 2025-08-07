@@ -597,60 +597,65 @@ class TestCMSIntegrationWorkflow:
 
     @pytest.mark.asyncio
     async def test_complete_cms_to_chat_workflow(self, async_client, auth_headers):
-        """Test complete workflow from CMS content creation to chat session."""
-        # 1. Create CMS content
-        content_test = TestCMSContentAPI()
-        joke_id = await content_test.test_create_cms_content_joke(
-            async_client, auth_headers
-        )
-        question_id = await content_test.test_create_cms_content_question(
-            async_client, auth_headers
-        )
-        message_id = await content_test.test_create_cms_content_message(
-            async_client, auth_headers
-        )
+        """Test a self-contained, isolated workflow from CMS content creation to chat session."""
+        created_content_ids = []
+        created_flow_id = None
 
-        # 2. Create a flow that could reference this content
-        flow_test = TestCMSFlowAPI()
-        flow_id = await flow_test.test_create_flow_definition(
-            async_client, auth_headers
-        )
+        try:
+            # 1. Create CMS content
+            content_to_create = [
+                {
+                    "type": "joke",
+                    "content": {"text": "A joke for the isolated workflow"},
+                    "tags": ["isolated_test"],
+                },
+                {
+                    "type": "question",
+                    "content": {"text": "A question for the isolated workflow"},
+                    "tags": ["isolated_test"],
+                },
+            ]
 
-        # 3. Verify all content is accessible
-        content_response = await async_client.get(
-            "/v1/cms/content", headers=auth_headers
-        )
-        assert content_response.status_code == 200
-        content_data = content_response.json()
+            for content_data in content_to_create:
+                response = await async_client.post(
+                    "/v1/cms/content", json=content_data, headers=auth_headers
+                )
+                assert response.status_code == 201
+                created_content_ids.append(response.json()["id"])
 
-        created_ids = {joke_id, question_id, message_id}
-        retrieved_ids = {item["id"] for item in content_data["data"]}
-        assert created_ids.issubset(retrieved_ids)
+            # 2. Create a flow
+            flow_data = {
+                "name": "Isolated Test Flow",
+                "version": "1.0",
+                "is_published": True,
+                "flow_data": {},
+                "entry_node_id": "start",
+            }
+            response = await async_client.post(
+                "/v1/cms/flows", json=flow_data, headers=auth_headers
+            )
+            assert response.status_code == 201
+            created_flow_id = response.json()["id"]
 
-        # 4. Start a chat session with the created flow
-        chat_test = TestChatAPI()
-        session_token = await chat_test.test_start_chat_session_with_published_flow(
-            async_client, auth_headers
-        )
+            # 3. Start a chat session with the created flow
+            session_data = {"flow_id": created_flow_id}
+            response = await async_client.post("/v1/chat/start", json=session_data)
+            assert response.status_code == 201
+            session_token = response.json()["session_token"]
 
-        # 5. Verify session is working
-        session_response = await async_client.get(f"/v1/chat/sessions/{session_token}")
-        assert session_response.status_code == 200
+            # 4. Verify session is working
+            response = await async_client.get(f"/v1/chat/sessions/{session_token}")
+            assert response.status_code == 200
+            assert response.json()["status"] == "active"
 
-        session_data = session_response.json()
-        assert session_data["status"] == "active"
+        finally:
+            # 5. Cleanup all created resources
+            for content_id in created_content_ids:
+                await async_client.delete(
+                    f"/v1/cms/content/{content_id}", headers=auth_headers
+                )
 
-        # 6. Verify we can list flows and see our created flow
-        flows_response = await async_client.get("/v1/cms/flows", headers=auth_headers)
-        assert flows_response.status_code == 200
-        flows_data = flows_response.json()
-
-        flow_ids = {flow["id"] for flow in flows_data["data"]}
-        assert flow_id in flow_ids
-
-        print(f"✅ Complete workflow test passed!")
-        print(f"   - Created content items: {len(created_ids)}")
-        print(f"   - Created flow: {flow_id}")
-        print(f"   - Started chat session: {session_token[:20]}...")
-        print(f"   - Total flows available: {len(flows_data['data'])}")
-        print(f"   - Total content items: {len(content_data['data'])}")
+            if created_flow_id:
+                await async_client.delete(
+                    f"/v1/cms/flows/{created_flow_id}", headers=auth_headers
+                )

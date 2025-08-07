@@ -26,7 +26,7 @@ class TestChatAPIScenarios:
     async def sample_bookbot_flow(self, async_session):
         """Create a sample BOOKBOT-like flow for testing."""
         flow_id = uuid4()
-        
+
         # Create flow definition
         flow = FlowDefinition(
             id=flow_id,
@@ -47,7 +47,7 @@ class TestChatAPIScenarios:
                 "messages": [
                     {
                         "type": "text",
-                        "content": "Hello! I'm BookBot. I help you discover amazing books! 📚"
+                        "content": "Hello! I'm BookBot. I help you discover amazing books! 📚",
                     }
                 ]
             },
@@ -62,7 +62,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "How old are you?",
                 "input_type": "text",
-                "variable": "user_age"
+                "variable": "user_age",
             },
             is_active=True,
         )
@@ -76,7 +76,7 @@ class TestChatAPIScenarios:
                 "question": "What's your reading level?",
                 "input_type": "choice",
                 "options": ["Beginner", "Intermediate", "Advanced"],
-                "variable": "reading_level"
+                "variable": "reading_level",
             },
             is_active=True,
         )
@@ -89,7 +89,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "What kind of books do you like?",
                 "input_type": "text",
-                "variable": "book_preference"
+                "variable": "book_preference",
             },
             is_active=True,
         )
@@ -103,7 +103,7 @@ class TestChatAPIScenarios:
                 "messages": [
                     {
                         "type": "text",
-                        "content": "Great! Based on your preferences (age: {{temp.user_age}}, level: {{temp.reading_level}}, genre: {{temp.book_preference}}), here are some book recommendations!"
+                        "content": "Great! Based on your preferences (age: {{temp.user_age}}, level: {{temp.reading_level}}, genre: {{temp.book_preference}}), here are some book recommendations!",
                     }
                 ]
             },
@@ -182,9 +182,172 @@ class TestChatAPIScenarios:
         await async_session.commit()
         return flow_id
 
+    async def _create_unique_flow(self, async_session, flow_name: str):
+        """Helper to create a unique, BOOKBOT-like flow for isolated testing."""
+        flow_id = uuid4()
+
+        # Create flow definition
+        flow = FlowDefinition(
+            id=flow_id,
+            name=flow_name,
+            version="1.0",
+            flow_data={},
+            entry_node_id="welcome",
+            is_published=True,
+            is_active=True,
+        )
+        async_session.add(flow)
+
+        # Create welcome message content
+        welcome_content = CMSContent(
+            id=uuid4(),
+            type=ContentType.MESSAGE,
+            content={
+                "messages": [
+                    {
+                        "type": "text",
+                        "content": f"Hello! I'm BookBot. I help you discover amazing books! 📚",
+                    }
+                ]
+            },
+            is_active=True,
+        )
+        async_session.add(welcome_content)
+
+        # Create question content for age
+        age_question_content = CMSContent(
+            id=uuid4(),
+            type=ContentType.QUESTION,
+            content={
+                "question": "How old are you?",
+                "input_type": "text",
+                "variable": "user_age",
+            },
+            is_active=True,
+        )
+        async_session.add(age_question_content)
+
+        # Create question content for reading level
+        reading_level_content = CMSContent(
+            id=uuid4(),
+            type=ContentType.QUESTION,
+            content={
+                "question": "What's your reading level?",
+                "input_type": "choice",
+                "options": ["Beginner", "Intermediate", "Advanced"],
+                "variable": "reading_level",
+            },
+            is_active=True,
+        )
+        async_session.add(reading_level_content)
+
+        # Create preference question
+        preference_content = CMSContent(
+            id=uuid4(),
+            type=ContentType.QUESTION,
+            content={
+                "question": "What kind of books do you like?",
+                "input_type": "text",
+                "variable": "book_preference",
+            },
+            is_active=True,
+        )
+        async_session.add(preference_content)
+
+        # Create recommendation message
+        recommendation_content = CMSContent(
+            id=uuid4(),
+            type=ContentType.MESSAGE,
+            content={
+                "messages": [
+                    {
+                        "type": "text",
+                        "content": "Great! Based on your preferences (age: {{temp.user_age}}, level: {{temp.reading_level}}, genre: {{temp.book_preference}}), here are some book recommendations!",
+                    }
+                ]
+            },
+            is_active=True,
+        )
+        async_session.add(recommendation_content)
+
+        # Create flow nodes
+        nodes = [
+            FlowNode(
+                flow_id=flow_id,
+                node_id="welcome",
+                node_type=NodeType.MESSAGE,
+                content={"messages": [{"content_id": str(welcome_content.id)}]},
+            ),
+            FlowNode(
+                flow_id=flow_id,
+                node_id="ask_age",
+                node_type=NodeType.QUESTION,
+                content={"question": {"content_id": str(age_question_content.id)}},
+            ),
+            FlowNode(
+                flow_id=flow_id,
+                node_id="ask_reading_level",
+                node_type=NodeType.QUESTION,
+                content={"question": {"content_id": str(reading_level_content.id)}},
+            ),
+            FlowNode(
+                flow_id=flow_id,
+                node_id="ask_preferences",
+                node_type=NodeType.QUESTION,
+                content={"question": {"content_id": str(preference_content.id)}},
+            ),
+            FlowNode(
+                flow_id=flow_id,
+                node_id="show_recommendations",
+                node_type=NodeType.MESSAGE,
+                content={"messages": [{"content_id": str(recommendation_content.id)}]},
+            ),
+        ]
+
+        for node in nodes:
+            async_session.add(node)
+
+        # Create connections between nodes
+        connections = [
+            FlowConnection(
+                flow_id=flow_id,
+                source_node_id="welcome",
+                target_node_id="ask_age",
+                connection_type=ConnectionType.DEFAULT,
+            ),
+            FlowConnection(
+                flow_id=flow_id,
+                source_node_id="ask_age",
+                target_node_id="ask_reading_level",
+                connection_type=ConnectionType.DEFAULT,
+            ),
+            FlowConnection(
+                flow_id=flow_id,
+                source_node_id="ask_reading_level",
+                target_node_id="ask_preferences",
+                connection_type=ConnectionType.DEFAULT,
+            ),
+            FlowConnection(
+                flow_id=flow_id,
+                source_node_id="ask_preferences",
+                target_node_id="show_recommendations",
+                connection_type=ConnectionType.DEFAULT,
+            ),
+        ]
+
+        for conn in connections:
+            async_session.add(conn)
+
+        await async_session.commit()
+        return flow_id
+
     @pytest.mark.asyncio
     async def test_automated_bookbot_conversation(
-        self, async_client, sample_bookbot_flow, test_user_account, test_user_account_headers
+        self,
+        async_client,
+        sample_bookbot_flow,
+        test_user_account,
+        test_user_account_headers,
     ):
         """Test automated BookBot conversation scenario."""
         flow_id = sample_bookbot_flow
@@ -196,59 +359,60 @@ class TestChatAPIScenarios:
             "initial_state": {
                 "user_context": {
                     "test_session": True,
-                    "started_at": datetime.utcnow().isoformat()
+                    "started_at": datetime.utcnow().isoformat(),
                 }
-            }
+            },
         }
 
-        response = await async_client.post("/v1/chat/start", json=start_payload, headers=test_user_account_headers)
+        response = await async_client.post(
+            "/v1/chat/start", json=start_payload, headers=test_user_account_headers
+        )
         if response.status_code != 201:
             print(f"Unexpected status code: {response.status_code}")
             print(f"Response body: {response.text}")
         assert response.status_code == 201
-        
+
         session_data = response.json()
         session_token = session_data["session_token"]
-        
+
         # Verify initial welcome message - current node ID is in next_node.node_id
         assert session_data["next_node"]["node_id"] == "welcome"
         # Messages might be empty initially - check that we have a proper node structure
         assert "next_node" in session_data
         assert session_data["next_node"]["type"] == "messages"
-        
-        # Simple test - just verify that basic interaction works 
-        interact_payload = {
-            "input": "7",
-            "input_type": "text"
-        }
+
+        # Simple test - just verify that basic interaction works
+        interact_payload = {"input": "7", "input_type": "text"}
 
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json=interact_payload,
-            headers=test_user_account_headers
+            headers=test_user_account_headers,
         )
-        
+
         assert response.status_code == 200
         interaction_data = response.json()
-        
+
         # Basic validation - check that we got a response and are at some valid node
         assert "current_node_id" in interaction_data
         assert interaction_data["current_node_id"] is not None
-        
-        # The conversation should still be active (not ended)  
+
+        # The conversation should still be active (not ended)
         assert not interaction_data.get("session_ended", False)
 
         # Verify session state contains collected variables
-        response = await async_client.get(f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers)
+        response = await async_client.get(
+            f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers
+        )
         assert response.status_code == 200
-        
+
         session_state = response.json()
-        
+
         # Basic validation of session state structure
         assert "state" in session_state
         assert "status" in session_state
         assert session_state["status"] == "active"
-        
+
         # Verify initial state was preserved
         state_vars = session_state.get("state", {})
         assert "user_context" in state_vars
@@ -263,7 +427,11 @@ class TestChatAPIScenarios:
 
     @pytest.mark.asyncio
     async def test_conversation_end_session(
-        self, async_client, sample_bookbot_flow, test_user_account, test_user_account_headers
+        self,
+        async_client,
+        sample_bookbot_flow,
+        test_user_account,
+        test_user_account_headers,
     ):
         """Test ending a conversation session."""
         flow_id = sample_bookbot_flow
@@ -272,23 +440,29 @@ class TestChatAPIScenarios:
         start_payload = {
             "flow_id": str(flow_id),
             "user_id": str(test_user_account.id),
-            "initial_state": {}
+            "initial_state": {},
         }
 
-        response = await async_client.post("/v1/chat/start", json=start_payload, headers=test_user_account_headers)
+        response = await async_client.post(
+            "/v1/chat/start", json=start_payload, headers=test_user_account_headers
+        )
         assert response.status_code == 201
-        
+
         session_data = response.json()
         session_token = session_data["session_token"]
 
         # End session
-        response = await async_client.post(f"/v1/chat/sessions/{session_token}/end", headers=test_user_account_headers)
+        response = await async_client.post(
+            f"/v1/chat/sessions/{session_token}/end", headers=test_user_account_headers
+        )
         assert response.status_code == 200
 
         # Verify session is marked as ended
-        response = await async_client.get(f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers)
+        response = await async_client.get(
+            f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers
+        )
         assert response.status_code == 200
-        
+
         session_state = response.json()
         assert session_state.get("status") == "completed"
 
@@ -297,13 +471,17 @@ class TestChatAPIScenarios:
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json=interact_payload,
-            headers=test_user_account_headers
+            headers=test_user_account_headers,
         )
         assert response.status_code == 400  # Session ended
 
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_session_timeout_handling(
-        self, async_client, sample_bookbot_flow, test_user_account, test_user_account_headers
+        self,
+        async_client,
+        sample_bookbot_flow,
+        test_user_account,
+        test_user_account_headers,
     ):
         """Test session timeout and error handling."""
         flow_id = sample_bookbot_flow
@@ -312,47 +490,56 @@ class TestChatAPIScenarios:
         start_payload = {
             "flow_id": str(flow_id),
             "user_id": str(test_user_account.id),
-            "initial_state": {}
+            "initial_state": {},
         }
 
-        response = await async_client.post("/v1/chat/start", json=start_payload, headers=test_user_account_headers)
+        response = await async_client.post(
+            "/v1/chat/start", json=start_payload, headers=test_user_account_headers
+        )
         assert response.status_code == 201
-        
+
         session_data = response.json()
         session_token = session_data["session_token"]
 
         # Test invalid session token
         fake_token = "invalid_session_token"
-        response = await async_client.get(f"/v1/chat/sessions/{fake_token}", headers=test_user_account_headers)
+        response = await async_client.get(
+            f"/v1/chat/sessions/{fake_token}", headers=test_user_account_headers
+        )
         assert response.status_code == 404
 
         # Test malformed interaction
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json={"invalid": "payload"},
-            headers=test_user_account_headers
+            headers=test_user_account_headers,
         )
         assert response.status_code == 422  # Validation error
 
     @pytest.mark.asyncio
     async def test_multiple_concurrent_sessions(
-        self, async_client, sample_bookbot_flow, test_user_account, test_user_account_headers
+        self, async_client, test_user_account, test_user_account_headers, async_session
     ):
-        """Test handling multiple concurrent chat sessions."""
-        flow_id = sample_bookbot_flow
+        """Test handling multiple concurrent chat sessions with isolated flows."""
         sessions = []
 
-        # Start multiple sessions
+        # Start multiple sessions, each with its own unique flow
         for i in range(3):
+            flow_id = await self._create_unique_flow(
+                async_session, f"Concurrent Flow {i}"
+            )
+
             start_payload = {
                 "flow_id": str(flow_id),
                 "user_id": str(test_user_account.id),
-                "initial_state": {"session_number": i}
+                "initial_state": {"session_number": i},
             }
 
-            response = await async_client.post("/v1/chat/start", json=start_payload, headers=test_user_account_headers)
+            response = await async_client.post(
+                "/v1/chat/start", json=start_payload, headers=test_user_account_headers
+            )
             assert response.status_code == 201
-            
+
             session_data = response.json()
             sessions.append(session_data["session_token"])
 
@@ -361,69 +548,76 @@ class TestChatAPIScenarios:
             # Send different input to each session
             interact_payload = {
                 "input": str(10 + i),  # Different ages
-                "input_type": "text"
+                "input_type": "text",
             }
 
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_token}/interact",
                 json=interact_payload,
-                headers=test_user_account_headers
+                headers=test_user_account_headers,
             )
-            
+
             assert response.status_code == 200
-            
+
             # Verify session state is independent
-            response = await async_client.get(f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers)
+            response = await async_client.get(
+                f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers
+            )
             assert response.status_code == 200
-            
+
             session_state = response.json()
             state_vars = session_state.get("state", {})
-            # Variables are stored in the temp scope by the chat runtime
             temp_vars = state_vars.get("temp", {})
             assert temp_vars.get("user_age") == str(10 + i)
 
         # Clean up sessions
         for session_token in sessions:
-            await async_client.post(f"/v1/chat/sessions/{session_token}/end", headers=test_user_account_headers)
+            await async_client.post(
+                f"/v1/chat/sessions/{session_token}/end",
+                headers=test_user_account_headers,
+            )
 
     @pytest.mark.asyncio
     async def test_variable_substitution_in_messages(
-        self, async_client, sample_bookbot_flow, test_user_account, test_user_account_headers
+        self, async_client, test_user_account, test_user_account_headers, async_session
     ):
-        """Test that variables are properly substituted in bot messages."""
-        flow_id = sample_bookbot_flow
+        """Test that variables are properly substituted in bot messages with an isolated flow."""
+        flow_id = await self._create_unique_flow(
+            async_session, "Variable Substitution Test Flow"
+        )
 
-        # Start conversation and progress to recommendations
         start_payload = {
             "flow_id": str(flow_id),
             "user_id": str(test_user_account.id),
-            "initial_state": {}
+            "initial_state": {},
         }
 
-        response = await async_client.post("/v1/chat/start", json=start_payload, headers=test_user_account_headers)
+        response = await async_client.post(
+            "/v1/chat/start", json=start_payload, headers=test_user_account_headers
+        )
+        assert response.status_code == 201
         session_token = response.json()["session_token"]
 
-        # Progress through conversation
-        inputs = ["8", "Advanced", "Science Fiction"]
-        
-        for user_input in inputs:
-            interact_payload = {"input": user_input, "input_type": "text"}
+        # Progress through the conversation with correct input types
+        interactions = [
+            {"input": "8", "input_type": "text"},  # Age
+            {"input": "Advanced", "input_type": "choice"},  # Reading level
+            {"input": "Science Fiction", "input_type": "text"},  # Preference
+        ]
+
+        for interaction in interactions:
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_token}/interact",
-                json=interact_payload,
-                headers=test_user_account_headers
+                json=interaction,
+                headers=test_user_account_headers,
             )
             assert response.status_code == 200
 
-        # Get final response and verify variable substitution
+        # Verify variable substitution in the final message
         final_response = response.json()
         messages = final_response.get("messages", [])
-        
-        # Should have recommendation message with substituted variables
         assert len(messages) > 0
         message_content = messages[0].get("content", "")
-        
-        # Variables should be substituted in the message
-        assert "8" in message_content  # Age
-        assert "Advanced" in message_content  # Reading level
-        assert "Science Fiction" in message_content  # Preference
+        assert "8" in message_content
+        assert "Advanced" in message_content
+        assert "Science Fiction" in message_content
