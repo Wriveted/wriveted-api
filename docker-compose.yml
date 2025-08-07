@@ -30,6 +30,7 @@ services:
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - SLACK_BOT_TOKEN=unused-key-for-testing
       - WRIVETED_INTERNAL_API=http://internal:8888
+      - OPENAI_API_KEY=unused-test-key-for-testing
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
     entrypoint: uvicorn "app.main:app" --host 0.0.0.0 --reload

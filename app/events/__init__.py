@@ -6,6 +6,7 @@ and webhook notification system.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     This handles the PostgreSQL event listener lifecycle during application startup/shutdown.
     """
+
     # Startup
     logger.info("Starting event system...")
 

@@ -151,7 +151,7 @@ class TestCircuitBreaker:
         # Force to OPEN state
         for _ in range(3):
             with pytest.raises(Exception):
-                await circuit_breaker.call(lambda: sometimes_failing_func(True))
+                await circuit_breaker.call(sometimes_failing_func, True)
 
         # Simulate timeout passage
         circuit_breaker.stats.last_failure_time = datetime.utcnow() - timedelta(
@@ -165,7 +165,7 @@ class TestCircuitBreaker:
 
         # Make successful calls to reach success threshold
         for _ in range(2):  # success_threshold = 2
-            result = await circuit_breaker.call(lambda: sometimes_failing_func(False))
+            result = await circuit_breaker.call(sometimes_failing_func, False)
             assert result == {"success": True}
 
         # Should now be CLOSED
@@ -199,10 +199,10 @@ class TestCircuitBreaker:
             return {"success": True}
 
         # Mix of successes and failures
-        await circuit_breaker.call(lambda: mixed_func(False))  # Success
+        await circuit_breaker.call(mixed_func, False)  # Success
         with pytest.raises(Exception):
-            await circuit_breaker.call(lambda: mixed_func(True))  # Failure
-        await circuit_breaker.call(lambda: mixed_func(False))  # Success
+            await circuit_breaker.call(mixed_func, True)  # Failure
+        await circuit_breaker.call(mixed_func, False)  # Success
 
         stats = circuit_breaker.get_stats()
         assert stats.total_calls == 3
@@ -278,8 +278,10 @@ class TestCircuitBreaker:
         # Run multiple concurrent operations
         tasks = []
         for i in range(5):
+            # Create a bound function to avoid lambda closure issues
+            should_fail = i % 2 == 0
             task = asyncio.create_task(
-                circuit_breaker.call(lambda: slow_func(0.05, i % 2 == 0))
+                circuit_breaker.call(slow_func, 0.05, should_fail)
             )
             tasks.append(task)
 
@@ -408,8 +410,10 @@ class TestCircuitBreakerIntegration:
         """Test circuit breaker protecting webhook calls."""
         import aiohttp
 
-        cb = get_circuit_breaker("webhook_test")
-        cb.stats.state = CircuitBreakerState.CLOSED  # Reset state
+        # Create circuit breaker with lower failure threshold for testing
+        config = CircuitBreakerConfig(failure_threshold=3, fallback_enabled=True)
+        cb = get_circuit_breaker("webhook_test", config)
+        await cb.reset()  # Ensure clean state
 
         async def mock_webhook_call(url, should_fail=False):
             """Simulate a webhook call."""
@@ -418,25 +422,19 @@ class TestCircuitBreakerIntegration:
             return {"status": "success", "data": "webhook response"}
 
         # Test successful webhook calls
-        result = await cb.call(
-            lambda: mock_webhook_call("https://api.example.com", False)
-        )
+        result = await cb.call(mock_webhook_call, "https://api.example.com", False)
         assert result["status"] == "success"
 
         # Test webhook failures leading to circuit opening
         for _ in range(3):  # Default failure threshold
             with pytest.raises(aiohttp.ClientError):
-                await cb.call(
-                    lambda: mock_webhook_call("https://api.example.com", True)
-                )
+                await cb.call(mock_webhook_call, "https://api.example.com", True)
 
         assert cb.stats.state == CircuitBreakerState.OPEN
 
         # Subsequent calls should be rejected or return fallback
         try:
-            result = await cb.call(
-                lambda: mock_webhook_call("https://api.example.com", True)
-            )
+            result = await cb.call(mock_webhook_call, "https://api.example.com", True)
             # If fallback is enabled, we get fallback response
             assert "fallback" in result or result is None
         except CircuitBreakerError:
@@ -446,7 +444,11 @@ class TestCircuitBreakerIntegration:
     @pytest.mark.asyncio
     async def test_circuit_breaker_recovery_simulation(self):
         """Test circuit breaker recovery in realistic scenario."""
-        cb = get_circuit_breaker("recovery_test")
+        # Create circuit breaker with lower failure threshold for testing
+        config = CircuitBreakerConfig(
+            failure_threshold=3, success_threshold=2, fallback_enabled=True
+        )
+        cb = get_circuit_breaker("recovery_test", config)
         await cb.reset()  # Clean state
 
         call_results = []
@@ -459,7 +461,7 @@ class TestCircuitBreakerIntegration:
 
         # Phase 1: Service is healthy
         for _ in range(5):
-            result = await cb.call(lambda: api_call(True))
+            result = await cb.call(api_call, True)
             call_results.append(("success", result))
 
         assert cb.stats.state == CircuitBreakerState.CLOSED
@@ -467,7 +469,7 @@ class TestCircuitBreakerIntegration:
         # Phase 2: Service becomes unhealthy
         for _ in range(3):
             try:
-                result = await cb.call(lambda: api_call(False))
+                result = await cb.call(api_call, False)
                 call_results.append(("success", result))
             except Exception as e:
                 call_results.append(("failure", str(e)))
@@ -477,7 +479,7 @@ class TestCircuitBreakerIntegration:
         # Phase 3: Circuit is open, calls are rejected
         for _ in range(3):
             try:
-                result = await cb.call(lambda: api_call(False))
+                result = await cb.call(api_call, False)
                 call_results.append(("fallback", result))
             except CircuitBreakerError:
                 call_results.append(("rejected", "Circuit breaker open"))
@@ -490,7 +492,7 @@ class TestCircuitBreakerIntegration:
 
         # Service becomes healthy again
         for _ in range(2):  # success_threshold = 2
-            result = await cb.call(lambda: api_call(True))
+            result = await cb.call(api_call, True)
             call_results.append(("recovery", result))
 
         assert cb.stats.state == CircuitBreakerState.CLOSED

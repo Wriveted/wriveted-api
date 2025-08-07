@@ -106,9 +106,9 @@ class ChatRepository:
                 orig=ValueError("Concurrent modification detected"),
             )
 
-        # Update state
+        # Update state with support for nested updates
         current_state = session.state or {}
-        current_state.update(state_updates)
+        self._deep_merge_state(current_state, state_updates)
 
         # Calculate new state hash
         new_state_hash = self._calculate_state_hash(current_state)
@@ -256,6 +256,28 @@ class ChatRepository:
 
         await db.commit()
         return result.rowcount
+
+    def _deep_merge_state(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
+        """
+        Deep merge source dictionary into target dictionary.
+
+        This handles nested dictionaries properly, so that:
+        target = {"temp": {"existing": "value"}}
+        source = {"temp": {"name": "John"}}
+
+        Results in: {"temp": {"existing": "value", "name": "John"}}
+        """
+        for key, value in source.items():
+            if (
+                key in target
+                and isinstance(target[key], dict)
+                and isinstance(value, dict)
+            ):
+                # Both are dicts, recursively merge
+                self._deep_merge_state(target[key], value)
+            else:
+                # Overwrite or add new key
+                target[key] = value
 
     def _calculate_state_hash(self, state: Dict[str, Any]) -> str:
         """Calculate SHA-256 hash of session state for integrity checking."""

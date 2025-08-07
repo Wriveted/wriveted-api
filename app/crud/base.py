@@ -249,7 +249,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def aremove(self, db: AsyncSession, *, id: Any) -> ModelType:
         obj = await self.aget(db=db, id=id)
         if obj is not None:
-            db.delete(obj)
+            await db.delete(obj)
             await db.commit()
         return obj
 

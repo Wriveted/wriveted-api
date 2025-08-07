@@ -35,10 +35,13 @@ def get_payload_from_access_token(token) -> TokenPayload:
 
 def create_access_token(
     subject: Union[str, Any],
-    expires_delta: datetime.timedelta,
+    expires_delta: Optional[datetime.timedelta] = None,
     extra_claims: Optional[dict[str, str]] = None,
 ) -> str:
     settings = get_settings()
+
+    if expires_delta is None:
+        expires_delta = datetime.timedelta(hours=24)  # Default 24 hour expiry
 
     expire = datetime.datetime.now(datetime.UTC) + expires_delta
 

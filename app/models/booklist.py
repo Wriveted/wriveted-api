@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func, select, text

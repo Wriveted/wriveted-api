@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Computed, Integer, String, and_, func, select
+from sqlalchemy import Computed, Integer, String, and_, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
@@ -39,12 +39,13 @@ class Author(Base):
     # series = relationship('Series', cascade="all")
 
     # Ref https://docs.sqlalchemy.org/en/14/orm/mapped_sql_expr.html#using-column-property
+    # Note: Using text() to avoid circular import with Work model
     book_count: Mapped[int] = column_property(
-        select(func.count(Work.id))
+        select(func.count(text("work.id")))
         .where(
             and_(
                 author_work_association_table.c.author_id == id,
-                author_work_association_table.c.work_id == Work.id,
+                author_work_association_table.c.work_id == text("work.id"),
             )
         )
         .scalar_subquery(),

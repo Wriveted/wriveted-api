@@ -1,3 +1,4 @@
+import html
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, cast
@@ -7,6 +8,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
 from app import crud
+
+
+class FlowNotFoundError(Exception):
+    """Raised when a flow is not found or not available."""
+
+    pass
+
+
+def sanitize_user_input(user_input: str) -> str:
+    """Sanitize user input to prevent XSS attacks.
+
+    SQL injection protection is handled by SQLAlchemy's parameterized queries.
+    This focuses on HTML escaping for safe display in chat contexts.
+    """
+    return html.escape(user_input) if user_input else user_input
+
+
 from app.crud.chat_repo import chat_repo
 from app.models.cms import (
     ConnectionType,
@@ -214,13 +232,45 @@ class QuestionNodeProcessor(NodeProcessor):
         """Process user response to question."""
         node_content = node.content or {}
 
-        # Store response in session state if variable is specified
-        variable_name = node_content.get("variable")
+        # Get variable name from CMS content if available
+        variable_name = None
+        question_config = node_content.get("question", {})
+        content_id = question_config.get("content_id")
+
+        if content_id:
+            try:
+                content = await crud.content.aget(db, UUID(content_id))
+                if content and content.is_active:
+                    variable_name = content.content.get("variable")
+            except Exception as e:
+                self.logger.error(
+                    "Error loading question content for variable",
+                    content_id=content_id,
+                    error=str(e),
+                )
+
+        # Fallback to node content if no CMS content variable found
+        if not variable_name:
+            variable_name = node_content.get("variable")
+
+        state_was_updated = False
+        self.logger.info(
+            "Processing question response",
+            variable_name=variable_name,
+            user_input=user_input,
+        )
         if variable_name:
-            # Store user input in temp scope for proper variable resolution
-            temp_scope = session.state.get("temp", {})
-            temp_scope[variable_name] = user_input
-            state_updates = {"temp": temp_scope}
+            # Store sanitized user input as the variable name in state
+            sanitized_input = sanitize_user_input(user_input)
+
+            # Check if variable name specifies a scope (e.g., "temp.name" or "user.age")
+            if "." in variable_name:
+                # Variable name already includes scope, store as-is with nested structure
+                scope, var_key = variable_name.split(".", 1)
+                state_updates = {scope: {var_key: sanitized_input}}
+            else:
+                # No scope specified, default to 'temp' scope for question responses
+                state_updates = {"temp": {variable_name: sanitized_input}}
 
             # Update session state
             session = await chat_repo.update_session_state(
@@ -228,6 +278,12 @@ class QuestionNodeProcessor(NodeProcessor):
                 session_id=session.id,
                 state_updates=state_updates,
                 expected_revision=session.revision,
+            )
+            state_was_updated = True
+            self.logger.info(
+                "Updated session state",
+                state_updates=state_updates,
+                session_state=session.state,
             )
 
         # Record user input in history
@@ -270,7 +326,11 @@ class QuestionNodeProcessor(NodeProcessor):
                 db, flow_id=node.flow_id, node_id=next_connection.target_node_id
             )
 
-        return {"next_node": next_node, "updated_state": session.state}
+        return {
+            "next_node": next_node,
+            "updated_state": session.state,
+            "state_was_updated": state_was_updated,
+        }
 
     async def _render_question_message(
         self, content, session_state: Dict[str, Any]
@@ -343,7 +403,7 @@ class ChatRuntime:
         # Get flow definition
         flow = await crud.flow.aget(db, flow_id)
         if not flow or not flow.is_published or not flow.is_active:
-            raise ValueError("Flow not found or not available")
+            raise FlowNotFoundError("Flow not found or not available")
 
         # Generate session token if not provided
         if session_token is None:
@@ -454,6 +514,12 @@ class ChatRuntime:
         # Process based on node type
         result = {"messages": [], "session_ended": False}
 
+        self.logger.info(
+            "Processing interaction",
+            current_node_id=current_node.node_id,
+            node_type=current_node.node_type,
+        )
+
         if current_node.node_type == NodeType.QUESTION:
             # Process question response
             processor = QuestionNodeProcessor(self)
@@ -461,13 +527,40 @@ class ChatRuntime:
                 db, current_node, session, user_input, input_type
             )
 
+            # Get updated session state if available
+            if response.get("state_was_updated", False):
+                # Refresh session from database to get latest state
+                updated_session = await chat_repo.get_session_by_token(
+                    db, session.session_token
+                )
+                if updated_session:
+                    result["session_updated"] = {
+                        "state": updated_session.state,
+                        "revision": updated_session.revision,
+                    }
+
             # Process next node if available
             if response.get("next_node"):
+                # If session state was updated, get the updated session
+                if response.get("state_was_updated"):
+                    session = await chat_repo.get_session_by_token(
+                        db, session.session_token
+                    )
+
                 next_result = await self.process_node(
                     db, response["next_node"], session
                 )
                 result["messages"] = [next_result] if next_result else []
                 result["current_node_id"] = response["next_node"].node_id
+
+                # Update session's current node position
+                session = await chat_repo.update_session_state(
+                    db,
+                    session_id=session.id,
+                    state_updates={},  # No state changes, just position update
+                    current_node_id=response["next_node"].node_id,
+                    expected_revision=session.revision,
+                )
 
                 # Check if the processed node has no further connections
                 if next_result and not next_result.get("next_node"):
@@ -490,6 +583,15 @@ class ChatRuntime:
                     next_result = await self.process_node(db, next_node, session)
                     result["messages"] = [next_result] if next_result else []
                     result["current_node_id"] = next_node.node_id
+
+                    # Update session's current node position
+                    session = await chat_repo.update_session_state(
+                        db,
+                        session_id=session.id,
+                        state_updates={},  # No state changes, just position update
+                        current_node_id=next_node.node_id,
+                        expected_revision=session.revision,
+                    )
                 else:
                     result["session_ended"] = True
             else:
