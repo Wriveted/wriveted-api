@@ -7,6 +7,61 @@ from starlette import status
 
 
 @pytest.fixture
+def create_unique_flow(client, backend_service_account_headers):
+    """Factory to create a unique, isolated flow for testing."""
+
+    def _create_flow(flow_name: str):
+        # Create flow
+        flow_data = {
+            "name": flow_name,
+            "version": "1.0",
+            "flow_data": {},
+            "entry_node_id": "welcome",
+        }
+        flow_response = client.post(
+            "v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+        assert flow_response.status_code == 201
+        flow_id = flow_response.json()["id"]
+
+        # Create content
+        content_data = {
+            "type": "message",
+            "content": {"text": "Hello, world!"},
+        }
+        content_response = client.post(
+            "v1/cms/content", json=content_data, headers=backend_service_account_headers
+        )
+        assert content_response.status_code == 201
+        content_id = content_response.json()["id"]
+
+        # Create welcome node
+        welcome_node = {
+            "node_id": "welcome",
+            "node_type": "message",
+            "content": {"messages": [{"content_id": content_id}]},
+        }
+        node_response = client.post(
+            f"v1/cms/flows/{flow_id}/nodes",
+            json=welcome_node,
+            headers=backend_service_account_headers,
+        )
+        assert node_response.status_code == 201
+
+        # Publish the flow
+        publish_response = client.post(
+            f"v1/cms/flows/{flow_id}/publish",
+            json={"publish": True},
+            headers=backend_service_account_headers,
+        )
+        assert publish_response.status_code == 200
+
+        return flow_id
+
+    return _create_flow
+
+
+@pytest.fixture
 def test_flow_with_nodes(client, backend_service_account_headers):
     """Create a test flow with nodes for chat testing."""
     # Create flow
@@ -591,13 +646,15 @@ def test_invalid_state_update_data(client, test_flow_with_nodes):
 # Input Validation Tests
 
 
-def test_input_validation_and_sanitization(client, test_flow_with_nodes):
-    """Test input validation and sanitization."""
-    # Start session
-    flow_id = test_flow_with_nodes["flow_id"]
-    session_data = {"flow_id": flow_id, "user_id": None}
+def test_input_validation_and_sanitization(client, create_unique_flow):
+    """Test input validation and sanitization in an isolated flow."""
+    # Create a unique flow for this test to avoid state conflicts
+    flow_id = create_unique_flow("Input Validation Test Flow")
 
+    # Start session
+    session_data = {"flow_id": flow_id, "user_id": None}
     start_response = client.post("v1/chat/start", json=session_data)
+    assert start_response.status_code == status.HTTP_201_CREATED
     session_token = start_response.json()["session_token"]
     csrf_token = start_response.cookies["csrf_token"]
 
