@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from fastapi_permissions import All, Allow  # type: ignore[import-untyped]
 from sqlalchemy import (

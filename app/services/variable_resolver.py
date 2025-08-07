@@ -295,15 +295,21 @@ class VariableResolver:
             List of validation error messages (empty if all valid)
         """
         errors = []
-        references = self.extract_variable_references(text)
 
-        for ref in references:
+        # Find all variable patterns, including invalid ones
+        for match in self.variable_pattern.finditer(text):
+            variable_str = match.group(1).strip()
+
             try:
+                # Try to parse the variable reference
+                ref = self.parse_variable_reference(variable_str)
+
                 # Check if scope exists (except for secrets)
                 if not ref.is_secret and ref.scope not in self.scopes:
                     errors.append(
                         f"Undefined scope '{ref.scope}' in variable '{ref.full_path}'"
                     )
+                    continue  # Skip to next reference if scope is invalid
 
                 # Check if variable exists in scope
                 value = self.resolve_variable(ref)
@@ -312,8 +318,13 @@ class VariableResolver:
                         f"Variable '{ref.full_path}' not found in scope '{ref.scope}'"
                     )
 
+            except VariableValidationError as e:
+                # This catches invalid scopes and malformed references
+                errors.append(str(e))
             except Exception as e:
-                errors.append(f"Error validating variable '{ref.full_path}': {e}")
+                errors.append(
+                    f"Error validating variable '{{{{{variable_str}}}}}': {e}"
+                )
 
         return errors
 

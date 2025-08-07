@@ -1,6 +1,8 @@
+import os
 import random
 import secrets
 import time
+import logging
 from datetime import timedelta
 from pathlib import Path
 
@@ -8,6 +10,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 from starlette.testclient import TestClient
+
+# Set up verbose logging for debugging test setup failures
+logger = logging.getLogger(__name__)
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
@@ -47,8 +52,9 @@ def client():
     with TestClient(app) as c:
         # This is because we want to keep debugging tests for longer but the agent
         # has a rate limit.
-
-        time.sleep(60)
+        # Only sleep if explicitly requested via environment variable
+        if os.getenv("TEST_DEBUG_SLEEP") == "true":
+            time.sleep(60)
 
         yield c
 
@@ -83,7 +89,32 @@ def test_app() -> FastAPI:
 
 @pytest.fixture
 async def async_client(test_app):
-    async with AsyncClient(app=test_app, base_url="http://test") as client:
+    from httpx import ASGITransport
+
+    logger.debug("Creating async HTTP client for testing")
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=test_app), base_url="http://test"
+        ) as client:
+            logger.debug("Successfully created async client")
+            yield client
+            logger.debug("Async client context manager exiting")
+    except Exception as e:
+        logger.error(f"Error creating async client: {e}")
+        raise
+
+
+@pytest.fixture
+async def internal_async_client():
+    """AsyncClient for the internal API."""
+    from httpx import ASGITransport
+
+    from app.internal_api import internal_app
+
+    async with AsyncClient(
+        transport=ASGITransport(app=internal_app), base_url="http://test"
+    ) as client:
         yield client
 
 
@@ -95,10 +126,49 @@ def session(settings):
 
 
 @pytest.fixture()
-async def async_session(settings):
-    session_factory = get_async_session_maker(settings)
-    async with session_factory() as session:
+async def async_session():
+    """Create an isolated async session for each test with proper cleanup."""
+    logger.debug("Creating async session for test")
+
+    try:
+        session_factory = get_async_session_maker()
+        logger.debug("Got async session factory")
+
+        session = session_factory()
+        logger.debug(f"Created async session: {session}")
+
+        # Test session connectivity
+        try:
+            from sqlalchemy import text
+
+            result = await session.execute(text("SELECT 1"))
+            logger.debug("Session connectivity test successful")
+        except Exception as e:
+            logger.error(f"Session connectivity test failed: {e}")
+            raise
+
         yield session
+        logger.debug("Test completed, starting session cleanup")
+
+    except Exception as e:
+        logger.error(f"Error creating async session: {e}")
+        raise
+    finally:
+        # Ensure proper cleanup
+        try:
+            # Rollback any uncommitted transactions
+            if session.in_transaction():
+                logger.debug("Rolling back uncommitted transactions")
+                await session.rollback()
+        except Exception as e:
+            logger.warning(f"Error during session rollback: {e}")
+        finally:
+            # Always close the session
+            try:
+                logger.debug("Closing async session")
+                await session.close()
+            except Exception as e:
+                logger.warning(f"Error closing session: {e}")
 
 
 @pytest.fixture(scope="session")

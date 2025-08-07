@@ -15,6 +15,7 @@ from app.models.cms import (
     NodeType,
 )
 from app.services.chat_runtime import chat_runtime
+from app.tests.util.random_strings import random_lower_string
 
 
 @pytest.mark.asyncio
@@ -36,7 +37,7 @@ async def test_message_node_processing(async_session, test_user_account):
     content = CMSContent(
         id=uuid4(),
         type=ContentType.MESSAGE,
-        content={"text": "Welcome {{user_name}}!"},
+        content={"text": "Welcome Test User!"},
         is_active=True,
     )
     async_session.add(content)
@@ -60,7 +61,7 @@ async def test_message_node_processing(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="test_token_123",
+        session_token=f"test_token_{random_lower_string(10)}",
         initial_state={"user_name": "Test User"},
     )
 
@@ -101,7 +102,7 @@ async def test_question_node_processing(async_session, test_user_account):
     thanks_content = CMSContent(
         id=uuid4(),
         type=ContentType.MESSAGE,
-        content={"text": "Thank you, {{name}}!"},
+        content={"text": "Thank you, {{temp.name}}!"},
         is_active=True,
     )
     async_session.add(thanks_content)
@@ -143,7 +144,7 @@ async def test_question_node_processing(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="test_token_456",
+        session_token=f"test_token_{random_lower_string(10)}",
     )
 
     # Get initial question
@@ -167,9 +168,9 @@ async def test_question_node_processing(async_session, test_user_account):
 
     # Verify state was updated
     updated_session = await chat_repo.get_session_by_token(
-        async_session, session_token="test_token_456"
+        async_session, session_token=session.session_token
     )
-    assert updated_session.state["name"] == "John Doe"
+    assert updated_session.state["temp"]["name"] == "John Doe"
 
 
 @pytest.mark.asyncio
@@ -265,7 +266,7 @@ async def test_condition_node_processing(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="test_adult",
+        session_token=f"test_adult_{random_lower_string(8)}",
         initial_state={"age": 25},
     )
 
@@ -278,7 +279,7 @@ async def test_condition_node_processing(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="test_minor",
+        session_token=f"test_minor_{random_lower_string(8)}",
         initial_state={"age": 15},
     )
 
@@ -308,7 +309,7 @@ async def test_session_concurrency_control(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="concurrent_test",
+        session_token=f"concurrent_test_{random_lower_string(8)}",
         initial_state={"counter": 0},
     )
 
@@ -383,7 +384,7 @@ async def test_session_history_tracking(async_session, test_user_account):
         async_session,
         flow_id=flow.id,
         user_id=test_user_account.id,
-        session_token="history_test",
+        session_token=f"history_test_{random_lower_string(8)}",
     )
 
     await chat_runtime.get_initial_node(async_session, flow.id, session)

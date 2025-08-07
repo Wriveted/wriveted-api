@@ -19,10 +19,14 @@ from app.schemas.pagination import PaginatedResponse
 class ContentCreate(BaseModel):
     type: ContentType
     content: Dict[str, Any]
-    info: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = Field(
+        default={}, alias="metadata", serialization_alias="metadata"
+    )
     tags: Optional[List[str]] = []
     is_active: Optional[bool] = True
     status: Optional[ContentStatus] = ContentStatus.DRAFT
+
+    model_config = ConfigDict(populate_by_name=True)
 
     @field_validator("content")
     @classmethod
@@ -35,10 +39,13 @@ class ContentCreate(BaseModel):
 class ContentUpdate(BaseModel):
     type: Optional[ContentType] = None
     content: Optional[Dict[str, Any]] = None
-    info: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = Field(default=None)
     tags: Optional[List[str]] = None
     is_active: Optional[bool] = None
     status: Optional[ContentStatus] = None
+    version: Optional[int] = None
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ContentBrief(BaseModel):
@@ -59,6 +66,8 @@ class ContentDetail(ContentBrief):
     info: Dict[str, Any]
     created_by: Optional[UUID4] = None
 
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 class ContentResponse(PaginatedResponse):
     data: List[ContentDetail]
@@ -77,6 +86,7 @@ class ContentVariantUpdate(BaseModel):
     variant_data: Optional[Dict[str, Any]] = None
     weight: Optional[int] = None
     conditions: Optional[Dict[str, Any]] = None
+    performance_data: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
 
@@ -113,7 +123,11 @@ class FlowCreate(BaseModel):
     version: str = Field(..., max_length=50)
     flow_data: Dict[str, Any]
     entry_node_id: str = Field(..., max_length=255)
-    info: Optional[Dict[str, Any]] = {}
+    info: Optional[Dict[str, Any]] = Field(default={})
+    is_published: Optional[bool] = False
+    is_active: Optional[bool] = True
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class FlowUpdate(BaseModel):
@@ -122,8 +136,10 @@ class FlowUpdate(BaseModel):
     version: Optional[str] = Field(None, max_length=50)
     flow_data: Optional[Dict[str, Any]] = None
     entry_node_id: Optional[str] = Field(None, max_length=255)
-    info: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = Field(default=None)
     is_active: Optional[bool] = None
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class FlowBrief(BaseModel):
@@ -143,9 +159,11 @@ class FlowDetail(FlowBrief):
     description: Optional[str] = None
     flow_data: Dict[str, Any]
     entry_node_id: str
-    info: Dict[str, Any]
+    info: Dict[str, Any] = Field()
     created_by: Optional[UUID4] = None
     published_by: Optional[UUID4] = None
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class FlowResponse(PaginatedResponse):
@@ -158,7 +176,11 @@ class FlowPublishRequest(BaseModel):
 
 class FlowCloneRequest(BaseModel):
     name: str = Field(..., max_length=255)
+    description: Optional[str] = None
     version: str = Field(..., max_length=50)
+    clone_nodes: Optional[bool] = True
+    clone_connections: Optional[bool] = True
+    info: Optional[Dict[str, Any]] = Field(None)
 
 
 # Flow Node Schemas
@@ -236,7 +258,7 @@ class SessionCreate(BaseModel):
 
 
 class SessionDetail(BaseModel):
-    id: UUID4
+    session_id: UUID4 = Field(alias="id", serialization_alias="session_id")
     user_id: Optional[UUID4] = None
     flow_id: UUID4
     session_token: str
@@ -250,7 +272,9 @@ class SessionDetail(BaseModel):
     revision: int
     state_hash: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, populate_by_name=True, use_serialization_alias=True
+    )
 
 
 class SessionStartResponse(BaseModel):
@@ -274,6 +298,8 @@ class InteractionResponse(BaseModel):
     messages: List[Dict[str, Any]]
     input_request: Optional[Dict[str, Any]] = None
     session_ended: bool = False
+    current_node_id: Optional[str] = None
+    session_updated: Optional[Dict[str, Any]] = None
 
 
 class ConversationHistoryDetail(BaseModel):
@@ -344,6 +370,25 @@ class BulkContentRequest(BaseModel):
 class BulkContentResponse(BaseModel):
     success_count: int
     error_count: int
+    errors: List[Dict[str, Any]] = []
+
+
+class BulkContentUpdateRequest(BaseModel):
+    content_ids: List[UUID4]
+    updates: Dict[str, Any]
+
+
+class BulkContentUpdateResponse(BaseModel):
+    updated_count: int
+    errors: List[Dict[str, Any]] = []
+
+
+class BulkContentDeleteRequest(BaseModel):
+    content_ids: List[UUID4]
+
+
+class BulkContentDeleteResponse(BaseModel):
+    deleted_count: int
     errors: List[Dict[str, Any]] = []
 
 

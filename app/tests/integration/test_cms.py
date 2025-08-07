@@ -7,7 +7,7 @@ def test_backend_service_account_can_list_joke_content(
     client, backend_service_account_headers
 ):
     response = client.get(
-        "v1/cms/content/joke", headers=backend_service_account_headers
+        "v1/cms/content?content_type=joke", headers=backend_service_account_headers
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -16,7 +16,7 @@ def test_backend_service_account_can_list_question_content(
     client, backend_service_account_headers
 ):
     response = client.get(
-        "v1/cms/content/question", headers=backend_service_account_headers
+        "v1/cms/content?content_type=question", headers=backend_service_account_headers
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -495,7 +495,7 @@ def test_publish_flow(client, backend_service_account_headers):
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert "published successfully" in response.json()["message"]
+    assert response.json()["is_published"] is True
 
     # Verify it's published
     get_response = client.get(
@@ -511,7 +511,7 @@ def test_publish_flow(client, backend_service_account_headers):
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert "unpublished successfully" in response.json()["message"]
+    assert response.json()["is_published"] is False
 
 
 def test_clone_flow(client, backend_service_account_headers):
@@ -665,19 +665,20 @@ def test_update_flow_node(client, backend_service_account_headers):
         "content": {"messages": [{"content": "Original message"}]},
     }
 
-    client.post(
+    node_response = client.post(
         f"v1/cms/flows/{flow_id}/nodes",
         json=node_data,
         headers=backend_service_account_headers,
     )
+    node_db_id = node_response.json()["id"]  # Get the database ID from response
 
-    # Update node
+    # Update node using database ID
     update_data = {
         "content": {"messages": [{"content": "Updated message", "typing_delay": 2.0}]}
     }
 
     response = client.put(
-        f"v1/cms/flows/{flow_id}/nodes/test_node",
+        f"v1/cms/flows/{flow_id}/nodes/{node_db_id}",
         json=update_data,
         headers=backend_service_account_headers,
     )
@@ -709,23 +710,24 @@ def test_delete_flow_node(client, backend_service_account_headers):
         "content": {"messages": [{"content": "Temporary node"}]},
     }
 
-    client.post(
+    node_response = client.post(
         f"v1/cms/flows/{flow_id}/nodes",
         json=node_data,
         headers=backend_service_account_headers,
     )
+    node_db_id = node_response.json()["id"]  # Get the database ID from response
 
-    # Delete node
+    # Delete node using database ID
     response = client.delete(
-        f"v1/cms/flows/{flow_id}/nodes/temp_node",
+        f"v1/cms/flows/{flow_id}/nodes/{node_db_id}",
         headers=backend_service_account_headers,
     )
 
-    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert response.status_code == status.HTTP_200_OK  # API returns 200, not 204
 
     # Verify node is deleted
     get_response = client.get(
-        f"v1/cms/flows/{flow_id}/nodes/temp_node",
+        f"v1/cms/flows/{flow_id}/nodes/{node_db_id}",
         headers=backend_service_account_headers,
     )
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
@@ -892,7 +894,7 @@ def test_delete_flow_connection(client, backend_service_account_headers):
         headers=backend_service_account_headers,
     )
 
-    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert response.status_code == status.HTTP_200_OK  # API returns 200, not 204
 
     # Verify connection is deleted
     list_response = client.get(
@@ -906,9 +908,25 @@ def test_delete_flow_connection(client, backend_service_account_headers):
 # Authorization Tests
 
 
-def test_unauthorized_access():
+def test_unauthorized_access(client):
     """Test that CMS endpoints require proper authorization."""
-    pass  # This will be implemented when we add more auth tests
+    # Test that CMS endpoints return 401 without authorization
+    endpoints_and_methods = [
+        ("v1/cms/content", "POST"),
+        ("v1/cms/content", "GET"),
+        ("v1/cms/flows", "POST"),
+        ("v1/cms/flows", "GET"),
+    ]
+
+    for endpoint, method in endpoints_and_methods:
+        if method == "POST":
+            response = client.post(endpoint, json={"test": "data"})
+        else:
+            response = client.get(endpoint)
+
+        assert (
+            response.status_code == 401
+        ), f"{method} {endpoint} should require authorization"
 
 
 def test_invalid_content_type(client, backend_service_account_headers):

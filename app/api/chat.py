@@ -24,7 +24,7 @@ from app.api.dependencies.csrf import CSRFProtected
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
     get_current_active_user,
-    get_optional_user,
+    get_optional_authenticated_user,
 )
 from app.crud.chat_repo import chat_repo
 from app.crud.cms import CRUDConversationSession
@@ -41,7 +41,7 @@ from app.schemas.cms import (
 )
 from app.schemas.pagination import Pagination
 from app.security.csrf import generate_csrf_token, set_secure_session_cookie
-from app.services.chat_runtime import chat_runtime
+from app.services.chat_runtime import chat_runtime, FlowNotFoundError
 
 logger = get_logger()
 
@@ -57,7 +57,7 @@ async def start_conversation(
     response: Response,
     session: DBSessionDep,
     session_data: SessionCreate = Body(...),
-    current_user: Optional[User] = Security(get_optional_user),
+    current_user: Optional[User] = Security(get_optional_authenticated_user),
 ):
     """Start a new conversation session."""
 
@@ -65,8 +65,26 @@ async def start_conversation(
     session_token = secrets.token_urlsafe(32)
 
     try:
-        # Determine user_id for the session
-        user_id_for_session = current_user.id if current_user else session_data.user_id
+        # SECURITY: Prevent user impersonation - validate user_id against authentication
+        user_id_for_session: Optional[UUID] = None
+
+        if current_user:
+            # If authenticated, user ID comes from verified token
+            user_id_for_session = current_user.id
+            # If user_id also provided in body, it MUST match authenticated user
+            if session_data.user_id and session_data.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Provided user_id does not match authenticated user.",
+                )
+        else:
+            # If anonymous, request body CANNOT specify user_id to prevent impersonation
+            if session_data.user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot specify a user_id for an anonymous session.",
+                )
+            user_id_for_session = None  # Explicitly anonymous
 
         # Create session using runtime
         conversation_session = await chat_runtime.start_session(
@@ -117,6 +135,11 @@ async def start_conversation(
             next_node=initial_node,
         )
 
+    except HTTPException:
+        # Re-raise HTTPExceptions (like our security validation errors)
+        raise
+    except FlowNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
@@ -183,12 +206,16 @@ async def interact_with_session(
             "Processed interaction",
             session_id=conversation_session.id,
             input_type=interaction.input_type,
+            response_keys=list(response.keys()),
+            session_updated=response.get("session_updated"),
         )
 
         return InteractionResponse(
             messages=response.get("messages", []),
             input_request=response.get("input_request"),
             session_ended=response.get("session_ended", False),
+            current_node_id=response.get("current_node_id"),
+            session_updated=response.get("session_updated"),
         )
 
     except IntegrityError:

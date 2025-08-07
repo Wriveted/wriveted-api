@@ -69,10 +69,38 @@ async def get_valid_token_data(
         ) from e
 
 
-def get_optional_user(
+def get_optional_auth_header_data(
+    http_auth: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+) -> Optional[str]:
+    """Get optional authentication token without raising exceptions."""
+    if http_auth is None:
+        return None
+    return http_auth.credentials if http_auth.credentials else None
+
+
+async def get_optional_token_data(
+    token: Optional[str] = Depends(get_optional_auth_header_data),
+) -> Optional[TokenPayload]:
+    """Get optional token data without raising exceptions."""
+    if token is None:
+        return None
+
+    try:
+        return get_payload_from_access_token(token)
+    except (jwt.JWTError, ValidationError):
+        logger.debug("Invalid or missing access token")
+        return None
+
+
+def get_user_from_valid_token(
     db: Session = Depends(get_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[User]:
+    """Get user from valid token if token is for user account, None if service account.
+
+    Note: This function REQUIRES a valid token - use get_optional_authenticated_user
+    for truly optional authentication scenarios.
+    """
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
@@ -85,11 +113,14 @@ def get_optional_user(
             )
         return user
 
+    return None
+
 
 def get_optional_service_account(
     db: Session = Depends(get_session),
     token_data: TokenPayload = Depends(get_valid_token_data),
 ) -> Optional[ServiceAccount]:
+    """Get service account from valid token if token is for service account, None if user."""
     # The subject of the JWT is either a user identifier or service account identifier
     # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
@@ -97,9 +128,41 @@ def get_optional_service_account(
     if access_token_type == "service-account":
         return crud.service_account.get_or_404(db, id=identifier)
 
+    return None
+
+
+def get_optional_authenticated_user(
+    db: Session = Depends(get_session),
+    token_data: Optional[TokenPayload] = Depends(get_optional_token_data),
+) -> Optional[User]:
+    """Get user from token if present and valid, otherwise return None. Truly optional authentication.
+
+    This allows anonymous access when no token is provided, unlike get_user_from_valid_token
+    which requires a valid token.
+    """
+    if token_data is None:
+        return None
+
+    # The subject of the JWT is either a user identifier or service account identifier
+    # "wriveted:service-account:XXX" or "wriveted:user-account:XXX"
+    try:
+        aud, access_token_type, identifier = token_data.sub.lower().split(":")
+    except ValueError:
+        logger.debug("Invalid token subject format")
+        return None
+
+    if access_token_type == "user-account":
+        user = crud.user.get(db, id=identifier)
+        if not user:
+            logger.debug("User not found for token")
+            return None
+        return user
+
+    return None
+
 
 async def get_current_user(
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: Optional[User] = Depends(get_user_from_valid_token),
 ) -> User:
     if current_user is None:
         raise HTTPException(status_code=403, detail="API requires a user")
@@ -115,7 +178,7 @@ async def get_current_active_user(
 
 
 def get_current_active_user_or_service_account(
-    maybe_user: Optional[User] = Depends(get_optional_user),
+    maybe_user: Optional[User] = Depends(get_user_from_valid_token),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account
     ),
@@ -155,7 +218,7 @@ async def get_current_active_superuser(
 
 
 async def get_active_principals(
-    maybe_user: Optional[User] = Depends(get_optional_user),
+    maybe_user: Optional[User] = Depends(get_user_from_valid_token),
     maybe_service_account: Optional[ServiceAccount] = Depends(
         get_optional_service_account
     ),
@@ -210,16 +273,15 @@ async def get_active_principals(
         service_account = maybe_service_account
         principals.append(Authenticated)
 
-        match service_account.type:
-            case ServiceAccountType.BACKEND:
-                principals.append("role:admin")
-            case ServiceAccountType.LMS:
-                principals.append("role:lms")
-            case ServiceAccountType.SCHOOL:
-                principals.append("role:school")
-                principals.append("role:library")
-            case ServiceAccountType.KIOSK:
-                principals.append("role:kiosk")
+        if service_account.type == ServiceAccountType.BACKEND:
+            principals.append("role:admin")
+        elif service_account.type == ServiceAccountType.LMS:
+            principals.append("role:lms")
+        elif service_account.type == ServiceAccountType.SCHOOL:
+            principals.append("role:school")
+            principals.append("role:library")
+        elif service_account.type == ServiceAccountType.KIOSK:
+            principals.append("role:kiosk")
 
         # Service accounts can optionally be associated with multiple schools:
         # for school in service_account.schools:

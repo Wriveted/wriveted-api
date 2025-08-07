@@ -215,7 +215,7 @@ class CircuitBreaker:
 
     def get_stats(self) -> CircuitBreakerStats:
         """Get current circuit breaker statistics."""
-        return self.stats.copy()
+        return self.stats.model_copy()
 
     async def reset(self) -> None:
         """Manually reset circuit breaker to CLOSED state."""

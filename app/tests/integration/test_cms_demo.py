@@ -15,7 +15,7 @@ class TestCMSAuthentication:
         response = client.get("/v1/cms/content")
         assert response.status_code == 401
 
-        response = client.post("/v1/cms/content", json={"type": "JOKE"})
+        response = client.post("/v1/cms/content", json={"type": "joke"})
         assert response.status_code == 401
 
     def test_cms_flows_require_authentication(self, client):
@@ -74,7 +74,7 @@ class TestCMSAuthentication:
     def test_content_filtering_works(self, client, backend_service_account_headers):
         """✅ CMS content filtering by type works correctly."""
         # Test filtering by different content types
-        for content_type in ["JOKE", "QUESTION", "MESSAGE"]:
+        for content_type in ["joke", "question", "message"]:
             response = client.get(
                 f"/v1/cms/content?content_type={content_type}",
                 headers=backend_service_account_headers,
@@ -157,7 +157,7 @@ class TestSystemHealth:
 
         data = response.json()
         # Should be at the migration that includes CMS tables
-        assert data["database_revision"] == "8e1dd05366a4"
+        assert data["database_revision"] == "ce87ca7a1727"
         print(f"\\n✅ Database at correct migration: {data['database_revision']}")
 
     def test_api_endpoints_properly_configured(self, client):
