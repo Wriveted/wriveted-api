@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import SendSmsPayload
 from app.schemas.sendgrid import SendGridEmailData
+# Import needed for SMS notifications  
 from app.services.background_tasks import queue_background_task
 from app.services.util import truncate_to_full_word_with_ellipsis
 
@@ -35,13 +36,14 @@ def generate_supporter_feedback_url(supporter: User, event: Event):
 
 
 def process_reader_feedback_alert_email(
+    session,
     recipient: Supporter,
     reader: Reader,
     item: CollectionItem,
     log_data: ReadingLogEvent,
     encoded_url: str,
 ):
-    logger.info("Sending email alert")
+    logger.info("Sending reading feedback email")
 
     email_data = SendGridEmailData(
         to_emails=[recipient.email],
@@ -58,8 +60,14 @@ def process_reader_feedback_alert_email(
         template_id="d-841938d74d9142509af934005ad6e3ed",
     )
 
-    queue_background_task(
-        "send-email", {"email_data": email_data.dict(), "user_id": str(reader.id)}
+    # Local import to avoid circular dependency
+    from app.services.email_notification import send_email_reliable_sync, EmailType
+    
+    send_email_reliable_sync(
+        db=session,
+        email_data=email_data.dict(),
+        email_type=EmailType.NOTIFICATION,
+        user_id=str(reader.id)
     )
 
 
@@ -117,7 +125,7 @@ def process_reader_feedback_alerts(
 
         if association.allow_email and recipient.email:
             process_reader_feedback_alert_email(
-                recipient, reader, item, log_data, encoded_url
+                session, recipient, reader, item, log_data, encoded_url
             )
 
         if association.allow_phone and recipient.phone:

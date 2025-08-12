@@ -9,7 +9,6 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
-    Request,
     Response,
     Security,
 )
@@ -42,6 +41,7 @@ from app.schemas.cms import (
 from app.schemas.pagination import Pagination
 from app.security.csrf import generate_csrf_token, set_secure_session_cookie
 from app.services.chat_runtime import chat_runtime, FlowNotFoundError
+from app.config import get_settings
 
 logger = get_logger()
 
@@ -58,6 +58,7 @@ async def start_conversation(
     session: DBSessionDep,
     session_data: SessionCreate = Body(...),
     current_user: Optional[User] = Security(get_optional_authenticated_user),
+    settings = Depends(get_settings),
 ):
     """Start a new conversation session."""
 
@@ -109,7 +110,7 @@ async def start_conversation(
             csrf_token,
             httponly=True,
             samesite="strict",
-            secure=True,  # HTTPS only in production
+            secure=not settings.DEBUG,  # Only secure in production (non-debug)
             max_age=3600 * 24,  # 24 hours
         )
 
@@ -119,6 +120,7 @@ async def start_conversation(
             "chat_session",
             session_token,
             max_age=3600 * 8,  # 8 hours
+            debug=settings.DEBUG,
         )
 
         logger.info(

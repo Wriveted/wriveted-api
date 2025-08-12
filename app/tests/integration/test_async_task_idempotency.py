@@ -418,7 +418,7 @@ async def test_webhook_node_task_success(internal_async_client, async_session):
         },
     }
 
-    from unittest.mock import AsyncMock, MagicMock
+    from unittest.mock import MagicMock
     
     # Set up the mock properly for async httpx
     with patch("httpx.AsyncClient") as mock_client:
@@ -444,7 +444,7 @@ async def test_webhook_node_task_success(internal_async_client, async_session):
     data = response.json()
     assert data["status"] == "completed"
     assert data["idempotency_key"] == idempotency_key
-    assert data["webhook_result"]["success"] is True
+    assert data["webhook_result"]["webhook_executed"] is True
 
     # Verify idempotency record was created
     result = await async_session.scalars(
@@ -506,7 +506,7 @@ async def test_concurrent_task_processing():
     exceptions = [r for r in results if isinstance(r, Exception)]
     
     # Log results for debugging
-    print(f"Concurrent lock test results:")
+    print("Concurrent lock test results:")
     print(f"  Successful acquisitions: {len(successful_acquisitions)}")
     print(f"  Failed acquisitions: {len(failed_acquisitions)}")
     print(f"  Timeout failures: {len(timeout_failures)}")

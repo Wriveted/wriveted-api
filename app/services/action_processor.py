@@ -8,7 +8,6 @@ Handles ACTION nodes with various action types including:
 - delete_variable: Remove variables
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -21,7 +20,6 @@ from app.models.cms import (
     ConversationSession,
     FlowNode,
     InteractionType,
-    NodeType,
 )
 from app.services.api_client import ApiCallConfig, get_api_client
 from app.services.chat_runtime import NodeProcessor

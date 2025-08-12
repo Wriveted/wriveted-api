@@ -7,8 +7,6 @@ materialized view after manual refresh and that search functionality works corre
 """
 
 import logging
-import uuid
-from typing import List, Optional
 
 import pytest
 from sqlalchemy import text

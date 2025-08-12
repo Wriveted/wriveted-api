@@ -15,10 +15,10 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

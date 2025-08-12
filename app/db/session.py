@@ -1,12 +1,10 @@
 from collections.abc import AsyncGenerator
-from functools import lru_cache
-from typing import Optional, Tuple
+from typing import Optional
 
-import sqlalchemy
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import URL, create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
 
 from app.config import Settings, get_settings

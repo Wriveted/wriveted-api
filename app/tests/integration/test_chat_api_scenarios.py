@@ -62,7 +62,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "How old are you?",
                 "input_type": "text",
-                "variable": "user_age",
+                "variable": "temp.user_age",
             },
             is_active=True,
         )
@@ -76,7 +76,7 @@ class TestChatAPIScenarios:
                 "question": "What's your reading level?",
                 "input_type": "choice",
                 "options": ["Beginner", "Intermediate", "Advanced"],
-                "variable": "reading_level",
+                "variable": "temp.reading_level",
             },
             is_active=True,
         )
@@ -89,7 +89,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "What kind of books do you like?",
                 "input_type": "text",
-                "variable": "book_preference",
+                "variable": "temp.book_preference",
             },
             is_active=True,
         )
@@ -206,7 +206,7 @@ class TestChatAPIScenarios:
                 "messages": [
                     {
                         "type": "text",
-                        "content": f"Hello! I'm BookBot. I help you discover amazing books! 📚",
+                        "content": "Hello! I'm BookBot. I help you discover amazing books! 📚",
                     }
                 ]
             },
@@ -221,7 +221,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "How old are you?",
                 "input_type": "text",
-                "variable": "user_age",
+                "variable": "temp.user_age",
             },
             is_active=True,
         )
@@ -235,7 +235,7 @@ class TestChatAPIScenarios:
                 "question": "What's your reading level?",
                 "input_type": "choice",
                 "options": ["Beginner", "Intermediate", "Advanced"],
-                "variable": "reading_level",
+                "variable": "temp.reading_level",
             },
             is_active=True,
         )
@@ -248,7 +248,7 @@ class TestChatAPIScenarios:
             content={
                 "question": "What kind of books do you like?",
                 "input_type": "text",
-                "variable": "book_preference",
+                "variable": "temp.book_preference",
             },
             is_active=True,
         )
@@ -374,6 +374,16 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
+        
+        # Get CSRF token from cookies, not JSON response
+        csrf_token = response.cookies.get("csrf_token")
+        
+        # Set up CSRF protection for interact endpoint
+        if csrf_token:
+            async_client.cookies.set("csrf_token", csrf_token)
+            interact_headers = {**test_user_account_headers, "X-CSRF-Token": csrf_token}
+        else:
+            interact_headers = test_user_account_headers
 
         # Verify initial welcome message - current node ID is in next_node.node_id
         assert session_data["next_node"]["node_id"] == "welcome"
@@ -387,7 +397,7 @@ class TestChatAPIScenarios:
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json=interact_payload,
-            headers=test_user_account_headers,
+            headers=interact_headers,
         )
 
         assert response.status_code == 200
@@ -450,10 +460,20 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
+        
+        # Get CSRF token from cookies, not JSON response
+        csrf_token = response.cookies.get("csrf_token")
+        
+        # Set up CSRF protection for interact endpoint
+        if csrf_token:
+            async_client.cookies.set("csrf_token", csrf_token)
+            interact_headers = {**test_user_account_headers, "X-CSRF-Token": csrf_token}
+        else:
+            interact_headers = test_user_account_headers
 
         # End session
         response = await async_client.post(
-            f"/v1/chat/sessions/{session_token}/end", headers=test_user_account_headers
+            f"/v1/chat/sessions/{session_token}/end", headers=interact_headers
         )
         assert response.status_code == 200
 
@@ -471,7 +491,7 @@ class TestChatAPIScenarios:
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json=interact_payload,
-            headers=test_user_account_headers,
+            headers=interact_headers,
         )
         assert response.status_code == 400  # Session ended
 
@@ -500,6 +520,16 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
+        
+        # Get CSRF token from cookies, not JSON response
+        csrf_token = response.cookies.get("csrf_token")
+        
+        # Set up CSRF protection for interact endpoint
+        if csrf_token:
+            async_client.cookies.set("csrf_token", csrf_token)
+            interact_headers = {**test_user_account_headers, "X-CSRF-Token": csrf_token}
+        else:
+            interact_headers = test_user_account_headers
 
         # Test invalid session token
         fake_token = "invalid_session_token"
@@ -512,7 +542,7 @@ class TestChatAPIScenarios:
         response = await async_client.post(
             f"/v1/chat/sessions/{session_token}/interact",
             json={"invalid": "payload"},
-            headers=test_user_account_headers,
+            headers=interact_headers,
         )
         assert response.status_code == 422  # Validation error
 
@@ -541,27 +571,66 @@ class TestChatAPIScenarios:
             assert response.status_code == 201
 
             session_data = response.json()
-            sessions.append(session_data["session_token"])
+            csrf_token = response.cookies.get("csrf_token")
+            
+            sessions.append({
+                "token": session_data["session_token"],
+                "csrf_token": csrf_token,
+                "cookies": response.cookies
+            })
 
         # Verify all sessions are independent
-        for i, session_token in enumerate(sessions):
-            # Send different input to each session
+        for i, session_info in enumerate(sessions):
+            # Include CSRF token in headers and set session-specific cookies
+            if session_info["csrf_token"]:
+                async_client.cookies.set("csrf_token", session_info["csrf_token"])
+                headers = {**test_user_account_headers, "X-CSRF-Token": session_info["csrf_token"]}
+            else:
+                headers = test_user_account_headers
+            
+            # First interaction - move past the welcome message
+            interact_payload = {
+                "input": "",  # Empty input to proceed past welcome
+                "input_type": "text",
+            }
+            
+            # Set cookies for this specific request
+            original_cookies = async_client.cookies
+            async_client.cookies.update(session_info["cookies"])
+            
+            response = await async_client.post(
+                f"/v1/chat/sessions/{session_info['token']}/interact",
+                json=interact_payload,
+                headers=headers,
+            )
+            
+            # Restore original cookies
+            async_client.cookies = original_cookies
+            assert response.status_code == 200
+            
+            # Second interaction - answer the age question with different ages
             interact_payload = {
                 "input": str(10 + i),  # Different ages
                 "input_type": "text",
             }
-
+            
+            # Set cookies for this specific request
+            original_cookies = async_client.cookies
+            async_client.cookies.update(session_info["cookies"])
+            
             response = await async_client.post(
-                f"/v1/chat/sessions/{session_token}/interact",
+                f"/v1/chat/sessions/{session_info['token']}/interact",
                 json=interact_payload,
-                headers=test_user_account_headers,
+                headers=headers,
             )
-
+            
+            # Restore original cookies
+            async_client.cookies = original_cookies
             assert response.status_code == 200
 
             # Verify session state is independent
             response = await async_client.get(
-                f"/v1/chat/sessions/{session_token}", headers=test_user_account_headers
+                f"/v1/chat/sessions/{session_info['token']}", headers=test_user_account_headers
             )
             assert response.status_code == 200
 
@@ -571,9 +640,9 @@ class TestChatAPIScenarios:
             assert temp_vars.get("user_age") == str(10 + i)
 
         # Clean up sessions
-        for session_token in sessions:
+        for session_info in sessions:
             await async_client.post(
-                f"/v1/chat/sessions/{session_token}/end",
+                f"/v1/chat/sessions/{session_info['token']}/end",
                 headers=test_user_account_headers,
             )
 
@@ -596,28 +665,62 @@ class TestChatAPIScenarios:
             "/v1/chat/start", json=start_payload, headers=test_user_account_headers
         )
         assert response.status_code == 201
-        session_token = response.json()["session_token"]
+        session_data = response.json()
+        session_token = session_data["session_token"]
+        
+        # Get CSRF token from cookies, not JSON response
+        csrf_token = response.cookies.get("csrf_token")
+        session_cookies = response.cookies
 
         # Progress through the conversation with correct input types
         interactions = [
+            {"input": "", "input_type": "text"},  # Move past welcome
             {"input": "8", "input_type": "text"},  # Age
             {"input": "Advanced", "input_type": "choice"},  # Reading level
             {"input": "Science Fiction", "input_type": "text"},  # Preference
         ]
 
-        for interaction in interactions:
+        # Include CSRF token in headers for interactions
+        if csrf_token:
+            async_client.cookies.set("csrf_token", csrf_token)
+            interact_headers = {**test_user_account_headers, "X-CSRF-Token": csrf_token}
+        else:
+            interact_headers = test_user_account_headers
+
+        for i, interaction in enumerate(interactions):
+            print(f"\nDEBUG: Sending interaction {i}: {interaction}")
+            # Set session cookies for each request
+            original_cookies = async_client.cookies
+            async_client.cookies.update(session_cookies)
+            
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_token}/interact",
                 json=interaction,
-                headers=test_user_account_headers,
+                headers=interact_headers,
             )
+            
+            # Restore original cookies
+            async_client.cookies = original_cookies
+            
+            if response.status_code != 200:
+                print(f"ERROR: Interaction {i} failed with status {response.status_code}: {response.text}")
             assert response.status_code == 200
+            resp_json = response.json()
+            print(f"DEBUG: Response {i}: current_node={resp_json.get('current_node_id')}, ended={resp_json.get('session_ended')}")
+            if resp_json.get('session_ended'):
+                print(f"WARNING: Session ended prematurely at interaction {i}")
+            if resp_json.get('session_updated'):
+                print(f"DEBUG: Session state after {i}: {resp_json['session_updated'].get('state')}")
 
         # Verify variable substitution in the final message
         final_response = response.json()
+        print(f"DEBUG: Final response keys: {final_response.keys()}")
+        print(f"DEBUG: Final response: {final_response}")
         messages = final_response.get("messages", [])
-        assert len(messages) > 0
+        assert len(messages) > 0, f"No messages in response: {final_response}"
+        print(f"DEBUG: Messages: {messages}")
         message_content = messages[0].get("content", "")
+        print(f"DEBUG: Message content: {message_content}")
         assert "8" in message_content
         assert "Advanced" in message_content
         assert "Science Fiction" in message_content

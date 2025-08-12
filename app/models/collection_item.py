@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from app.models.collection import Collection
     from app.models.collection_item_activity import CollectionItemActivity
     from app.models.edition import Edition
-    from app.models.work import Work
 
 
 class CollectionItem(Base):

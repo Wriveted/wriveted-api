@@ -246,7 +246,8 @@ def _handle_invoice_paid(
     )
     subscription.is_active = stripe_subscription.status in {"active", "past_due"}
 
-    crud.event.create(
+    # Use unified event workflow instead of direct crud.event.create
+    create_event(
         session=session,
         title="Subscription payment received",
         description="Invoice paid for subscription",
@@ -258,6 +259,8 @@ def _handle_invoice_paid(
         },
         school=school,
         account=wriveted_user,
+        enable_processing=False,  # No processing needed for payment received
+        external_notifications=False  # Internal accounting event
     )
 
 
@@ -352,7 +355,7 @@ def _handle_checkout_session_completed(
     product = crud.product.get(session, stripe_price_id)
     product_name = product.name if product else "Unknown Product"
 
-    event = create_event(
+    create_event(
         session=session,
         title="Subscription started",
         description="Subscription created or updated",
@@ -376,35 +379,40 @@ def _handle_checkout_session_completed(
             # "subscription_link": f"https://dashboard.stripe.com/subscriptions/{stripe_subscription_id}",
             # "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
         },
+        enable_processing=True,  # This will automatically handle background processing via EventOutbox
+        external_notifications=True  # This will ensure Slack alerts are sent
     )
 
-    # Queue processing of the 'Subscription started' event
-    queue_background_task(
-        "process-event",
-        {"event_id": str(event.id)},
-    )
+    # Processing automatically handled by unified workflow via enable_processing=True
 
-    if wriveted_parent_id is not None:
-        logger.info("Queueing subscription welcome email")
-        queue_background_task(
-            "send-email",
-            {
-                "email_data": {
-                    "from_email": "orders@hueybooks.com",
-                    "from_name": "Huey Books",
-                    "to_emails": (
-                        [stripe_customer_email] if stripe_customer_email else []
-                    ),
-                    "subject": "Your Huey Books Membership",
-                    "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
-                    "template_data": {
-                        "name": stripe_customer.name,
-                        "checkout_session_id": checkout_session_id,
-                    },
-                },
-                "user_id": str(wriveted_user.id) if wriveted_user else None,
+    # Send subscription welcome email via EventOutbox for reliable delivery
+    if wriveted_parent_id is not None and stripe_customer_email:
+        logger.info("Sending subscription welcome email via EventOutbox")
+        
+        # Local import to avoid circular dependency
+        from app.services.email_notification import send_email_reliable_sync, EmailType
+        
+        email_data = {
+            "from_email": "orders@hueybooks.com",
+            "from_name": "Huey Books",
+            "to_emails": [stripe_customer_email],
+            "subject": "Your Huey Books Membership",
+            "template_id": "d-fa829ecc76fc4e37ab4819abb6e0d188",
+            "template_data": {
+                "name": stripe_customer.name,
+                "checkout_session_id": checkout_session_id,
             },
+        }
+        
+        # Send as TRANSACTIONAL email - critical business email with 5 retries
+        send_email_reliable_sync(
+            db=session,
+            email_data=email_data,
+            email_type=EmailType.TRANSACTIONAL,
+            user_id=str(wriveted_user.id) if wriveted_user else None
         )
+    elif wriveted_parent_id is not None and not stripe_customer_email:
+        logger.warning("Skipping subscription welcome email - no customer email address available")
 
     return subscription
 
@@ -522,7 +530,8 @@ def _handle_subscription_updated(
         logger.info("Updating school subscription with school id")
         subscription.school_id = school.wriveted_identifier
 
-    crud.event.create(
+    # Use unified event workflow instead of direct crud.event.create
+    create_event(
         session=session,
         title="Subscription updated",
         description="Subscription updated on Stripe",
@@ -534,6 +543,8 @@ def _handle_subscription_updated(
         },
         school=school,
         account=wriveted_user,
+        enable_processing=False,  # No processing needed for updates
+        external_notifications=False  # Internal accounting event
     )
 
     return subscription
@@ -552,7 +563,8 @@ def _handle_subscription_cancelled(
         if "ended_at" in event_data and event_data["ended_at"] is not None:
             subscription.expiration = datetime.utcfromtimestamp(event_data["ended_at"])
 
-        crud.event.create(
+        # Use unified event workflow instead of direct crud.event.create
+        create_event(
             session=session,
             title="Subscription cancelled",
             description=f"User cancelled their subscription to {product.name if product else 'Unknown Product'}",
@@ -564,6 +576,9 @@ def _handle_subscription_cancelled(
             },
             school=school,
             account=wriveted_user,
+            slack_channel=EventSlackChannel.MEMBERSHIPS,  # Important business event - notify team
+            enable_processing=False,  # No processing needed for cancellations
+            external_notifications=True  # Team should be notified of cancellations
         )
     else:
         logger.info(

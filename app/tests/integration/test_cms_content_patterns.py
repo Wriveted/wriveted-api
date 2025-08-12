@@ -6,7 +6,6 @@ Extracted from ad-hoc test_cms_content.py and enhanced for integration testing.
 
 import pytest
 from typing import Dict, List, Any
-from uuid import uuid4
 
 
 class TestCMSContentPatterns:

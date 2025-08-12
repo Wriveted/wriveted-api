@@ -58,9 +58,35 @@ class ProcessEventPayload(BaseModel):
 
 @router.post("/process-event")
 def process_event(data: ProcessEventPayload):
+    """
+    Legacy endpoint for direct event processing.
+    
+    Note: This endpoint is maintained for backward compatibility but new
+    events will be processed via the EventOutbox system for better reliability.
+    """
     return process_events(
         event_id=data.event_id,
     )
+
+
+@router.post("/process-outbox-events")
+async def process_outbox_events(session: DBSessionDep):
+    """
+    Process pending events from the EventOutbox.
+    
+    This is the new unified background processor that handles all reliable
+    event delivery including Slack alerts, webhooks, and internal processing.
+    """
+    from app.services.event_outbox_service import EventOutboxService
+    
+    outbox_service = EventOutboxService()
+    stats = await outbox_service.process_pending_events(session)
+    
+    logger.info("EventOutbox processing completed", stats=stats)
+    return {
+        "msg": "EventOutbox processing completed",
+        "stats": stats
+    }
 
 
 class EventSlackAlertPayload(BaseModel):
@@ -74,7 +100,15 @@ def event_to_slack_alert(
     data: EventSlackAlertPayload,
     session: Session = Depends(get_session),
 ):
-    logger.info("Internal API preparing to send event to slack", data=data)
+    """
+    Legacy endpoint for direct Slack alerts.
+    
+    Note: This endpoint is now deprecated. New code should use the unified
+    create_event workflow with slack_channel parameter, which automatically
+    queues alerts via the EventOutbox for better reliability.
+    """
+    logger.warning("Using deprecated direct Slack alert endpoint. Consider using unified event workflow.", 
+                  event_id=data.event_id)
     handle_event_to_slack_alert(
         session, data.event_id, data.slack_channel, extra=data.slack_extra
     )

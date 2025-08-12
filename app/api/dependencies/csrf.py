@@ -11,18 +11,6 @@ logger = get_logger()
 
 async def require_csrf_token(request: Request):
     """Dependency that validates CSRF token for protected endpoints."""
-    # Check for test-specific CSRF override header
-    test_csrf_enabled = request.headers.get("X-Test-CSRF-Enabled", "").lower() == "true"
-
-    # Skip CSRF validation if disabled globally for tests AND no test override
-    if (
-        os.getenv("PYTEST_CURRENT_TEST")
-        and os.getenv("SKIP_CSRF_VALIDATION", "false").lower() == "true"
-        and not test_csrf_enabled
-    ):
-        logger.debug("Skipping CSRF validation in test environment")
-        return True
-
     try:
         validate_csrf_token(request)
         return True

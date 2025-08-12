@@ -5,7 +5,6 @@ import app.services as services
 from app import crud
 from app.config import get_settings
 from app.crud.base import deep_merge_dicts
-from app.db.session import get_session_maker
 from app.models.booklist import BookList, ListSharingType, ListType
 from app.models.booklist_work_association import BookListItem
 from app.models.event import EventLevel, EventSlackChannel
@@ -22,7 +21,8 @@ from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.background_tasks import queue_background_task
-from app.services.events import create_event
+# Local import to avoid circular dependency
+# from app.services.events import create_event
 from app.services.gcp_storage import (
     base64_string_to_bucket,
     delete_blob,
@@ -274,6 +274,8 @@ def populate_booklist_object(
 
             edition = edition_result or i.work.get_feature_edition(session)
             if edition is None:
+                # Local import to avoid circular dependency
+                from app.services.events import create_event
                 create_event(
                     session=session,
                     level=EventLevel.WARNING,

@@ -8,7 +8,6 @@ materialized view after manual refresh and that search functionality works corre
 
 import logging
 import uuid
-from typing import List, Optional
 
 import pytest
 from sqlalchemy import text
@@ -20,8 +19,6 @@ from app.schemas.author import AuthorCreateIn
 from app.schemas.work import WorkCreateIn
 
 # Series operations removed for simplicity
-from app.services.editions import generate_random_valid_isbn13
-from app.schemas.edition import EditionCreateIn
 
 logger = logging.getLogger(__name__)
 

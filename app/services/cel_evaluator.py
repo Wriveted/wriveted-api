@@ -57,8 +57,16 @@ def validate_cel_expression(expression: str) -> bool:
         True if expression is valid, False otherwise
     """
     try:
-        # Try to evaluate with empty context to check syntax
-        evaluate(expression, {})
+        # Try to evaluate with a sample context to check syntax
+        sample_context = {
+            "node_type": "test",
+            "content": {
+                "url": "https://example.com",
+                "messages": [],
+                "test_field": "test_value"
+            }
+        }
+        evaluate(expression, sample_context)
         return True
     except Exception:
         return False

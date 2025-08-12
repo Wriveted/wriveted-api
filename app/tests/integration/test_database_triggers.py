@@ -13,7 +13,6 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock
 
 import asyncpg
 import pytest
@@ -21,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.chat_repo import chat_repo
-from app.models.cms import ConversationSession, FlowDefinition, SessionStatus
+from app.models.cms import FlowDefinition, SessionStatus
 from app.schemas.users.user_create import UserCreateIn
 from app import crud
 

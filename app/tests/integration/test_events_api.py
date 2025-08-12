@@ -171,8 +171,19 @@ def test_post_events_api_background_process(
     create_event_response.raise_for_status()
     assert create_event_response.json()["level"] == "warning"
 
-    # Wait a tick, then see if the event was modified
-    time.sleep(0.5)
+    # Process EventOutbox queue to trigger background processing
+    from app.services.event_outbox_service import EventOutboxService
+    from app.db.session import get_async_session_maker
+    import asyncio
+    
+    async def process_outbox():
+        async_session_maker = get_async_session_maker()
+        async with async_session_maker() as async_session:
+            service = EventOutboxService()
+            await service.process_pending_events(async_session)
+    
+    asyncio.run(process_outbox())
+    
     with session_factory() as session:
         events = [
             e

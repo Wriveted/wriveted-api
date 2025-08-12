@@ -93,10 +93,18 @@ async def send_email(
     Can dynamically fill a specified template with provided data.
     """
     logger.info("Public email endpoint called", parameters=data, account=account)
-    queue_background_task(
-        "send-email", {"email_data": dict(data), "service_account_id": str(account.id)}
+    
+    # Local import to avoid circular dependency
+    from app.services.email_notification import send_email_reliable_sync, EmailType
+    
+    send_email_reliable_sync(
+        db=session,
+        email_data=dict(data),
+        email_type=EmailType.SYSTEM,  # Commerce API emails are system-level
+        service_account_id=str(account.id)
     )
-    return Response(status_code=202, content="Email queued.")
+    
+    return Response(status_code=202, content="Email queued for reliable delivery.")
 
 
 @router.post(

@@ -2,15 +2,12 @@
 Integration tests for CMS and Chat APIs with proper authentication.
 """
 
-from datetime import datetime, timezone
 from uuid import uuid4
 import logging
 
-import httpx
 import pytest
 
 from app.models import ServiceAccount, ServiceAccountType
-from app.models.cms import ContentStatus, ContentType
 from app.services.security import create_access_token
 
 # Set up verbose logging for debugging test setup failures

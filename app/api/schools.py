@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 
-import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
 from sqlalchemy.exc import IntegrityError
