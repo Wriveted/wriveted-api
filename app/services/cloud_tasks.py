@@ -1,7 +1,7 @@
 """Cloud Tasks integration for async node processing."""
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from uuid import UUID
 
 from google.cloud import tasks_v2
@@ -59,7 +59,7 @@ class CloudTasksService:
         }
 
         return await self._enqueue_task(
-            task_payload, delay_seconds, idempotency_key, f"/internal/tasks/action-node"
+            task_payload, delay_seconds, idempotency_key, "/internal/tasks/action-node"
         )
 
     async def enqueue_webhook_task(
@@ -91,7 +91,7 @@ class CloudTasksService:
             task_payload,
             delay_seconds,
             idempotency_key,
-            f"/internal/tasks/webhook-node",
+            "/internal/tasks/webhook-node",
         )
 
     async def _enqueue_task(

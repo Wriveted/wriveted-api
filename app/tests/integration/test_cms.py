@@ -423,12 +423,12 @@ def test_create_flow(client, backend_service_account_headers):
 
 def test_list_flows(client, backend_service_account_headers):
     """Test listing flows with filters."""
-    # Create test flows
+    # Create test flows - don't include nodes in flow_data to avoid duplicates
     flows = [
         {
             "name": "Published Flow",
             "version": "1.0",
-            "flow_data": {},
+            "flow_data": {},  # Empty flow_data, we'll add nodes via API
             "entry_node_id": "start",
         },
         {
@@ -446,13 +446,31 @@ def test_list_flows(client, backend_service_account_headers):
         )
         created_flows.append(response.json())
 
-    # Publish the first flow
+    # Create a proper node for the published flow to pass validation
     flow_id = created_flows[0]["id"]
+    
+    # Create the start node that the flow references
+    node_data = {
+        "node_id": "start",
+        "node_type": "message",
+        "content": {"messages": [{"content": "Welcome to the flow"}]},
+        "position": {"x": 100, "y": 100}
+    }
     client.post(
+        f"v1/cms/flows/{flow_id}/nodes",
+        json=node_data,
+        headers=backend_service_account_headers
+    )
+    
+    # Now publish the first flow
+    publish_response = client.post(
         f"v1/cms/flows/{flow_id}/publish",
         json={"publish": True},
         headers=backend_service_account_headers,
     )
+    
+    # Check if publish was successful
+    assert publish_response.status_code == 200
 
     # List all flows
     response = client.get("v1/cms/flows", headers=backend_service_account_headers)
@@ -474,11 +492,24 @@ def test_list_flows(client, backend_service_account_headers):
 
 def test_publish_flow(client, backend_service_account_headers):
     """Test publishing and unpublishing flows."""
-    # Create flow
+    # Create flow with proper nodes
     flow_data = {
-        "name": "Publish Test Flow",
+        "name": "Publish Test Flow", 
         "version": "1.0",
-        "flow_data": {},
+        "flow_data": {
+            "nodes": [
+                {
+                    "id": "start",
+                    "type": "start",
+                    "data": {
+                        "name": "Start Node",
+                        "message": "Welcome to the test flow"
+                    },
+                    "position": {"x": 100, "y": 100}
+                }
+            ],
+            "connections": []
+        },
         "entry_node_id": "start",
     }
 
@@ -723,7 +754,7 @@ def test_delete_flow_node(client, backend_service_account_headers):
         headers=backend_service_account_headers,
     )
 
-    assert response.status_code == status.HTTP_200_OK  # API returns 200, not 204
+    assert response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify node is deleted
     get_response = client.get(
@@ -894,7 +925,7 @@ def test_delete_flow_connection(client, backend_service_account_headers):
         headers=backend_service_account_headers,
     )
 
-    assert response.status_code == status.HTTP_200_OK  # API returns 200, not 204
+    assert response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify connection is deleted
     list_response = client.get(
@@ -938,3 +969,58 @@ def test_invalid_content_type(client, backend_service_account_headers):
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_validate_flow(client, backend_service_account_headers):
+    """Test flow validation using CMS Workflow Service."""
+    # Create flow with proper structure
+    flow_data = {
+        "name": "Validation Test Flow",
+        "version": "1.0",
+        "flow_data": {},
+        "entry_node_id": "start",
+    }
+
+    flow_response = client.post(
+        "v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+    )
+    flow_id = flow_response.json()["id"]
+
+    # Create the start node
+    node_data = {
+        "node_id": "start",
+        "node_type": "message",
+        "content": {"messages": [{"content": "Start message"}]},
+        "position": {"x": 100, "y": 100}
+    }
+    client.post(
+        f"v1/cms/flows/{flow_id}/nodes",
+        json=node_data,
+        headers=backend_service_account_headers
+    )
+
+    # Validate flow using service endpoint
+    response = client.post(
+        f"v1/cms/flows/{flow_id}/validate", headers=backend_service_account_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Should be valid with proper structure
+    assert data["is_valid"] is True
+    assert data["validation_errors"] == []
+    assert data["nodes_count"] == 1
+    assert data["connections_count"] == 0
+    assert data["entry_node_id"] == "start"
+
+
+def test_validate_nonexistent_flow(client, backend_service_account_headers):
+    """Test validation of non-existent flow returns 404."""
+    fake_id = str(uuid.uuid4())
+    response = client.post(
+        f"v1/cms/flows/{fake_id}/validate", headers=backend_service_account_headers
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Flow not found"

@@ -18,9 +18,7 @@ Consolidated from:
 """
 
 import uuid
-from typing import Dict, List, Any
 
-import pytest
 from starlette import status
 
 
@@ -224,7 +222,7 @@ class TestFlowCRUD:
             f"v1/cms/flows/{flow_id}", headers=backend_service_account_headers
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify flow is soft deleted
         get_response = client.get(
@@ -328,11 +326,24 @@ class TestFlowPublishing:
 
     def test_publish_flow(self, client, backend_service_account_headers):
         """Test publishing a flow."""
-        # Create flow first
+        # Create flow first with proper nodes
         flow_data = {
             "name": "Flow to Publish",
             "version": "1.0.0",
-            "flow_data": {"entry_point": "start"},
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "start",
+                        "data": {
+                            "name": "Start Node",
+                            "message": "Welcome"
+                        },
+                        "position": {"x": 100, "y": 100}
+                    }
+                ],
+                "connections": []
+            },
             "entry_node_id": "start"
         }
 
@@ -395,11 +406,24 @@ class TestFlowPublishing:
 
     def test_flow_version_increment_on_publish(self, client, backend_service_account_headers):
         """Test that flow version can be incremented when publishing."""
-        # Create flow
+        # Create flow with proper nodes
         flow_data = {
             "name": "Versioned Flow",
             "version": "1.0.0",
-            "flow_data": {"entry_point": "start"},
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "start",
+                        "data": {
+                            "name": "Start Node",
+                            "message": "Welcome to versioned flow"
+                        },
+                        "position": {"x": 100, "y": 100}
+                    }
+                ],
+                "connections": []
+            },
             "entry_node_id": "start"
         }
 
@@ -793,7 +817,7 @@ class TestFlowNodes:
             headers=backend_service_account_headers,
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify node is deleted
         get_response = client.get(
@@ -978,7 +1002,7 @@ class TestFlowConnections:
             headers=backend_service_account_headers,
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify connection is deleted
         list_response = client.get(

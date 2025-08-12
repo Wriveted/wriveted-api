@@ -5,10 +5,7 @@ Tests the authenticated CMS routes and chat functionality.
 
 from uuid import uuid4
 
-import pytest
 
-from app.models import ServiceAccount, ServiceAccountType
-from app.models.cms import ContentStatus, ContentType
 
 
 class TestCMSWithAuthentication:
@@ -327,9 +324,9 @@ class TestCMSWithAuthentication:
         print(f"   ✅ Flow accessible: {len(flows_data['data'])} flows total")
 
         print("\\n🎉 Complete workflow test passed!")
-        print(f"   📊 Summary:")
-        print(f"   - CMS Content created and accessible ✅")
-        print(f"   - Flow definition created and accessible ✅")
-        print(f"   - Chat session started successfully ✅")
-        print(f"   - Authentication working properly ✅")
-        print(f"   - End-to-end workflow verified ✅")
+        print("   📊 Summary:")
+        print("   - CMS Content created and accessible ✅")
+        print("   - Flow definition created and accessible ✅")
+        print("   - Chat session started successfully ✅")
+        print("   - Authentication working properly ✅")
+        print("   - End-to-end workflow verified ✅")

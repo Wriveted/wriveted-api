@@ -83,7 +83,7 @@ def validate_csrf_token(request: Request):
 
 
 def set_secure_session_cookie(
-    response: Response, name: str, value: str, max_age: int = 3600
+    response: Response, name: str, value: str, max_age: int = 3600, debug: bool = False
 ):
     """Set a secure session cookie with proper security attributes."""
     response.set_cookie(
@@ -91,6 +91,6 @@ def set_secure_session_cookie(
         value,
         httponly=True,
         samesite="strict",
-        secure=True,  # HTTPS only
+        secure=not debug,  # Only secure in production (non-debug)
         max_age=max_age,
     )

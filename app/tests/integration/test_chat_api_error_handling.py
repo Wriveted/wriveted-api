@@ -84,39 +84,33 @@ def test_interact_invalid_session_token_format(client):
     """Test interacting with malformed session token returns 404."""
     invalid_session_token = "not-a-valid-session-token-format"
     
+    # Set up CSRF protection properly
+    csrf_token = "test_csrf_token_for_validation"
+    client.cookies.set("csrf_token", csrf_token)
+    headers = {"X-CSRF-Token": csrf_token}
+    
     response = client.post(
         f"v1/chat/sessions/{invalid_session_token}/interact",
         json={
             "input_type": "text",
             "input": "Hello",
-            "csrf_token": "dummy_token",
         },
+        headers=headers,
     )
     
-    # Invalid session tokens typically return 404 Not Found
+    # Should get 404 for invalid session token format
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_interact_invalid_input_type(client, test_user_account_headers):
     """Test interacting with invalid input_type returns 422."""
-    # First start a conversation to get a valid session
-    flow_id = str(uuid.uuid4())
-    start_response = client.post(
-        "v1/chat/start",
-        json={
-            "flow_id": flow_id,
-            "initial_state": {"user_name": "Test User"}
-        },
-        headers=test_user_account_headers,
-    )
+    # Create a dummy session token for testing input validation
+    session_token = str(uuid.uuid4())
     
-    # This will return 404 for non-existent flow, but we're testing input validation
-    if start_response.status_code == status.HTTP_404_NOT_FOUND:
-        # Skip this test if flow doesn't exist, as we can't get a valid session
-        return
-    
-    session_token = start_response.json()["session_token"]
-    csrf_token = start_response.json()["csrf_token"]
+    # Set up CSRF protection properly
+    csrf_token = "test_csrf_token_for_validation"
+    client.cookies.set("csrf_token", csrf_token)
+    headers = {**test_user_account_headers, "X-CSRF-Token": csrf_token}
     
     # Try to interact with invalid input type
     response = client.post(
@@ -124,11 +118,15 @@ def test_interact_invalid_input_type(client, test_user_account_headers):
         json={
             "input_type": "invalid_input_type",  # Invalid type
             "input": "Hello",
-            "csrf_token": csrf_token,
         },
+        headers=headers,
     )
     
+    # Should get validation error for invalid input_type
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    error_detail = response.json()["detail"]
+    # Should mention invalid input_type
+    assert any("input_type" in str(error).lower() for error in error_detail)
 
 
 def test_interact_empty_input(client, test_user_account_headers):
@@ -167,22 +165,34 @@ def test_interact_missing_required_fields(client):
     """Test interacting with missing required fields returns 422."""
     session_token = str(uuid.uuid4())
     
+    # Set up CSRF protection properly
+    csrf_token = "test_csrf_token_for_validation"
+    client.cookies.set("csrf_token", csrf_token)
+    headers = {"X-CSRF-Token": csrf_token}
+    
     # Missing required input_type field
     response = client.post(
         f"v1/chat/sessions/{session_token}/interact",
         json={
             "input": "Hello",
-            "csrf_token": "dummy_token",
         },
+        headers=headers,
     )
     
-    # Missing session will return 404, but if session existed, missing fields would be 422
-    assert response.status_code in [status.HTTP_422_UNPROCESSABLE_ENTITY, status.HTTP_404_NOT_FOUND]
+    # Should get validation error for missing input_type
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    error_detail = response.json()["detail"]
+    assert any("input_type" in str(error).lower() for error in error_detail)
 
 
 def test_update_session_state_invalid_revision_format(client):
     """Test updating session state with invalid revision format returns 422."""
     session_token = str(uuid.uuid4())
+    
+    # Set up CSRF protection properly
+    csrf_token = "test_csrf_token_for_validation"
+    client.cookies.set("csrf_token", csrf_token)
+    headers = {"X-CSRF-Token": csrf_token}
     
     response = client.patch(
         f"v1/chat/sessions/{session_token}/state",
@@ -190,15 +200,24 @@ def test_update_session_state_invalid_revision_format(client):
             "updates": {"key": "value"},
             "expected_revision": "not_a_number",  # Should be integer
         },
+        headers=headers,
     )
     
-    # Missing session returns 404, but validation errors would be 422
-    assert response.status_code in [status.HTTP_422_UNPROCESSABLE_ENTITY, status.HTTP_404_NOT_FOUND]
+    # Should get validation error for invalid revision format
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    error_detail = response.json()["detail"]
+    # Should mention expected_revision validation error
+    assert any("expected_revision" in str(error).lower() for error in error_detail)
 
 
 def test_update_session_state_negative_revision(client):
     """Test updating session state with negative revision handles gracefully."""
     session_token = str(uuid.uuid4())
+    
+    # Set up CSRF protection properly
+    csrf_token = "test_csrf_token_for_validation"
+    client.cookies.set("csrf_token", csrf_token)
+    headers = {"X-CSRF-Token": csrf_token}
     
     response = client.patch(
         f"v1/chat/sessions/{session_token}/state",
@@ -206,6 +225,7 @@ def test_update_session_state_negative_revision(client):
             "updates": {"key": "value"},
             "expected_revision": -1,  # Negative revision
         },
+        headers=headers,
     )
     
     # Negative numbers are valid integers, session doesn't exist so returns 404

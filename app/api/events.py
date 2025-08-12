@@ -26,7 +26,6 @@ from app.schemas.events.event_detail import (
     EventTypesResponse,
 )
 from app.schemas.pagination import Pagination
-from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
 
 logger = get_logger()
@@ -70,13 +69,12 @@ async def create(
         level=data.level,
         school=school,
         account=specified_user or account,
+        # Unified workflow automatically handles background processing
+        enable_processing=True
     )
 
-    # Queue a background task to process the created event
-    queue_background_task(
-        "process-event",
-        {"event_id": str(event.id)},
-    )
+    # Note: Background task queuing now handled automatically by create_event
+    # via the unified EventOutbox workflow
 
     return event
 

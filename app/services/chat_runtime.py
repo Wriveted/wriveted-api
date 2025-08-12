@@ -35,7 +35,7 @@ from app.models.cms import (
     NodeType,
     SessionStatus,
 )
-from app.services.variable_resolver import VariableResolver, create_session_resolver
+from app.services.variable_resolver import create_session_resolver
 
 logger = get_logger()
 
@@ -153,17 +153,28 @@ class MessageNodeProcessor(NodeProcessor):
         message = {
             "id": str(content.id),
             "type": content.type.value,
-            "content": content_data.copy(),
+            "content": self._deep_substitute_variables(content_data, session_state),
         }
-
-        # Perform variable substitution
-        for key, value in content_data.items():
-            if isinstance(value, str):
-                message["content"][key] = self.runtime.substitute_variables(
-                    value, session_state
-                )
-
         return message
+    
+    def _deep_substitute_variables(
+        self, obj: Any, session_state: Dict[str, Any]
+    ) -> Any:
+        """Recursively substitute variables in nested structures."""
+        if isinstance(obj, str):
+            return self.runtime.substitute_variables(obj, session_state)
+        elif isinstance(obj, dict):
+            return {
+                key: self._deep_substitute_variables(value, session_state)
+                for key, value in obj.items()
+            }
+        elif isinstance(obj, list):
+            return [
+                self._deep_substitute_variables(item, session_state)
+                for item in obj
+            ]
+        else:
+            return obj
 
 
 class QuestionNodeProcessor(NodeProcessor):
@@ -242,6 +253,12 @@ class QuestionNodeProcessor(NodeProcessor):
                 content = await crud.content.aget(db, UUID(content_id))
                 if content and content.is_active:
                     variable_name = content.content.get("variable")
+                    self.logger.debug(
+                        "Got variable from CMS content",
+                        content_id=content_id,
+                        variable_name=variable_name,
+                        cms_content=content.content,
+                    )
             except Exception as e:
                 self.logger.error(
                     "Error loading question content for variable",
@@ -258,6 +275,8 @@ class QuestionNodeProcessor(NodeProcessor):
             "Processing question response",
             variable_name=variable_name,
             user_input=user_input,
+            node_id=node.node_id,
+            content_id=content_id if content_id else "no_content_id",
         )
         if variable_name:
             # Store sanitized user input as the variable name in state
@@ -273,7 +292,7 @@ class QuestionNodeProcessor(NodeProcessor):
                 state_updates = {"temp": {variable_name: sanitized_input}}
 
             # Update session state
-            session = await chat_repo.update_session_state(
+            updated_session = await chat_repo.update_session_state(
                 db,
                 session_id=session.id,
                 state_updates=state_updates,
@@ -283,8 +302,12 @@ class QuestionNodeProcessor(NodeProcessor):
             self.logger.info(
                 "Updated session state",
                 state_updates=state_updates,
-                session_state=session.state,
+                session_state=updated_session.state,
+                full_state=updated_session.state,
+                variable_name=variable_name,
             )
+            # Update the session reference to the new one
+            session = updated_session
 
         # Record user input in history
         await chat_repo.add_interaction_history(
@@ -330,6 +353,7 @@ class QuestionNodeProcessor(NodeProcessor):
             "next_node": next_node,
             "updated_state": session.state,
             "state_was_updated": state_was_updated,
+            "session": session,  # Return the updated session object
         }
 
     async def _render_question_message(
@@ -340,17 +364,28 @@ class QuestionNodeProcessor(NodeProcessor):
         message = {
             "id": str(content.id),
             "type": content.type.value,
-            "content": content_data.copy(),
+            "content": self._deep_substitute_variables(content_data, session_state),
         }
-
-        # Perform variable substitution
-        for key, value in content_data.items():
-            if isinstance(value, str):
-                message["content"][key] = self.runtime.substitute_variables(
-                    value, session_state
-                )
-
         return message
+    
+    def _deep_substitute_variables(
+        self, obj: Any, session_state: Dict[str, Any]
+    ) -> Any:
+        """Recursively substitute variables in nested structures."""
+        if isinstance(obj, str):
+            return self.runtime.substitute_variables(obj, session_state)
+        elif isinstance(obj, dict):
+            return {
+                key: self._deep_substitute_variables(value, session_state)
+                for key, value in obj.items()
+            }
+        elif isinstance(obj, list):
+            return [
+                self._deep_substitute_variables(item, session_state)
+                for item in obj
+            ]
+        else:
+            return obj
 
 
 class ChatRuntime:
@@ -529,23 +564,27 @@ class ChatRuntime:
 
             # Get updated session state if available
             if response.get("state_was_updated", False):
-                # Refresh session from database to get latest state
-                updated_session = await chat_repo.get_session_by_token(
-                    db, session.session_token
-                )
-                if updated_session:
+                # Use the updated session from the response
+                if response.get("session"):
+                    session = response["session"]
                     result["session_updated"] = {
-                        "state": updated_session.state,
-                        "revision": updated_session.revision,
+                        "state": session.state,
+                        "revision": session.revision,
                     }
+                else:
+                    # Fallback: Refresh session from database to get latest state
+                    updated_session = await chat_repo.get_session_by_token(
+                        db, session.session_token
+                    )
+                    if updated_session:
+                        session = updated_session
+                        result["session_updated"] = {
+                            "state": session.state,
+                            "revision": session.revision,
+                        }
 
             # Process next node if available
             if response.get("next_node"):
-                # If session state was updated, get the updated session
-                if response.get("state_was_updated"):
-                    session = await chat_repo.get_session_by_token(
-                        db, session.session_token
-                    )
 
                 next_result = await self.process_node(
                     db, response["next_node"], session
@@ -563,7 +602,8 @@ class ChatRuntime:
                 )
 
                 # Check if the processed node has no further connections
-                if next_result and not next_result.get("next_node"):
+                # Skip this check for question nodes as they wait for user input
+                if next_result and response["next_node"].node_type != NodeType.QUESTION and not next_result.get("next_node"):
                     result["session_ended"] = True
             else:
                 result["session_ended"] = True

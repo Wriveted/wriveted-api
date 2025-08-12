@@ -22,13 +22,10 @@ to fill gaps in analytics testing.
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
 
-import pytest
 from starlette import status
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestFlowAnalytics:
     """Test flow performance analytics and metrics."""
 
@@ -80,8 +77,8 @@ class TestFlowAnalytics:
         flow_id = create_response.json()["id"]
 
         # Get analytics for last 30 days
-        start_date = (datetime.now() - timedelta(days=30)).isoformat()
-        end_date = datetime.now().isoformat()
+        start_date = (datetime.now() - timedelta(days=30)).date().isoformat()
+        end_date = datetime.now().date().isoformat()
 
         response = client.get(
             f"v1/cms/flows/{flow_id}/analytics?start_date={start_date}&end_date={end_date}",
@@ -90,8 +87,8 @@ class TestFlowAnalytics:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["time_period"]["start_date"] == start_date[:10]  # Compare date only
-        assert data["time_period"]["end_date"] == end_date[:10]
+        assert data["time_period"]["start_date"] == start_date  # Now both are date strings
+        assert data["time_period"]["end_date"] == end_date
 
     def test_get_flow_conversion_funnel(self, client, backend_service_account_headers):
         """Test flow conversion funnel analytics."""
@@ -207,7 +204,6 @@ class TestFlowAnalytics:
         assert "winner" in data
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestNodeAnalytics:
     """Test individual node performance analytics."""
 
@@ -354,7 +350,6 @@ class TestNodeAnalytics:
         assert "path_distribution" in data
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestContentAnalytics:
     """Test analytics for content performance and engagement."""
 
@@ -472,7 +467,6 @@ class TestContentAnalytics:
         assert "user_segments" in data
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestAnalyticsDashboard:
     """Test analytics dashboard data and aggregations."""
 
@@ -538,7 +532,6 @@ class TestAnalyticsDashboard:
         assert len(data["top_flows"]) <= 5
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestAnalyticsExport:
     """Test analytics data export functionality."""
 
@@ -631,7 +624,6 @@ class TestAnalyticsExport:
         assert data["status"] in ["pending", "processing", "completed", "failed"]
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestAnalyticsFiltering:
     """Test analytics filtering and segmentation."""
 
@@ -692,7 +684,6 @@ class TestAnalyticsFiltering:
         assert data["pagination"]["offset"] == 20
 
 
-@pytest.mark.skip(reason="Analytics API endpoints not yet implemented.")
 class TestAnalyticsAuthentication:
     """Test analytics endpoints require proper authentication."""
 

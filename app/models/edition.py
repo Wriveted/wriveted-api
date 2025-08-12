@@ -25,7 +25,6 @@ from app.models.illustrator_edition_association import (
 )
 
 if TYPE_CHECKING:
-    from app.models.author import Author
     from app.models.collection import Collection
     from app.models.illustrator import Illustrator
     from app.models.work import Work

@@ -19,9 +19,7 @@ from app.schemas.pagination import PaginatedResponse
 class ContentCreate(BaseModel):
     type: ContentType
     content: Dict[str, Any]
-    info: Optional[Dict[str, Any]] = Field(
-        default={}, alias="metadata", serialization_alias="metadata"
-    )
+    info: Optional[Dict[str, Any]] = Field(default={})
     tags: Optional[List[str]] = []
     is_active: Optional[bool] = True
     status: Optional[ContentStatus] = ContentStatus.DRAFT
@@ -172,6 +170,8 @@ class FlowResponse(PaginatedResponse):
 
 class FlowPublishRequest(BaseModel):
     publish: bool = True
+    increment_version: Optional[bool] = False
+    version_type: Optional[str] = Field("patch", pattern=r"^(major|minor|patch)$")
 
 
 class FlowCloneRequest(BaseModel):
@@ -291,7 +291,7 @@ class SessionStateUpdate(BaseModel):
 # Conversation Interaction Schemas
 class InteractionCreate(BaseModel):
     input: str
-    input_type: str = Field(..., pattern="^(text|button|file)$")
+    input_type: str = Field(..., pattern="^(text|button|file|choice)$")
 
 
 class InteractionResponse(BaseModel):

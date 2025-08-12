@@ -6,10 +6,8 @@ flow events occur, enabling real-time integration with external systems.
 """
 
 import asyncio
-import json
 import logging
 from typing import Any, Dict, List, Optional, cast
-from urllib.parse import urlparse
 
 import httpx
 from pydantic import BaseModel, HttpUrl

@@ -7,10 +7,9 @@ automatic recovery, and graceful degradation.
 
 import asyncio
 import logging
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -129,7 +128,7 @@ class CircuitBreaker:
             await self._record_success()
             return result
 
-        except self.config.expected_exception as e:
+        except self.config.expected_exception:
             # Record failure for expected exceptions
             await self._record_failure()
             raise

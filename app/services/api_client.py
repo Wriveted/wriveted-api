@@ -5,15 +5,11 @@ Provides secure, authenticated API calls to internal Wriveted services
 with proper authentication, error handling, and response processing.
 """
 
-import asyncio
-import json
 import logging
-from datetime import datetime
-from typing import Any, Dict, Optional, Union
-from urllib.parse import urljoin, urlparse
+from typing import Any, Dict, Optional
 
 import httpx
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services.circuit_breaker import (
@@ -21,7 +17,6 @@ from app.services.circuit_breaker import (
     CircuitBreakerError,
     get_circuit_breaker,
 )
-from app.services.variable_resolver import VariableResolver
 
 logger = logging.getLogger(__name__)
 

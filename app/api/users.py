@@ -171,7 +171,7 @@ def magic_link_endpoint(
     }
 
 
-@router.delete("/user/{uuid}")
+@router.delete("/user/{uuid}", status_code=status.HTTP_204_NO_CONTENT)
 async def deactivate_user(
     uuid: str,
     purge: bool = False,
@@ -201,4 +201,3 @@ async def deactivate_user(
         session.delete(user)
 
     session.commit()
-    return "ok"

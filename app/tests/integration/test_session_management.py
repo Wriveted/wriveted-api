@@ -7,9 +7,7 @@ Tests the modernized session management under various scenarios.
 import time
 import concurrent.futures
 import pytest
-from unittest.mock import patch
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from app.db.session import get_session, get_session_maker
 

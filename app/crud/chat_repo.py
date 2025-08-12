@@ -267,6 +267,11 @@ class ChatRepository:
 
         Results in: {"temp": {"existing": "value", "name": "John"}}
         """
+        self.logger.info(
+            "Deep merge state",
+            target_before=target.copy(),
+            source=source,
+        )
         for key, value in source.items():
             if (
                 key in target
@@ -278,6 +283,11 @@ class ChatRepository:
             else:
                 # Overwrite or add new key
                 target[key] = value
+        
+        self.logger.info(
+            "Deep merge complete",
+            target_after=target,
+        )
 
     def _calculate_state_hash(self, state: Dict[str, Any]) -> str:
         """Calculate SHA-256 hash of session state for integrity checking."""

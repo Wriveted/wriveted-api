@@ -7,7 +7,6 @@ Extracted from ad-hoc test_cms_api.py and improved for integration testing.
 import pytest
 from uuid import uuid4
 
-from app.models.cms import ContentType, ContentStatus
 
 
 class TestCMSAPIEnhanced:

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
 from app.api.authors import router as author_router
 from app.api.booklists import public_router as booklist_router_public
@@ -28,6 +29,7 @@ from app.api.works import router as work_router
 
 api_router = APIRouter()
 
+api_router.include_router(analytics_router, prefix="/cms")
 api_router.include_router(auth_router)
 api_router.include_router(user_router)
 api_router.include_router(author_router)

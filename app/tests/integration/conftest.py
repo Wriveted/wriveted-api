@@ -118,11 +118,21 @@ async def internal_async_client():
         yield client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def session(settings):
+    """Create a clean database session for each test with proper cleanup."""
     session_maker = get_session_maker()
     session = session_maker()
-    return session
+    try:
+        yield session
+    finally:
+        # Ensure proper cleanup - rollback any uncommitted changes
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        finally:
+            session.close()
 
 
 @pytest.fixture()
@@ -171,10 +181,18 @@ async def async_session():
                 logger.warning(f"Error closing session: {e}")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def session_factory(settings):
+    """Create session factory for each test with proper engine management."""
     engine, SessionMaker = database_connection(settings.SQLALCHEMY_DATABASE_URI)
-    return SessionMaker
+    try:
+        yield SessionMaker
+    finally:
+        # Clean up engine connections
+        try:
+            engine.dispose()
+        except Exception:
+            pass
 
 
 @pytest.fixture()
@@ -188,7 +206,11 @@ def backend_service_account(session):
     )
     yield sa
 
-    session.delete(sa)
+    try:
+        session.delete(sa)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -203,7 +225,11 @@ def test_user_account(session):
         ),
     )
     yield user
-    session.delete(user)
+    try:
+        session.delete(user)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -222,7 +248,11 @@ def test_student_user_account(session, test_school, test_class_group):
         ),
     )
     yield student
-    session.delete(student)
+    try:
+        session.delete(student)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -237,7 +267,11 @@ def test_schooladmin_account(test_school, session):
         ),
     )
     yield schooladmin
-    session.delete(schooladmin)
+    try:
+        session.delete(schooladmin)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -251,7 +285,11 @@ def test_wrivetedadmin_account(session):
         ),
     )
     yield wrivetedadmin
-    session.delete(wrivetedadmin)
+    try:
+        session.delete(wrivetedadmin)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -347,8 +385,12 @@ def author_list(client, session):
 
     yield authors
 
-    for a in authors:
-        crud.author.remove(db=session, id=a.id)
+    try:
+        for a in authors:
+            crud.author.remove(db=session, id=a.id)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -363,7 +405,11 @@ def test_product(session):
             ),
         )
     yield product
-    session.delete(product)
+    try:
+        session.delete(product)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -401,8 +447,12 @@ def works_list(client, session, author_list):
 
     yield works
 
-    for w in works:
-        crud.work.remove(db=session, id=w.id)
+    try:
+        for w in works:
+            crud.work.remove(db=session, id=w.id)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -513,8 +563,12 @@ def test_unhydrated_editions(client, session, test_isbns):
 
     yield editions
 
-    for e in editions:
-        crud.edition.remove(db=session, id=e.isbn)
+    try:
+        for e in editions:
+            crud.edition.remove(db=session, id=e.isbn)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -533,7 +587,11 @@ def test_user_empty_collection(
         ),
     )
     yield collection
-    crud.collection.remove(db=session, id=collection.id)
+    try:
+        crud.collection.remove(db=session, id=collection.id)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -631,7 +689,11 @@ def lms_service_account_for_test_school(session, test_school):
 
     yield sa
 
-    crud.service_account.remove(db=session, id=sa.id)
+    try:
+        crud.service_account.remove(db=session, id=sa.id)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -659,7 +721,11 @@ def test_public_user_hacker(session):
         ),
     )
     yield hacker
-    session.delete(hacker)
+    try:
+        session.delete(hacker)
+        session.commit()
+    except Exception:
+        session.rollback()
 
 
 @pytest.fixture()
@@ -684,3 +750,17 @@ def test_huey_attributes():
         genres=["Dark", "Realistic"],
         characters=["Robot", "Unicorn"],
     )
+
+
+@pytest.fixture(autouse=True)
+def clear_test_client_cookies(client):
+    """Ensure test isolation by clearing TestClient cookies between tests.
+    
+    This fixes CSRF token conflicts when chat API tests run together.
+    Each test gets a fresh cookie jar to prevent token interference.
+    """
+    # Clear all cookies before test runs
+    client.cookies.clear()
+    yield
+    # Clear cookies after test completes for good measure
+    client.cookies.clear()

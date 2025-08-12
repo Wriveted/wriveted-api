@@ -1,5 +1,8 @@
 import json
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
+
+if TYPE_CHECKING:
+    from app.services.event_outbox_service import EventPriority
 
 from pydantic import ValidationError
 from slack_sdk import WebClient
@@ -28,8 +31,9 @@ from app.schemas.collection import CollectionItemActivityBase
 from app.schemas.events.huey_events import HueyBookReviewedInfo
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import ReadingLogEventFeedback
-from app.services.background_tasks import queue_background_task
 from app.services.feedback import process_reader_feedback_alerts
+
+# EventPriority imported in TYPE_CHECKING block above
 
 logger = get_logger()
 config = get_settings()
@@ -155,10 +159,38 @@ def create_event(
     school: School = None,
     account: Optional[Union[ServiceAccount, User]] = None,
     commit: bool = True,
+    # New unified workflow parameters
+    enable_processing: bool = True,  # Whether to trigger event processing
+    external_notifications: bool = None,  # Auto-detected if None
 ) -> Event:
     """
-    Create a new event, passing a Slack alert if requested.
+    Create a new business event with unified workflow for external notifications.
+    
+    This is the single entry point for all business event creation. It:
+    1. Creates the business event record (audit trail)
+    2. Automatically dispatches to EventOutbox for external notifications
+    3. Handles both Slack alerts and general event processing
+    
+    Args:
+        session: Database session
+        title: Event title (used for processing logic)
+        description: Human-readable description
+        info: Additional event data
+        level: Event severity level
+        slack_channel: If provided, queues reliable Slack notification
+        slack_extra: Additional data for Slack message
+        school: Associated school
+        account: User or service account
+        commit: Whether to commit the transaction
+        enable_processing: Whether to enable background event processing
+        external_notifications: Force enable/disable external notifications
+        
+    Returns:
+        The created Event object
     """
+    from app.services.event_outbox_service import EventOutboxService, EventPriority
+    
+    # Step 1: Create business event (audit trail)
     event = crud.event.create(
         session,
         title=title,
@@ -167,20 +199,139 @@ def create_event(
         level=level,
         school=school,
         account=account,
-        commit=commit,
+        commit=False,  # We'll handle commit after outbox dispatch
     )
+    
+    # Flush to get the event ID for EventOutbox dispatch
+    session.flush()
 
-    if slack_channel is not None:
-        queue_background_task(
-            "event-to-slack-alert",
-            {
-                "event_id": str(event.id),
-                "slack_channel": slack_channel,
-                "slack_extra": slack_extra,
-            },
+    # Step 2: Determine if external notifications are needed
+    if external_notifications is None:
+        # Auto-detect based on parameters and event characteristics
+        external_notifications = (
+            slack_channel is not None or
+            _requires_external_notification(title, level) or
+            enable_processing
         )
 
+    # Step 3: Dispatch to EventOutbox for reliable delivery (if needed)
+    if external_notifications:
+        outbox_service = EventOutboxService()
+        
+        # Handle Slack notification via EventOutbox (replaces direct queue_background_task)
+        if slack_channel is not None:
+            slack_payload = {
+                "event_id": str(event.id),
+                "slack_channel": slack_channel.value,
+                "extra": slack_extra or {}
+            }
+            
+            # Determine priority based on event level
+            priority = _get_event_priority(level)
+            
+            outbox_service.publish_event_sync(
+                db=session,
+                event_type="slack_notification",
+                destination=f"slack:{slack_channel.value}",
+                payload=slack_payload,
+                priority=priority,
+                routing_key="alerts",
+                headers={
+                    "event_level": level.value,
+                    "event_title": title
+                },
+                max_retries=5,
+                user_id=getattr(account, 'id', None) if hasattr(account, 'id') else None
+            )
+            
+            logger.info("Slack notification queued via EventOutbox",
+                       event_id=event.id,
+                       slack_channel=slack_channel.value,
+                       priority=priority.value)
+
+        # Handle general event processing via EventOutbox (replaces direct queue_background_task)
+        if enable_processing and _requires_background_processing(title):
+            processing_payload = {
+                "event_id": str(event.id),
+                "title": title,
+                "info": info or {}
+            }
+            
+            outbox_service.publish_event_sync(
+                db=session,
+                event_type="event_processing",
+                destination="internal:process-event",
+                payload=processing_payload,
+                priority=EventPriority.NORMAL,
+                routing_key="processing",
+                headers={
+                    "event_title": title,
+                    "requires_processing": "true"
+                },
+                max_retries=3,
+                user_id=getattr(account, 'id', None) if hasattr(account, 'id') else None
+            )
+            
+            logger.info("Event processing queued via EventOutbox",
+                       event_id=event.id,
+                       event_title=title)
+
+    # Step 4: Commit transaction
+    if commit:
+        session.commit()
+        session.refresh(event)
+
+    logger.info("Business event created",
+               event_id=event.id,
+               title=title,
+               level=level.value,
+               external_notifications=external_notifications)
+
     return event
+
+
+def _requires_external_notification(title: str, level: EventLevel) -> bool:
+    """Determine if an event type requires external notifications."""
+    # High severity events should always notify
+    if level in [EventLevel.ERROR, EventLevel.WARNING]:
+        return True
+    
+    # Specific event types that should notify external systems
+    notification_events = [
+        "User created",
+        "Subscription started", 
+        "Subscription cancelled",
+        "Payment failed",
+        "System error"
+    ]
+    
+    return title in notification_events
+
+
+def _requires_background_processing(title: str) -> bool:
+    """Determine if an event type requires background processing."""
+    # Events that need background processing
+    processing_events = [
+        "Huey: Book reviewed",
+        "Reader timeline event: Reading logged",
+        "Subscription started",
+        "Test"  # Keep for testing
+    ]
+    
+    return title in processing_events
+
+
+def _get_event_priority(level: EventLevel) -> "EventPriority":
+    """Map event level to EventOutbox priority."""
+    from app.services.event_outbox_service import EventPriority
+    
+    priority_map = {
+        EventLevel.DEBUG: EventPriority.LOW,
+        EventLevel.NORMAL: EventPriority.NORMAL,
+        EventLevel.WARNING: EventPriority.HIGH,
+        EventLevel.ERROR: EventPriority.CRITICAL,
+    }
+    return priority_map.get(level, EventPriority.NORMAL)
 
 
 def process_events(event_id):
@@ -191,26 +342,25 @@ def process_events(event_id):
         logger.warning(
             "Background processing event", type=event.title, event_id=event.id
         )
-        match event.title:
-            case "Huey: Book reviewed":
-                return process_book_review_event(session, event)
-            case "Test":
-                logger.info("Changing event", e=event)
-                event.info["description"] = "MODIFIED"
-                session.commit()
-                session.refresh(event)
-                logger.info("Changed", e=event)
-                return {"msg": "ok"}
-            case "Reader timeline event: Reading logged":
-                return process_reading_logged_event(session, event)
-            case "Subscription started":
-                return process_subscription_started_event(session, event)
-            # case "Supporter encouragement: Achievement feedback sent":
-            #     # e.g. "Well done for reading 10 books this year!"
-            #     # (not for a specific reading event, but for a milestone or other automated achievement)
-            #     return process_supporter_achievement_feedback_event(session, event)
-            case _:
-                return
+        if event.title == "Huey: Book reviewed":
+            return process_book_review_event(session, event)
+        elif event.title == "Test":
+            logger.info("Changing event", e=event)
+            event.info["description"] = "MODIFIED"
+            session.commit()
+            session.refresh(event)
+            logger.info("Changed", e=event)
+            return {"msg": "ok"}
+        elif event.title == "Reader timeline event: Reading logged":
+            return process_reading_logged_event(session, event)
+        elif event.title == "Subscription started":
+            return process_subscription_started_event(session, event)
+        # elif event.title == "Supporter encouragement: Achievement feedback sent":
+        #     # e.g. "Well done for reading 10 books this year!"
+        #     # (not for a specific reading event, but for a milestone or other automated achievement)
+        #     return process_supporter_achievement_feedback_event(session, event)
+        else:
+            return
 
 
 def process_subscription_started_event(session: Session, event: Event):

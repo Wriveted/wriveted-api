@@ -12,9 +12,9 @@ from app.models.parent import Parent
 from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
-from app.services.background_tasks import queue_background_task
 from app.services.booklists import generate_reading_pathway_lists_sync
-from app.services.events import create_event
+# Local import to avoid circular dependency
+# from app.services.events import create_event
 from app.services.util import oxford_comma_join
 
 logger = get_logger()
@@ -51,24 +51,29 @@ def handle_user_creation(
             children_string = oxford_comma_join(
                 [child.name for child in children_to_create or []]
             )
-            queue_background_task(
-                "send-email",
-                {
-                    "email_data": {
-                        "from_email": "hello@hueybooks.com",
-                        "from_name": "Huey Books",
-                        "to_emails": [user_data.email],
-                        "subject": "Welcome to Huey Books",
-                        "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
-                        "template_data": {
-                            "name": new_user.name,
-                            "children_string": (
-                                children_string if children_to_create else "your child"
-                            ),
-                        },
-                    },
-                    "user_id": str(new_user.id),
+            
+            # Local import to avoid circular dependency
+            from app.services.email_notification import send_email_reliable_sync, EmailType
+            
+            email_data = {
+                "from_email": "hello@hueybooks.com",
+                "from_name": "Huey Books",
+                "to_emails": [user_data.email],
+                "subject": "Welcome to Huey Books",
+                "template_id": "d-3655b189b9a8427d99fe02cf7e7f3fd9",
+                "template_data": {
+                    "name": new_user.name,
+                    "children_string": (
+                        children_string if children_to_create else "your child"
+                    ),
                 },
+            }
+            
+            send_email_reliable_sync(
+                db=session,
+                email_data=email_data,
+                email_type=EmailType.ONBOARDING,
+                user_id=str(new_user.id)
             )
 
         if user_data.type == UserAccountType.PARENT and checkout_session_id:
@@ -76,6 +81,8 @@ def handle_user_creation(
                 session, new_user, checkout_session_id
             )
 
+    # Local import to avoid circular dependency
+    from app.services.events import create_event
     create_event(
         session,
         title="User created",

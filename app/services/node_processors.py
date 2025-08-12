@@ -11,10 +11,11 @@ from typing import Any, Dict, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
-from app.models.cms import ConversationSession, FlowNode
+from app.models.cms import ConversationSession, FlowNode, NodeType
 from app.services.cel_evaluator import evaluate_cel_expression
 from app.services.circuit_breaker import get_circuit_breaker
 from app.services.variable_resolver import VariableResolver
+from app.services.node_input_validation import validate_node_input
 
 logger = get_logger()
 
@@ -40,6 +41,8 @@ class ConditionNodeProcessor:
     ) -> Dict[str, Any]:
         """
         Process a condition node by evaluating conditions against session state.
+        
+        Enhanced with rigorous input validation to prevent runtime errors.
 
         Args:
             db: Database session
@@ -52,6 +55,35 @@ class ConditionNodeProcessor:
         """
         try:
             node_content = node.content or {}
+            
+            # Validate condition node content before processing
+            validation_report = validate_node_input(
+                node_id=node.node_id,
+                node_type=NodeType.CONDITION,
+                node_content=node_content
+            )
+            
+            if not validation_report.is_valid:
+                error_messages = [r.message for r in validation_report.errors]
+                logger.error("Condition node validation failed", 
+                            node_id=node.node_id,
+                            session_id=session.id,
+                            errors=error_messages)
+                return {
+                    "type": "condition",
+                    "condition_result": False,
+                    "validation_errors": error_messages,
+                    "error": f"Node validation failed: {'; '.join(error_messages)}",
+                    "node_id": node.node_id,
+                }
+            
+            # Log validation warnings but continue processing
+            for warning in validation_report.warnings:
+                logger.warning("Condition node validation warning", 
+                              node_id=node.node_id,
+                              session_id=session.id,
+                              warning=warning.message)
+            
             conditions = node_content.get("conditions", [])
             default_path = node_content.get("default_path")
 
