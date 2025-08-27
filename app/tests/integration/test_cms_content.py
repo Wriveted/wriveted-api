@@ -19,11 +19,57 @@ Consolidated from:
 
 import uuid
 
+import pytest
+from sqlalchemy import text
 from starlette import status
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestContentCRUD:
     """Test basic content CRUD operations."""
+
+    @pytest.fixture(autouse=True)
+    def setup_test(self, reset_global_state_sync):
+        """Ensure global state is reset before each test in this class."""
+        pass
 
     def test_create_content_joke(self, client, backend_service_account_headers):
         """Test creating new joke content."""
@@ -59,14 +105,11 @@ class TestContentCRUD:
             "content": {
                 "text": "Octopuses have three hearts.",
                 "source": "Marine Biology Facts",
-                "difficulty": "intermediate"
+                "difficulty": "intermediate",
             },
             "tags": ["animals", "ocean", "biology"],
             "status": "published",
-            "info": {
-                "verification_status": "verified",
-                "last_updated": "2024-01-15"
-            }
+            "info": {"verification_status": "verified", "last_updated": "2024-01-15"},
         }
 
         response = client.post(
@@ -88,18 +131,14 @@ class TestContentCRUD:
                 "question": "What's your age? This helps me recommend the perfect books for you!",
                 "input_type": "number",
                 "variable": "user_age",
-                "validation": {
-                    "min": 3,
-                    "max": 18,
-                    "required": True
-                }
+                "validation": {"min": 3, "max": 18, "required": True},
             },
             "tags": ["age", "onboarding", "personalization"],
             "info": {
                 "usage": "user_profiling",
                 "priority": "high",
-                "content_category": "data_collection"
-            }
+                "content_category": "data_collection",
+            },
         }
 
         response = client.post(
@@ -125,15 +164,15 @@ class TestContentCRUD:
                 "media": {
                     "type": "image",
                     "url": "https://example.com/bookbot.gif",
-                    "alt": "Bookbot waving"
-                }
+                    "alt": "Bookbot waving",
+                },
             },
             "tags": ["welcome", "greeting", "bookbot"],
             "info": {
                 "usage": "greeting",
                 "priority": "high",
-                "content_category": "onboarding"
-            }
+                "content_category": "onboarding",
+            },
         }
 
         response = client.post(
@@ -154,10 +193,10 @@ class TestContentCRUD:
                 "text": "The only way to do great work is to love what you do.",
                 "author": "Steve Jobs",
                 "context": "Stanford commencement address",
-                "theme": "motivation"
+                "theme": "motivation",
             },
             "tags": ["motivation", "career", "inspiration"],
-            "status": "published"
+            "status": "published",
         }
 
         response = client.post(
@@ -178,16 +217,10 @@ class TestContentCRUD:
                 "system_prompt": "You are a helpful reading assistant for children",
                 "user_prompt": "Recommend 3 books for a {age}-year-old who likes {genre}",
                 "parameters": ["age", "genre"],
-                "model_config": {
-                    "temperature": 0.7,
-                    "max_tokens": 500
-                }
+                "model_config": {"temperature": 0.7, "max_tokens": 500},
             },
             "tags": ["ai", "recommendations", "books"],
-            "info": {
-                "model_version": "gpt-4",
-                "usage_context": "book_recommendations"
-            }
+            "info": {"model_version": "gpt-4", "usage_context": "book_recommendations"},
         }
 
         response = client.post(
@@ -334,9 +367,7 @@ class TestContentListing:
 
     def test_list_all_content(self, client, backend_service_account_headers):
         """Test listing all content with pagination."""
-        response = client.get(
-            "v1/cms/content", headers=backend_service_account_headers
-        )
+        response = client.get("v1/cms/content", headers=backend_service_account_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -355,10 +386,13 @@ class TestContentListing:
         for item in data["data"]:
             assert item["type"] == "joke"
 
-    def test_list_content_by_type_question(self, client, backend_service_account_headers):
+    def test_list_content_by_type_question(
+        self, client, backend_service_account_headers
+    ):
         """Test filtering content by question type."""
         response = client.get(
-            "v1/cms/content?content_type=question", headers=backend_service_account_headers
+            "v1/cms/content?content_type=question",
+            headers=backend_service_account_headers,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -440,7 +474,7 @@ class TestContentListing:
         """Test combining multiple filters."""
         response = client.get(
             "v1/cms/content?content_type=joke&status=published&tags=science",
-            headers=backend_service_account_headers
+            headers=backend_service_account_headers,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -477,13 +511,10 @@ class TestContentVariants:
             "variant_data": {
                 "text": "Why don't scientists trust atoms? Because they make up EVERYTHING! 🧪⚛️",
                 "category": "science",
-                "tone": "enthusiastic"
+                "tone": "enthusiastic",
             },
             "weight": 30,
-            "conditions": {
-                "age_group": ["7-10"],
-                "engagement_level": "high"
-            }
+            "conditions": {"age_group": ["7-10"], "engagement_level": "high"},
         }
 
         response = client.post(
@@ -515,8 +546,14 @@ class TestContentVariants:
 
         # Create multiple variants
         variants = [
-            {"variant_key": "formal", "variant_data": {"text": "Good day! Welcome to our platform."}},
-            {"variant_key": "casual", "variant_data": {"text": "Hey there! Welcome aboard!"}}
+            {
+                "variant_key": "formal",
+                "variant_data": {"text": "Good day! Welcome to our platform."},
+            },
+            {
+                "variant_key": "casual",
+                "variant_data": {"text": "Hey there! Welcome aboard!"},
+            },
         ]
 
         for variant in variants:
@@ -550,7 +587,7 @@ class TestContentVariants:
 
         variant_data = {
             "variant_key": "test_variant",
-            "variant_data": {"text": "Enhanced test fact"}
+            "variant_data": {"text": "Enhanced test fact"},
         }
         variant_response = client.post(
             f"v1/cms/content/{content_id}/variants",
@@ -565,7 +602,7 @@ class TestContentVariants:
                 "impressions": 100,
                 "clicks": 15,
                 "conversion_rate": 0.15,
-                "engagement_score": 4.2
+                "engagement_score": 4.2,
             }
         }
 
@@ -591,7 +628,7 @@ class TestContentVariants:
 
         variant_data = {
             "variant_key": "to_delete",
-            "variant_data": {"text": "Variant to delete"}
+            "variant_data": {"text": "Variant to delete"},
         }
         variant_response = client.post(
             f"v1/cms/content/{content_id}/variants",
@@ -634,7 +671,9 @@ class TestContentValidation:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_create_content_missing_content(self, client, backend_service_account_headers):
+    def test_create_content_missing_content(
+        self, client, backend_service_account_headers
+    ):
         """Test creating content without content field."""
         content_data = {
             "type": "joke",
@@ -647,7 +686,9 @@ class TestContentValidation:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_create_content_empty_content(self, client, backend_service_account_headers):
+    def test_create_content_empty_content(
+        self, client, backend_service_account_headers
+    ):
         """Test creating content with empty content field."""
         content_data = {
             "type": "message",
@@ -660,7 +701,9 @@ class TestContentValidation:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_content_invalid_status(self, client, backend_service_account_headers):
+    def test_update_content_invalid_status(
+        self, client, backend_service_account_headers
+    ):
         """Test updating content with invalid status."""
         # Create content first
         content_data = {"type": "fact", "content": {"text": "Test fact"}}
@@ -691,17 +734,19 @@ class TestContentBulkOperations:
             content_data = {
                 "type": "fact",
                 "content": {"text": f"Test fact {i}"},
-                "status": "draft"
+                "status": "draft",
             }
             response = client.post(
-                "v1/cms/content", json=content_data, headers=backend_service_account_headers
+                "v1/cms/content",
+                json=content_data,
+                headers=backend_service_account_headers,
             )
             content_items.append(response.json()["id"])
 
         # Bulk update status to published
         bulk_update_data = {
             "content_ids": content_items,
-            "updates": {"status": "published"}
+            "updates": {"status": "published"},
         }
 
         response = client.patch(
@@ -726,12 +771,11 @@ class TestContentBulkOperations:
         # Create multiple content items
         content_items = []
         for i in range(2):
-            content_data = {
-                "type": "joke",
-                "content": {"text": f"Test joke {i}"}
-            }
+            content_data = {"type": "joke", "content": {"text": f"Test joke {i}"}}
             response = client.post(
-                "v1/cms/content", json=content_data, headers=backend_service_account_headers
+                "v1/cms/content",
+                json=content_data,
+                headers=backend_service_account_headers,
             )
             content_items.append(response.json()["id"])
 

@@ -1,6 +1,47 @@
 import uuid
 
+import pytest
+from sqlalchemy import text
 from starlette import status
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 def test_backend_service_account_can_list_joke_content(
@@ -448,27 +489,27 @@ def test_list_flows(client, backend_service_account_headers):
 
     # Create a proper node for the published flow to pass validation
     flow_id = created_flows[0]["id"]
-    
+
     # Create the start node that the flow references
     node_data = {
         "node_id": "start",
         "node_type": "message",
         "content": {"messages": [{"content": "Welcome to the flow"}]},
-        "position": {"x": 100, "y": 100}
+        "position": {"x": 100, "y": 100},
     }
     client.post(
         f"v1/cms/flows/{flow_id}/nodes",
         json=node_data,
-        headers=backend_service_account_headers
+        headers=backend_service_account_headers,
     )
-    
+
     # Now publish the first flow
     publish_response = client.post(
         f"v1/cms/flows/{flow_id}/publish",
         json={"publish": True},
         headers=backend_service_account_headers,
     )
-    
+
     # Check if publish was successful
     assert publish_response.status_code == 200
 
@@ -494,7 +535,7 @@ def test_publish_flow(client, backend_service_account_headers):
     """Test publishing and unpublishing flows."""
     # Create flow with proper nodes
     flow_data = {
-        "name": "Publish Test Flow", 
+        "name": "Publish Test Flow",
         "version": "1.0",
         "flow_data": {
             "nodes": [
@@ -503,12 +544,12 @@ def test_publish_flow(client, backend_service_account_headers):
                     "type": "start",
                     "data": {
                         "name": "Start Node",
-                        "message": "Welcome to the test flow"
+                        "message": "Welcome to the test flow",
                     },
-                    "position": {"x": 100, "y": 100}
+                    "position": {"x": 100, "y": 100},
                 }
             ],
-            "connections": []
+            "connections": [],
         },
         "entry_node_id": "start",
     }
@@ -991,22 +1032,22 @@ def test_validate_flow(client, backend_service_account_headers):
         "node_id": "start",
         "node_type": "message",
         "content": {"messages": [{"content": "Start message"}]},
-        "position": {"x": 100, "y": 100}
+        "position": {"x": 100, "y": 100},
     }
     client.post(
         f"v1/cms/flows/{flow_id}/nodes",
         json=node_data,
-        headers=backend_service_account_headers
+        headers=backend_service_account_headers,
     )
 
     # Validate flow using service endpoint
-    response = client.post(
+    response = client.get(
         f"v1/cms/flows/{flow_id}/validate", headers=backend_service_account_headers
     )
 
     assert response.status_code == 200
     data = response.json()
-    
+
     # Should be valid with proper structure
     assert data["is_valid"] is True
     assert data["validation_errors"] == []
@@ -1018,7 +1059,7 @@ def test_validate_flow(client, backend_service_account_headers):
 def test_validate_nonexistent_flow(client, backend_service_account_headers):
     """Test validation of non-existent flow returns 404."""
     fake_id = str(uuid.uuid4())
-    response = client.post(
+    response = client.get(
         f"v1/cms/flows/{fake_id}/validate", headers=backend_service_account_headers
     )
 

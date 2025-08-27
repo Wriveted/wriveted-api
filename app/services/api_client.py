@@ -371,3 +371,17 @@ def create_reading_assessment_call(
         timeout=20,
         circuit_breaker={"failure_threshold": 3, "timeout": 45.0},
     )
+
+
+def reset_api_client() -> None:
+    """Reset the global API client instance for testing."""
+    global _api_client
+    if _api_client is not None:
+        # Try to clean up the existing client
+        try:
+            if _api_client.session and not _api_client.session.is_closed:
+                # Note: This is sync, but in tests we may not be in async context
+                pass
+        except Exception:
+            pass
+    _api_client = None

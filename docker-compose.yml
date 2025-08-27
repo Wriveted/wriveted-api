@@ -7,8 +7,8 @@ services:
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
       - POSTGRES_PASSWORD=password
-    ports:
-      - 5432:5432
+    #ports:
+    #  - 5432:5432
     healthcheck:
       test: pg_isready -q -h db -p 5432 -U postgres
       interval: 5s
@@ -50,6 +50,7 @@ services:
       - WRIVETED_INTERNAL_API=http://internal:8888
       - SQLALCHEMY_WARN_20=true
       - OPENAI_API_KEY=unused-test-key-for-testing
+      - DEBUG=true
     ports:
       - "8000"
     volumes:

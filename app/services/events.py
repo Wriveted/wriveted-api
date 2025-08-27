@@ -5,8 +5,9 @@ if TYPE_CHECKING:
     from app.services.event_outbox_service import EventPriority
 
 from pydantic import ValidationError
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+
+# NOTE: Slack SDK imports removed - now handled by SlackNotificationService
+from app.services.slack_notification import send_slack_alert_reliable_sync
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -38,88 +39,10 @@ from app.services.feedback import process_reader_feedback_alerts
 logger = get_logger()
 config = get_settings()
 
-event_level_emoji = {
-    EventLevel.DEBUG: ":bug:",
-    EventLevel.NORMAL: ":information_source:",
-    EventLevel.WARNING: ":warning:",
-    EventLevel.ERROR: ":bangbang:",
-}
+# NOTE: event_level_emoji moved to SlackNotificationService.EVENT_LEVEL_EMOJI
 
 
-def _parse_event_to_slack_message(event: Event, extra: dict = None) -> (str, str):
-    """
-    Parse an event into a Slack message using the Block Kit format.
-    """
-    blocks = []
-    text = f"{event_level_emoji[event.level]} API Event: *{event.title}* \n{event.description}"
-
-    blocks.append(
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": text,
-            },
-        }
-    )
-    fields = []
-    if event.school is not None:
-        fields.append(
-            {
-                "type": "mrkdwn",
-                "text": f"*School*: <https://api.wriveted.com/school/{event.school.wriveted_identifier}|{event.school.name}>",
-            }
-        )
-    if event.user is not None:
-        fields.append(
-            {
-                "type": "mrkdwn",
-                "text": f"*User*: <https://api.wriveted.com/user/{event.user_id}|{event.user.name}>",
-            }
-        )
-    if event.service_account is not None:
-        fields.append(
-            {
-                "type": "mrkdwn",
-                "text": f"*Service Account*: {event.service_account.name}",
-            }
-        )
-    if len(fields) > 0:
-        blocks.append({"type": "section", "fields": fields})
-
-    if event.info:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Info*:",
-                },
-            }
-        )
-        info_fields = []
-        for key, value in event.info.items():
-            if key != "description":
-                info_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
-        blocks.append({"type": "section", "fields": info_fields})
-
-    if extra:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Extra*:",
-                },
-            }
-        )
-        extra_fields = []
-        for key, value in extra.items():
-            extra_fields.append({"type": "mrkdwn", "text": f"*{key}*: {str(value)}"})
-        blocks.append({"type": "section", "fields": extra_fields})
-
-    output = json.dumps(blocks)
-    return (output, text)
+# NOTE: _parse_event_to_slack_message function removed - replaced by SlackNotificationService._format_event_for_slack
 
 
 def handle_event_to_slack_alert(
@@ -128,24 +51,31 @@ def handle_event_to_slack_alert(
     slack_channel: EventSlackChannel,
     extra: dict = None,
 ):
-    event = crud.event.get(session, id=event_id)
-    payload, text = _parse_event_to_slack_message(event, extra=extra)
-    logger.info(
-        "Sending event to Slack",
-        title=event.title,
-        description=event.description,
-        channel=slack_channel,
-        token=config.SLACK_BOT_TOKEN,
-    )
+    """
+    Send Slack alert using the new SlackNotificationService.
 
-    client = WebClient(token=config.SLACK_BOT_TOKEN)
+    This function maintains backward compatibility while using the new
+    service layer architecture with Event Outbox pattern for reliable delivery.
+    """
+    from app.services.event_outbox_service import EventPriority
+
     try:
-        _response = client.chat_postMessage(
-            channel=slack_channel, blocks=payload, text=text
+        # Use the new service with reliable delivery via Event Outbox
+        send_slack_alert_reliable_sync(
+            db=session,
+            event_id=event_id,
+            slack_channel=slack_channel,
+            extra=extra,
+            priority=EventPriority.NORMAL,
         )
-        logger.debug("Slack alert posted successfully")
-    except SlackApiError as e:
-        logger.error("Error sending Slack alert: {}".format(e))
+        logger.debug("Slack alert queued successfully via SlackNotificationService")
+    except Exception as e:
+        logger.error(
+            "Error queuing Slack alert via service layer",
+            event_id=event_id,
+            slack_channel=slack_channel.value,
+            error=str(e),
+        )
 
 
 def create_event(
@@ -165,12 +95,12 @@ def create_event(
 ) -> Event:
     """
     Create a new business event with unified workflow for external notifications.
-    
+
     This is the single entry point for all business event creation. It:
     1. Creates the business event record (audit trail)
     2. Automatically dispatches to EventOutbox for external notifications
     3. Handles both Slack alerts and general event processing
-    
+
     Args:
         session: Database session
         title: Event title (used for processing logic)
@@ -184,12 +114,12 @@ def create_event(
         commit: Whether to commit the transaction
         enable_processing: Whether to enable background event processing
         external_notifications: Force enable/disable external notifications
-        
+
     Returns:
         The created Event object
     """
     from app.services.event_outbox_service import EventOutboxService, EventPriority
-    
+
     # Step 1: Create business event (audit trail)
     event = crud.event.create(
         session,
@@ -201,7 +131,7 @@ def create_event(
         account=account,
         commit=False,  # We'll handle commit after outbox dispatch
     )
-    
+
     # Flush to get the event ID for EventOutbox dispatch
     session.flush()
 
@@ -209,54 +139,44 @@ def create_event(
     if external_notifications is None:
         # Auto-detect based on parameters and event characteristics
         external_notifications = (
-            slack_channel is not None or
-            _requires_external_notification(title, level) or
-            enable_processing
+            slack_channel is not None
+            or _requires_external_notification(title, level)
+            or enable_processing
         )
 
     # Step 3: Dispatch to EventOutbox for reliable delivery (if needed)
     if external_notifications:
         outbox_service = EventOutboxService()
-        
-        # Handle Slack notification via EventOutbox (replaces direct queue_background_task)
+
+        # Handle Slack notification via SlackNotificationService (replaces direct EventOutbox)
         if slack_channel is not None:
-            slack_payload = {
-                "event_id": str(event.id),
-                "slack_channel": slack_channel.value,
-                "extra": slack_extra or {}
-            }
-            
             # Determine priority based on event level
             priority = _get_event_priority(level)
-            
-            outbox_service.publish_event_sync(
+
+            # Use the new service layer for reliable Slack delivery
+            send_slack_alert_reliable_sync(
                 db=session,
-                event_type="slack_notification",
-                destination=f"slack:{slack_channel.value}",
-                payload=slack_payload,
+                event_id=str(event.id),
+                slack_channel=slack_channel,
+                extra=slack_extra,
                 priority=priority,
-                routing_key="alerts",
-                headers={
-                    "event_level": level.value,
-                    "event_title": title
-                },
-                max_retries=5,
-                user_id=getattr(account, 'id', None) if hasattr(account, 'id') else None
             )
-            
-            logger.info("Slack notification queued via EventOutbox",
-                       event_id=event.id,
-                       slack_channel=slack_channel.value,
-                       priority=priority.value)
+
+            logger.info(
+                "Slack notification queued via SlackNotificationService",
+                event_id=event.id,
+                slack_channel=slack_channel.value,
+                priority=priority.value,
+            )
 
         # Handle general event processing via EventOutbox (replaces direct queue_background_task)
         if enable_processing and _requires_background_processing(title):
             processing_payload = {
                 "event_id": str(event.id),
                 "title": title,
-                "info": info or {}
+                "info": info or {},
             }
-            
+
             outbox_service.publish_event_sync(
                 db=session,
                 event_type="event_processing",
@@ -264,28 +184,31 @@ def create_event(
                 payload=processing_payload,
                 priority=EventPriority.NORMAL,
                 routing_key="processing",
-                headers={
-                    "event_title": title,
-                    "requires_processing": "true"
-                },
+                headers={"event_title": title, "requires_processing": "true"},
                 max_retries=3,
-                user_id=getattr(account, 'id', None) if hasattr(account, 'id') else None
+                user_id=getattr(account, "id", None)
+                if hasattr(account, "id")
+                else None,
             )
-            
-            logger.info("Event processing queued via EventOutbox",
-                       event_id=event.id,
-                       event_title=title)
+
+            logger.info(
+                "Event processing queued via EventOutbox",
+                event_id=event.id,
+                event_title=title,
+            )
 
     # Step 4: Commit transaction
     if commit:
         session.commit()
         session.refresh(event)
 
-    logger.info("Business event created",
-               event_id=event.id,
-               title=title,
-               level=level.value,
-               external_notifications=external_notifications)
+    logger.info(
+        "Business event created",
+        event_id=event.id,
+        title=title,
+        level=level.value,
+        external_notifications=external_notifications,
+    )
 
     return event
 
@@ -295,16 +218,16 @@ def _requires_external_notification(title: str, level: EventLevel) -> bool:
     # High severity events should always notify
     if level in [EventLevel.ERROR, EventLevel.WARNING]:
         return True
-    
+
     # Specific event types that should notify external systems
     notification_events = [
         "User created",
-        "Subscription started", 
+        "Subscription started",
         "Subscription cancelled",
         "Payment failed",
-        "System error"
+        "System error",
     ]
-    
+
     return title in notification_events
 
 
@@ -315,16 +238,16 @@ def _requires_background_processing(title: str) -> bool:
         "Huey: Book reviewed",
         "Reader timeline event: Reading logged",
         "Subscription started",
-        "Test"  # Keep for testing
+        "Test",  # Keep for testing
     ]
-    
+
     return title in processing_events
 
 
 def _get_event_priority(level: EventLevel) -> "EventPriority":
     """Map event level to EventOutbox priority."""
     from app.services.event_outbox_service import EventPriority
-    
+
     priority_map = {
         EventLevel.DEBUG: EventPriority.LOW,
         EventLevel.NORMAL: EventPriority.NORMAL,

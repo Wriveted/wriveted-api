@@ -4,8 +4,47 @@ Tests the authenticated CMS routes and chat functionality.
 """
 
 from uuid import uuid4
+import pytest
+from sqlalchemy import text
 
 
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestCMSWithAuthentication:
@@ -71,15 +110,29 @@ class TestCMSWithAuthentication:
         assert data["info"]["source"] == "pytest_test"
         assert "id" in data
 
-        return data["id"]  # Return the content ID for other tests to use
-
     def test_list_cms_content_with_auth(self, client, backend_service_account_headers):
         """Test listing CMS content with authentication."""
-        # First create some content
-        content_id = self.test_create_cms_content_with_auth(
-            client, backend_service_account_headers
-        )
+        # First create some content directly (not by calling another test)
+        joke_data = {
+            "type": "joke",
+            "content": {
+                "text": "Why did the test fail? Because it called another test!",
+                "category": "testing",
+                "audience": "developers",
+            },
+            "status": "PUBLISHED",
+            "tags": ["testing", "humor"],
+            "info": {"source": "test_list", "difficulty": "easy"},
+        }
 
+        create_response = client.post(
+            "/v1/cms/content", json=joke_data, headers=backend_service_account_headers
+        )
+        assert create_response.status_code == 201
+        created_content = create_response.json()
+        content_id = created_content["id"]
+
+        # Now list the content
         response = client.get(
             "/v1/cms/content", headers=backend_service_account_headers
         )
@@ -90,12 +143,31 @@ class TestCMSWithAuthentication:
         assert "pagination" in data
         assert len(data["data"]) >= 1
 
+        # Verify our created content is in the list
+        content_ids = [item["id"] for item in data["data"]]
+        assert content_id in content_ids
+
     def test_filter_cms_content_by_type(self, client, backend_service_account_headers):
         """Test filtering CMS content by type."""
-        # Create a joke first
-        content_id = self.test_create_cms_content_with_auth(
-            client, backend_service_account_headers
+        # Create a joke directly (not by calling another test)
+        joke_data = {
+            "type": "joke",
+            "content": {
+                "text": "Why do tests hate dependencies? They prefer isolation!",
+                "category": "testing",
+                "audience": "developers",
+            },
+            "status": "PUBLISHED",
+            "tags": ["filter", "test"],
+            "info": {"source": "test_filter", "difficulty": "medium"},
+        }
+
+        create_response = client.post(
+            "/v1/cms/content", json=joke_data, headers=backend_service_account_headers
         )
+        assert create_response.status_code == 201
+        created_joke = create_response.json()
+        joke_id = created_joke["id"]
 
         # Filter by JOKE type
         response = client.get(
@@ -109,6 +181,10 @@ class TestCMSWithAuthentication:
         # All returned items should be jokes
         for item in data["data"]:
             assert item["type"] == "joke"
+
+        # Verify our created joke is in the filtered results
+        joke_ids = [item["id"] for item in data["data"]]
+        assert joke_id in joke_ids
 
     def test_create_flow_definition_with_auth(
         self, client, backend_service_account_headers
@@ -157,15 +233,35 @@ class TestCMSWithAuthentication:
         assert len(data["flow_data"]["nodes"]) == 2
         assert len(data["flow_data"]["connections"]) == 1
 
-        return data["id"]  # Return the flow ID for other tests to use
-
     def test_list_flows_with_auth(self, client, backend_service_account_headers):
         """Test listing flows with authentication."""
-        # Create a flow first
-        flow_id = self.test_create_flow_definition_with_auth(
-            client, backend_service_account_headers
-        )
+        # Create a flow directly (not by calling another test)
+        flow_data = {
+            "name": "Test Flow for Listing",
+            "description": "A flow created for list testing",
+            "version": "1.0",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "message",
+                        "content": {"text": "Testing flow listing"},
+                        "position": {"x": 100, "y": 100},
+                    }
+                ],
+            },
+            "entry_node_id": "start",
+            "info": {"purpose": "list_test"},
+        }
 
+        create_response = client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+        assert create_response.status_code == 201
+        created_flow = create_response.json()
+        flow_id = created_flow["id"]
+
+        # Now list the flows
         response = client.get("/v1/cms/flows", headers=backend_service_account_headers)
 
         assert response.status_code == 200
@@ -173,6 +269,10 @@ class TestCMSWithAuthentication:
         assert "data" in data
         assert "pagination" in data
         assert len(data["data"]) >= 1
+
+        # Verify our created flow is in the list
+        flow_ids = [f["id"] for f in data["data"]]
+        assert flow_id in flow_ids
 
     def test_get_flow_nodes_with_auth(self, client, backend_service_account_headers):
         """Test getting flow nodes with authentication."""
@@ -231,10 +331,43 @@ class TestCMSWithAuthentication:
         self, client, backend_service_account_headers
     ):
         """Test starting a chat session with a flow we created."""
-        # Create a flow first
-        flow_id = self.test_create_flow_definition_with_auth(
-            client, backend_service_account_headers
+        # Create a flow directly (not by calling another test)
+        flow_data = {
+            "name": "Test Flow for Chat Session",
+            "description": "A flow created for chat session testing",
+            "version": "1.0",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "welcome",
+                        "type": "message",
+                        "content": {"text": "Welcome to the test chat!"},
+                        "position": {"x": 100, "y": 100},
+                    },
+                    {
+                        "id": "question",
+                        "type": "question",
+                        "content": {
+                            "text": "How are you?",
+                            "options": ["Good", "Great"],
+                            "variable": "mood",
+                        },
+                        "position": {"x": 100, "y": 200},
+                    },
+                ],
+                "connections": [
+                    {"source": "welcome", "target": "question", "type": "DEFAULT"}
+                ],
+            },
+            "entry_node_id": "welcome",
+            "info": {"purpose": "chat_test"},
+        }
+
+        create_response = client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
         )
+        assert create_response.status_code == 201
+        flow_id = create_response.json()["id"]
 
         # Publish the flow so it can be used for chat
         publish_response = client.post(
@@ -270,26 +403,59 @@ class TestCMSWithAuthentication:
         assert session_data["state"]["test_mode"] is True
         assert session_data["state"]["source"] == "pytest"
 
-        return session_token
-
     def test_complete_cms_to_chat_workflow(
         self, client, backend_service_account_headers
     ):
         """Test complete workflow from CMS content creation to chat session."""
         print("\\n🧪 Testing complete CMS to Chat workflow...")
 
-        # 1. Create CMS content
+        # 1. Create CMS content directly
         print("   📝 Creating CMS content...")
-        content_id = self.test_create_cms_content_with_auth(
-            client, backend_service_account_headers
+        content_data = {
+            "type": "joke",
+            "content": {
+                "text": "Complete workflow test joke!",
+                "category": "workflow",
+            },
+            "status": "PUBLISHED",
+            "tags": ["workflow", "test"],
+            "info": {"source": "workflow_test"},
+        }
+
+        content_response = client.post(
+            "/v1/cms/content",
+            json=content_data,
+            headers=backend_service_account_headers,
         )
+        assert content_response.status_code == 201
+        content_id = content_response.json()["id"]
         print(f"   ✅ Created content: {content_id}")
 
-        # 2. Create a flow
+        # 2. Create a flow directly
         print("   🔗 Creating flow definition...")
-        flow_id = self.test_create_flow_definition_with_auth(
-            client, backend_service_account_headers
+        flow_data = {
+            "name": "Complete Workflow Test Flow",
+            "description": "End-to-end workflow test",
+            "version": "1.0",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "message",
+                        "content": {"text": "Workflow test!"},
+                        "position": {"x": 100, "y": 100},
+                    }
+                ],
+            },
+            "entry_node_id": "start",
+            "info": {"workflow": "complete_test"},
+        }
+
+        flow_response = client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
         )
+        assert flow_response.status_code == 201
+        flow_id = flow_response.json()["id"]
         print(f"   ✅ Created flow: {flow_id}")
 
         # 3. Verify content is accessible
@@ -306,9 +472,25 @@ class TestCMSWithAuthentication:
 
         # 4. Start a chat session with the created flow
         print("   💬 Starting chat session...")
-        session_token = self.test_start_chat_session_with_created_flow(
-            client, backend_service_account_headers
+        # First publish the flow
+        publish_response = client.post(
+            f"/v1/cms/flows/{flow_id}/publish",
+            json={"publish": True},
+            headers=backend_service_account_headers,
         )
+        assert publish_response.status_code == 200
+
+        # Now start the session
+        session_data = {
+            "flow_id": flow_id,
+            "user_id": None,
+            "initial_state": {"test_mode": True, "source": "workflow_test"},
+        }
+
+        session_response = client.post("/v1/chat/start", json=session_data)
+        assert session_response.status_code == 201
+        session_info = session_response.json()
+        session_token = session_info["session_token"]
         print(f"   ✅ Started session: {session_token[:20]}...")
 
         # 5. Verify flows are accessible

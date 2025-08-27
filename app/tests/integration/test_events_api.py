@@ -174,16 +174,25 @@ def test_post_events_api_background_process(
     # Process EventOutbox queue to trigger background processing
     from app.services.event_outbox_service import EventOutboxService
     from app.db.session import get_async_session_maker
+    from unittest.mock import patch
     import asyncio
-    
+
     async def process_outbox():
         async_session_maker = get_async_session_maker()
         async with async_session_maker() as async_session:
             service = EventOutboxService()
-            await service.process_pending_events(async_session)
-    
+
+            # Mock Slack client to avoid actual API calls during test
+            with patch("app.services.slack_notification.WebClient") as mock_web_client:
+                mock_client_instance = mock_web_client.return_value
+                mock_client_instance.chat_postMessage.return_value = {"ts": "123456"}
+
+                with patch("app.services.slack_notification.config") as mock_config:
+                    mock_config.SLACK_BOT_TOKEN = "test-token"
+                    await service.process_pending_events(async_session)
+
     asyncio.run(process_outbox())
-    
+
     with session_factory() as session:
         events = [
             e

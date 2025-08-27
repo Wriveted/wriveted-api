@@ -7,6 +7,7 @@ Extracted from ad-hoc test_chat_runtime.py and improved for integration testing.
 import pytest
 from datetime import datetime
 from uuid import uuid4
+from sqlalchemy import text
 
 from app.models.cms import (
     FlowDefinition,
@@ -17,6 +18,45 @@ from app.models.cms import (
     ConnectionType,
     FlowConnection,
 )
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestChatAPIScenarios:
@@ -374,10 +414,10 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
-        
+
         # Get CSRF token from cookies, not JSON response
         csrf_token = response.cookies.get("csrf_token")
-        
+
         # Set up CSRF protection for interact endpoint
         if csrf_token:
             async_client.cookies.set("csrf_token", csrf_token)
@@ -460,10 +500,10 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
-        
+
         # Get CSRF token from cookies, not JSON response
         csrf_token = response.cookies.get("csrf_token")
-        
+
         # Set up CSRF protection for interact endpoint
         if csrf_token:
             async_client.cookies.set("csrf_token", csrf_token)
@@ -520,10 +560,10 @@ class TestChatAPIScenarios:
 
         session_data = response.json()
         session_token = session_data["session_token"]
-        
+
         # Get CSRF token from cookies, not JSON response
         csrf_token = response.cookies.get("csrf_token")
-        
+
         # Set up CSRF protection for interact endpoint
         if csrf_token:
             async_client.cookies.set("csrf_token", csrf_token)
@@ -572,65 +612,71 @@ class TestChatAPIScenarios:
 
             session_data = response.json()
             csrf_token = response.cookies.get("csrf_token")
-            
-            sessions.append({
-                "token": session_data["session_token"],
-                "csrf_token": csrf_token,
-                "cookies": response.cookies
-            })
+
+            sessions.append(
+                {
+                    "token": session_data["session_token"],
+                    "csrf_token": csrf_token,
+                    "cookies": response.cookies,
+                }
+            )
 
         # Verify all sessions are independent
         for i, session_info in enumerate(sessions):
             # Include CSRF token in headers and set session-specific cookies
             if session_info["csrf_token"]:
                 async_client.cookies.set("csrf_token", session_info["csrf_token"])
-                headers = {**test_user_account_headers, "X-CSRF-Token": session_info["csrf_token"]}
+                headers = {
+                    **test_user_account_headers,
+                    "X-CSRF-Token": session_info["csrf_token"],
+                }
             else:
                 headers = test_user_account_headers
-            
+
             # First interaction - move past the welcome message
             interact_payload = {
                 "input": "",  # Empty input to proceed past welcome
                 "input_type": "text",
             }
-            
+
             # Set cookies for this specific request
             original_cookies = async_client.cookies
             async_client.cookies.update(session_info["cookies"])
-            
+
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_info['token']}/interact",
                 json=interact_payload,
                 headers=headers,
             )
-            
+
             # Restore original cookies
             async_client.cookies = original_cookies
             assert response.status_code == 200
-            
+
             # Second interaction - answer the age question with different ages
             interact_payload = {
                 "input": str(10 + i),  # Different ages
                 "input_type": "text",
             }
-            
+
             # Set cookies for this specific request
             original_cookies = async_client.cookies
             async_client.cookies.update(session_info["cookies"])
-            
+
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_info['token']}/interact",
                 json=interact_payload,
                 headers=headers,
             )
-            
+
             # Restore original cookies
             async_client.cookies = original_cookies
             assert response.status_code == 200
 
             # Verify session state is independent
             response = await async_client.get(
-                f"/v1/chat/sessions/{session_info['token']}", headers=test_user_account_headers
+                f"/v1/chat/sessions/{session_info['token']}",
+                headers=test_user_account_headers,
             )
             assert response.status_code == 200
 
@@ -667,7 +713,7 @@ class TestChatAPIScenarios:
         assert response.status_code == 201
         session_data = response.json()
         session_token = session_data["session_token"]
-        
+
         # Get CSRF token from cookies, not JSON response
         csrf_token = response.cookies.get("csrf_token")
         session_cookies = response.cookies
@@ -692,25 +738,31 @@ class TestChatAPIScenarios:
             # Set session cookies for each request
             original_cookies = async_client.cookies
             async_client.cookies.update(session_cookies)
-            
+
             response = await async_client.post(
                 f"/v1/chat/sessions/{session_token}/interact",
                 json=interaction,
                 headers=interact_headers,
             )
-            
+
             # Restore original cookies
             async_client.cookies = original_cookies
-            
+
             if response.status_code != 200:
-                print(f"ERROR: Interaction {i} failed with status {response.status_code}: {response.text}")
+                print(
+                    f"ERROR: Interaction {i} failed with status {response.status_code}: {response.text}"
+                )
             assert response.status_code == 200
             resp_json = response.json()
-            print(f"DEBUG: Response {i}: current_node={resp_json.get('current_node_id')}, ended={resp_json.get('session_ended')}")
-            if resp_json.get('session_ended'):
+            print(
+                f"DEBUG: Response {i}: current_node={resp_json.get('current_node_id')}, ended={resp_json.get('session_ended')}"
+            )
+            if resp_json.get("session_ended"):
                 print(f"WARNING: Session ended prematurely at interaction {i}")
-            if resp_json.get('session_updated'):
-                print(f"DEBUG: Session state after {i}: {resp_json['session_updated'].get('state')}")
+            if resp_json.get("session_updated"):
+                print(
+                    f"DEBUG: Session state after {i}: {resp_json['session_updated'].get('state')}"
+                )
 
         # Verify variable substitution in the final message
         final_response = response.json()
@@ -719,8 +771,29 @@ class TestChatAPIScenarios:
         messages = final_response.get("messages", [])
         assert len(messages) > 0, f"No messages in response: {final_response}"
         print(f"DEBUG: Messages: {messages}")
-        message_content = messages[0].get("content", "")
+
+        # Navigate to the actual message content in the nested structure
+        # messages[0] is the outer message wrapper
+        # messages[0]["messages"][0] is the actual message
+        # messages[0]["messages"][0]["content"]["messages"][0]["content"] is the text content
+        outer_message = messages[0]
+        inner_messages = outer_message.get("messages", [])
+        assert (
+            len(inner_messages) > 0
+        ), f"No inner messages in response: {outer_message}"
+
+        message = inner_messages[0]
+        content_obj = message.get("content", {})
+        content_messages = content_obj.get("messages", [])
+        assert (
+            len(content_messages) > 0
+        ), f"No content messages in response: {content_obj}"
+
+        text_message = content_messages[0]
+        message_content = text_message.get("content", "")
         print(f"DEBUG: Message content: {message_content}")
+
+        # Check that variables have been substituted
         assert "8" in message_content
         assert "Advanced" in message_content
         assert "Science Fiction" in message_content

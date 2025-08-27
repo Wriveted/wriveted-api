@@ -5,7 +5,47 @@ Extracted from ad-hoc test_cms_content.py and enhanced for integration testing.
 """
 
 import pytest
+from sqlalchemy import text
 from typing import Dict, List, Any
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestCMSContentPatterns:
@@ -21,30 +61,29 @@ class TestCMSContentPatterns:
                 "content": {
                     "text": "Welcome to Bookbot! I'm here to help you discover amazing books.",
                     "style": "friendly",
-                    "target_audience": "general"
+                    "target_audience": "general",
                 },
                 "tags": ["welcome", "greeting", "bookbot"],
                 "info": {
                     "usage": "greeting",
                     "priority": "high",
-                    "content_category": "onboarding"
-                }
+                    "content_category": "onboarding",
+                },
             },
             {
                 "type": "message",
                 "content": {
                     "text": "Let's find some fantastic books together! 📚",
                     "style": "enthusiastic",
-                    "target_audience": "children"
+                    "target_audience": "children",
                 },
                 "tags": ["welcome", "books", "children"],
                 "info": {
                     "usage": "greeting",
                     "priority": "medium",
-                    "content_category": "onboarding"
-                }
+                    "content_category": "onboarding",
+                },
             },
-
             # Questions with different input types
             {
                 "type": "question",
@@ -52,18 +91,14 @@ class TestCMSContentPatterns:
                     "question": "What's your age? This helps me recommend the perfect books for you!",
                     "input_type": "number",
                     "variable": "user_age",
-                    "validation": {
-                        "min": 3,
-                        "max": 18,
-                        "required": True
-                    }
+                    "validation": {"min": 3, "max": 18, "required": True},
                 },
                 "tags": ["age", "onboarding", "personalization"],
                 "info": {
                     "usage": "user_profiling",
                     "priority": "high",
-                    "content_category": "data_collection"
-                }
+                    "content_category": "data_collection",
+                },
             },
             {
                 "type": "question",
@@ -73,18 +108,18 @@ class TestCMSContentPatterns:
                     "variable": "book_preferences",
                     "options": [
                         "Fantasy & Magic",
-                        "Adventure Stories", 
+                        "Adventure Stories",
                         "Mystery & Detective",
                         "Science & Nature",
-                        "Friendship Stories"
-                    ]
+                        "Friendship Stories",
+                    ],
                 },
                 "tags": ["preferences", "genres", "personalization"],
                 "info": {
                     "usage": "user_profiling",
                     "priority": "high",
-                    "content_category": "data_collection"
-                }
+                    "content_category": "data_collection",
+                },
             },
             {
                 "type": "question",
@@ -92,16 +127,15 @@ class TestCMSContentPatterns:
                     "question": "How many books would you like me to recommend?",
                     "input_type": "choice",
                     "variable": "recommendation_count",
-                    "options": ["1-3 books", "4-6 books", "7-10 books", "More than 10"]
+                    "options": ["1-3 books", "4-6 books", "7-10 books", "More than 10"],
                 },
                 "tags": ["preferences", "quantity", "personalization"],
                 "info": {
                     "usage": "recommendation_settings",
                     "priority": "medium",
-                    "content_category": "data_collection"
-                }
+                    "content_category": "data_collection",
+                },
             },
-
             # Jokes for entertainment
             {
                 "type": "joke",
@@ -109,14 +143,14 @@ class TestCMSContentPatterns:
                     "setup": "Why don't books ever get cold?",
                     "punchline": "Because they have book jackets!",
                     "category": "books",
-                    "age_group": ["6-12"]
+                    "age_group": ["6-12"],
                 },
                 "tags": ["joke", "books", "kids", "entertainment"],
                 "info": {
                     "usage": "entertainment",
                     "priority": "low",
-                    "content_category": "humor"
-                }
+                    "content_category": "humor",
+                },
             },
             {
                 "type": "joke",
@@ -124,48 +158,45 @@ class TestCMSContentPatterns:
                     "setup": "What do you call a book that's about the future?",
                     "punchline": "A novel idea!",
                     "category": "wordplay",
-                    "age_group": ["8-14"]
+                    "age_group": ["8-14"],
                 },
                 "tags": ["joke", "wordplay", "future", "entertainment"],
                 "info": {
                     "usage": "entertainment",
                     "priority": "low",
-                    "content_category": "humor"
-                }
+                    "content_category": "humor",
+                },
             },
-
             # Educational content
             {
                 "type": "message",
                 "content": {
                     "text": "Reading helps build vocabulary, improves concentration, and sparks imagination!",
                     "style": "educational",
-                    "target_audience": "parents_and_educators"
+                    "target_audience": "parents_and_educators",
                 },
                 "tags": ["education", "benefits", "reading"],
                 "info": {
                     "usage": "educational",
                     "priority": "medium",
-                    "content_category": "information"
-                }
+                    "content_category": "information",
+                },
             },
-
             # Encouragement messages
             {
                 "type": "message",
                 "content": {
                     "text": "Great choice! You're building excellent reading habits.",
                     "style": "encouraging",
-                    "target_audience": "children"
+                    "target_audience": "children",
                 },
                 "tags": ["encouragement", "positive", "feedback"],
                 "info": {
                     "usage": "feedback",
                     "priority": "high",
-                    "content_category": "motivation"
-                }
+                    "content_category": "motivation",
+                },
             },
-
             # Conditional message with variables
             {
                 "type": "message",
@@ -173,15 +204,19 @@ class TestCMSContentPatterns:
                     "text": "Based on your age ({{user_age}}) and interests in {{book_preferences}}, I've found {{recommendation_count}} perfect books for you!",
                     "style": "personalized",
                     "target_audience": "general",
-                    "variables": ["user_age", "book_preferences", "recommendation_count"]
+                    "variables": [
+                        "user_age",
+                        "book_preferences",
+                        "recommendation_count",
+                    ],
                 },
                 "tags": ["personalized", "recommendations", "summary"],
                 "info": {
                     "usage": "recommendation_summary",
                     "priority": "high",
-                    "content_category": "results"
-                }
-            }
+                    "content_category": "results",
+                },
+            },
         ]
 
     @pytest.mark.asyncio
@@ -196,13 +231,15 @@ class TestCMSContentPatterns:
             response = await async_client.post(
                 "/v1/cms/content",
                 json=content_data,
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
-            assert response.status_code == 201, f"Failed to create content: {content_data['type']}"
+
+            assert (
+                response.status_code == 201
+            ), f"Failed to create content: {content_data['type']}"
             created_item = response.json()
             created_content.append(created_item)
-            
+
             # Verify structure
             assert created_item["type"] == content_data["type"]
             assert created_item["content"] == content_data["content"]
@@ -222,9 +259,9 @@ class TestCMSContentPatterns:
             response = await async_client.get(
                 "/v1/cms/content",
                 params={"search": category},
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
+
             assert response.status_code == 200
             # Note: Search behavior depends on implementation
             # This test verifies the API responds correctly
@@ -232,7 +269,7 @@ class TestCMSContentPatterns:
         # Test content type filtering
         content_type_tests = [
             ("message", 5),  # Message types (5 messages in sample_content_library)
-            ("question", 3),  # Question types  
+            ("question", 3),  # Question types
             ("joke", 2),  # Joke types
         ]
 
@@ -240,24 +277,32 @@ class TestCMSContentPatterns:
             response = await async_client.get(
                 "/v1/cms/content",
                 params={"content_type": content_type},
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             items = data.get("data", [])
-            
+
             # Filter our created content
-            our_items = [item for item in items if item["id"] in [c["id"] for c in created_content]]
-            type_count = len([item for item in our_items if item["type"] == content_type])
-            
-            assert type_count == expected_min, f"Expected {expected_min} {content_type} items, got {type_count}"
+            our_items = [
+                item
+                for item in items
+                if item["id"] in [c["id"] for c in created_content]
+            ]
+            type_count = len(
+                [item for item in our_items if item["type"] == content_type]
+            )
+
+            assert (
+                type_count == expected_min
+            ), f"Expected {expected_min} {content_type} items, got {type_count}"
 
         # Cleanup
         for content in created_content:
             await async_client.delete(
                 f"/v1/cms/content/{content['id']}",
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
 
     @pytest.mark.asyncio
@@ -273,27 +318,25 @@ class TestCMSContentPatterns:
                     "content": {
                         "text": "Complete message with all fields",
                         "style": "formal",
-                        "target_audience": "adults"
+                        "target_audience": "adults",
                     },
                     "tags": ["complete", "validation"],
                     "info": {"test": "validation"},
-                    "status": "draft"
+                    "status": "draft",
                 },
                 "should_succeed": True,
-                "description": "Complete valid message"
+                "description": "Complete valid message",
             },
-            
             # Minimal valid content
             {
                 "data": {
                     "type": "message",
                     "content": {"text": "Minimal message"},
-                    "tags": []
+                    "tags": [],
                 },
                 "should_succeed": True,
-                "description": "Minimal valid message"
+                "description": "Minimal valid message",
             },
-            
             # Question with validation rules
             {
                 "data": {
@@ -302,50 +345,43 @@ class TestCMSContentPatterns:
                         "question": "Enter a number between 1 and 100",
                         "input_type": "number",
                         "variable": "test_number",
-                        "validation": {
-                            "min": 1,
-                            "max": 100,
-                            "required": True
-                        }
+                        "validation": {"min": 1, "max": 100, "required": True},
                     },
-                    "tags": ["validation", "number"]
+                    "tags": ["validation", "number"],
                 },
                 "should_succeed": True,
-                "description": "Question with validation rules"
+                "description": "Question with validation rules",
             },
-            
             # Invalid content type
             {
                 "data": {
                     "type": "invalid_type",
                     "content": {"text": "Test"},
-                    "tags": []
+                    "tags": [],
                 },
                 "should_succeed": False,
-                "description": "Invalid content type"
+                "description": "Invalid content type",
             },
-            
             # Missing required content field
             {
                 "data": {
                     "type": "message",
-                    "tags": []
+                    "tags": [],
                     # Missing content field
                 },
                 "should_succeed": False,
-                "description": "Missing content field"
+                "description": "Missing content field",
             },
-            
             # Empty content object
             {
                 "data": {
                     "type": "message",
                     "content": {},  # Empty content
-                    "tags": []
+                    "tags": [],
                 },
                 "should_succeed": False,
-                "description": "Empty content object"
-            }
+                "description": "Empty content object",
+            },
         ]
 
         successful_creations = []
@@ -354,20 +390,24 @@ class TestCMSContentPatterns:
             response = await async_client.post(
                 "/v1/cms/content",
                 json=test_case["data"],
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
+
             if test_case["should_succeed"]:
-                assert response.status_code == 201, f"Expected success for: {test_case['description']}"
+                assert (
+                    response.status_code == 201
+                ), f"Expected success for: {test_case['description']}"
                 successful_creations.append(response.json()["id"])
             else:
-                assert response.status_code in [400, 422], f"Expected validation error for: {test_case['description']}"
+                assert response.status_code in [
+                    400,
+                    422,
+                ], f"Expected validation error for: {test_case['description']}"
 
         # Cleanup successful creations
         for content_id in successful_creations:
             await async_client.delete(
-                f"/v1/cms/content/{content_id}",
-                headers=backend_service_account_headers
+                f"/v1/cms/content/{content_id}", headers=backend_service_account_headers
             )
 
     @pytest.mark.asyncio
@@ -383,15 +423,15 @@ class TestCMSContentPatterns:
                 "info": {
                     "author": "test_user",
                     "creation_date": "2024-01-01",
-                    "revision": 1
-                }
+                    "revision": 1,
+                },
             },
             {
                 "type": "question",
                 "content": {
                     "question": "Test question",
                     "input_type": "text",
-                    "variable": "test_var"
+                    "variable": "test_var",
                 },
                 "tags": ["info", "complex"],
                 "info": {
@@ -399,22 +439,19 @@ class TestCMSContentPatterns:
                     "estimated_time": "30 seconds",
                     "category": "assessment",
                     "subcategory": "basic_info",
-                    "scoring": {
-                        "points": 10,
-                        "weight": 1.0
-                    },
+                    "scoring": {"points": 10, "weight": 1.0},
                     "localization": {
                         "default_language": "en",
-                        "available_languages": ["en", "es", "fr"]
-                    }
-                }
+                        "available_languages": ["en", "es", "fr"],
+                    },
+                },
             },
             {
                 "type": "joke",
                 "content": {
                     "setup": "Test setup",
                     "punchline": "Test punchline",
-                    "category": "test"
+                    "category": "test",
                 },
                 "tags": ["info", "array"],
                 "info": {
@@ -426,11 +463,11 @@ class TestCMSContentPatterns:
                         "concepts": ["humor", "wordplay"],
                         "learning_objectives": [
                             "develop sense of humor",
-                            "understand wordplay"
-                        ]
-                    }
-                }
-            }
+                            "understand wordplay",
+                        ],
+                    },
+                },
+            },
         ]
 
         created_items = []
@@ -440,22 +477,22 @@ class TestCMSContentPatterns:
             response = await async_client.post(
                 "/v1/cms/content",
                 json=test_case,
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
+
             assert response.status_code == 201
             created_item = response.json()
             created_items.append(created_item)
-            
+
             # Verify info is stored correctly
             assert created_item["info"] == test_case["info"]
-            
+
             # Retrieve and verify info persistence
             response = await async_client.get(
                 f"/v1/cms/content/{created_item['id']}",
-                headers=backend_service_account_headers
+                headers=backend_service_account_headers,
             )
-            
+
             assert response.status_code == 200
             retrieved_item = response.json()
             assert retrieved_item["info"] == test_case["info"]
@@ -464,17 +501,16 @@ class TestCMSContentPatterns:
         response = await async_client.get(
             "/v1/cms/content",
             params={"search": "difficulty_level"},  # Search in info
-            headers=backend_service_account_headers
+            headers=backend_service_account_headers,
         )
-        
+
         assert response.status_code == 200
         # API should handle info search gracefully
 
         # Cleanup
         for item in created_items:
             await async_client.delete(
-                f"/v1/cms/content/{item['id']}",
-                headers=backend_service_account_headers
+                f"/v1/cms/content/{item['id']}", headers=backend_service_account_headers
             )
 
     @pytest.mark.asyncio
@@ -485,45 +521,39 @@ class TestCMSContentPatterns:
         # Create initial content
         initial_content = {
             "type": "message",
-            "content": {
-                "text": "Version 1.0 content",
-                "style": "formal"
-            },
+            "content": {"text": "Version 1.0 content", "style": "formal"},
             "tags": ["versioning", "test"],
-            "status": "draft"
+            "status": "draft",
         }
 
         response = await async_client.post(
             "/v1/cms/content",
             json=initial_content,
-            headers=backend_service_account_headers
+            headers=backend_service_account_headers,
         )
-        
+
         assert response.status_code == 201
         created_item = response.json()
         content_id = created_item["id"]
-        
+
         # Verify initial version
         assert created_item["version"] == 1
         assert created_item["status"] == "draft"
 
         # Test content updates (if supported)
         updated_content = {
-            "content": {
-                "text": "Version 2.0 content - updated!",
-                "style": "casual"
-            },
+            "content": {"text": "Version 2.0 content - updated!", "style": "casual"},
             "tags": ["versioning", "test", "updated"],
-            "status": "published"
+            "status": "published",
         }
 
         # Try to update content
         response = await async_client.put(
             f"/v1/cms/content/{content_id}",
             json=updated_content,
-            headers=backend_service_account_headers
+            headers=backend_service_account_headers,
         )
-        
+
         # Handle if updates are not supported
         if response.status_code == 405:  # Method not allowed
             # Skip update testing
@@ -533,26 +563,25 @@ class TestCMSContentPatterns:
             updated_item = response.json()
             assert updated_item["content"]["text"] == "Version 2.0 content - updated!"
             assert updated_item["status"] == "published"
-            
+
             # Version might increment (depending on implementation)
             assert updated_item["version"] >= 1
 
         # Test status changes
         status_update = {"status": "archived"}
-        
+
         response = await async_client.patch(
             f"/v1/cms/content/{content_id}",
             json=status_update,
-            headers=backend_service_account_headers
+            headers=backend_service_account_headers,
         )
-        
-        # Handle if patch is not supported  
+
+        # Handle if patch is not supported
         if response.status_code not in [405, 404]:
             # Some form of update was attempted
             assert response.status_code in [200, 400, 422]
 
         # Cleanup
         await async_client.delete(
-            f"/v1/cms/content/{content_id}",
-            headers=backend_service_account_headers
+            f"/v1/cms/content/{content_id}", headers=backend_service_account_headers
         )

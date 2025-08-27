@@ -3,16 +3,23 @@ import random
 import secrets
 import time
 import logging
+import signal
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 
 import pytest
+import psutil
 from fastapi import FastAPI
 from httpx import AsyncClient
 from starlette.testclient import TestClient
 
 # Set up verbose logging for debugging test setup failures
 logger = logging.getLogger(__name__)
+
+# Global engine cache to prevent creating too many engines
+# Note: Only cache sync engines due to asyncio event loop conflicts with async engines
+_test_engine_cache = {}
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
@@ -47,8 +54,13 @@ from app.services.security import create_access_token
 from app.tests.util.random_strings import random_lower_string
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client():
+    """Create a fresh TestClient for each test function to prevent state leakage.
+
+    Changed from module to function scope to match database session scope
+    and prevent resource accumulation issues.
+    """
     with TestClient(app) as c:
         # This is because we want to keep debugging tests for longer but the agent
         # has a rate limit.
@@ -78,6 +90,19 @@ def test_data_path():
 def settings():
     yield get_settings()
 
+    # Clean up cached engines at end of session
+    logger.debug("Cleaning up cached engines at session end")
+
+    # Clean up sync engines
+    for cache_key, (engine, _) in _test_engine_cache.items():
+        try:
+            engine.dispose()
+            logger.debug(f"Disposed cached sync engine: {cache_key}")
+        except Exception as e:
+            logger.warning(f"Error disposing cached sync engine {cache_key}: {e}")
+
+    _test_engine_cache.clear()
+
 
 @pytest.fixture(scope="session")
 def test_app() -> FastAPI:
@@ -92,107 +117,478 @@ async def async_client(test_app):
     from httpx import ASGITransport
 
     logger.debug("Creating async HTTP client for testing")
+    client = None
 
     try:
-        async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
-        ) as client:
-            logger.debug("Successfully created async client")
-            yield client
-            logger.debug("Async client context manager exiting")
+        # Create client with timeout protection
+        client = AsyncClient(
+            transport=ASGITransport(app=test_app),
+            base_url="http://test",
+            timeout=30.0,  # 30 second timeout for HTTP requests
+        )
+
+        await asyncio.wait_for(client.__aenter__(), timeout=10.0)
+        logger.debug("Successfully created async client")
+
+        yield client
+        logger.debug("Async client context manager exiting")
+
+    except asyncio.TimeoutError:
+        logger.error("Async client creation/operation timed out")
+        raise
     except Exception as e:
         logger.error(f"Error creating async client: {e}")
         raise
+    finally:
+        # Ensure proper cleanup
+        if client:
+            try:
+                await asyncio.wait_for(client.__aexit__(None, None, None), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning("Async client cleanup timed out")
+            except Exception as e:
+                logger.warning(f"Error cleaning up async client: {e}")
 
 
 @pytest.fixture
 async def internal_async_client():
-    """AsyncClient for the internal API."""
+    """AsyncClient for the internal API with timeout protection."""
     from httpx import ASGITransport
-
     from app.internal_api import internal_app
 
-    async with AsyncClient(
-        transport=ASGITransport(app=internal_app), base_url="http://test"
-    ) as client:
+    client = None
+
+    try:
+        client = AsyncClient(
+            transport=ASGITransport(app=internal_app),
+            base_url="http://test",
+            timeout=30.0,  # 30 second timeout for HTTP requests
+        )
+
+        await asyncio.wait_for(client.__aenter__(), timeout=10.0)
         yield client
 
-
-@pytest.fixture()
-def session(settings):
-    """Create a clean database session for each test with proper cleanup."""
-    session_maker = get_session_maker()
-    session = session_maker()
-    try:
-        yield session
+    except asyncio.TimeoutError:
+        logger.error("Internal async client operation timed out")
+        raise
+    except Exception as e:
+        logger.error(f"Error with internal async client: {e}")
+        raise
     finally:
-        # Ensure proper cleanup - rollback any uncommitted changes
-        try:
-            session.rollback()
-        except Exception:
-            pass
-        finally:
-            session.close()
+        if client:
+            try:
+                await asyncio.wait_for(client.__aexit__(None, None, None), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning("Internal async client cleanup timed out")
+            except Exception as e:
+                logger.warning(f"Error cleaning up internal async client: {e}")
 
 
 @pytest.fixture()
-async def async_session():
-    """Create an isolated async session for each test with proper cleanup."""
-    logger.debug("Creating async session for test")
+def session(settings, reset_global_state_sync):
+    """Create a clean database session for each test with proper cleanup and timeouts."""
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Database session operation timed out")
+
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    session = None
 
     try:
-        session_factory = get_async_session_maker()
-        logger.debug("Got async session factory")
+        # Create session with timeout protection
+        signal.alarm(30)  # 30 second timeout
+        session_maker = get_session_maker(settings)
+        session = session_maker()
+        signal.alarm(0)  # Cancel timeout
+
+        yield session
+
+    except TimeoutError:
+        logger.error("Database session creation timed out")
+        raise
+    finally:
+        # Ensure proper cleanup with timeout protection
+        if session:
+            try:
+                signal.alarm(10)  # 10 second timeout for cleanup
+                # Rollback any uncommitted changes
+                session.rollback()
+            except TimeoutError:
+                logger.warning("Session rollback timed out")
+            except Exception as e:
+                logger.warning(f"Error during session rollback: {e}")
+            finally:
+                try:
+                    session.close()
+                    signal.alarm(0)
+                except TimeoutError:
+                    logger.warning("Session close timed out")
+                except Exception as e:
+                    logger.warning(f"Error closing session: {e}")
+                finally:
+                    signal.alarm(0)
+
+        # Restore signal handler
+        signal.signal(signal.SIGALRM, old_handler)
+
+
+@pytest.fixture()
+def reset_global_state_sync():
+    """Reset all global singletons and state before each test (sync version) with timeout protection."""
+    import signal
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Global state reset timed out")
+
+    # Set up timeout protection
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+
+    try:
+        # Reset singletons to ensure test isolation with timeout
+        signal.alarm(30)  # 30 second timeout
+
+        try:
+            from app.services.event_listener import reset_event_listener
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.crud.chat_repo import reset_chat_repository
+            from app.services.api_client import reset_api_client
+            from app.services.webhook_notifier import reset_webhook_notifier
+
+            logger.debug("Starting sync global state reset...")
+            reset_event_listener()
+            logger.debug("Reset event listener (sync)")
+            reset_chat_runtime()
+            logger.debug("Reset chat runtime (sync)")
+            reset_chat_repository()
+            logger.debug("Reset chat repository (sync)")
+            reset_api_client()
+            logger.debug("Reset API client (sync)")
+            reset_webhook_notifier()
+            logger.debug("Reset webhook notifier (sync)")
+
+            logger.debug("✅ Completed sync global state reset for test isolation")
+        except TimeoutError:
+            logger.error("Global state reset timed out during setup")
+        except Exception as e:
+            logger.warning(f"Error resetting global state: {e}")
+        finally:
+            signal.alarm(0)  # Cancel timeout
+
+        yield
+
+        # Clean up after test with timeout
+        signal.alarm(30)  # 30 second timeout
+        try:
+            reset_event_listener()
+            reset_chat_runtime()
+            reset_chat_repository()
+            reset_api_client()
+            reset_webhook_notifier()
+            logger.debug("Cleaned up global state after test (sync)")
+        except TimeoutError:
+            logger.error("Global state cleanup timed out")
+        except Exception as e:
+            logger.warning(f"Error cleaning up global state: {e}")
+        finally:
+            signal.alarm(0)  # Cancel timeout
+
+    finally:
+        # Restore original signal handler
+        signal.signal(signal.SIGALRM, old_handler)
+
+
+@pytest.fixture()
+async def reset_global_state():
+    """Reset all global singletons and state before each test (async version) with timeout protection."""
+    import asyncio
+
+    # Reset singletons to ensure test isolation with timeout
+    try:
+
+        async def reset_state():
+            from app.services.event_listener import reset_event_listener
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.crud.chat_repo import reset_chat_repository
+            from app.services.api_client import reset_api_client
+            from app.services.webhook_notifier import reset_webhook_notifier
+
+            logger.debug("Starting global state reset...")
+            reset_event_listener()
+            logger.debug("Reset event listener")
+            reset_chat_runtime()
+            logger.debug("Reset chat runtime")
+            reset_chat_repository()
+            logger.debug("Reset chat repository")
+            reset_api_client()
+            logger.debug("Reset API client")
+            reset_webhook_notifier()
+            logger.debug("Reset webhook notifier")
+
+            logger.debug("✅ Completed global state reset for test isolation")
+
+        # Run with timeout
+        await asyncio.wait_for(reset_state(), timeout=30.0)
+
+    except asyncio.TimeoutError:
+        logger.error("Global state reset timed out during setup")
+    except Exception as e:
+        logger.warning(f"Error resetting global state: {e}")
+
+    yield
+
+    # Clean up after test with timeout
+    try:
+
+        async def cleanup_state():
+            from app.services.event_listener import reset_event_listener
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.crud.chat_repo import reset_chat_repository
+            from app.services.api_client import reset_api_client
+            from app.services.webhook_notifier import reset_webhook_notifier
+
+            reset_event_listener()
+            reset_chat_runtime()
+            reset_chat_repository()
+            reset_api_client()
+            reset_webhook_notifier()
+            logger.debug("Cleaned up global state after test")
+
+        await asyncio.wait_for(cleanup_state(), timeout=30.0)
+
+    except asyncio.TimeoutError:
+        logger.error("Global state cleanup timed out")
+    except Exception as e:
+        logger.warning(f"Error cleaning up global state: {e}")
+
+
+@pytest.fixture()
+async def async_session(reset_global_state):
+    """Create an isolated async session for each test with proper cleanup and timeouts."""
+    import os
+    import psutil
+    import asyncio
+
+    test_name = (
+        os.environ.get("PYTEST_CURRENT_TEST", "unknown").split("::")[-1].split(" ")[0]
+    )
+
+    logger.debug(f"🔧 [DEBUG] Creating async session for test: {test_name}")
+    logger.debug(
+        f"🔧 [DEBUG] Process memory: {psutil.Process().memory_info().rss / 1024 / 1024:.1f}MB"
+    )
+    logger.debug(f"🔧 [DEBUG] Active async tasks: {len(asyncio.all_tasks())}")
+
+    session = None
+    session_factory = None
+    engine = None
+
+    try:
+        # Create session factory with smaller pool for tests
+        from app.config import get_settings
+
+        settings = get_settings()
+
+        # Create fresh engine for each test to avoid asyncio event loop conflicts
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+        # Always create fresh async engine to avoid event loop conflicts
+        engine = create_async_engine(
+            settings.SQLALCHEMY_ASYNC_URI,
+            pool_size=1,  # Minimal pool for tests - only one connection per test
+            max_overflow=0,  # No overflow to prevent connection leaks
+            pool_recycle=30,  # Very short recycle time for tests (30 seconds)
+            pool_timeout=2,  # Very short timeout for tests (2 seconds)
+            pool_pre_ping=True,  # Verify connections before use
+            echo=False,  # Disable SQL logging for tests
+            # Additional settings for better test isolation
+            connect_args={
+                "command_timeout": 10,  # 10 second query timeout
+                "server_settings": {
+                    "application_name": f"wriveted_test_{test_name}",
+                    "jit": "off",  # Disable JIT for faster test execution
+                },
+            },
+        )
+        logger.debug(f"🔧 [DEBUG] Created fresh async engine for test: {test_name}")
+        logger.debug(f"🔧 [DEBUG] Engine pool status: {engine.pool.status()}")
+
+        session_factory = async_sessionmaker(
+            engine, autoflush=False, autocommit=False, expire_on_commit=False
+        )
+
+        logger.debug(f"🔧 [DEBUG] Created async session factory for: {test_name}")
 
         session = session_factory()
-        logger.debug(f"Created async session: {session}")
+        logger.debug(
+            f"🔧 [DEBUG] Created async session: {session} for test: {test_name}"
+        )
 
-        # Test session connectivity
+        # Test session connectivity with timeout and pool monitoring
         try:
             from sqlalchemy import text
+            import asyncio
 
-            result = await session.execute(text("SELECT 1"))
+            # Log pool status before test
+            pool = engine.pool
+            logger.debug(
+                f"Pool status before test - Size: {pool.size()}, Checked in: {pool.checkedin()}, Checked out: {pool.checkedout()}, Overflow: {pool.overflow()}"
+            )
+
+            result = await asyncio.wait_for(
+                session.execute(text("SELECT 1")),
+                timeout=5.0,  # Reduced to 5 second timeout
+            )
             logger.debug("Session connectivity test successful")
+        except asyncio.TimeoutError:
+            logger.error("Session connectivity test timed out")
+            raise
         except Exception as e:
             logger.error(f"Session connectivity test failed: {e}")
             raise
 
         yield session
-        logger.debug("Test completed, starting session cleanup")
+        logger.debug(
+            f"🔧 [DEBUG] Test completed, starting session cleanup for: {test_name}"
+        )
+        logger.debug(
+            f"🔧 [DEBUG] Process memory after test: {psutil.Process().memory_info().rss / 1024 / 1024:.1f}MB"
+        )
+        logger.debug(
+            f"🔧 [DEBUG] Active async tasks after test: {len(asyncio.all_tasks())}"
+        )
 
     except Exception as e:
-        logger.error(f"Error creating async session: {e}")
+        logger.error(f"🔧 [DEBUG] Error creating async session for {test_name}: {e}")
         raise
     finally:
-        # Ensure proper cleanup
-        try:
-            # Rollback any uncommitted transactions
-            if session.in_transaction():
-                logger.debug("Rolling back uncommitted transactions")
-                await session.rollback()
-        except Exception as e:
-            logger.warning(f"Error during session rollback: {e}")
-        finally:
-            # Always close the session
+        # Ensure proper cleanup with timeouts and monitoring
+        cleanup_start_time = time.time()
+        if session:
             try:
-                logger.debug("Closing async session")
-                await session.close()
+                # Check pool status before cleanup
+                if engine:
+                    pool = engine.pool
+                    logger.debug(
+                        f"🔧 [DEBUG] Pool status during cleanup for {test_name} - Size: {pool.size()}, Checked in: {pool.checkedin()}, Checked out: {pool.checkedout()}, Overflow: {pool.overflow()}"
+                    )
+
+                # Rollback any uncommitted transactions with timeout
+                if session.in_transaction():
+                    logger.debug(
+                        f"🔧 [DEBUG] Rolling back uncommitted transactions for: {test_name}"
+                    )
+                    await asyncio.wait_for(session.rollback(), timeout=3.0)
+                else:
+                    logger.debug(
+                        f"🔧 [DEBUG] No transactions to rollback for: {test_name}"
+                    )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"🔧 [DEBUG] Session rollback timed out for: {test_name}"
+                )
             except Exception as e:
-                logger.warning(f"Error closing session: {e}")
+                logger.warning(
+                    f"🔧 [DEBUG] Error during session rollback for {test_name}: {e}"
+                )
+            finally:
+                # Always close the session with timeout
+                try:
+                    logger.debug(f"🔧 [DEBUG] Closing async session for: {test_name}")
+                    await asyncio.wait_for(session.close(), timeout=3.0)
+                    logger.debug(
+                        f"🔧 [DEBUG] Successfully closed async session for: {test_name}"
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"🔧 [DEBUG] Session close timed out for: {test_name}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"🔧 [DEBUG] Error closing session for {test_name}: {e}"
+                    )
+
+        # Always dispose async engines since they're not cached
+        if engine:
+            try:
+                # Log pool status before disposal
+                pool = engine.pool
+                logger.debug(
+                    f"🔧 [DEBUG] Pool status before disposal for {test_name} - Size: {pool.size()}, Checked in: {pool.checkedin()}, Checked out: {pool.checkedout()}, Overflow: {pool.overflow()}"
+                )
+
+                logger.debug(f"🔧 [DEBUG] Disposing async engine for: {test_name}")
+                await asyncio.wait_for(engine.dispose(), timeout=3.0)
+                logger.debug(
+                    f"🔧 [DEBUG] Successfully disposed async engine for: {test_name}"
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"🔧 [DEBUG] Engine disposal timed out for: {test_name}")
+            except Exception as e:
+                logger.warning(
+                    f"🔧 [DEBUG] Error disposing engine for {test_name}: {e}"
+                )
+
+        cleanup_duration = time.time() - cleanup_start_time
+        logger.debug(
+            f"🔧 [DEBUG] Cleanup completed for {test_name} in {cleanup_duration:.2f}s"
+        )
+        logger.debug(
+            f"🔧 [DEBUG] Final process memory: {psutil.Process().memory_info().rss / 1024 / 1024:.1f}MB"
+        )
 
 
 @pytest.fixture()
 def session_factory(settings):
-    """Create session factory for each test with proper engine management."""
-    engine, SessionMaker = database_connection(settings.SQLALCHEMY_DATABASE_URI)
+    """Create session factory for each test with proper engine management and timeouts."""
+    import signal
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Database operation timed out")
+
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    engine = None
+
     try:
+        # Create or reuse engine with minimal test-specific settings
+        signal.alarm(30)  # 30 second timeout for connection
+
+        # Use cached engine if available
+        cache_key = str(settings.SQLALCHEMY_DATABASE_URI)
+        if cache_key in _test_engine_cache:
+            engine, SessionMaker = _test_engine_cache[cache_key]
+            logger.debug("Reusing cached sync engine")
+        else:
+            engine, SessionMaker = database_connection(
+                settings.SQLALCHEMY_DATABASE_URI,
+                pool_size=1,  # Minimal pool for tests
+                max_overflow=0,  # No overflow to prevent connection leaks
+            )
+            _test_engine_cache[cache_key] = (engine, SessionMaker)
+            logger.debug("Created new cached sync engine")
+
+        signal.alarm(0)  # Cancel timeout
         yield SessionMaker
+
+    except TimeoutError:
+        logger.error("Database connection creation timed out")
+        raise
     finally:
-        # Clean up engine connections
-        try:
-            engine.dispose()
-        except Exception:
-            pass
+        # Note: We don't dispose the cached engine here to allow reuse
+        # The engine will be cleaned up when the test session ends
+        if engine and cache_key not in _test_engine_cache:
+            try:
+                signal.alarm(5)  # 5 second timeout for disposal
+                engine.dispose()
+                signal.alarm(0)
+            except TimeoutError:
+                logger.warning("Engine disposal timed out")
+            except Exception as e:
+                logger.warning(f"Error disposing engine: {e}")
+            finally:
+                signal.alarm(0)
+
+        # Restore signal handler
+        signal.signal(signal.SIGALRM, old_handler)
 
 
 @pytest.fixture()
@@ -413,46 +809,162 @@ def test_product(session):
 
 
 @pytest.fixture()
+def small_works_list(client, session, author_list):
+    """A smaller, more efficient works list for most tests (25 items)."""
+    n = 25
+
+    works = []
+    edition_ids = []
+
+    try:
+        # Create works more efficiently for smaller lists
+        for i in range(n):
+            author = random.choice(author_list)
+            work_authors = [
+                AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
+            ]
+            work = crud.work.get_or_create(
+                db=session,
+                work_data=WorkCreateIn(
+                    type=WorkType.BOOK,
+                    title=f"Small Test Work {i}_{random_lower_string(4)}",
+                    authors=work_authors,
+                ),
+                authors=[author],
+            )
+
+            edition = crud.edition.create(
+                db=session,
+                edition_data=EditionCreateIn(
+                    isbn=generate_random_valid_isbn13(),
+                    title=f"Small Test Edition {i}_{random_lower_string(4)}",
+                    cover_url="https://cool.site",
+                    info={},
+                ),
+                work=work,
+                illustrators=[],
+            )
+
+            works.append(work)
+            edition_ids.append(edition.isbn)
+
+        # Single commit for smaller dataset
+        session.commit()
+        logger.debug(f"Created {len(works)} works for small_works_list")
+
+        yield works
+
+    finally:
+        # Cleanup
+        try:
+            for isbn in edition_ids:
+                try:
+                    edition = crud.edition.get(db=session, id=isbn)
+                    if edition:
+                        session.delete(edition)
+                except Exception as e:
+                    logger.warning(f"Error deleting edition {isbn}: {e}")
+
+            for work in works:
+                try:
+                    session.refresh(work)
+                    crud.work.remove(db=session, id=work.id)
+                except Exception as e:
+                    logger.warning(f"Error deleting work {work.id}: {e}")
+
+            session.commit()
+            logger.debug(
+                f"Successfully cleaned up {len(works)} works from small_works_list"
+            )
+
+        except Exception as e:
+            logger.error(f"Error during small_works_list cleanup: {e}")
+            session.rollback()
+
+
+@pytest.fixture()
 def works_list(client, session, author_list):
+    """Large works list for tests that specifically need 100 items."""
     n = 100
 
     works = []
-    for _ in range(n):
-        author = random.choice(author_list)
-        work_authors = [
-            AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
-        ]
-        work = crud.work.get_or_create(
-            db=session,
-            work_data=WorkCreateIn(
-                type=WorkType.BOOK,
-                title=random_lower_string(),
-                authors=work_authors,
-            ),
-            authors=[author],
-        )
-        crud.edition.create(
-            db=session,
-            edition_data=EditionCreateIn(
-                isbn=generate_random_valid_isbn13(),
-                title=random_lower_string(length=random.randint(2, 12)),
-                cover_url="https://cool.site",
-                info={},
-            ),
-            work=work,
-            illustrators=[],
-        )
-
-        works.append(work)
-
-    yield works
+    edition_ids = []
 
     try:
-        for w in works:
-            crud.work.remove(db=session, id=w.id)
-        session.commit()
-    except Exception:
-        session.rollback()
+        # Create works in batches for better performance
+        batch_size = 10
+        for batch_start in range(0, n, batch_size):
+            batch_works = []
+            for i in range(batch_start, min(batch_start + batch_size, n)):
+                author = random.choice(author_list)
+                work_authors = [
+                    AuthorCreateIn(
+                        first_name=author.first_name, last_name=author.last_name
+                    )
+                ]
+                work = crud.work.get_or_create(
+                    db=session,
+                    work_data=WorkCreateIn(
+                        type=WorkType.BOOK,
+                        title=f"Test Work {i}_{random_lower_string(6)}",  # More deterministic titles
+                        authors=work_authors,
+                    ),
+                    authors=[author],
+                )
+
+                edition = crud.edition.create(
+                    db=session,
+                    edition_data=EditionCreateIn(
+                        isbn=generate_random_valid_isbn13(),
+                        title=f"Test Edition {i}_{random_lower_string(6)}",
+                        cover_url="https://cool.site",
+                        info={},
+                    ),
+                    work=work,
+                    illustrators=[],
+                )
+
+                batch_works.append(work)
+                edition_ids.append(edition.isbn)
+
+            # Commit each batch to avoid large transactions
+            session.commit()
+            works.extend(batch_works)
+            logger.debug(
+                f"Created batch of {len(batch_works)} works (total: {len(works)})"
+            )
+
+        yield works
+
+    finally:
+        # Enhanced cleanup with better error handling
+        try:
+            # Delete editions first (due to foreign key constraints)
+            for isbn in edition_ids:
+                try:
+                    edition = crud.edition.get(db=session, id=isbn)
+                    if edition:
+                        session.delete(edition)
+                except Exception as e:
+                    logger.warning(f"Error deleting edition {isbn}: {e}")
+
+            # Delete works
+            for work in works:
+                try:
+                    # Refresh the work object to ensure it's still in the session
+                    session.refresh(work)
+                    crud.work.remove(db=session, id=work.id)
+                except Exception as e:
+                    logger.warning(f"Error deleting work {work.id}: {e}")
+
+            session.commit()
+            logger.debug(
+                f"Successfully cleaned up {len(works)} works and {len(edition_ids)} editions"
+            )
+
+        except Exception as e:
+            logger.error(f"Error during works_list cleanup: {e}")
+            session.rollback()
 
 
 @pytest.fixture()
@@ -755,7 +1267,7 @@ def test_huey_attributes():
 @pytest.fixture(autouse=True)
 def clear_test_client_cookies(client):
     """Ensure test isolation by clearing TestClient cookies between tests.
-    
+
     This fixes CSRF token conflicts when chat API tests run together.
     Each test gets a fresh cookie jar to prevent token interference.
     """

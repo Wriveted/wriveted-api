@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, select, text, distinct, case
+from sqlalchemy import and_, cast, func, or_, select, text, distinct, case, delete
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -482,34 +482,34 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         new_version: str,
         created_by: Optional[UUID] = None,
     ) -> FlowDefinition:
-        """Clone an existing flow with transaction safety."""
+        """Clone an existing flow with nodes and connections, using eager loading."""
         try:
             # Import the schema we need
             from app.schemas.cms import FlowCreate
-
-            # Use a select to get fresh data that avoids lazy loading issues
             from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
             from app.models.cms import FlowDefinition
 
-            # Get a fresh copy of the source flow data with explicit loading
-            stmt = select(FlowDefinition).where(FlowDefinition.id == source_flow.id)
-            result = await db.execute(stmt)
-            fresh_source = result.scalar_one()
+            # Store the source flow ID and safely extract attributes
+            source_flow_id = source_flow.id
 
-            # Create new flow data - safely access fresh source attributes
-            flow_data_copy = (
-                dict(fresh_source.flow_data) if fresh_source.flow_data else {}
+            # Safely extract source flow attributes to avoid lazy loading issues
+            # Use explicit getattr with defaults to be defensive
+            source_description = getattr(source_flow, "description", "") or ""
+            source_entry_node_id = (
+                getattr(source_flow, "entry_node_id", "start") or "start"
             )
-            info_copy = dict(fresh_source.info) if fresh_source.info else {}
+            source_info = getattr(source_flow, "info", {}) or {}
+            source_flow_data = getattr(source_flow, "flow_data", {}) or {}
 
-            # Create the cloned flow with original data preserved
+            # Create "empty shell" flow without nodes/connections to avoid double-creation
             flow_create_schema = FlowCreate(
                 name=new_name,
-                description=fresh_source.description or "",
+                description=source_description,
                 version=new_version,
-                flow_data=flow_data_copy,
-                entry_node_id=fresh_source.entry_node_id or "start",
-                info=info_copy,
+                flow_data={},  # Empty - will be populated by synchronization after cloning relational records
+                entry_node_id=source_entry_node_id,
+                info=dict(source_info),  # Create a copy of the info dict
             )
 
             # Use the acreate method which should work properly
@@ -517,9 +517,12 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
                 db, obj_in=flow_create_schema, created_by=created_by
             )
 
-            # Skip nodes and connections cloning for now to avoid greenlet issues
-            # TODO: Re-enable once greenlet issue is resolved
-            # await self._clone_nodes_and_connections(db, source_flow.id, cloned_flow.id)
+            # Clone nodes and connections using atomic transaction approach
+            await self._clone_nodes_and_connections(db, source_flow_id, cloned_flow.id)
+
+            # Synchronize flow_data with relational tables to ensure consistency
+            # Pass source flow_data to preserve it when no relational records exist
+            await self._synchronize_flow_data(db, cloned_flow.id, source_flow_data)
             await db.commit()
 
             return cloned_flow
@@ -536,63 +539,105 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
     async def _clone_nodes_and_connections(
         self, db: AsyncSession, source_flow_id: UUID, target_flow_id: UUID
     ):
-        """Helper to clone nodes and connections within an existing transaction."""
-        # Get source nodes
-        source_nodes = await db.scalars(
-            self.get_all_query(db=db, model=FlowNode).where(
-                FlowNode.flow_id == source_flow_id
-            )
+        """Helper to clone nodes and connections using raw SQL to avoid async issues."""
+        from sqlalchemy import text
+        import json
+
+        # Clone nodes using raw SQL INSERT FROM SELECT
+        clone_nodes_sql = text("""
+            INSERT INTO flow_nodes (id, flow_id, node_id, node_type, template, content, position, info, created_at, updated_at)
+            SELECT gen_random_uuid(), :target_flow_id, node_id, node_type, template, content, position, info, NOW(), NOW()
+            FROM flow_nodes 
+            WHERE flow_id = :source_flow_id
+        """)
+
+        await db.execute(
+            clone_nodes_sql,
+            {"source_flow_id": source_flow_id, "target_flow_id": target_flow_id},
         )
 
-        # Clone nodes
-        node_mapping = {}  # source_node_id -> cloned_node
-        for source_node in source_nodes.all():
-            # Extract values safely to avoid SQLAlchemy greenlet issues
-            content_copy = dict(source_node.content) if source_node.content else {}
-            position_copy = dict(source_node.position) if source_node.position else {}
-            info_copy = dict(source_node.info) if source_node.info else {}
+        # Clone connections using raw SQL INSERT FROM SELECT
+        clone_connections_sql = text("""
+            INSERT INTO flow_connections (id, flow_id, source_node_id, target_node_id, connection_type, conditions, info, created_at, updated_at)
+            SELECT gen_random_uuid(), :target_flow_id, source_node_id, target_node_id, connection_type, conditions, info, NOW(), NOW()
+            FROM flow_connections
+            WHERE flow_id = :source_flow_id
+        """)
 
-            cloned_node = FlowNode(
-                flow_id=target_flow_id,
-                node_id=source_node.node_id,
-                node_type=source_node.node_type,
-                template=source_node.template,
-                content=content_copy,
-                position=position_copy,
-                info=info_copy,
-            )
-            db.add(cloned_node)
-            node_mapping[source_node.node_id] = cloned_node
+        await db.execute(
+            clone_connections_sql,
+            {"source_flow_id": source_flow_id, "target_flow_id": target_flow_id},
+        )
 
-        # Flush to get node IDs for relationship validation
+        # Flush to ensure all inserts are committed
         await db.flush()
 
-        # Get source connections
-        source_connections = await db.scalars(
-            self.get_all_query(db=db, model=FlowConnection).where(
-                FlowConnection.flow_id == source_flow_id
-            )
+    async def _synchronize_flow_data(
+        self, db: AsyncSession, flow_id: UUID, fallback_flow_data: dict = None
+    ) -> None:
+        """
+        Synchronize flow_data JSON field with relational tables (nodes/connections).
+        Makes relational tables the definitive source of truth when they exist.
+        Preserves fallback_flow_data when no relational records exist.
+        """
+        from sqlalchemy import select, update
+        from app.models.cms import FlowNode, FlowConnection, FlowDefinition
+
+        # Fetch all nodes for this flow
+        nodes_stmt = select(FlowNode).where(FlowNode.flow_id == flow_id)
+        nodes_result = await db.execute(nodes_stmt)
+        nodes = nodes_result.scalars().all()
+
+        # Fetch all connections for this flow
+        connections_stmt = select(FlowConnection).where(
+            FlowConnection.flow_id == flow_id
         )
+        connections_result = await db.execute(connections_stmt)
+        connections = connections_result.scalars().all()
 
-        # Clone connections
-        for source_conn in source_connections.all():
-            # Extract values safely to avoid SQLAlchemy greenlet issues
-            conditions_copy = (
-                dict(source_conn.conditions) if source_conn.conditions else {}
+        # Only synchronize if there are actual relational records
+        if nodes or connections:
+            # Reconstruct flow_data from relational data
+            flow_data = {
+                "nodes": [
+                    {
+                        "id": node.node_id,
+                        "type": node.node_type,
+                        "template": node.template,
+                        "content": node.content or {},
+                        "position": node.position or {},
+                        "info": node.info or {},
+                    }
+                    for node in nodes
+                ],
+                "connections": [
+                    {
+                        "source": conn.source_node_id,
+                        "target": conn.target_node_id,
+                        "type": conn.connection_type,
+                        "conditions": conn.conditions or {},
+                        "info": conn.info or {},
+                    }
+                    for conn in connections
+                ],
+            }
+
+            # Update the flow's flow_data field
+            update_stmt = (
+                update(FlowDefinition)
+                .where(FlowDefinition.id == flow_id)
+                .values(flow_data=flow_data)
             )
-            info_copy = dict(source_conn.info) if source_conn.info else {}
-
-            cloned_conn = FlowConnection(
-                flow_id=target_flow_id,
-                source_node_id=source_conn.source_node_id,
-                target_node_id=source_conn.target_node_id,
-                connection_type=source_conn.connection_type,
-                conditions=conditions_copy,
-                info=info_copy,
+            await db.execute(update_stmt)
+        elif fallback_flow_data:
+            # If no relational records exist but we have fallback data, use it
+            update_stmt = (
+                update(FlowDefinition)
+                .where(FlowDefinition.id == flow_id)
+                .values(flow_data=fallback_flow_data)
             )
-            db.add(cloned_conn)
-
-        # No commit here - caller will handle transaction commit/rollback
+            await db.execute(update_stmt)
+        # If no relational records and no fallback data, preserve existing flow_data
 
 
 class CRUDFlowNode(CRUDBase[FlowNode, NodeCreate, NodeUpdate]):
@@ -654,14 +699,18 @@ class CRUDFlowNode(CRUDBase[FlowNode, NodeCreate, NodeUpdate]):
 
     async def aremove_with_connections(self, db: AsyncSession, *, node: FlowNode):
         """Remove node and all its connections."""
-        # Delete connections first
-        await db.execute(
-            text(
-                "DELETE FROM flow_connections WHERE flow_id = :flow_id AND (source_node_id = :node_id OR target_node_id = :node_id)"
-            ).bindparams(flow_id=node.flow_id, node_id=node.node_id)
+        # ORM-based deletion for connections
+        connection_delete_stmt = (
+            delete(FlowConnection)
+            .where(FlowConnection.flow_id == node.flow_id)
+            .where(
+                (FlowConnection.source_node_id == node.node_id)
+                | (FlowConnection.target_node_id == node.node_id)
+            )
         )
+        await db.execute(connection_delete_stmt)
 
-        # Delete the node
+        # Delete the node itself
         await db.delete(node)
         await db.commit()
 
@@ -927,59 +976,63 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
         return record
 
     async def get_flow_analytics(
-        self, 
-        db: AsyncSession, 
-        flow_id: str, 
+        self,
+        db: AsyncSession,
+        flow_id: str,
         start_date: Optional[date] = None,
-        end_date: Optional[date] = None
+        end_date: Optional[date] = None,
     ):
         """Get aggregated analytics for a specific flow."""
 
-        
         # Set default date range if not provided
         if not end_date:
             end_date = date.today()
         if not start_date:
             start_date = end_date - timedelta(days=30)
-        
+
         # Convert dates to datetime for comparison
         start_datetime = datetime.combine(start_date, datetime.min.time())
         end_datetime = datetime.combine(end_date, datetime.max.time())
-        
+
         # Query for basic session metrics
         session_stats_query = (
             select(
-                func.count(distinct(ConversationSession.id)).label('total_sessions'),
+                func.count(distinct(ConversationSession.id)).label("total_sessions"),
                 func.count(
                     case(
                         (ConversationSession.status == SessionStatus.COMPLETED, 1),
-                        else_=None
+                        else_=None,
                     )
-                ).label('completed_sessions'),
+                ).label("completed_sessions"),
                 func.avg(
-                    func.extract('epoch', ConversationSession.ended_at - ConversationSession.started_at)
-                ).label('avg_duration_seconds')
+                    func.extract(
+                        "epoch",
+                        ConversationSession.ended_at - ConversationSession.started_at,
+                    )
+                ).label("avg_duration_seconds"),
             )
             .select_from(ConversationSession)
             .where(
                 and_(
                     ConversationSession.flow_id == flow_id,
                     ConversationSession.started_at >= start_datetime,
-                    ConversationSession.started_at <= end_datetime
+                    ConversationSession.started_at <= end_datetime,
                 )
             )
         )
-        
+
         session_stats = await db.execute(session_stats_query)
         stats = session_stats.first()
-        
+
         # Calculate metrics
         total_sessions = stats.total_sessions or 0
         completed_sessions = stats.completed_sessions or 0
-        completion_rate = completed_sessions / total_sessions if total_sessions > 0 else 0.0
+        completion_rate = (
+            completed_sessions / total_sessions if total_sessions > 0 else 0.0
+        )
         average_duration = stats.avg_duration_seconds or 0.0
-        
-        # Calculate bounce rate (sessions with only 1 interaction) 
+
+        # Calculate bounce rate (sessions with only 1 interaction)
         bounce_query = (
             select(func.count(distinct(ConversationSession.id)))
             .select_from(ConversationSession)
@@ -988,22 +1041,26 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
                 and_(
                     ConversationSession.flow_id == flow_id,
                     ConversationSession.started_at >= start_datetime,
-                    ConversationSession.started_at <= end_datetime
+                    ConversationSession.started_at <= end_datetime,
                 )
             )
             .group_by(ConversationSession.id)
             .having(func.count(ConversationHistory.id) == 1)
         )
-        
-        bounce_result = await db.execute(select(func.count()).select_from(bounce_query.subquery()))
+
+        bounce_result = await db.execute(
+            select(func.count()).select_from(bounce_query.subquery())
+        )
         bounce_sessions = bounce_result.scalar() or 0
         bounce_rate = bounce_sessions / total_sessions if total_sessions > 0 else 0.0
-        
+
         # Calculate engagement metrics
         engagement_query = (
             select(
-                func.count(ConversationHistory.id).label('total_interactions'),
-                func.count(distinct(ConversationHistory.node_id)).label('unique_nodes_visited')
+                func.count(ConversationHistory.id).label("total_interactions"),
+                func.count(distinct(ConversationHistory.node_id)).label(
+                    "unique_nodes_visited"
+                ),
             )
             .select_from(ConversationHistory)
             .join(ConversationSession)
@@ -1011,20 +1068,23 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
                 and_(
                     ConversationSession.flow_id == flow_id,
                     ConversationSession.started_at >= start_datetime,
-                    ConversationSession.started_at <= end_datetime
+                    ConversationSession.started_at <= end_datetime,
                 )
             )
         )
-        
+
         engagement_result = await db.execute(engagement_query)
         engagement = engagement_result.first()
-        
+
         engagement_metrics = {
-            'total_interactions': engagement.total_interactions or 0,
-            'unique_nodes_visited': engagement.unique_nodes_visited or 0,
-            'avg_interactions_per_session': (engagement.total_interactions or 0) / total_sessions if total_sessions > 0 else 0.0
+            "total_interactions": engagement.total_interactions or 0,
+            "unique_nodes_visited": engagement.unique_nodes_visited or 0,
+            "avg_interactions_per_session": (engagement.total_interactions or 0)
+            / total_sessions
+            if total_sessions > 0
+            else 0.0,
         }
-        
+
         return FlowAnalytics(
             flow_id=flow_id,
             total_sessions=total_sessions,
@@ -1033,166 +1093,51 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
             bounce_rate=bounce_rate,
             engagement_metrics=engagement_metrics,
             time_period={
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat()
-            }
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
         )
 
     async def get_node_analytics(
-        self, 
-        db: AsyncSession, 
-        flow_id: str, 
+        self,
+        db: AsyncSession,
+        flow_id: str,
         node_id: str,
         start_date: Optional[date] = None,
-        end_date: Optional[date] = None
+        end_date: Optional[date] = None,
     ):
         """Get analytics for a specific node in a flow."""
         from datetime import timedelta
         from app.schemas.analytics import NodeAnalytics
-        
+
         # Set default date range if not provided
         if not end_date:
             end_date = date.today()
         if not start_date:
             start_date = end_date - timedelta(days=30)
-        
+
         # Convert dates to datetime for comparison
         start_datetime = datetime.combine(start_date, datetime.min.time())
         end_datetime = datetime.combine(end_date, datetime.max.time())
-        
+
         # Query for node-specific metrics
         node_stats_query = (
             select(
-                func.count(ConversationHistory.id).label('total_visits'),
+                func.count(ConversationHistory.id).label("total_visits"),
                 func.count(
                     case(
-                        (ConversationHistory.interaction_type.in_([
-                            InteractionType.INPUT,
-                            InteractionType.ACTION
-                        ]), 1),
-                        else_=None
+                        (
+                            ConversationHistory.interaction_type.in_(
+                                [InteractionType.INPUT, InteractionType.ACTION]
+                            ),
+                            1,
+                        ),
+                        else_=None,
                     )
-                ).label('interactions'),
-                func.count(distinct(ConversationHistory.session_id)).label('unique_sessions')
-            )
-            .select_from(ConversationHistory)
-            .join(ConversationSession)
-            .where(
-                and_(
-                    ConversationSession.flow_id == flow_id,
-                    ConversationHistory.node_id == node_id,
-                    ConversationSession.started_at >= start_datetime,
-                    ConversationSession.started_at <= end_datetime
-                )
-            )
-        )
-        
-        node_stats = await db.execute(node_stats_query)
-        stats = node_stats.first()
-        
-        visits = stats.total_visits or 0
-        interactions = stats.interactions or 0
-        unique_sessions = stats.unique_sessions or 0
-        
-        # Calculate bounce rate (sessions with only 1 interaction at this node)
-        bounce_rate = 0.0
-        if unique_sessions > 0:
-            bounce_rate = 1.0 - (interactions / visits) if visits > 0 else 0.0
-        
-        # Calculate proper average time spent using actual timestamps
-        avg_time_seconds = await self._calculate_average_time_spent(
-            db, flow_id, node_id, start_datetime, end_datetime
-        )
-        
-        # Calculate proper response distribution from ConversationHistory content
-        response_distribution = await self._calculate_response_distribution(
-            db, flow_id, node_id, start_datetime, end_datetime
-        )
-        
-        return NodeAnalytics(
-            node_id=node_id,
-            visits=visits,
-            interactions=interactions,
-            bounce_rate=bounce_rate,
-            average_time_spent=avg_time_seconds,
-            response_distribution=response_distribution
-        )
-
-    async def _calculate_average_time_spent(
-        self, 
-        db: AsyncSession, 
-        flow_id: str, 
-        node_id: str, 
-        start_datetime: datetime, 
-        end_datetime: datetime
-    ) -> float:
-        """Calculate average time spent on a node using actual conversation timestamps."""
-        
-        # Query for sequential interactions to calculate time differences
-        time_query = (
-            select(
-                ConversationHistory.session_id,
-                ConversationHistory.created_at,
-                func.lead(ConversationHistory.created_at).over(
-                    partition_by=ConversationHistory.session_id,
-                    order_by=ConversationHistory.created_at
-                ).label('next_interaction_time')
-            )
-            .select_from(ConversationHistory)
-            .join(ConversationSession)
-            .where(
-                and_(
-                    ConversationSession.flow_id == flow_id,
-                    ConversationHistory.node_id == node_id,
-                    ConversationSession.started_at >= start_datetime,
-                    ConversationSession.started_at <= end_datetime
-                )
-            )
-            .order_by(ConversationHistory.session_id, ConversationHistory.created_at)
-        )
-        
-        try:
-            time_results = await db.execute(time_query)
-            time_data = time_results.all()
-            
-            if not time_data:
-                return 0.0
-            
-            # Calculate time differences between this node and next interaction
-            time_diffs = []
-            for row in time_data:
-                if row.next_interaction_time:
-                    # Calculate seconds between interactions
-                    time_diff = (row.next_interaction_time - row.created_at).total_seconds()
-                    # Cap at reasonable maximum (10 minutes) to avoid outliers
-                    if 0 < time_diff <= 600:  # 10 minutes max
-                        time_diffs.append(time_diff)
-            
-            if time_diffs:
-                return sum(time_diffs) / len(time_diffs)
-            else:
-                return 0.0
-                
-        except Exception as e:
-            # Fallback to 0.0 if time calculation fails
-            logger.warning(f"Error calculating average time spent: {e}")
-            return 0.0
-
-    async def _calculate_response_distribution(
-        self, 
-        db: AsyncSession, 
-        flow_id: str, 
-        node_id: str, 
-        start_datetime: datetime, 
-        end_datetime: datetime
-    ) -> Dict[str, Any]:
-        """Calculate response distribution by analyzing ConversationHistory content."""
-        
-        # Query for interaction content at this node
-        content_query = (
-            select(
-                ConversationHistory.content,
-                ConversationHistory.interaction_type
+                ).label("interactions"),
+                func.count(distinct(ConversationHistory.session_id)).label(
+                    "unique_sessions"
+                ),
             )
             .select_from(ConversationHistory)
             .join(ConversationSession)
@@ -1202,59 +1147,197 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
                     ConversationHistory.node_id == node_id,
                     ConversationSession.started_at >= start_datetime,
                     ConversationSession.started_at <= end_datetime,
-                    ConversationHistory.interaction_type.in_([
-                        InteractionType.INPUT,
-                        InteractionType.ACTION
-                    ])
                 )
             )
         )
-        
+
+        node_stats = await db.execute(node_stats_query)
+        stats = node_stats.first()
+
+        visits = stats.total_visits or 0
+        interactions = stats.interactions or 0
+        unique_sessions = stats.unique_sessions or 0
+
+        # Calculate bounce rate (sessions with only 1 interaction at this node)
+        bounce_rate = 0.0
+        if unique_sessions > 0:
+            bounce_rate = 1.0 - (interactions / visits) if visits > 0 else 0.0
+
+        # Calculate proper average time spent using actual timestamps
+        avg_time_seconds = await self._calculate_average_time_spent(
+            db, flow_id, node_id, start_datetime, end_datetime
+        )
+
+        # Calculate proper response distribution from ConversationHistory content
+        response_distribution = await self._calculate_response_distribution(
+            db, flow_id, node_id, start_datetime, end_datetime
+        )
+
+        return NodeAnalytics(
+            node_id=node_id,
+            visits=visits,
+            interactions=interactions,
+            bounce_rate=bounce_rate,
+            average_time_spent=avg_time_seconds,
+            response_distribution=response_distribution,
+        )
+
+    async def _calculate_average_time_spent(
+        self,
+        db: AsyncSession,
+        flow_id: str,
+        node_id: str,
+        start_datetime: datetime,
+        end_datetime: datetime,
+    ) -> float:
+        """Calculate average time spent on a node using actual conversation timestamps."""
+
+        # Query for sequential interactions to calculate time differences
+        time_query = (
+            select(
+                ConversationHistory.session_id,
+                ConversationHistory.created_at,
+                func.lead(ConversationHistory.created_at)
+                .over(
+                    partition_by=ConversationHistory.session_id,
+                    order_by=ConversationHistory.created_at,
+                )
+                .label("next_interaction_time"),
+            )
+            .select_from(ConversationHistory)
+            .join(ConversationSession)
+            .where(
+                and_(
+                    ConversationSession.flow_id == flow_id,
+                    ConversationHistory.node_id == node_id,
+                    ConversationSession.started_at >= start_datetime,
+                    ConversationSession.started_at <= end_datetime,
+                )
+            )
+            .order_by(ConversationHistory.session_id, ConversationHistory.created_at)
+        )
+
+        try:
+            time_results = await db.execute(time_query)
+            time_data = time_results.all()
+
+            if not time_data:
+                return 0.0
+
+            # Calculate time differences between this node and next interaction
+            time_diffs = []
+            for row in time_data:
+                if row.next_interaction_time:
+                    # Calculate seconds between interactions
+                    time_diff = (
+                        row.next_interaction_time - row.created_at
+                    ).total_seconds()
+                    # Cap at reasonable maximum (10 minutes) to avoid outliers
+                    if 0 < time_diff <= 600:  # 10 minutes max
+                        time_diffs.append(time_diff)
+
+            if time_diffs:
+                return sum(time_diffs) / len(time_diffs)
+            else:
+                return 0.0
+
+        except Exception as e:
+            # Fallback to 0.0 if time calculation fails
+            logger.warning(f"Error calculating average time spent: {e}")
+            return 0.0
+
+    async def _calculate_response_distribution(
+        self,
+        db: AsyncSession,
+        flow_id: str,
+        node_id: str,
+        start_datetime: datetime,
+        end_datetime: datetime,
+    ) -> Dict[str, Any]:
+        """Calculate response distribution by analyzing ConversationHistory content."""
+
+        # Query for interaction content at this node
+        content_query = (
+            select(ConversationHistory.content, ConversationHistory.interaction_type)
+            .select_from(ConversationHistory)
+            .join(ConversationSession)
+            .where(
+                and_(
+                    ConversationSession.flow_id == flow_id,
+                    ConversationHistory.node_id == node_id,
+                    ConversationSession.started_at >= start_datetime,
+                    ConversationSession.started_at <= end_datetime,
+                    ConversationHistory.interaction_type.in_(
+                        [InteractionType.INPUT, InteractionType.ACTION]
+                    ),
+                )
+            )
+        )
+
         try:
             content_results = await db.execute(content_query)
             content_data = content_results.all()
-            
+
             if not content_data:
                 return {}
-            
+
             response_counts = {}
-            
+
             for row in content_data:
                 content = row.content or {}
                 interaction_type = row.interaction_type
-                
+
                 # Analyze different types of responses
                 if interaction_type == InteractionType.ACTION:
                     # Button clicks or actions
-                    action_value = content.get('action', content.get('value', 'unknown_action'))
+                    action_value = content.get(
+                        "action", content.get("value", "unknown_action")
+                    )
                     key = f"action_{action_value}"
                     response_counts[key] = response_counts.get(key, 0) + 1
-                
+
                 elif interaction_type == InteractionType.INPUT:
                     # Text input or other user inputs
-                    input_value = content.get('input', content.get('text', content.get('value')))
+                    input_value = content.get(
+                        "input", content.get("text", content.get("value"))
+                    )
                     if input_value:
                         # For text inputs, categorize by length or content type
                         if isinstance(input_value, str):
                             if len(input_value) <= 10:
-                                key = 'short_text_input'
+                                key = "short_text_input"
                             elif len(input_value) <= 50:
-                                key = 'medium_text_input'
+                                key = "medium_text_input"
                             else:
-                                key = 'long_text_input'
+                                key = "long_text_input"
                         else:
-                            key = 'structured_input'
+                            key = "structured_input"
                         response_counts[key] = response_counts.get(key, 0) + 1
                     else:
-                        response_counts['empty_input'] = response_counts.get('empty_input', 0) + 1
-                
+                        response_counts["empty_input"] = (
+                            response_counts.get("empty_input", 0) + 1
+                        )
+
                 # If we can't categorize, count as general interaction
-                if not any(key.startswith(('action_', 'short_', 'medium_', 'long_', 'structured_', 'empty_')) 
-                          for key in response_counts.keys()):
-                    response_counts['other_interaction'] = response_counts.get('other_interaction', 0) + 1
-            
+                if not any(
+                    key.startswith(
+                        (
+                            "action_",
+                            "short_",
+                            "medium_",
+                            "long_",
+                            "structured_",
+                            "empty_",
+                        )
+                    )
+                    for key in response_counts.keys()
+                ):
+                    response_counts["other_interaction"] = (
+                        response_counts.get("other_interaction", 0) + 1
+                    )
+
             return response_counts
-            
+
         except Exception as e:
             # Fallback to empty distribution if analysis fails
             logger.warning(f"Error calculating response distribution: {e}")

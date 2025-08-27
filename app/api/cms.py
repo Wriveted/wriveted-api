@@ -52,7 +52,7 @@ from app.services.cms_workflow import CMSWorkflowService
 from app.services.exceptions import (
     FlowValidationError,
     FlowNotFoundError,
-    CMSWorkflowError
+    CMSWorkflowError,
 )
 
 logger = get_logger()
@@ -61,8 +61,6 @@ logger = get_logger()
 def get_cms_workflow_service() -> CMSWorkflowService:
     """Dependency function to get CMS Workflow Service instance."""
     return CMSWorkflowService()
-
-
 
 
 router = APIRouter(
@@ -84,13 +82,17 @@ async def list_content(
     active: Optional[bool] = Query(None, description="Filter by active status"),
     status: Optional[str] = Query(None, description="Filter by content status"),
     pagination: PaginatedQueryParams = Depends(),
+    cms_service: CMSWorkflowService = Depends(get_cms_workflow_service),
 ):
-    """List content with filtering options."""
+    """List content with filtering options using CMS Workflow Service."""
     try:
-        # Get both data and total count
-        data = await crud.content.aget_all_with_optional_filters(
+        # Convert ContentType enum to string for service layer
+        content_type_str = content_type.value if content_type else None
+
+        # Use CMS Workflow Service for business logic
+        data, total_count = await cms_service.list_content_with_business_logic(
             session,
-            content_type=content_type,
+            content_type=content_type_str,
             tags=tags,
             search=search,
             active=active,
@@ -99,19 +101,10 @@ async def list_content(
             limit=pagination.limit,
         )
 
-        total_count = await crud.content.aget_count_with_optional_filters(
-            session,
-            content_type=content_type,
-            tags=tags,
-            search=search,
-            active=active,
-            status=status,
-        )
-
         logger.info(
-            "Retrieved content list",
+            "Retrieved content list via service",
             filters={
-                "type": content_type,
+                "type": content_type_str,
                 "tags": tags,
                 "search": search,
                 "active": active,
@@ -119,7 +112,8 @@ async def list_content(
             },
             total=total_count,
         )
-    except ValueError as e:
+    except Exception as e:
+        logger.error("Failed to list content", error=str(e))
         raise HTTPException(
             status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
         ) from e
@@ -127,10 +121,13 @@ async def list_content(
     # Create pagination object for response
     pagination_obj = Pagination(**pagination.to_dict(), total=total_count)
 
-    # Return proper Pydantic response model (FastAPI will handle serialization)
+    # Convert service response to Pydantic models
+    content_details = [ContentDetail.model_validate(item) for item in data]
+
+    # Return proper Pydantic response model
     return ContentResponse(
         pagination=pagination_obj,
-        data=data,  # Let Pydantic handle the ContentDetail serialization
+        data=content_details,
     )
 
 
@@ -219,39 +216,74 @@ async def bulk_delete_content(
 async def get_content(
     session: DBSessionDep,
     content_id: UUID = Path(description="Content ID"),
+    cms_service: CMSWorkflowService = Depends(get_cms_workflow_service),
 ):
-    """Get specific content by ID."""
-    content = await crud.content.aget(session, content_id)
-    if not content:
-        raise HTTPException(
-            status_code=status_module.HTTP_404_NOT_FOUND, detail="Content not found"
+    """Get specific content by ID using CMS Workflow Service."""
+    try:
+        content_result = await cms_service.get_content_with_validation(
+            session, content_id
         )
 
-    return ContentDetail.model_validate(content)
+        if not content_result:
+            raise HTTPException(
+                status_code=status_module.HTTP_404_NOT_FOUND, detail="Content not found"
+            )
+
+        return ContentDetail.model_validate(content_result)
+
+    except Exception as e:
+        logger.error("Failed to get content", content_id=content_id, error=str(e))
+        # Handle not found errors specifically
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=status_module.HTTP_404_NOT_FOUND, detail=str(e)
+            ) from e
+        raise HTTPException(
+            status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
-@router.post("/content", response_model=ContentDetail, status_code=status_module.HTTP_201_CREATED)
+@router.post(
+    "/content", response_model=ContentDetail, status_code=status_module.HTTP_201_CREATED
+)
 async def create_content(
     session: DBSessionDep,
     content_data: ContentCreate,
     current_user_or_service_account=Security(
         get_current_active_user_or_service_account
     ),
+    cms_service: CMSWorkflowService = Depends(get_cms_workflow_service),
 ):
-    """Create new content."""
-    # For service accounts, set the creator to null.
-    created_by = (
-        current_user_or_service_account.id
-        if isinstance(current_user_or_service_account, User)
-        else None
-    )
+    """Create new content using CMS Workflow Service."""
+    try:
+        # For service accounts, set the creator to null.
+        created_by = (
+            current_user_or_service_account.id
+            if isinstance(current_user_or_service_account, User)
+            else None
+        )
 
-    content = await crud.content.acreate(
-        session, obj_in=content_data, created_by=created_by
-    )
-    logger.info("Created content", content_id=content.id, type=content.type)
+        # Convert Pydantic model to dict for service layer
+        content_dict = content_data.model_dump(exclude_unset=True)
 
-    return ContentDetail.model_validate(content)
+        # Use CMS Workflow Service for business logic and event handling
+        content_result = await cms_service.create_content_with_validation(
+            session, content_dict, created_by
+        )
+
+        logger.info(
+            "Created content via service",
+            content_id=content_result["id"],
+            type=content_result["type"],
+        )
+
+        return ContentDetail.model_validate(content_result)
+
+    except Exception as e:
+        logger.error("Failed to create content", error=str(e))
+        raise HTTPException(
+            status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
 @router.put("/content/{content_id}", response_model=ContentDetail)
@@ -259,40 +291,62 @@ async def update_content(
     session: DBSessionDep,
     content_id: UUID = Path(description="Content ID"),
     content_data: ContentUpdate = Body(...),
+    cms_service: CMSWorkflowService = Depends(get_cms_workflow_service),
 ):
-    """Update existing content."""
-    content = await crud.content.aget(session, content_id)
-    if not content:
-        raise HTTPException(
-            status_code=status_module.HTTP_404_NOT_FOUND, detail="Content not found"
+    """Update existing content using CMS Workflow Service."""
+    try:
+        # Convert Pydantic model to dict for service layer
+        update_dict = content_data.model_dump(exclude_unset=True)
+
+        # Use CMS Workflow Service for business logic and event handling
+        updated_content_result = await cms_service.update_content_with_validation(
+            session, content_id, update_dict
         )
 
-    # Increment version on content update  
-    update_data = content_data.model_copy(update={"version": content.version + 1})
+        logger.info("Updated content via service", content_id=content_id)
 
-    updated_content = await crud.content.aupdate(
-        session, db_obj=content, obj_in=update_data
-    )
-    logger.info("Updated content", content_id=content_id)
+        return ContentDetail.model_validate(updated_content_result)
 
-    return ContentDetail.model_validate(updated_content)
+    except Exception as e:
+        logger.error("Failed to update content", content_id=content_id, error=str(e))
+        # Handle not found errors specifically
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=status_module.HTTP_404_NOT_FOUND, detail=str(e)
+            ) from e
+        raise HTTPException(
+            status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
 @router.delete("/content/{content_id}", status_code=status_module.HTTP_204_NO_CONTENT)
 async def delete_content(
     session: DBSessionDep,
     content_id: UUID = Path(description="Content ID"),
+    cms_service: CMSWorkflowService = Depends(get_cms_workflow_service),
 ):
-    """Delete content."""
-    content = await crud.content.aget(session, content_id)
-    if not content:
-        raise HTTPException(
-            status_code=status_module.HTTP_404_NOT_FOUND, detail="Content not found"
-        )
+    """Delete content using CMS Workflow Service."""
+    try:
+        # Use CMS Workflow Service for business logic and event handling
+        success = await cms_service.delete_content_with_validation(session, content_id)
 
-    content_crud: CRUDContent = crud.content  # type: ignore
-    await content_crud.aremove(session, id=content_id)
-    logger.info("Deleted content", content_id=content_id)
+        if not success:
+            raise HTTPException(
+                status_code=status_module.HTTP_404_NOT_FOUND, detail="Content not found"
+            )
+
+        logger.info("Deleted content via service", content_id=content_id)
+
+    except Exception as e:
+        logger.error("Failed to delete content", content_id=content_id, error=str(e))
+        # Handle not found errors specifically
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=status_module.HTTP_404_NOT_FOUND, detail=str(e)
+            ) from e
+        raise HTTPException(
+            status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
 @router.post("/content/{content_id}/status", response_model=ContentDetail)
@@ -455,7 +509,10 @@ async def patch_content_variant(
     return updated_variant
 
 
-@router.delete("/content/{content_id}/variants/{variant_id}", status_code=status_module.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/content/{content_id}/variants/{variant_id}",
+    status_code=status_module.HTTP_204_NO_CONTENT,
+)
 async def delete_content_variant(
     session: DBSessionDep,
     content_id: UUID = Path(description="Content ID"),
@@ -570,7 +627,9 @@ async def get_flow(
     return FlowDetail.model_validate(flow)
 
 
-@router.post("/flows", response_model=FlowDetail, status_code=status_module.HTTP_201_CREATED)
+@router.post(
+    "/flows", response_model=FlowDetail, status_code=status_module.HTTP_201_CREATED
+)
 async def create_flow(
     session: DBSessionDep,
     flow_data: FlowCreate,
@@ -586,9 +645,7 @@ async def create_flow(
         else None
     )
 
-    flow = await crud.flow.acreate(
-        session, obj_in=flow_data, created_by=created_by
-    )
+    flow = await crud.flow.acreate(session, obj_in=flow_data, created_by=created_by)
     logger.info("Created flow", flow_id=flow.id, name=flow.name)
 
     return FlowDetail.model_validate(flow)
@@ -625,33 +682,33 @@ async def publish_flow(
     try:
         # Get published_by user ID (only for User accounts, None for ServiceAccount)
         published_by = current_user.id if isinstance(current_user, User) else None
-        
+
         # Use CMS Workflow Service for proper business logic and validation
         flow_dict = await cms_service.publish_flow_with_validation(
             session, flow_id, published_by, publish_request
         )
-        
+
         # Determine action for logging
         publish = True if publish_request is None else publish_request.publish
         action = "published" if publish else "unpublished"
         logger.info(f"Flow {action} via service", flow_id=flow_id)
-        
+
         # Return the service dict directly (already properly formatted)
         return flow_dict
-        
+
     except FlowNotFoundError:
         raise HTTPException(
             status_code=status_module.HTTP_404_NOT_FOUND, detail="Flow not found"
         )
     except FlowValidationError as e:
         raise HTTPException(
-            status_code=status_module.HTTP_400_BAD_REQUEST, 
-            detail={"error": "validation_failed", "errors": e.errors}
+            status_code=status_module.HTTP_400_BAD_REQUEST,
+            detail={"error": "validation_failed", "errors": e.errors},
         )
     except CMSWorkflowError as e:
         raise HTTPException(
-            status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail={"error": str(e)}
+            status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": str(e)},
         )
 
 
@@ -729,7 +786,7 @@ async def clone_flow(
     return FlowDetail.model_validate(cloned_flow)
 
 
-@router.post("/flows/{flow_id}/validate")
+@router.get("/flows/{flow_id}/validate")
 async def validate_flow(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),
@@ -738,17 +795,19 @@ async def validate_flow(
     """Validate flow structure and integrity using CMS Workflow Service."""
     try:
         # Use CMS Workflow Service for comprehensive validation
-        validation_result = await cms_service.validate_flow_comprehensive(session, flow_id)
-        
+        validation_result = await cms_service.validate_flow_comprehensive(
+            session, flow_id
+        )
+
         logger.info(
             "Validated flow via service",
             flow_id=flow_id,
             is_valid=validation_result["is_valid"],
             errors=len(validation_result["validation_errors"]),
         )
-        
+
         return validation_result
-        
+
     except FlowNotFoundError:
         raise HTTPException(
             status_code=status_module.HTTP_404_NOT_FOUND, detail="Flow not found"
@@ -757,7 +816,7 @@ async def validate_flow(
         logger.error("Flow validation failed", flow_id=flow_id, error=str(e))
         raise HTTPException(
             status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Validation failed: {str(e)}"
+            detail=f"Validation failed: {str(e)}",
         )
 
 
@@ -860,7 +919,9 @@ async def update_flow_node(
     return updated_node
 
 
-@router.delete("/flows/{flow_id}/nodes/{node_db_id}", status_code=status_module.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/flows/{flow_id}/nodes/{node_db_id}", status_code=status_module.HTTP_204_NO_CONTENT
+)
 async def delete_flow_node(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),
@@ -955,7 +1016,10 @@ async def create_flow_connection(
     return connection
 
 
-@router.delete("/flows/{flow_id}/connections/{connection_id}", status_code=status_module.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/flows/{flow_id}/connections/{connection_id}",
+    status_code=status_module.HTTP_204_NO_CONTENT,
+)
 async def delete_flow_connection(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),

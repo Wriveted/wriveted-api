@@ -221,6 +221,23 @@ def get_event_listener() -> FlowEventListener:
     return cast(FlowEventListener, _event_listener)
 
 
+def reset_event_listener() -> None:
+    """Reset the global event listener instance for testing."""
+    global _event_listener
+    if _event_listener is not None:
+        # Try to clean up the existing listener
+        try:
+            if (
+                _event_listener.connection
+                and not _event_listener.connection.is_closed()
+            ):
+                # Note: This is sync, but in tests we may not be in async context
+                pass
+        except Exception:
+            pass
+    _event_listener = None
+
+
 # Example event handlers for common use cases
 
 

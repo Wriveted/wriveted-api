@@ -107,14 +107,21 @@ class ChatRepository:
             )
 
         # Update state with support for nested updates
-        current_state = session.state or {}
+        # Create a copy to avoid modifying the original
+        current_state = dict(session.state or {})
         self._deep_merge_state(current_state, state_updates)
 
         # Calculate new state hash
         new_state_hash = self._calculate_state_hash(current_state)
 
         # Update session
+        # For JSON/JSONB columns, we need to reassign the value to trigger SQLAlchemy's change detection
+        # or use flag_modified
+        from sqlalchemy.orm.attributes import flag_modified
+
         session.state = current_state
+        flag_modified(session, "state")  # Explicitly mark the state field as modified
+
         session.state_hash = new_state_hash
         session.revision = session.revision + 1
         session.last_activity_at = datetime.utcnow()
@@ -122,8 +129,23 @@ class ChatRepository:
         if current_node_id:
             session.current_node_id = current_node_id
 
+        # Debug logging for state persistence (commented out for performance)
+        # self.logger.info(
+        #     "Session state before commit",
+        #     session_id=session_id,
+        #     state=session.state,
+        #     revision=session.revision,
+        # )
+
         await db.commit()
         await db.refresh(session)
+
+        # self.logger.info(
+        #     "Session state after refresh",
+        #     session_id=session_id,
+        #     state=session.state,
+        #     revision=session.revision,
+        # )
 
         return session
 
@@ -267,11 +289,12 @@ class ChatRepository:
 
         Results in: {"temp": {"existing": "value", "name": "John"}}
         """
-        self.logger.info(
-            "Deep merge state",
-            target_before=target.copy(),
-            source=source,
-        )
+        # Deep merge logging (commented out for performance)
+        # self.logger.info(
+        #     "Deep merge state",
+        #     target_before=target.copy(),
+        #     source=source,
+        # )
         for key, value in source.items():
             if (
                 key in target
@@ -283,11 +306,11 @@ class ChatRepository:
             else:
                 # Overwrite or add new key
                 target[key] = value
-        
-        self.logger.info(
-            "Deep merge complete",
-            target_after=target,
-        )
+
+        # self.logger.info(
+        #     "Deep merge complete",
+        #     target_after=target,
+        # )
 
     def _calculate_state_hash(self, state: Dict[str, Any]) -> str:
         """Calculate SHA-256 hash of session state for integrity checking."""
@@ -428,3 +451,9 @@ class ChatRepository:
 
 # Create singleton instance
 chat_repo = ChatRepository()
+
+
+def reset_chat_repository() -> None:
+    """Reset the global chat repository instance for testing."""
+    global chat_repo
+    chat_repo = ChatRepository()

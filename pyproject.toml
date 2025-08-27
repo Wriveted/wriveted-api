@@ -54,7 +54,8 @@ opentelemetry-instrumentation-vertexai = "^0.34"
 opentelemetry-propagator-gcp = "^1.6.0"
 opentelemetry-instrumentation-asyncpg = "^0.50b0"
 opentelemetry-instrumentation-psycopg2 = "^0.50b0"
-common-expression-language = "^0.3.1"
+common-expression-language = "^0.5.0"
+bleach = "^6.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -68,6 +69,7 @@ locust = "^2.32"
 rich = "^13.3.2"
 more-itertools = "^10.2.0"
 pytest-asyncio = "^0.23.7"
+pytest-timeout = "^2.3.1"
 ruff = "^0.4.10"
 mypy = "^1.16.0"
 types-setuptools = "^80.9.0.20250529"
@@ -94,6 +96,16 @@ profile = "black"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+timeout = 300
+addopts = [
+    "--strict-markers",
+    "--tb=short"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests"
+]
 
 [tool.ruff]
 
