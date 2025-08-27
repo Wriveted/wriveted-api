@@ -23,7 +23,48 @@ to fill gaps in analytics testing.
 import uuid
 from datetime import datetime, timedelta
 
+import pytest
+from sqlalchemy import text
 from starlette import status
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestFlowAnalytics:
@@ -37,7 +78,7 @@ class TestFlowAnalytics:
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
             "entry_node_id": "start",
-            "is_published": True
+            "is_published": True,
         }
 
         create_response = client.post(
@@ -61,14 +102,16 @@ class TestFlowAnalytics:
         assert "engagement_metrics" in data
         assert "time_period" in data
 
-    def test_get_flow_analytics_with_date_range(self, client, backend_service_account_headers):
+    def test_get_flow_analytics_with_date_range(
+        self, client, backend_service_account_headers
+    ):
         """Test flow analytics with specific date range."""
         # Create flow first
         flow_data = {
             "name": "Date Range Analytics Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -87,7 +130,9 @@ class TestFlowAnalytics:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["time_period"]["start_date"] == start_date  # Now both are date strings
+        assert (
+            data["time_period"]["start_date"] == start_date
+        )  # Now both are date strings
         assert data["time_period"]["end_date"] == end_date
 
     def test_get_flow_conversion_funnel(self, client, backend_service_account_headers):
@@ -97,7 +142,7 @@ class TestFlowAnalytics:
             "name": "Funnel Test Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -108,9 +153,17 @@ class TestFlowAnalytics:
         # Add nodes to create a funnel
         nodes = [
             {"node_id": "welcome", "node_type": "message", "content": {"messages": []}},
-            {"node_id": "question1", "node_type": "question", "content": {"question": {}}},
-            {"node_id": "question2", "node_type": "question", "content": {"question": {}}},
-            {"node_id": "result", "node_type": "message", "content": {"messages": []}}
+            {
+                "node_id": "question1",
+                "node_type": "question",
+                "content": {"question": {}},
+            },
+            {
+                "node_id": "question2",
+                "node_type": "question",
+                "content": {"question": {}},
+            },
+            {"node_id": "result", "node_type": "message", "content": {"messages": []}},
         ]
 
         for node in nodes:
@@ -134,14 +187,16 @@ class TestFlowAnalytics:
         assert "drop_off_points" in data
         assert len(data["funnel_steps"]) == len(nodes)
 
-    def test_get_flow_performance_over_time(self, client, backend_service_account_headers):
+    def test_get_flow_performance_over_time(
+        self, client, backend_service_account_headers
+    ):
         """Test flow performance metrics over time."""
         # Create flow
         flow_data = {
             "name": "Performance Tracking Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -163,21 +218,23 @@ class TestFlowAnalytics:
         assert data["granularity"] == "daily"
         assert isinstance(data["time_series"], list)
 
-    def test_compare_flow_versions_analytics(self, client, backend_service_account_headers):
+    def test_compare_flow_versions_analytics(
+        self, client, backend_service_account_headers
+    ):
         """Test comparing analytics between flow versions."""
         # Create multiple versions of a flow
         flow_v1_data = {
             "name": "Version Comparison Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         flow_v2_data = {
             "name": "Version Comparison Flow",
             "version": "2.0.0",
             "flow_data": {"entry_point": "start_v2"},
-            "entry_node_id": "start_v2"
+            "entry_node_id": "start_v2",
         }
 
         flow_v1_response = client.post(
@@ -214,7 +271,7 @@ class TestNodeAnalytics:
             "name": "Node Analytics Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -227,8 +284,8 @@ class TestNodeAnalytics:
             "node_type": "question",
             "content": {
                 "question": {"text": "How do you like our service?"},
-                "options": ["Great", "Good", "Okay", "Poor"]
-            }
+                "options": ["Great", "Good", "Okay", "Poor"],
+            },
         }
 
         node_response = client.post(
@@ -260,7 +317,7 @@ class TestNodeAnalytics:
             "name": "Response Analytics Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -278,9 +335,9 @@ class TestNodeAnalytics:
                     {"text": "Fantasy", "value": "fantasy"},
                     {"text": "Mystery", "value": "mystery"},
                     {"text": "Romance", "value": "romance"},
-                    {"text": "Sci-Fi", "value": "scifi"}
-                ]
-            }
+                    {"text": "Sci-Fi", "value": "scifi"},
+                ],
+            },
         }
 
         node_response = client.post(
@@ -311,7 +368,7 @@ class TestNodeAnalytics:
             "name": "Path Analytics Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -324,7 +381,7 @@ class TestNodeAnalytics:
             {"node_id": "start", "node_type": "message", "content": {"messages": []}},
             {"node_id": "branch", "node_type": "question", "content": {"question": {}}},
             {"node_id": "path_a", "node_type": "message", "content": {"messages": []}},
-            {"node_id": "path_b", "node_type": "message", "content": {"messages": []}}
+            {"node_id": "path_b", "node_type": "message", "content": {"messages": []}},
         ]
 
         node_ids = []
@@ -353,17 +410,19 @@ class TestNodeAnalytics:
 class TestContentAnalytics:
     """Test analytics for content performance and engagement."""
 
-    def test_get_content_engagement_metrics(self, client, backend_service_account_headers):
+    def test_get_content_engagement_metrics(
+        self, client, backend_service_account_headers
+    ):
         """Test content engagement analytics."""
         # Create content first
         content_data = {
             "type": "joke",
             "content": {
                 "text": "Why don't scientists trust atoms? Because they make up everything!",
-                "category": "science"
+                "category": "science",
             },
             "tags": ["science", "humor"],
-            "status": "published"
+            "status": "published",
         }
 
         create_response = client.post(
@@ -392,7 +451,7 @@ class TestContentAnalytics:
         content_data = {
             "type": "message",
             "content": {"text": "Welcome to our platform!"},
-            "tags": ["welcome"]
+            "tags": ["welcome"],
         }
 
         create_response = client.post(
@@ -405,13 +464,13 @@ class TestContentAnalytics:
             {
                 "variant_key": "formal",
                 "variant_data": {"text": "Welcome to our professional platform."},
-                "weight": 50
+                "weight": 50,
             },
             {
                 "variant_key": "casual",
                 "variant_data": {"text": "Hey there! Welcome to our awesome platform!"},
-                "weight": 50
-            }
+                "weight": 50,
+            },
         ]
 
         for variant in variants:
@@ -442,9 +501,9 @@ class TestContentAnalytics:
             "type": "fact",
             "content": {
                 "text": "The human brain contains approximately 86 billion neurons.",
-                "category": "science"
+                "category": "science",
             },
-            "tags": ["brain", "science", "facts"]
+            "tags": ["brain", "science", "facts"],
         }
 
         create_response = client.post(
@@ -542,7 +601,7 @@ class TestAnalyticsExport:
             "name": "Export Test Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -555,7 +614,7 @@ class TestAnalyticsExport:
             "format": "csv",
             "start_date": "2024-01-01",
             "end_date": "2024-12-31",
-            "metrics": ["sessions", "completion_rate", "bounce_rate"]
+            "metrics": ["sessions", "completion_rate", "bounce_rate"],
         }
 
         response = client.post(
@@ -578,7 +637,7 @@ class TestAnalyticsExport:
             "format": "json",
             "content_type": "joke",
             "start_date": "2024-01-01",
-            "end_date": "2024-12-31"
+            "end_date": "2024-12-31",
         }
 
         response = client.post(
@@ -600,7 +659,7 @@ class TestAnalyticsExport:
         export_params = {
             "format": "csv",
             "start_date": "2024-01-01",
-            "end_date": "2024-01-31"
+            "end_date": "2024-01-31",
         }
 
         export_response = client.post(
@@ -627,7 +686,9 @@ class TestAnalyticsExport:
 class TestAnalyticsFiltering:
     """Test analytics filtering and segmentation."""
 
-    def test_filter_analytics_by_date_range(self, client, backend_service_account_headers):
+    def test_filter_analytics_by_date_range(
+        self, client, backend_service_account_headers
+    ):
         """Test filtering analytics by custom date range."""
         start_date = "2024-01-01"
         end_date = "2024-01-31"
@@ -643,7 +704,9 @@ class TestAnalyticsFiltering:
         assert data["date_range"]["start"] == start_date
         assert data["date_range"]["end"] == end_date
 
-    def test_filter_analytics_by_user_segment(self, client, backend_service_account_headers):
+    def test_filter_analytics_by_user_segment(
+        self, client, backend_service_account_headers
+    ):
         """Test filtering analytics by user segment."""
         response = client.get(
             "v1/cms/analytics/summary?user_segment=children&age_range=7-12",
@@ -656,7 +719,9 @@ class TestAnalyticsFiltering:
         assert data["filters"]["user_segment"] == "children"
         assert data["filters"]["age_range"] == "7-12"
 
-    def test_filter_analytics_by_content_type(self, client, backend_service_account_headers):
+    def test_filter_analytics_by_content_type(
+        self, client, backend_service_account_headers
+    ):
         """Test filtering analytics by content type."""
         response = client.get(
             "v1/cms/analytics/content?content_type=joke&tags=science",

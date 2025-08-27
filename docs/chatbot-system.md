@@ -90,19 +90,28 @@ The system uses a hybrid execution model optimized for the FastAPI/PostgreSQL/Cl
 Session state is persisted in PostgreSQL with JSONB columns for flexible data storage:
 
 ```sql
-CREATE TABLE chat_sessions (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL,
-    flow_id UUID NOT NULL,
-    current_node_id UUID,
-    state JSONB NOT NULL,
-    revision INTEGER NOT NULL DEFAULT 1,
-    state_hash CHAR(44), -- Full SHA-256 hash in base64 (256 bits / 6 bits per char = 44 chars)
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TYPE enum_conversation_session_status AS ENUM ('active', 'completed', 'abandoned');
+
+CREATE TABLE conversation_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    flow_id UUID REFERENCES flow_definitions(id) NOT NULL,
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    current_node_id VARCHAR(255),
+    state JSONB NOT NULL DEFAULT '{}',
+    info JSONB NOT NULL DEFAULT '{}', -- Note: field is 'info', not 'metadata'
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    ended_at TIMESTAMP WITH TIME ZONE,
+    status enum_conversation_session_status DEFAULT 'active',
+    revision INTEGER NOT NULL DEFAULT 1, -- For optimistic concurrency control
+    state_hash VARCHAR(44), -- Full SHA-256 hash in base64 (256 bits / 6 bits per char = 44 chars)
+    INDEX idx_session_user (user_id),
+    INDEX idx_session_status (status),
+    INDEX idx_session_token (session_token)
 );
 
-CREATE INDEX idx_chat_sessions_state ON chat_sessions USING GIN (state);
+CREATE INDEX idx_conversation_sessions_state ON conversation_sessions USING GIN (state);
 ```
 
 ### 2. Chat Runtime Implementation
@@ -155,18 +164,42 @@ Key methods:
 - Circuit breaker pattern with secure fallback responses
 - Request/response logging without exposing sensitive data
 
+#### Node Input Validation System ✅ IMPLEMENTED
+
+**Rigorous Node Processor Input Validation** with comprehensive error prevention:
+
+- **Pydantic-based validation schemas** for all node types (Message, Question, Condition, Action, Webhook, Composite)
+- **CEL-based business rules engine** for flexible, configurable validation rules
+- **Validation severity levels**: ERROR (blocks processing), WARNING (logs issues), INFO (provides guidance)
+- **Comprehensive validation reports** with field-level error messages and suggested fixes
+
+**Business Rules Engine** using CEL (Common Expression Language):
+```python
+# Example business rules:
+- Webhook security: Detect credentials in URLs, localhost usage, HTTPS enforcement
+- Question accessibility: Validate choice limits (2-10 options recommended)  
+- Action safety: Detect potentially unsafe expressions and variable patterns
+- Variable naming: Enforce naming conventions (temp.*, local.*, user.*, etc.)
+- Performance limits: Webhook timeouts should be 1-120 seconds, 30s recommended
+- Logic validation: Detect unreachable conditions and circular references
+```
+
+**Validation Integration**: All node processors validate input before execution to prevent runtime errors from malformed configurations.
+
 ### 3. API Endpoints (`app/api/chat.py`)
 
 RESTful chat interaction endpoints:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/chat/start` | Create session, return token + first messages |
-| POST | `/chat/sessions/{token}/interact` | Process user input, return response |
-| GET | `/chat/sessions/{token}` | Get current session state |
-| POST | `/chat/sessions/{token}/end` | End conversation session |
-| GET | `/chat/sessions/{token}/history` | Get conversation history |
-| PATCH | `/chat/sessions/{token}/state` | Update session state variables |
+| POST | `/v1/chat/start` | Create session, return token + first messages |
+| POST | `/v1/chat/sessions/{token}/interact` | Process user input, return response |
+| GET | `/v1/chat/sessions/{token}` | Get current session state |
+| POST | `/v1/chat/sessions/{token}/end` | End conversation session |
+| GET | `/v1/chat/sessions/{token}/history` | Get conversation history |
+| PATCH | `/v1/chat/sessions/{token}/state` | Update session state variables |
+| GET | `/v1/chat/admin/sessions` | List sessions (admin only) |
+| DELETE | `/v1/chat/admin/sessions/{session_id}` | Delete session (admin only) |
 
 Features:
 - Proper error handling with appropriate HTTP status codes
@@ -764,6 +797,12 @@ Robust fallback handling for external webhook calls with failure threshold and t
 - **State Integrity**: Full SHA-256 hashing for concurrency conflict detection
 - **Secret Management**: Framework for runtime secret injection (ready for implementation)
 
+#### Node Input Validation System ✅ COMPLETED
+- **Rigorous Input Validation**: Pydantic-based schemas for all node types prevent runtime errors
+- **CEL Business Rules Engine**: Configurable validation rules for security, accessibility, logic, and performance
+- **Comprehensive Validation Reports**: Field-level error messages with suggested fixes
+- **Integration**: All node processors validate input before execution with severity levels (ERROR, WARNING, INFO)
+
 #### Data Migration
 - **Migration Complete**: Successfully migrated all Landbot data (732KB, 54 nodes, 59 connections)
 - **Production Scripts**: Ready for deployment with zero data loss
@@ -928,3 +967,5 @@ def calculate_state_hash(state_data: dict) -> str:
 13. **CSRF Protection**: Implement double-submit cookies with SameSite=Strict
 14. **Input Sanitization**: Validate and sanitize all user inputs before state updates
 15. **Circuit Breakers**: Implement fallback behavior for external service failures
+16. **Node Input Validation**: Use rigorous validation schemas and CEL business rules to prevent runtime errors
+17. **Validation Severity**: Address ERROR level validation issues before deployment, review WARNINGs

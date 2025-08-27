@@ -19,7 +19,48 @@ Consolidated from:
 
 import uuid
 
+import pytest
+from sqlalchemy import text
 from starlette import status
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestFlowCRUD:
@@ -34,16 +75,10 @@ class TestFlowCRUD:
             "flow_data": {
                 "entry_point": "start_node",
                 "variables": ["user_name", "user_age"],
-                "settings": {
-                    "timeout": 300,
-                    "max_retries": 3
-                }
+                "settings": {"timeout": 300, "max_retries": 3},
             },
             "entry_node_id": "start_node",
-            "info": {
-                "category": "onboarding",
-                "target_audience": "general"
-            }
+            "info": {"category": "onboarding", "target_audience": "general"},
         }
 
         response = client.post(
@@ -69,22 +104,25 @@ class TestFlowCRUD:
             "flow_data": {
                 "entry_point": "welcome_node",
                 "variables": [
-                    "user_age", "reading_level", "favorite_genres", 
-                    "reading_goals", "book_preferences"
+                    "user_age",
+                    "reading_level",
+                    "favorite_genres",
+                    "reading_goals",
+                    "book_preferences",
                 ],
                 "settings": {
                     "timeout": 600,
                     "max_retries": 5,
                     "fallback_flow": "simple_recommendation_flow",
-                    "analytics_enabled": True
+                    "analytics_enabled": True,
                 },
                 "conditional_logic": {
                     "age_branching": {
                         "children": {"max_age": 12, "flow": "children_flow"},
                         "teens": {"min_age": 13, "max_age": 17, "flow": "teen_flow"},
-                        "adults": {"min_age": 18, "flow": "adult_flow"}
+                        "adults": {"min_age": 18, "flow": "adult_flow"},
                     }
-                }
+                },
             },
             "entry_node_id": "welcome_node",
             "info": {
@@ -92,8 +130,8 @@ class TestFlowCRUD:
                 "target_audience": "all_ages",
                 "complexity": "advanced",
                 "estimated_duration": "5-10 minutes",
-                "required_permissions": ["read_user_profile", "access_book_catalog"]
-            }
+                "required_permissions": ["read_user_profile", "access_book_catalog"],
+            },
         }
 
         response = client.post(
@@ -115,7 +153,7 @@ class TestFlowCRUD:
             "description": "Flow created for testing GET operation",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -151,7 +189,7 @@ class TestFlowCRUD:
             "description": "Original description",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -167,13 +205,13 @@ class TestFlowCRUD:
             "flow_data": {
                 "entry_point": "updated_start",
                 "variables": ["new_variable"],
-                "settings": {"timeout": 400}
+                "settings": {"timeout": 400},
             },
             "entry_node_id": "updated_start",
             "info": {
                 "category": "updated",
-                "last_modified_reason": "Added new features"
-            }
+                "last_modified_reason": "Added new features",
+            },
         }
 
         response = client.put(
@@ -209,7 +247,7 @@ class TestFlowCRUD:
             "name": "Flow to Delete",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -254,9 +292,7 @@ class TestFlowListing:
 
     def test_list_all_flows(self, client, backend_service_account_headers):
         """Test listing all flows with pagination."""
-        response = client.get(
-            "v1/cms/flows", headers=backend_service_account_headers
-        )
+        response = client.get("v1/cms/flows", headers=backend_service_account_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -264,7 +300,9 @@ class TestFlowListing:
         assert "pagination" in data
         assert isinstance(data["data"], list)
 
-    def test_filter_flows_by_published_status(self, client, backend_service_account_headers):
+    def test_filter_flows_by_published_status(
+        self, client, backend_service_account_headers
+    ):
         """Test filtering flows by publication status."""
         # Test published flows
         response = client.get(
@@ -335,16 +373,13 @@ class TestFlowPublishing:
                     {
                         "id": "start",
                         "type": "start",
-                        "data": {
-                            "name": "Start Node",
-                            "message": "Welcome"
-                        },
-                        "position": {"x": 100, "y": 100}
+                        "data": {"name": "Start Node", "message": "Welcome"},
+                        "position": {"x": 100, "y": 100},
                     }
                 ],
-                "connections": []
+                "connections": [],
             },
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -370,7 +405,7 @@ class TestFlowPublishing:
             "name": "Flow to Unpublish",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -404,7 +439,9 @@ class TestFlowPublishing:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_flow_version_increment_on_publish(self, client, backend_service_account_headers):
+    def test_flow_version_increment_on_publish(
+        self, client, backend_service_account_headers
+    ):
         """Test that flow version can be incremented when publishing."""
         # Create flow with proper nodes
         flow_data = {
@@ -417,14 +454,14 @@ class TestFlowPublishing:
                         "type": "start",
                         "data": {
                             "name": "Start Node",
-                            "message": "Welcome to versioned flow"
+                            "message": "Welcome to versioned flow",
                         },
-                        "position": {"x": 100, "y": 100}
+                        "position": {"x": 100, "y": 100},
                     }
                 ],
-                "connections": []
+                "connections": [],
             },
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -459,10 +496,10 @@ class TestFlowCloning:
             "flow_data": {
                 "entry_point": "start",
                 "variables": ["var1", "var2"],
-                "settings": {"timeout": 300}
+                "settings": {"timeout": 300},
             },
             "entry_node_id": "start",
-            "info": {"category": "original"}
+            "info": {"category": "original"},
         }
 
         create_response = client.post(
@@ -476,7 +513,7 @@ class TestFlowCloning:
             "description": "Cloned from original",
             "version": "1.0.0",
             "clone_nodes": True,
-            "clone_connections": True
+            "clone_connections": True,
         }
 
         response = client.post(
@@ -493,14 +530,16 @@ class TestFlowCloning:
         assert data["id"] != original_flow_id  # Should be different ID
         assert data["is_published"] is False  # Clones start unpublished
 
-    def test_clone_flow_with_custom_settings(self, client, backend_service_account_headers):
+    def test_clone_flow_with_custom_settings(
+        self, client, backend_service_account_headers
+    ):
         """Test cloning with custom modifications."""
         # Create original flow
         flow_data = {
             "name": "Source Flow",
             "version": "2.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -514,10 +553,7 @@ class TestFlowCloning:
             "version": "2.1.0",
             "clone_nodes": False,  # Don't clone nodes
             "clone_connections": False,  # Don't clone connections
-            "info": {
-                "category": "modified",
-                "original_flow_id": original_flow_id
-            }
+            "info": {"category": "modified", "original_flow_id": original_flow_id},
         }
 
         response = client.post(
@@ -556,7 +592,7 @@ class TestFlowNodes:
             "name": "Flow with Nodes",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -570,19 +606,11 @@ class TestFlowNodes:
             "node_type": "message",
             "template": "simple_message",
             "content": {
-                "messages": [
-                    {
-                        "content_id": str(uuid.uuid4()),
-                        "delay": 1.5
-                    }
-                ],
-                "typing_indicator": True
+                "messages": [{"content_id": str(uuid.uuid4()), "delay": 1.5}],
+                "typing_indicator": True,
             },
             "position": {"x": 100, "y": 50},
-            "info": {
-                "name": "Welcome Message",
-                "description": "Greets the user"
-            }
+            "info": {"name": "Welcome Message", "description": "Greets the user"},
         }
 
         response = client.post(
@@ -606,7 +634,7 @@ class TestFlowNodes:
             "name": "Flow with Question",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -620,22 +648,17 @@ class TestFlowNodes:
             "node_type": "question",
             "template": "button_question",
             "content": {
-                "question": {
-                    "content_id": str(uuid.uuid4())
-                },
+                "question": {"content_id": str(uuid.uuid4())},
                 "input_type": "buttons",
                 "options": [
                     {"text": "Under 10", "value": "child", "payload": "$0"},
                     {"text": "10-17", "value": "teen", "payload": "$1"},
-                    {"text": "18+", "value": "adult", "payload": "$2"}
+                    {"text": "18+", "value": "adult", "payload": "$2"},
                 ],
-                "validation": {
-                    "required": True,
-                    "type": "string"
-                },
-                "variable": "user_age_group"
+                "validation": {"required": True, "type": "string"},
+                "variable": "user_age_group",
             },
-            "position": {"x": 200, "y": 100}
+            "position": {"x": 200, "y": 100},
         }
 
         response = client.post(
@@ -658,7 +681,7 @@ class TestFlowNodes:
             "name": "Multi-Node Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -670,7 +693,11 @@ class TestFlowNodes:
         nodes = [
             {"node_id": "node1", "node_type": "message", "content": {"messages": []}},
             {"node_id": "node2", "node_type": "question", "content": {"question": {}}},
-            {"node_id": "node3", "node_type": "condition", "content": {"conditions": []}}
+            {
+                "node_id": "node3",
+                "node_type": "condition",
+                "content": {"conditions": []},
+            },
         ]
 
         for node in nodes:
@@ -701,7 +728,7 @@ class TestFlowNodes:
             "name": "Flow for Node Retrieval",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -712,7 +739,7 @@ class TestFlowNodes:
         node_data = {
             "node_id": "test_node",
             "node_type": "message",
-            "content": {"messages": [{"text": "Test message"}]}
+            "content": {"messages": [{"text": "Test message"}]},
         }
 
         node_response = client.post(
@@ -740,7 +767,7 @@ class TestFlowNodes:
             "name": "Flow for Node Update",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -751,7 +778,7 @@ class TestFlowNodes:
         node_data = {
             "node_id": "updatable_node",
             "node_type": "message",
-            "content": {"messages": [{"text": "Original message"}]}
+            "content": {"messages": [{"text": "Original message"}]},
         }
 
         node_response = client.post(
@@ -765,10 +792,10 @@ class TestFlowNodes:
         update_data = {
             "content": {
                 "messages": [{"text": "Updated message"}],
-                "typing_indicator": True
+                "typing_indicator": True,
             },
             "position": {"x": 150, "y": 75},
-            "info": {"updated": True}
+            "info": {"updated": True},
         }
 
         response = client.put(
@@ -790,7 +817,7 @@ class TestFlowNodes:
             "name": "Flow for Node Deletion",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -801,7 +828,7 @@ class TestFlowNodes:
         node_data = {
             "node_id": "deletable_node",
             "node_type": "message",
-            "content": {"messages": []}
+            "content": {"messages": []},
         }
 
         node_response = client.post(
@@ -837,7 +864,7 @@ class TestFlowConnections:
             "name": "Flow with Connections",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -849,13 +876,13 @@ class TestFlowConnections:
         source_node = {
             "node_id": "source_node",
             "node_type": "question",
-            "content": {"question": {}, "options": []}
+            "content": {"question": {}, "options": []},
         }
 
         target_node = {
             "node_id": "target_node",
             "node_type": "message",
-            "content": {"messages": []}
+            "content": {"messages": []},
         }
 
         source_response = client.post(
@@ -877,14 +904,8 @@ class TestFlowConnections:
             "source_node_id": source_node_id,
             "target_node_id": target_node_id,
             "connection_type": "default",
-            "conditions": {
-                "trigger": "user_response",
-                "value": "yes"
-            },
-            "info": {
-                "label": "Yes Branch",
-                "priority": 1
-            }
+            "conditions": {"trigger": "user_response", "value": "yes"},
+            "info": {"label": "Yes Branch", "priority": 1},
         }
 
         response = client.post(
@@ -907,7 +928,7 @@ class TestFlowConnections:
             "name": "Multi-Connection Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -918,8 +939,12 @@ class TestFlowConnections:
         # Create nodes
         nodes = [
             {"node_id": "start", "node_type": "message", "content": {"messages": []}},
-            {"node_id": "question", "node_type": "question", "content": {"question": {}}},
-            {"node_id": "end", "node_type": "message", "content": {"messages": []}}
+            {
+                "node_id": "question",
+                "node_type": "question",
+                "content": {"question": {}},
+            },
+            {"node_id": "end", "node_type": "message", "content": {"messages": []}},
         ]
 
         node_ids = []
@@ -933,8 +958,16 @@ class TestFlowConnections:
 
         # Create connections
         connections = [
-            {"source_node_id": "start", "target_node_id": "question", "connection_type": "default"},
-            {"source_node_id": "question", "target_node_id": "end", "connection_type": "default"}
+            {
+                "source_node_id": "start",
+                "target_node_id": "question",
+                "connection_type": "default",
+            },
+            {
+                "source_node_id": "question",
+                "target_node_id": "end",
+                "connection_type": "default",
+            },
         ]
 
         for connection in connections:
@@ -961,7 +994,7 @@ class TestFlowConnections:
             "name": "Flow for Connection Deletion",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -972,13 +1005,21 @@ class TestFlowConnections:
         # Create two nodes
         node1 = client.post(
             f"v1/cms/flows/{flow_id}/nodes",
-            json={"node_id": "node1", "node_type": "message", "content": {"messages": []}},
+            json={
+                "node_id": "node1",
+                "node_type": "message",
+                "content": {"messages": []},
+            },
             headers=backend_service_account_headers,
         ).json()["id"]
 
         node2 = client.post(
             f"v1/cms/flows/{flow_id}/nodes",
-            json={"node_id": "node2", "node_type": "message", "content": {"messages": []}},
+            json={
+                "node_id": "node2",
+                "node_type": "message",
+                "content": {"messages": []},
+            },
             headers=backend_service_account_headers,
         ).json()["id"]
 
@@ -986,7 +1027,7 @@ class TestFlowConnections:
         connection_data = {
             "source_node_id": node1,
             "target_node_id": node2,
-            "connection_type": "default"
+            "connection_type": "default",
         }
 
         connection_response = client.post(
@@ -1023,7 +1064,7 @@ class TestFlowValidation:
             "name": "Flow for Validation",
             "version": "1.0.0",
             "flow_data": {"entry_point": "start"},
-            "entry_node_id": "start"
+            "entry_node_id": "start",
         }
 
         create_response = client.post(
@@ -1032,7 +1073,7 @@ class TestFlowValidation:
         flow_id = create_response.json()["id"]
 
         # Validate flow structure
-        response = client.post(
+        response = client.get(
             f"v1/cms/flows/{flow_id}/validate",
             headers=backend_service_account_headers,
         )
@@ -1043,14 +1084,16 @@ class TestFlowValidation:
         assert "validation_errors" in data
         assert "validation_warnings" in data
 
-    def test_flow_with_missing_entry_node_validation(self, client, backend_service_account_headers):
+    def test_flow_with_missing_entry_node_validation(
+        self, client, backend_service_account_headers
+    ):
         """Test validation fails when entry node is missing."""
         # Create flow with invalid entry node
         flow_data = {
             "name": "Invalid Flow",
             "version": "1.0.0",
             "flow_data": {"entry_point": "missing_node"},
-            "entry_node_id": "missing_node"
+            "entry_node_id": "missing_node",
         }
 
         create_response = client.post(
@@ -1059,7 +1102,7 @@ class TestFlowValidation:
         flow_id = create_response.json()["id"]
 
         # Validate should fail
-        response = client.post(
+        response = client.get(
             f"v1/cms/flows/{flow_id}/validate",
             headers=backend_service_account_headers,
         )

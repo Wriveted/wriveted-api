@@ -28,10 +28,149 @@ class ContentCreate(BaseModel):
 
     @field_validator("content")
     @classmethod
-    def validate_content_not_empty(cls, v):
+    def validate_content_security(cls, v):
         if not v:
             raise ValueError("Content cannot be empty")
+
+        # Import bleach for HTML sanitization
+        import bleach
+
+        # Convert content to string for processing if it's a dict
+        if isinstance(v, dict):
+            # For dict content, sanitize string values recursively
+            return cls._sanitize_dict_content(v)
+
+        content_str = str(v)
+
+        # Allowed HTML tags and attributes for rich content
+        allowed_tags = [
+            "p",
+            "br",
+            "strong",
+            "em",
+            "u",
+            "ol",
+            "ul",
+            "li",
+            "a",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "blockquote",
+            "code",
+        ]
+        allowed_attributes = {"a": ["href", "title"], "*": ["class", "id"]}
+
+        # Clean the content using bleach
+        cleaned_content = bleach.clean(
+            content_str,
+            tags=allowed_tags,
+            attributes=allowed_attributes,
+            strip=True,  # Remove disallowed tags entirely
+        )
+
+        # For basic validation, we should allow HTML entity encoding differences
+        # Only fail if actual dangerous content was removed
+        import html
+
+        # Normalize both strings by decoding HTML entities for comparison
+        normalized_original = html.unescape(content_str)
+        normalized_cleaned = html.unescape(cleaned_content)
+
+        # Check if content was significantly modified (actual XSS attempt)
+        if normalized_cleaned != normalized_original:
+            # Only raise error if the difference is substantial (not just entity encoding)
+            if len(normalized_original) - len(normalized_cleaned) > 5:
+                raise ValueError(
+                    "Content contains potentially dangerous HTML that was sanitized"
+                )
+
         return v
+
+    @classmethod
+    def _sanitize_dict_content(cls, content_dict):
+        """Recursively sanitize string values in a dictionary."""
+        import bleach
+
+        sanitized = {}
+        allowed_tags = [
+            "p",
+            "br",
+            "strong",
+            "em",
+            "u",
+            "ol",
+            "ul",
+            "li",
+            "a",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "blockquote",
+            "code",
+        ]
+        allowed_attributes = {"a": ["href", "title"], "*": ["class", "id"]}
+
+        for key, value in content_dict.items():
+            if isinstance(value, str):
+                # Sanitize string values
+                cleaned_value = bleach.clean(
+                    value, tags=allowed_tags, attributes=allowed_attributes, strip=True
+                )
+                # Allow HTML entity encoding differences for legitimate characters
+                import html
+
+                normalized_original = html.unescape(value)
+                normalized_cleaned = html.unescape(cleaned_value)
+
+                if normalized_cleaned != normalized_original:
+                    # Only raise error if the difference is substantial (not just entity encoding)
+                    if len(normalized_original) - len(normalized_cleaned) > 5:
+                        raise ValueError(
+                            f"Content field '{key}' contains potentially dangerous HTML"
+                        )
+                sanitized[key] = value
+            elif isinstance(value, dict):
+                # Recursively sanitize nested dictionaries
+                sanitized[key] = cls._sanitize_dict_content(value)
+            elif isinstance(value, list):
+                # Sanitize list items if they're strings
+                sanitized_list = []
+                for item in value:
+                    if isinstance(item, str):
+                        cleaned_item = bleach.clean(
+                            item,
+                            tags=allowed_tags,
+                            attributes=allowed_attributes,
+                            strip=True,
+                        )
+                        # Allow HTML entity encoding differences for legitimate characters
+                        import html
+
+                        normalized_original = html.unescape(item)
+                        normalized_cleaned = html.unescape(cleaned_item)
+
+                        if normalized_cleaned != normalized_original:
+                            # Only raise error if the difference is substantial (not just entity encoding)
+                            if len(normalized_original) - len(normalized_cleaned) > 5:
+                                raise ValueError(
+                                    f"Content list in '{key}' contains potentially dangerous HTML"
+                                )
+                        sanitized_list.append(item)
+                    else:
+                        sanitized_list.append(item)
+                sanitized[key] = sanitized_list
+            else:
+                # Keep non-string values as-is
+                sanitized[key] = value
+
+        return sanitized
 
 
 class ContentUpdate(BaseModel):

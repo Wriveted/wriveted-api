@@ -156,7 +156,7 @@ class MessageNodeProcessor(NodeProcessor):
             "content": self._deep_substitute_variables(content_data, session_state),
         }
         return message
-    
+
     def _deep_substitute_variables(
         self, obj: Any, session_state: Dict[str, Any]
     ) -> Any:
@@ -170,8 +170,7 @@ class MessageNodeProcessor(NodeProcessor):
             }
         elif isinstance(obj, list):
             return [
-                self._deep_substitute_variables(item, session_state)
-                for item in obj
+                self._deep_substitute_variables(item, session_state) for item in obj
             ]
         else:
             return obj
@@ -190,11 +189,22 @@ class QuestionNodeProcessor(NodeProcessor):
         """Process a question node."""
         node_content = node.content or {}
 
-        # Get question content
+        # Handle both CMS content references and inline content
         question_config = node_content.get("question", {})
-        content_id = question_config.get("content_id")
 
-        question_message = None
+        # Check if question is a string (inline content) or dict (CMS reference)
+        if isinstance(question_config, str):
+            # Inline question text - create a synthetic config
+            question_message = {"text": question_config}
+            content_id = None
+        else:
+            # CMS content reference or dict config
+            content_id = (
+                question_config.get("content_id")
+                if isinstance(question_config, dict)
+                else None
+            )
+
         if content_id:
             try:
                 content = await crud.content.aget(db, UUID(content_id))
@@ -208,6 +218,9 @@ class QuestionNodeProcessor(NodeProcessor):
                     content_id=content_id,
                     error=str(e),
                 )
+        elif isinstance(question_config, str):
+            # Use the inline question text we already prepared
+            pass  # question_message is already set above
 
         # Record question in history
         await chat_repo.add_interaction_history(
@@ -246,7 +259,18 @@ class QuestionNodeProcessor(NodeProcessor):
         # Get variable name from CMS content if available
         variable_name = None
         question_config = node_content.get("question", {})
-        content_id = question_config.get("content_id")
+
+        # Handle both CMS content references and inline content
+        if isinstance(question_config, str):
+            # Inline question - no CMS content reference
+            content_id = None
+        else:
+            # CMS content reference or dict config
+            content_id = (
+                question_config.get("content_id")
+                if isinstance(question_config, dict)
+                else None
+            )
 
         if content_id:
             try:
@@ -367,7 +391,7 @@ class QuestionNodeProcessor(NodeProcessor):
             "content": self._deep_substitute_variables(content_data, session_state),
         }
         return message
-    
+
     def _deep_substitute_variables(
         self, obj: Any, session_state: Dict[str, Any]
     ) -> Any:
@@ -381,8 +405,7 @@ class QuestionNodeProcessor(NodeProcessor):
             }
         elif isinstance(obj, list):
             return [
-                self._deep_substitute_variables(item, session_state)
-                for item in obj
+                self._deep_substitute_variables(item, session_state) for item in obj
             ]
         else:
             return obj
@@ -585,7 +608,6 @@ class ChatRuntime:
 
             # Process next node if available
             if response.get("next_node"):
-
                 next_result = await self.process_node(
                     db, response["next_node"], session
                 )
@@ -603,7 +625,11 @@ class ChatRuntime:
 
                 # Check if the processed node has no further connections
                 # Skip this check for question nodes as they wait for user input
-                if next_result and response["next_node"].node_type != NodeType.QUESTION and not next_result.get("next_node"):
+                if (
+                    next_result
+                    and response["next_node"].node_type != NodeType.QUESTION
+                    and not next_result.get("next_node")
+                ):
                     result["session_ended"] = True
             else:
                 result["session_ended"] = True
@@ -776,3 +802,9 @@ class ChatRuntime:
 
 # Create singleton instance
 chat_runtime = ChatRuntime()
+
+
+def reset_chat_runtime() -> None:
+    """Reset the global chat runtime instance for testing."""
+    global chat_runtime
+    chat_runtime = ChatRuntime()

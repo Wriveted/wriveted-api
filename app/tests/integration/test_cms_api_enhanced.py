@@ -6,7 +6,46 @@ Extracted from ad-hoc test_cms_api.py and improved for integration testing.
 
 import pytest
 from uuid import uuid4
+from sqlalchemy import text
 
+
+@pytest.fixture(autouse=True)
+async def cleanup_cms_data(async_session):
+    """Clean up CMS data before and after each test to ensure test isolation."""
+    cms_tables = [
+        "cms_content",
+        "cms_content_variants",
+        "flow_definitions",
+        "flow_nodes",
+        "flow_connections",
+        "conversation_sessions",
+        "conversation_history",
+        "conversation_analytics",
+    ]
+
+    # Clean up before test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
+
+    yield
+
+    # Clean up after test runs
+    for table in cms_tables:
+        try:
+            await async_session.execute(
+                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
+            )
+        except Exception:
+            # Table might not exist, skip it
+            pass
+    await async_session.commit()
 
 
 class TestCMSAPIEnhanced:

@@ -74,3 +74,5 @@ class InternalUserUpdateIn(UserUpdateIn):
                 f"Not all required attributes have been provided to change from user type '{current_type.value}' to '{new_type.value}'. "
                 f"Missing attributes: {[a for a in needed_attributes if a not in current_attributes]}."
             )
+
+        return self

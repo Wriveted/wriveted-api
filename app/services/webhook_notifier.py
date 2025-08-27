@@ -243,3 +243,17 @@ def setup_example_webhooks() -> None:
     notifier.add_webhook(analytics_webhook)
 
     logger.info("Example webhooks configured")
+
+
+def reset_webhook_notifier() -> None:
+    """Reset the global webhook notifier instance for testing."""
+    global _webhook_notifier
+    if _webhook_notifier is not None:
+        # Try to clean up the existing notifier
+        try:
+            if _webhook_notifier.session and not _webhook_notifier.session.is_closed:
+                # Note: This is sync, but in tests we may not be in async context
+                pass
+        except Exception:
+            pass
+    _webhook_notifier = None
