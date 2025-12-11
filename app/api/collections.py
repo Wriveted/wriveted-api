@@ -28,6 +28,10 @@ from app.models import BookList, CollectionItem, Edition
 from app.models.collection import Collection
 from app.models.collection_item_activity import CollectionItemReadStatus
 from app.permissions import Permission
+from app.repositories.collection_item_activity_repository import (
+    collection_item_activity_repository,
+)
+from app.repositories.event_repository import event_repository
 from app.schemas.booklist_collection_intersection import (
     BookListItemInCollection,
     CollectionBookListIntersection,
@@ -46,11 +50,10 @@ from app.schemas.collection import (
     CollectionUpdateSummaryResponse,
 )
 from app.schemas.pagination import Pagination
+from app.services.collection_service import CollectionService
 from app.services.collections import (
-    add_editions_to_collection_by_isbn,
     get_collection_info_with_criteria,
     get_collection_items_also_in_booklist,
-    reset_collection,
 )
 from app.services.events import create_event
 
@@ -63,6 +66,10 @@ router = APIRouter(
         Security(get_current_active_user_or_service_account)
     ],
 )
+
+
+def get_collection_service() -> CollectionService:
+    return CollectionService()
 
 
 @router.get(
@@ -100,10 +107,11 @@ async def get_collection_items(
     """
     logger.debug("Getting collection items", pagination=pagination)
 
-    matching_count, items = crud.collection.get_filtered_with_count(
-        db=session,
+    service = get_collection_service()
+    matching_count, items = service.list_items(
+        session,
         collection_id=collection.id,
-        query_string=query,
+        query=query,
         reader_id=reader_id,
         read_status=read_status,
         skip=pagination.skip,
@@ -190,8 +198,9 @@ async def create_collection(
     """
     logger.debug("Creating collection")
     try:
-        return crud.collection.create(
-            session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
+        service = get_collection_service()
+        return service.create_collection(
+            session, data=collection_data, ignore_conflicts=ignore_conflicts
         )
     except IntegrityError:
         raise HTTPException(
@@ -209,8 +218,8 @@ async def delete_collection(
     Endpoint to delete a collection.
     """
     logger.debug("Deleting collection")
-    session.execute(delete(Collection).where(Collection.id == collection.id))
-    session.commit()
+    service = get_collection_service()
+    service.delete_collection(session, collection=collection)
     return {"message": "Collection deleted"}
 
 
@@ -232,11 +241,14 @@ async def set_collection(
     Endpoint for replacing an existing collection and its items.
     """
     logger.debug("Deleting collection")
-    session.execute(delete(Collection).where(Collection.id == collection.id))
     logger.debug("Replacing deleted collection")
     try:
-        return crud.collection.create(
-            session, obj_in=collection_data, ignore_conflicts=ignore_conflicts
+        service = get_collection_service()
+        return service.replace_collection(
+            session,
+            existing=collection,
+            data=collection_data,
+            ignore_conflicts=ignore_conflicts,
         )
     except IntegrityError:
         raise HTTPException(
@@ -280,7 +292,7 @@ async def get_collection_booklist_intersection(
     common_work_ids = {item.work_id for item in common_collection_items}
 
     background_tasks.add_task(
-        crud.event.create,
+        event_repository.create,
         session,
         title="Compared booklist and collection",
         info={
@@ -326,34 +338,14 @@ async def add_collection_item(
     """
     logger.debug("Adding item to collection", collection=collection)
 
-    read_status_data = (
-        {"status": data.read_status, "reader_id": str(data.reader_id)}
-        if data.read_status or data.reader_id
-        else None
-    )
-    del data.read_status
-    del data.reader_id
-
+    service = get_collection_service()
     try:
-        item_id = crud.collection.add_item_to_collection(
-            session, item=data, collection_orm_object=collection
-        )
-        item = session.get(CollectionItem, item_id)
+        return service.add_collection_item(session, collection=collection, item=data)
     except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail=f"ISBN {data.edition_isbn} already in collection",
         )
-
-    if read_status_data:
-        crud.collection_item_activity.create(
-            session,
-            obj_in=CollectionItemActivityBase(
-                collection_item_id=item.id,
-                **read_status_data,
-            ),
-        )
-    return item
 
 
 @router.put(
@@ -378,28 +370,15 @@ async def set_collection_items(
         collection=collection,
         account=account,
     )
-    reset_collection(session, collection, account)
-
     logger.info(
         f"Adding/syncing {len(collection_data)} ISBNs with collection",
         collection=collection,
         account=account,
     )
-    if len(collection_data) > 0:
-        await add_editions_to_collection_by_isbn(
-            session, collection_data, collection, account
-        )
-
-    count = session.execute(
-        select(func.count(CollectionItem.id)).where(
-            CollectionItem.collection == collection
-        )
-    ).scalar_one()
-
-    return {
-        "msg": f"Collection set. Total editions: {count}",
-        "collection_size": count,
-    }
+    service = get_collection_service()
+    return await service.set_collection_items(
+        session, collection=collection, items=collection_data, account=account
+    )
 
 
 @router.patch(
@@ -454,16 +433,17 @@ async def update_collection(
     logger.info("Updating collection", collection=collection, account=account)
 
     try:
-        await collections_service.update_collection(
+        service = get_collection_service()
+        await service.update_collection(
             session=session,
             collection=collection,
             account=account,
-            obj_in=collection_update_data,
+            changes=collection_update_data,
             merge_dicts=merge_dicts,
             ignore_conflicts=ignore_conflicts,
         )
 
-        crud.event.create(
+        event_repository.create(
             session=session,
             title="Collection Update",
             description="Updates made to collection",
@@ -519,7 +499,7 @@ async def log_collection_item_activity(
     """
     Create new activity entry for a collection item and reader
     """
-    activity = crud.collection_item_activity.create(db=session, obj_in=data)
+    activity = collection_item_activity_repository.create(db=session, obj_in=data)
 
     create_event(
         session=session,

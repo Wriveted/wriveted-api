@@ -1,17 +1,18 @@
+import asyncio
+import logging
 import os
 import random
 import secrets
-import time
-import logging
 import signal
-import asyncio
+import time
 from datetime import timedelta
 from pathlib import Path
 
-import pytest
 import psutil
+import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
+from sqlalchemy import select
 from starlette.testclient import TestClient
 
 # Set up verbose logging for debugging test setup failures
@@ -29,10 +30,24 @@ from app.db.session import (
     get_session_maker,
 )
 from app.main import app, get_settings
-from app.models import Collection, School, SchoolState, ServiceAccountType, Student
+from app.models import (
+    Collection,
+    Edition,
+    School,
+    SchoolState,
+    ServiceAccountType,
+    Student,
+)
 from app.models.class_group import ClassGroup
 from app.models.user import UserAccountType
 from app.models.work import WorkType
+from app.repositories.author_repository import author_repository
+from app.repositories.class_group_repository import class_group_repository
+from app.repositories.edition_repository import edition_repository
+from app.repositories.product_repository import product_repository
+from app.repositories.school_repository import school_repository
+from app.repositories.service_account_repository import service_account_repository
+from app.repositories.work_repository import work_repository
 from app.schemas.author import AuthorCreateIn
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
@@ -154,6 +169,7 @@ async def async_client(test_app):
 async def internal_async_client():
     """AsyncClient for the internal API with timeout protection."""
     from httpx import ASGITransport
+
     from app.internal_api import internal_app
 
     client = None
@@ -248,10 +264,10 @@ def reset_global_state_sync():
         signal.alarm(30)  # 30 second timeout
 
         try:
-            from app.services.event_listener import reset_event_listener
-            from app.services.chat_runtime import reset_chat_runtime
-            from app.crud.chat_repo import reset_chat_repository
+            from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.services.event_listener import reset_event_listener
             from app.services.webhook_notifier import reset_webhook_notifier
 
             logger.debug("Starting sync global state reset...")
@@ -306,10 +322,10 @@ async def reset_global_state():
     try:
 
         async def reset_state():
-            from app.services.event_listener import reset_event_listener
-            from app.services.chat_runtime import reset_chat_runtime
-            from app.crud.chat_repo import reset_chat_repository
+            from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.services.event_listener import reset_event_listener
             from app.services.webhook_notifier import reset_webhook_notifier
 
             logger.debug("Starting global state reset...")
@@ -340,10 +356,10 @@ async def reset_global_state():
     try:
 
         async def cleanup_state():
-            from app.services.event_listener import reset_event_listener
-            from app.services.chat_runtime import reset_chat_runtime
-            from app.crud.chat_repo import reset_chat_repository
+            from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
+            from app.services.chat_runtime import reset_chat_runtime
+            from app.services.event_listener import reset_event_listener
             from app.services.webhook_notifier import reset_webhook_notifier
 
             reset_event_listener()
@@ -364,9 +380,10 @@ async def reset_global_state():
 @pytest.fixture()
 async def async_session(reset_global_state):
     """Create an isolated async session for each test with proper cleanup and timeouts."""
-    import os
-    import psutil
     import asyncio
+    import os
+
+    import psutil
 
     test_name = (
         os.environ.get("PYTEST_CURRENT_TEST", "unknown").split("::")[-1].split(" ")[0]
@@ -389,7 +406,7 @@ async def async_session(reset_global_state):
         settings = get_settings()
 
         # Create fresh engine for each test to avoid asyncio event loop conflicts
-        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
         # Always create fresh async engine to avoid event loop conflicts
         engine = create_async_engine(
@@ -425,8 +442,9 @@ async def async_session(reset_global_state):
 
         # Test session connectivity with timeout and pool monitoring
         try:
-            from sqlalchemy import text
             import asyncio
+
+            from sqlalchemy import text
 
             # Log pool status before test
             pool = engine.pool
@@ -593,7 +611,7 @@ def session_factory(settings):
 
 @pytest.fixture()
 def backend_service_account(session):
-    sa = crud.service_account.create(
+    sa = service_account_repository.create(
         db=session,
         obj_in=ServiceAccountCreateIn(
             name="backend integration test account",
@@ -769,12 +787,12 @@ def test_wrivetedadmin_account_headers(test_wrivetedadmin_account_token):
 def author_list(client, session):
     n = 10
     authors = [
-        crud.author.create(
+        author_repository.create(
             db=session,
-            obj_in={
-                "first_name": random_lower_string(length=random.randint(2, 12)),
-                "last_name": random_lower_string(length=random.randint(2, 12)),
-            },
+            obj_in=AuthorCreateIn(
+                first_name=random_lower_string(length=random.randint(2, 12)),
+                last_name=random_lower_string(length=random.randint(2, 12)),
+            ),
         )
         for _ in range(n)
     ]
@@ -783,7 +801,7 @@ def author_list(client, session):
 
     try:
         for a in authors:
-            crud.author.remove(db=session, id=a.id)
+            author_repository.remove(db=session, id=a.id)
         session.commit()
     except Exception:
         session.rollback()
@@ -791,9 +809,11 @@ def author_list(client, session):
 
 @pytest.fixture()
 def test_product(session):
-    product = crud.product.get(db=session, id="integration-test-product")
+    product = product_repository.get_by_id(
+        db=session, product_id="integration-test-product"
+    )
     if not product:
-        product = crud.product.create(
+        product = product_repository.create(
             db=session,
             obj_in=ProductCreateIn(
                 name="Super Cool Tier",
@@ -817,13 +837,29 @@ def small_works_list(client, session, author_list):
     edition_ids = []
 
     try:
+        # Generate unique ISBNs by checking database
+        candidate_isbns = [generate_random_valid_isbn13() for _ in range(n * 2)]
+        existing_isbns = set(
+            session.execute(
+                select(Edition.isbn).where(Edition.isbn.in_(candidate_isbns))
+            )
+            .scalars()
+            .all()
+        )
+        available_isbns = [
+            isbn for isbn in candidate_isbns if isbn not in existing_isbns
+        ][:n]
+
+        if len(available_isbns) < n:
+            raise RuntimeError(f"Could not generate {n} unique ISBNs")
+
         # Create works more efficiently for smaller lists
         for i in range(n):
             author = random.choice(author_list)
             work_authors = [
                 AuthorCreateIn(first_name=author.first_name, last_name=author.last_name)
             ]
-            work = crud.work.get_or_create(
+            work = work_repository.get_or_create(
                 db=session,
                 work_data=WorkCreateIn(
                     type=WorkType.BOOK,
@@ -831,18 +867,20 @@ def small_works_list(client, session, author_list):
                     authors=work_authors,
                 ),
                 authors=[author],
+                commit=False,
             )
 
-            edition = crud.edition.create(
+            edition = edition_repository.create(
                 db=session,
                 edition_data=EditionCreateIn(
-                    isbn=generate_random_valid_isbn13(),
+                    isbn=available_isbns[i],
                     title=f"Small Test Edition {i}_{random_lower_string(4)}",
                     cover_url="https://cool.site",
                     info={},
                 ),
                 work=work,
                 illustrators=[],
+                commit=False,
             )
 
             works.append(work)
@@ -859,7 +897,7 @@ def small_works_list(client, session, author_list):
         try:
             for isbn in edition_ids:
                 try:
-                    edition = crud.edition.get(db=session, id=isbn)
+                    edition = edition_repository.get(db=session, isbn=isbn)
                     if edition:
                         session.delete(edition)
                 except Exception as e:
@@ -868,7 +906,7 @@ def small_works_list(client, session, author_list):
             for work in works:
                 try:
                     session.refresh(work)
-                    crud.work.remove(db=session, id=work.id)
+                    work_repository.remove(db=session, id=work.id)
                 except Exception as e:
                     logger.warning(f"Error deleting work {work.id}: {e}")
 
@@ -891,8 +929,25 @@ def works_list(client, session, author_list):
     edition_ids = []
 
     try:
+        # Generate all unique ISBNs upfront by checking database once
+        candidate_isbns = [generate_random_valid_isbn13() for _ in range(n * 2)]
+        existing_isbns = set(
+            session.execute(
+                select(Edition.isbn).where(Edition.isbn.in_(candidate_isbns))
+            )
+            .scalars()
+            .all()
+        )
+        available_isbns = [
+            isbn for isbn in candidate_isbns if isbn not in existing_isbns
+        ][:n]
+
+        if len(available_isbns) < n:
+            raise RuntimeError(f"Could not generate {n} unique ISBNs")
+
         # Create works in batches for better performance
         batch_size = 10
+        isbn_index = 0
         for batch_start in range(0, n, batch_size):
             batch_works = []
             for i in range(batch_start, min(batch_start + batch_size, n)):
@@ -902,30 +957,33 @@ def works_list(client, session, author_list):
                         first_name=author.first_name, last_name=author.last_name
                     )
                 ]
-                work = crud.work.get_or_create(
+                work = work_repository.get_or_create(
                     db=session,
                     work_data=WorkCreateIn(
                         type=WorkType.BOOK,
-                        title=f"Test Work {i}_{random_lower_string(6)}",  # More deterministic titles
+                        title=f"Test Work {i}_{random_lower_string(6)}",
                         authors=work_authors,
                     ),
                     authors=[author],
+                    commit=False,
                 )
 
-                edition = crud.edition.create(
+                edition = edition_repository.create(
                     db=session,
                     edition_data=EditionCreateIn(
-                        isbn=generate_random_valid_isbn13(),
+                        isbn=available_isbns[isbn_index],
                         title=f"Test Edition {i}_{random_lower_string(6)}",
                         cover_url="https://cool.site",
                         info={},
                     ),
                     work=work,
                     illustrators=[],
+                    commit=False,
                 )
 
                 batch_works.append(work)
                 edition_ids.append(edition.isbn)
+                isbn_index += 1
 
             # Commit each batch to avoid large transactions
             session.commit()
@@ -942,7 +1000,7 @@ def works_list(client, session, author_list):
             # Delete editions first (due to foreign key constraints)
             for isbn in edition_ids:
                 try:
-                    edition = crud.edition.get(db=session, id=isbn)
+                    edition = edition_repository.get(db=session, isbn=isbn)
                     if edition:
                         session.delete(edition)
                 except Exception as e:
@@ -953,7 +1011,7 @@ def works_list(client, session, author_list):
                 try:
                     # Refresh the work object to ensure it's still in the session
                     session.refresh(work)
-                    crud.work.remove(db=session, id=work.id)
+                    work_repository.remove(db=session, id=work.id)
                 except Exception as e:
                     logger.warning(f"Error deleting work {work.id}: {e}")
 
@@ -992,7 +1050,7 @@ def test_school(client, session, backend_service_account_headers) -> School:
 
     print("Yielding from school fixture")
     # Actually lets return the orm object to the tests
-    school = crud.school.get_by_wriveted_id_or_404(
+    school = school_repository.get_by_wriveted_id_or_404(
         db=session, wriveted_id=school_info["wriveted_identifier"]
     )
     school.state = SchoolState.ACTIVE
@@ -1005,8 +1063,8 @@ def test_school(client, session, backend_service_account_headers) -> School:
     # Afterwards delete it
 
     session.rollback()
-    if crud.school.get(session, id=school_id) is not None:
-        crud.school.remove(db=session, obj_in=school)
+    if school_repository.get(session, id=school_id) is not None:
+        school_repository.remove(db=session, obj_in=school)
 
 
 @pytest.fixture()
@@ -1024,7 +1082,7 @@ def test_class_group(
     new_test_class_response.raise_for_status()
     class_info = new_test_class_response.json()
     print("Yielding from group fixture", class_info)
-    yield crud.class_group.get(db=session, id=class_info["id"])
+    yield class_group_repository.get_by_id(db=session, class_group_id=class_info["id"])
 
     print("Cleaning up group fixture")
     # Afterwards delete it
@@ -1069,7 +1127,7 @@ def test_isbns():
 def test_unhydrated_editions(client, session, test_isbns):
     # Create a few editions
     editions = [
-        crud.edition.get_or_create_unhydrated(db=session, isbn=isbn)
+        edition_repository.get_or_create_unhydrated(db=session, isbn=isbn)
         for isbn in test_isbns
     ]
 
@@ -1077,7 +1135,7 @@ def test_unhydrated_editions(client, session, test_isbns):
 
     try:
         for e in editions:
-            crud.edition.remove(db=session, id=e.isbn)
+            edition_repository.remove(db=session, id=e.isbn)
         session.commit()
     except Exception:
         session.rollback()
@@ -1180,7 +1238,7 @@ def admin_of_test_school_headers(admin_of_test_school_token):
 @pytest.fixture()
 def lms_service_account_for_test_school(session, test_school):
     print("Creating a LMS service account to carry out the rest of the test")
-    sa = crud.service_account.create(
+    sa = service_account_repository.create(
         db=session,
         obj_in=ServiceAccountCreateIn(
             **{
@@ -1202,7 +1260,7 @@ def lms_service_account_for_test_school(session, test_school):
     yield sa
 
     try:
-        crud.service_account.remove(db=session, id=sa.id)
+        service_account_repository.remove(db=session, id=sa.id)
         session.commit()
     except Exception:
         session.rollback()

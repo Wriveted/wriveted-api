@@ -8,6 +8,8 @@ from app.crud.base import deep_merge_dicts
 from app.models.booklist import BookList, ListSharingType, ListType
 from app.models.booklist_work_association import BookListItem
 from app.models.event import EventLevel, EventSlackChannel
+from app.repositories.booklist_repository import booklist_repository
+from app.repositories.edition_repository import edition_repository
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListDetail,
@@ -21,6 +23,7 @@ from app.schemas.edition import EditionDetail
 from app.schemas.pagination import Pagination
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services.background_tasks import queue_background_task
+
 # Local import to avoid circular dependency
 # from app.services.events import create_event
 from app.services.gcp_storage import (
@@ -120,10 +123,10 @@ async def generate_reading_pathway_lists(
             },
         )
 
-        read_now_orm = await crud.booklist.acreate(
+        read_now_orm = await booklist_repository.acreate(
             session, obj_in=read_now_booklist_data, commit=commit
         )
-        read_next_orm = await crud.booklist.acreate(
+        read_next_orm = await booklist_repository.acreate(
             session, obj_in=read_next_booklist_data, commit=commit
         )
 
@@ -267,7 +270,7 @@ def populate_booklist_object(
     def get_enriched_booklist_items() -> list[BookListItemEnriched]:
         enriched_booklist_items = []
         for i in booklist_items:
-            edition_result = crud.edition.get(
+            edition_result = edition_repository.get(
                 session,
                 i.info["edition"] if i.info and i.info["edition"] else None,
             )
@@ -276,6 +279,7 @@ def populate_booklist_object(
             if edition is None:
                 # Local import to avoid circular dependency
                 from app.services.events import create_event
+
                 create_event(
                     session=session,
                     level=EventLevel.WARNING,

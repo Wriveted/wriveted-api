@@ -143,3 +143,24 @@ notify_flow_event_function = PGFunction(
       $function$
     """,
 )
+
+# Full-text search maintenance for CMS content
+cms_content_tsvector_update = PGFunction(
+    schema="public",
+    signature="cms_content_tsvector_update()",
+    definition="""returns trigger LANGUAGE plpgsql
+      AS $function$
+        BEGIN
+            NEW.search_document := to_tsvector(
+                'english',
+                coalesce(NEW.content->>'text','') || ' ' ||
+                coalesce(NEW.content->>'setup','') || ' ' ||
+                coalesce(NEW.content->>'punchline','') || ' ' ||
+                coalesce(NEW.content->>'question','') || ' ' ||
+                coalesce(array_to_string(NEW.tags, ' '), '')
+            );
+            RETURN NEW;
+        END;
+      $function$
+    """,
+)

@@ -23,6 +23,9 @@ from app.models.booklist import ListSharingType, ListType
 from app.models.educator import Educator
 from app.models.school_admin import SchoolAdmin
 from app.permissions import Permission
+from app.repositories.booklist_repository import booklist_repository
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
 from app.schemas.booklist import (
     BookListBrief,
     BookListCreateIn,
@@ -94,7 +97,7 @@ def add_booklist(
             logger.debug(
                 "Caller supplied a school id, swapping out the wriveted identifier for the db id"
             )
-            school_orm = crud.school.get_by_wriveted_id_or_404(
+            school_orm = school_repository.get_by_wriveted_id_or_404(
                 db=session, wriveted_id=booklist.school_id
             )
         else:
@@ -103,7 +106,9 @@ def add_booklist(
                 isinstance(account, (Educator, SchoolAdmin))
                 and account.school_id is not None
             ):
-                school_orm = crud.school.get_by_id_or_404(session, id=account.school_id)
+                school_orm = school_repository.get_by_id_or_404(
+                    session, id=account.school_id
+                )
             elif isinstance(account, ServiceAccount) and len(account.schools) == 1:
                 school_orm = account.schools[0]
             else:
@@ -142,11 +147,11 @@ def add_booklist(
             logger.info("Creating an empty book list")
             booklist.items = []
 
-        booklist_orm_object = crud.booklist.create(
+        booklist_orm_object = booklist_repository.create(
             db=session, obj_in=booklist, commit=True
         )
 
-        crud.event.create(
+        event_repository.create(
             session=session,
             title="Booklist created",
             description=f"{account.name} created booklist '{booklist.name}'",
@@ -190,21 +195,21 @@ def get_booklists(
     logger.debug(
         "Getting list of booklists", list_type=list_type, pagination=pagination
     )
-    booklists_query = crud.booklist.get_all_query_with_optional_filters(
+    booklists_query = booklist_repository.get_all_query_with_optional_filters(
         db=session, list_type=list_type, sharing_type=sharing_type
     )
 
     booklists = [
         booklist
         for booklist in session.scalars(
-            crud.booklist.apply_pagination(
+            booklist_repository.apply_pagination(
                 query=booklists_query, skip=pagination.skip, limit=pagination.limit
             )
         ).all()
         if has_permission(principals, "read", booklist)
     ]
 
-    booklist_count = crud.booklist.count_query(db=session, query=booklists_query)
+    booklist_count = booklist_repository.count_query(db=session, query=booklists_query)
 
     return BookListsResponse(
         pagination=Pagination(**pagination.to_dict(), total=booklist_count),
@@ -270,7 +275,7 @@ def update_booklist(
         )
 
     try:
-        updated_booklist = crud.booklist.update(
+        updated_booklist = booklist_repository.update(
             db=session, db_obj=booklist, obj_in=changes
         )
     except IntegrityError as e:
@@ -293,7 +298,7 @@ def delete_booklist(
 
     """
     logger.debug("Removing a booklist", booklist=booklist)
-    crud.booklist.remove(db=session, id=booklist.id)
+    booklist_repository.remove(db=session, id=booklist.id)
     return booklist
 
 
@@ -309,17 +314,17 @@ def get_public_booklists(
     Retrieve a paginated list of Public Huey Book Lists.
     Requires no authentication.
     """
-    booklists_query = crud.booklist.get_all_query_with_optional_filters(
+    booklists_query = booklist_repository.get_all_query_with_optional_filters(
         db=session, list_type=ListType.HUEY, sharing_type=ListSharingType.PUBLIC
     )
 
     booklists = session.scalars(
-        crud.booklist.apply_pagination(
+        booklist_repository.apply_pagination(
             query=booklists_query, skip=pagination.skip, limit=pagination.limit
         )
     ).all()
 
-    booklist_count = crud.booklist.count_query(db=session, query=booklists_query)
+    booklist_count = booklist_repository.count_query(db=session, query=booklists_query)
 
     return BookListsResponse(
         pagination=Pagination(**pagination.to_dict(), total=booklist_count),

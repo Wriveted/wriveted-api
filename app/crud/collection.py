@@ -1,41 +1,42 @@
+"""
+DEPRECATED: Use app.repositories.collection_repository instead.
+
+This module is maintained for backward compatibility only.
+"""
+
+import warnings
 from typing import Any, Optional, Tuple
 from uuid import UUID
 
-from fastapi import HTTPException
-from sqlalchemy import asc, delete, func, select, text, update
-from sqlalchemy.dialects.postgresql import insert as pg_upsert
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy.orm import Session, aliased, contains_eager, raiseload
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.crud import CRUDBase
-from app.crud.base import deep_merge_dicts
-from app.models import Author, Edition, Work
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
-from app.models.collection_item_activity import (
-    CollectionItemActivity,
-    CollectionItemReadStatus,
-)
-from app.schemas import is_url
+from app.models.collection_item_activity import CollectionItemReadStatus
+from app.repositories.collection_repository import collection_repository
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionCreateIn,
     CollectionItemCreateIn,
     CollectionItemUpdate,
-    CollectionUpdateType,
 )
-from app.services.cover_images import (
-    handle_collection_item_cover_image_update,
-    handle_new_collection_item_cover_image,
-)
-from app.services.editions import get_definitive_isbn
 
 logger = get_logger()
 
 
 class CRUDCollection(CRUDBase[Collection, Any, Any]):
+    """DEPRECATED: Use CollectionRepository from app.repositories instead."""
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "CRUDCollection is deprecated. Use CollectionRepository from app.repositories.collection_repository",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
+
     def create(
         self,
         db: Session,
@@ -44,63 +45,18 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit=True,
         ignore_conflicts=False,
     ) -> Collection:
-        items = obj_in.items or []
-        obj_in.items = []
-        collection_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
-        logger.debug(
-            "Collection entry created in database",
-            collection_id=str(collection_orm_object.id),
+        """DEPRECATED: Delegates to collection_repository.create()."""
+        return collection_repository.create(
+            db=db, obj_in=obj_in, commit=commit, ignore_conflicts=ignore_conflicts
         )
-
-        logger.debug(
-            f"Adding {len(items)} collection items to collection",
-            collection_id=str(collection_orm_object.id),
-        )
-        for item in items:
-            self.add_item_to_collection(
-                db=db,
-                collection_orm_object=collection_orm_object,
-                item=item,
-                commit=commit,
-                ignore_conflicts=ignore_conflicts,
-            )
-
-        if commit:
-            db.commit()
-
-        return collection_orm_object
 
     def get_or_create(
         self, db: Session, collection_data: CollectionCreateIn, commit=True
     ) -> Tuple[Collection, bool]:
-        """
-        Get a collection by school or user id, creating a new collection if required.
-        """
-        if collection_data.user_id:
-            q = select(Collection).where(Collection.user_id == collection_data.user_id)
-        else:
-            q = select(Collection).where(
-                Collection.school_id == collection_data.school_id
-            )
-        try:
-            collection = db.execute(q).scalar_one()
-            return collection, False
-        except NoResultFound:
-            logger.info(
-                "Creating new collection",
-                user_id=(
-                    str(collection_data.user_id) if collection_data.user_id else None
-                ),
-                school_id=(
-                    str(collection_data.school_id)
-                    if collection_data.school_id
-                    else None
-                ),
-                name=collection_data.name,
-                num_items=len(collection_data.items or []),
-            )
-            collection = self.create(db, obj_in=collection_data, commit=commit)
-            return collection, True
+        """DEPRECATED: Delegates to collection_repository.get_or_create()."""
+        return collection_repository.get_or_create(
+            db=db, collection_data=collection_data, commit=commit
+        )
 
     def update(
         self,
@@ -112,71 +68,15 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ) -> Collection:
-        item_changes = getattr(obj_in, "items", [])
-        if item_changes is None:
-            item_changes = []
-
-        if hasattr(obj_in, "items"):
-            del obj_in.items
-        logger.debug("Updating the base collection object")
-        collection_orm_object = super().update(
-            db=db, db_obj=db_obj, obj_in=obj_in, merge_dicts=merge_dicts, commit=False
+        """DEPRECATED: Delegates to collection_repository.update()."""
+        return collection_repository.update(
+            db=db,
+            db_obj=db_obj,
+            obj_in=obj_in,
+            merge_dicts=merge_dicts,
+            commit=commit,
+            ignore_conflicts=ignore_conflicts,
         )
-        logger.debug("Flushing the collection object")
-        db.flush()
-
-        logger.info(
-            f"Applying {len(item_changes)} item changes",
-            collection_id=str(db_obj.id),
-            collection_name=db_obj.name,
-        )
-        summary_counts = {"added": 0, "removed": 0, "updated": 0}
-
-        # If provided, update the items one by one
-        for change in item_changes:
-            match change.action:
-                case CollectionUpdateType.ADD:
-                    try:
-                        self.add_item_to_collection(
-                            db=db,
-                            collection_orm_object=collection_orm_object,
-                            item=change,
-                            commit=False,
-                            ignore_conflicts=ignore_conflicts,
-                        )
-                        summary_counts["added"] += 1
-                    except IntegrityError as e:
-                        raise e
-                case CollectionUpdateType.UPDATE:
-                    self._update_item_in_collection(
-                        db=db,
-                        collection_id=collection_orm_object.id,
-                        item_update=change,
-                        commit=False,
-                    )
-                    summary_counts["updated"] += 1
-                case CollectionUpdateType.REMOVE:
-                    self._remove_item_from_collection(
-                        db=db,
-                        collection_orm_object=collection_orm_object,
-                        item_to_remove=change,
-                        commit=False,
-                    )
-                    summary_counts["removed"] += 1
-        logger.debug("Processed all collection items")
-        collection_orm_object.updated_at = text("DEFAULT")
-        logger.debug("Flushing changes to DB")
-
-        db.flush()
-        if commit:
-            logger.debug(
-                "Committing changes",
-                collection_id=str(db_obj.id),
-                collection_name=db_obj.name,
-            )
-            db.commit()
-
-        return collection_orm_object
 
     def delete_all_items(
         self,
@@ -185,15 +85,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         db_obj: Collection,
         commit: bool = True,
     ) -> Collection:
-        db.execute(
-            delete(CollectionItem).where(CollectionItem.collection_id == db_obj.id)
+        """DEPRECATED: Delegates to collection_repository.delete_all_items()."""
+        return collection_repository.delete_all_items(
+            db=db, db_obj=db_obj, commit=commit
         )
-
-        if commit:
-            db.commit()
-            db.refresh(db_obj)
-
-        return db_obj
 
     def _update_item_in_collection(
         self,
@@ -203,64 +98,10 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         item_update: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
-        # In the main flow issues an uncommitted update statement to postgresql
-        # https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-queryguide-update-delete-where
-        update_query = update(CollectionItem).where(
-            CollectionItem.collection_id == collection_id
+        """DEPRECATED: Delegates to collection_repository._update_item_in_collection()."""
+        return collection_repository._update_item_in_collection(
+            db=db, collection_id=collection_id, item_update=item_update, commit=commit
         )
-        select_query = select(CollectionItem).where(
-            CollectionItem.collection_id == collection_id
-        )
-        if item_update.id is not None:
-            update_query = update_query.where(CollectionItem.id == item_update.id)
-            select_query = select_query.where(CollectionItem.id == item_update.id)
-        else:
-            update_query = update_query.where(
-                CollectionItem.edition_isbn == item_update.edition_isbn
-            )
-            select_query = select_query.where(
-                CollectionItem.edition_isbn == item_update.edition_isbn
-            )
-
-        if item_update.info is not None:
-            logger.debug("Updating info for collection item")
-            item_orm_object = db.scalar(select_query)
-            if item_orm_object is None:
-                logger.warning("Skipping update of info for missing item in collection")
-                return
-            info_dict = dict(item_orm_object.info)
-            info_update_dict = item_update.info.model_dump(exclude_unset=True)
-
-            if image_data := info_update_dict.get("cover_image"):
-                logger.debug(
-                    "Updating cover image for collection item",
-                    collection_item_id=item_orm_object.id,
-                )
-                if is_url(image_data):
-                    info_update_dict["cover_image"] = image_data
-                else:
-                    info_update_dict["cover_image"] = (
-                        handle_collection_item_cover_image_update(
-                            item_orm_object,
-                            image_data,
-                        )
-                    )
-
-            deep_merge_dicts(info_dict, info_update_dict)
-            item_orm_object.info = info_dict
-
-        update_data = {}
-        if item_update.copies_available:
-            update_data["copies_available"] = item_update.copies_available
-
-        if item_update.copies_total:
-            update_data["copies_total"] = item_update.copies_total
-
-        db.execute(update_query.values(update_data))
-
-        if commit:
-            logger.debug("Committing item update")
-            db.commit()
 
     def _remove_item_from_collection(
         self,
@@ -270,22 +111,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         item_to_remove: CollectionItemUpdate | CollectionItemCreateIn,
         commit: bool = True,
     ):
-        base_query = delete(CollectionItem).where(
-            CollectionItem.collection_id == collection_orm_object.id
+        """DEPRECATED: Delegates to collection_repository._remove_item_from_collection()."""
+        return collection_repository._remove_item_from_collection(
+            db=db,
+            collection_orm_object=collection_orm_object,
+            item_to_remove=item_to_remove,
+            commit=commit,
         )
-        if item_to_remove.id is not None:
-            # Prefer the case where the item id is provided instead of the isbn
-            query = base_query.where(CollectionItem.id == item_to_remove.id)
-        else:
-            query = base_query.where(
-                CollectionItem.edition_isbn == item_to_remove.edition_isbn
-            )
-
-        db.execute(query)
-
-        if commit:
-            db.commit()
-            db.refresh(collection_orm_object)
 
     def add_items_to_collection(
         self,
@@ -295,39 +127,13 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         items: list[CollectionItemUpdate | CollectionItemCreateIn],
         commit: bool = True,
     ):
-        item_data = [
-            {
-                "collection_id": collection_orm_object.id,
-                "edition_isbn": item.edition_isbn,
-                "copies_available": item.copies_available or 1,
-                "copies_total": item.copies_total or 1,
-                "info": (
-                    item.info.model_dump(mode="json", exclude_unset=True)
-                    if item.info is not None
-                    else {}
-                ),
-            }
-            for item in items
-        ]
-        # We could do a COPY here if we only want to create items, this updates any existing items:
-        stmt = pg_upsert(CollectionItem)
-        stmt = stmt.on_conflict_do_update(
-            constraint="unique_editions_per_collection",
-            set_={
-                "copies_available": stmt.excluded.copies_available,
-                "copies_total": stmt.excluded.copies_total,
-                "info": CollectionItem.info.concat(stmt.excluded.info),
-            },
+        """DEPRECATED: Delegates to collection_repository.add_items_to_collection()."""
+        return collection_repository.add_items_to_collection(
+            db=db,
+            collection_orm_object=collection_orm_object,
+            items=items,
+            commit=commit,
         )
-
-        try:
-            db.execute(stmt, item_data)
-        except IntegrityError as e:
-            logger.warning("Integrity Error while replacing collection")
-            raise e
-
-        if commit:
-            db.commit()
 
     def add_item_to_collection(
         self,
@@ -338,133 +144,46 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         commit: bool = True,
         ignore_conflicts: bool = False,
     ):
-        isbn = item.edition_isbn
-        if isbn is not None:
-            try:
-                edition = crud.edition.get_or_create_unhydrated(
-                    db=db, isbn=isbn, commit=True
-                )
-                isbn = edition.isbn
-            except AssertionError:
-                # Invalid isbn, just skip
-                logger.warning("Skipping invalid isbn", isbn=isbn)
-                return
-
-        info_dict = {}
-        if item.info is not None:
-            info_dict = item.info.model_dump(exclude_unset=True)
-
-            if cover_image_data := info_dict.get("cover_image"):
-                logger.debug("Processing cover image for new collection item")
-                if is_url(cover_image_data):
-                    info_dict["cover_image"] = cover_image_data
-                else:
-                    info_dict["cover_image"] = handle_new_collection_item_cover_image(
-                        str(collection_orm_object.id),
-                        isbn,
-                        info_dict["cover_image"],
-                    )
-
-        new_orm_item_data = dict(
-            collection_id=str(collection_orm_object.id),
-            edition_isbn=isbn,
-            copies_available=item.copies_available or 1,
-            copies_total=item.copies_total or 1,
-            info=info_dict,
+        """DEPRECATED: Delegates to collection_repository.add_item_to_collection()."""
+        return collection_repository.add_item_to_collection(
+            db=db,
+            collection_orm_object=collection_orm_object,
+            item=item,
+            commit=commit,
+            ignore_conflicts=ignore_conflicts,
         )
-
-        # Supposed to be adding new items, but if the item exists
-        # we just update it.
-        stmt = (
-            pg_upsert(CollectionItem).on_conflict_do_update(
-                constraint="unique_editions_per_collection",
-                set_=new_orm_item_data,
-            )
-            if ignore_conflicts
-            else pg_upsert(CollectionItem)
-        )
-
-        try:
-            result = db.execute(
-                stmt.returning(CollectionItem.id),
-                [new_orm_item_data],
-            )
-            new_id = result.scalar()
-
-        except IntegrityError as e:
-            raise IntegrityError(
-                statement=f"Isbn {isbn} already exists in collection",
-                params={},
-                orig=e,
-            ) from None
-
-        if not isbn and collection_orm_object.school is not None:
-            logger.warning(
-                f"Item with no isbn added to a school collection #{collection_orm_object.id}"
-            )
-            crud.event.create(
-                session=db,
-                level="warning",
-                title="Unknown Book added to Collection",
-                description=f"Book with no isbn added to collection #{collection_orm_object.id}",
-                info={
-                    "collection_id": str(collection_orm_object.id),
-                    "title": item.info.title if item.info else None,
-                    "author": item.info.author if item.info else None,
-                    "item_id": str(new_id),
-                },
-                school=collection_orm_object.school,
-                account=collection_orm_object.user,
-                commit=False,
-            )
-
-        if commit:
-            db.commit()
-
-        # return db.get(CollectionItem, new_id)
-        return new_id
 
     def get_collection_items_by_collection_id(
         self, db: Session, *, collection_id: UUID
     ):
-        return (
-            db.execute(
-                select(CollectionItem).where(
-                    CollectionItem.collection_id == collection_id
-                )
-            )
-            .scalars()
-            .all()
+        """DEPRECATED: Delegates to collection_repository.get_collection_items_by_collection_id()."""
+        return collection_repository.get_collection_items_by_collection_id(
+            db=db, collection_id=collection_id
         )
 
     def get_collection_item_by_collection_id_and_isbn(
         self, db: Session, *, collection_id: UUID, isbn: str
     ):
-        return db.execute(
-            select(CollectionItem)
-            .where(CollectionItem.collection_id == collection_id.id)
-            .where(CollectionItem.edition_isbn == get_definitive_isbn(isbn))
-        ).scalar_one_or_none()
+        """DEPRECATED: Delegates to collection_repository.get_collection_item_by_collection_id_and_isbn()."""
+        return collection_repository.get_collection_item_by_collection_id_and_isbn(
+            db=db, collection_id=collection_id, isbn=isbn
+        )
 
     def get_collection_item(
         self, db: Session, *, collection_item_id: int
     ) -> CollectionItem:
-        return db.execute(
-            select(CollectionItem).where(CollectionItem.id == collection_item_id)
-        ).scalar_one_or_none()
+        """DEPRECATED: Delegates to collection_repository.get_collection_item()."""
+        return collection_repository.get_collection_item(
+            db=db, collection_item_id=collection_item_id
+        )
 
     def get_collection_item_or_404(
         self, db: Session, *, collection_item_id: int
     ) -> CollectionItem:
-        try:
-            return db.execute(
-                select(CollectionItem).where(CollectionItem.id == collection_item_id)
-            ).scalar_one()
-        except NoResultFound:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Collection Item with id {collection_item_id} not found.",
-            )
+        """DEPRECATED: Delegates to collection_repository.get_collection_item_or_404()."""
+        return collection_repository.get_collection_item_or_404(
+            db=db, collection_item_id=collection_item_id
+        )
 
     def get_filtered_with_count(
         self,
@@ -476,91 +195,16 @@ class CRUDCollection(CRUDBase[Collection, Any, Any]):
         skip: int = 0,
         limit: int = 1000,
     ):
-        statement = (
-            select(CollectionItem)
-            .join(
-                CollectionItem.edition, isouter=True
-            )  # Explicit join for sorting - it would be a joined load anyway, but now we can filter with it
-            .join(Edition.work, isouter=True)
-            .options(
-                contains_eager(CollectionItem.edition).lazyload(Edition.illustrators),
-                contains_eager(CollectionItem.edition).lazyload(Edition.collections),
-                contains_eager(CollectionItem.edition).defer(Edition.collection_count),
-                contains_eager(CollectionItem.edition)
-                .contains_eager(Edition.work)
-                .raiseload(Work.labelset),
-                contains_eager(CollectionItem.edition)
-                .contains_eager(Edition.work)
-                .raiseload(Work.booklists),
-                contains_eager(CollectionItem.edition)
-                .contains_eager(Edition.work)
-                .raiseload(Work.series),
-                contains_eager(CollectionItem.edition)
-                .contains_eager(Edition.work)
-                .selectinload(Work.authors)
-                .raiseload(Author.books),
-                raiseload(CollectionItem.collection),
-                raiseload(CollectionItem.activity_log),
-            )
-            .where(CollectionItem.collection_id == collection_id)
-            .order_by(asc(Edition.title))
+        """DEPRECATED: Delegates to collection_repository.get_filtered_with_count()."""
+        return collection_repository.get_filtered_with_count(
+            db=db,
+            collection_id=collection_id,
+            query_string=query_string,
+            reader_id=reader_id,
+            read_status=read_status,
+            skip=skip,
+            limit=limit,
         )
-
-        if query_string is not None:
-            statement = statement.where(Edition.title.match(query_string))
-
-        if reader_id is not None or read_status is not None:
-            statement = statement.join(CollectionItemActivity)
-
-            if reader_id is not None:
-                # filters for items that have been interacted with by a specific reader
-                statement = statement.where(
-                    CollectionItemActivity.reader_id == reader_id
-                )
-
-            if read_status is not None:
-                # We need to join on the most recent activity for each item
-                # (as this is effectively the "active" status)
-                most_recent_timestamps = (
-                    select(
-                        CollectionItemActivity.collection_item_id,
-                        CollectionItemActivity.reader_id,
-                        func.max(CollectionItemActivity.timestamp).label(
-                            "most_recent_timestamp"
-                        ),
-                    )
-                    .group_by(
-                        CollectionItemActivity.collection_item_id,
-                        CollectionItemActivity.reader_id,
-                    )
-                    .alias("most_recent_timestamps")
-                )
-
-                statement = (
-                    statement.where(
-                        CollectionItem.id == CollectionItemActivity.collection_item_id
-                    )
-                    .where(
-                        most_recent_timestamps.c.most_recent_timestamp
-                        == CollectionItemActivity.timestamp
-                    )
-                    .where(
-                        CollectionItemActivity.reader_id
-                        == most_recent_timestamps.c.reader_id
-                    )
-                    .where(CollectionItemActivity.status == read_status)
-                )
-
-        # Note we can't use self.count_query here because the self.model is a Collection not a CollectionItem
-
-        cte = statement.cte()
-        aliased_model = aliased(CollectionItem, cte)
-        count_query = select(func.count(aliased_model.id))
-        matching_count = db.scalar(count_query)
-
-        paginated_items_query = self.apply_pagination(statement, skip=skip, limit=limit)
-
-        return matching_count, db.scalars(paginated_items_query).all()
 
 
 collection = CRUDCollection(Collection)

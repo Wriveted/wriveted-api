@@ -14,8 +14,8 @@ from structlog import get_logger
 from app.models.cms import ConversationSession, FlowNode, NodeType
 from app.services.cel_evaluator import evaluate_cel_expression
 from app.services.circuit_breaker import get_circuit_breaker
-from app.services.variable_resolver import VariableResolver
 from app.services.node_input_validation import validate_node_input
+from app.services.variable_resolver import VariableResolver
 
 logger = get_logger()
 
@@ -41,7 +41,7 @@ class ConditionNodeProcessor:
     ) -> Dict[str, Any]:
         """
         Process a condition node by evaluating conditions against session state.
-        
+
         Enhanced with rigorous input validation to prevent runtime errors.
 
         Args:
@@ -55,20 +55,22 @@ class ConditionNodeProcessor:
         """
         try:
             node_content = node.content or {}
-            
+
             # Validate condition node content before processing
             validation_report = validate_node_input(
                 node_id=node.node_id,
                 node_type=NodeType.CONDITION,
-                node_content=node_content
+                node_content=node_content,
             )
-            
+
             if not validation_report.is_valid:
                 error_messages = [r.message for r in validation_report.errors]
-                logger.error("Condition node validation failed", 
-                            node_id=node.node_id,
-                            session_id=session.id,
-                            errors=error_messages)
+                logger.error(
+                    "Condition node validation failed",
+                    node_id=node.node_id,
+                    session_id=session.id,
+                    errors=error_messages,
+                )
                 return {
                     "type": "condition",
                     "condition_result": False,
@@ -76,14 +78,16 @@ class ConditionNodeProcessor:
                     "error": f"Node validation failed: {'; '.join(error_messages)}",
                     "node_id": node.node_id,
                 }
-            
+
             # Log validation warnings but continue processing
             for warning in validation_report.warnings:
-                logger.warning("Condition node validation warning", 
-                              node_id=node.node_id,
-                              session_id=session.id,
-                              warning=warning.message)
-            
+                logger.warning(
+                    "Condition node validation warning",
+                    node_id=node.node_id,
+                    session_id=session.id,
+                    warning=warning.message,
+                )
+
             conditions = node_content.get("conditions", [])
             default_path = node_content.get("default_path")
 
@@ -106,7 +110,7 @@ class ConditionNodeProcessor:
 
                     next_node = None
                     if next_connection:
-                        from app.crud.chat_repo import chat_repo
+                        from app.repositories.chat_repository import chat_repo
 
                         next_node = await chat_repo.get_flow_node(
                             db,
@@ -139,7 +143,7 @@ class ConditionNodeProcessor:
 
             next_node = None
             if next_connection:
-                from app.crud.chat_repo import chat_repo
+                from app.repositories.chat_repository import chat_repo
 
                 next_node = await chat_repo.get_flow_node(
                     db, flow_id=node.flow_id, node_id=next_connection.target_node_id
@@ -185,8 +189,8 @@ class ConditionNodeProcessor:
         connection_type=None,
     ):
         """Get the next connection from current node."""
-        from app.crud.chat_repo import chat_repo
         from app.models.cms import ConnectionType as CT
+        from app.repositories.chat_repository import chat_repo
 
         if connection_type is None:
             connection_type = CT.DEFAULT
@@ -1013,3 +1017,213 @@ class CompositeNodeProcessor:
             return value
         except (KeyError, TypeError, AttributeError):
             return None
+
+
+class ScriptNodeProcessor:
+    """
+    Processes SCRIPT nodes for frontend JavaScript/TypeScript execution.
+
+    SCRIPT nodes are designed for client-side execution in the chat widget.
+    The backend validates the script configuration but does NOT execute the code.
+    Actual execution happens in the browser sandbox.
+    """
+
+    def __init__(self, runtime):
+        self.runtime = runtime
+        self.logger = logger
+
+    async def process(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        session: ConversationSession,
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Process a script node by validating configuration and preparing for frontend execution.
+
+        This is a PLACEHOLDER implementation. The backend validates the script configuration
+        but does not execute the code. Actual script execution will happen in the chat widget.
+
+        Args:
+            db: Database session
+            node: FlowNode with script configuration
+            session: Current conversation session
+            context: Additional context data
+
+        Returns:
+            Dict with script metadata and execution instructions for frontend
+        """
+        try:
+            node_content = node.content or {}
+
+            # Validate script node content before processing
+            validation_report = validate_node_input(
+                node_id=node.node_id,
+                node_type=NodeType.SCRIPT,
+                node_content=node_content,
+            )
+
+            if not validation_report.is_valid:
+                error_messages = [r.message for r in validation_report.errors]
+                logger.error(
+                    "Script node validation failed",
+                    node_id=node.node_id,
+                    session_id=session.id,
+                    errors=error_messages,
+                )
+                return {
+                    "type": "script",
+                    "error": f"Node validation failed: {'; '.join(error_messages)}",
+                    "validation_errors": error_messages,
+                    "node_id": node.node_id,
+                }
+
+            # Log validation warnings but continue processing
+            for warning in validation_report.warnings:
+                logger.warning(
+                    "Script node validation warning",
+                    node_id=node.node_id,
+                    session_id=session.id,
+                    warning=warning.message,
+                )
+
+            # Extract script configuration
+            code = node_content.get("code", "")
+            language = node_content.get("language", "javascript")
+            sandbox = node_content.get("sandbox", "strict")
+            inputs = node_content.get("inputs", {})
+            outputs = node_content.get("outputs", [])
+            dependencies = node_content.get("dependencies", [])
+            timeout = node_content.get("timeout", 5000)
+            description = node_content.get("description", "")
+
+            # Resolve input values from session state
+            resolved_inputs = {}
+            if inputs:
+                from app.services.variable_resolver import create_session_resolver
+
+                resolver = create_session_resolver(session.state)
+
+                for input_name, input_path in inputs.items():
+                    try:
+                        # Check if input_path is a direct reference without dot notation
+                        if "." not in input_path and input_path in session.state:
+                            resolved_value = session.state[input_path]
+                        else:
+                            resolved_value = resolver.substitute_variables(
+                                f"{{{{{input_path}}}}}"
+                            )
+                            # Try to parse as JSON if it's a string
+                            if isinstance(resolved_value, str):
+                                try:
+                                    if resolved_value.startswith(("{", "[")):
+                                        resolved_value = json.loads(resolved_value)
+                                except json.JSONDecodeError:
+                                    pass
+
+                        resolved_inputs[input_name] = resolved_value
+
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to resolve script input",
+                            node_id=node.node_id,
+                            session_id=session.id,
+                            input_name=input_name,
+                            input_path=input_path,
+                            error=str(e),
+                        )
+                        resolved_inputs[input_name] = None
+
+            # Log that this is a placeholder
+            logger.info(
+                "Script node processed - execution will occur on frontend",
+                node_id=node.node_id,
+                session_id=session.id,
+                language=language,
+                sandbox=sandbox,
+                timeout=timeout,
+                has_dependencies=bool(dependencies),
+                input_count=len(resolved_inputs),
+                output_count=len(outputs),
+            )
+
+            logger.warning(
+                "PLACEHOLDER: Script execution not implemented in backend - "
+                "this will be handled by the chat widget frontend",
+                node_id=node.node_id,
+                session_id=session.id,
+            )
+
+            # Get next node
+            next_connection = await self._get_next_connection(db, node)
+            next_node = None
+
+            if next_connection:
+                from app.repositories.chat_repository import chat_repo
+
+                next_node = await chat_repo.get_flow_node(
+                    db, flow_id=node.flow_id, node_id=next_connection.target_node_id
+                )
+
+            # Return script configuration for frontend execution
+            return {
+                "type": "script",
+                "execution_context": "frontend",
+                "script_config": {
+                    "code": code,
+                    "language": language,
+                    "sandbox": sandbox,
+                    "inputs": resolved_inputs,
+                    "outputs": outputs,
+                    "dependencies": dependencies,
+                    "timeout": timeout,
+                    "description": description,
+                },
+                "node_id": node.node_id,
+                "next_node": next_node,
+                "placeholder_note": "Script execution will occur in the chat widget frontend",
+            }
+
+        except Exception as e:
+            logger.error(
+                "Error processing script node",
+                session_id=session.id,
+                node_id=node.node_id,
+                error=str(e),
+                exc_info=True,
+            )
+            return {
+                "type": "error",
+                "error": f"Failed to process script node: {str(e)}",
+            }
+
+    async def _get_next_connection(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        connection_type=None,
+    ):
+        """Get the next connection from current node."""
+        from app.models.cms import ConnectionType as CT
+        from app.repositories.chat_repository import chat_repo
+
+        if connection_type is None:
+            connection_type = CT.DEFAULT
+
+        connections = await chat_repo.get_node_connections(
+            db, flow_id=node.flow_id, source_node_id=node.node_id
+        )
+
+        # Try to find specific connection type
+        for conn in connections:
+            if conn.connection_type == connection_type:
+                return conn
+
+        # Fall back to default if not found
+        if connection_type != CT.DEFAULT:
+            for conn in connections:
+                if conn.connection_type == CT.DEFAULT:
+                    return conn
+
+        return None

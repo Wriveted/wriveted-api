@@ -31,7 +31,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                 response.set_cookie(
                     "csrf_token",
                     csrf_token,
-                    httponly=True,
+                    httponly=False,  # Must be readable by JavaScript for double-submit pattern
                     samesite="strict",
                     secure=True,  # Requires HTTPS in production
                     max_age=3600 * 24,  # 24 hours

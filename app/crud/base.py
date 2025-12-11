@@ -11,6 +11,7 @@ from sqlalchemy.orm import Query, Session, aliased
 from structlog import get_logger
 
 from app.db import Base
+from app.utils.dict_utils import deep_merge_dicts  # noqa: F401
 
 logger = get_logger()
 T = TypeVar("T")
@@ -260,19 +261,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.commit()
 
 
-def deep_merge_dicts(original, incoming):
-    """
-    Thanks Vikas https://stackoverflow.com/a/50773244
-    Deep merge two dictionaries. Modifies original.
-    """
-    for key in incoming:
-        if key in original:
-            if isinstance(original[key], dict) and isinstance(incoming[key], dict):
-                deep_merge_dicts(original[key], incoming[key])
-            else:
-                original[key] = incoming[key]
-        else:
-            original[key] = incoming[key]
+# deep_merge_dicts has been moved to app.utils.dict_utils
+# Re-exported here for backward compatibility
+# Import is at the top of the file
 
 
 def compare_dicts(dict1, dict2):

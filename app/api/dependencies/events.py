@@ -9,13 +9,14 @@ from app.db.session import get_session
 from app.models.supporter_reader_association import SupporterReaderAssociation
 from app.models.user import User
 from app.permissions import Permission
+from app.repositories.event_repository import event_repository
 
 
 def get_event_by_id(
     event_id: str = Path(..., description="UUID string representing a unique event"),
     session: Session = Depends(get_session),
 ):
-    return crud.event.get_or_404(db=session, id=event_id)
+    return event_repository.get_or_404(db=session, id=event_id)
 
 
 def get_and_validate_reading_log_event_by_id(
@@ -46,7 +47,7 @@ def get_and_validate_reading_log_event_by_id(
         )
 
     # check if feedback for the event has already been submitted by this supporter
-    if crud.event.get_all_with_optional_filters(
+    if event_repository.get_all_with_optional_filters(
         session,
         query_string="Supporter encouragement: Reading feedback sent",
         user=supporter,

@@ -22,6 +22,9 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import EventLevel, Parent, SchoolState, ServiceAccount, Student, User
 from app.models.user import UserAccountType
+from app.repositories.class_group_repository import class_group_repository
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
 from app.schemas.auth import AccountType, AuthenticatedAccountBrief
 from app.schemas.users.educator import EducatorDetail
 from app.schemas.users.parent import ParentDetail
@@ -133,7 +136,7 @@ def secure_user_endpoint(
             )
 
     if was_created:
-        crud.event.create(
+        event_repository.create(
             session=session,
             title="User account created",
             description="",
@@ -141,7 +144,7 @@ def secure_user_endpoint(
             commit=False,
         )
     else:
-        crud.event.create(
+        event_repository.create(
             session=session,
             title="User logged in",
             description="",
@@ -165,6 +168,7 @@ def secure_user_endpoint(
     user.last_login_at = datetime.utcnow()
     session.add(user)
     session.commit()
+    session.refresh(user)  # Refresh the user object after commit
 
     wriveted_access_token = create_user_access_token(user)
 
@@ -209,7 +213,9 @@ def student_user_auth(
     logger.debug("Processing student login request")
 
     # Get the class by joining code or 401
-    class_group = crud.class_group.get_by_class_code(session, data.class_joining_code)
+    class_group = class_group_repository.get_by_class_code(
+        session, data.class_joining_code
+    )
     if class_group is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -244,7 +250,7 @@ def student_user_auth(
         )
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="User logged in",
         description="Student logged in",
@@ -283,12 +289,12 @@ def create_student_user(
     Note this API always creates a new user, to log in to an existing account see `/auth/class-code`
     """
 
-    school = crud.school.get_by_wriveted_id_or_404(
+    school = school_repository.get_by_wriveted_id_or_404(
         db=session, wriveted_id=str(data.school_id)
     )
 
     # Check the class joining code belongs to this school
-    class_group = crud.class_group.get_by_class_code(
+    class_group = class_group_repository.get_by_class_code(
         db=session, code=data.class_joining_code
     )
     if class_group.school_id != data.school_id:
@@ -313,7 +319,7 @@ def create_student_user(
     )
     session.add(new_user)
 
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="Student account created",
         description=f"User type: {new_user.type}",
@@ -383,3 +389,109 @@ def get_current_user(
         )
     else:
         raise NotImplementedError("Hmm")
+
+
+class E2ETestAuthRequest(BaseModel):
+    """Request for E2E test authentication."""
+
+    secret: str
+    email: str
+    user_type: UserAccountType = UserAccountType.WRIVETED
+    school_id: int | None = None
+
+
+@router.post(
+    "/auth/e2e-test",
+    response_model=Token,
+    responses={
+        401: {"description": "E2E test auth not enabled or invalid secret"},
+        422: {"description": "Invalid data"},
+    },
+    include_in_schema=False,
+)
+def e2e_test_auth(
+    request: E2ETestAuthRequest,
+    session: Session = Depends(get_session),
+):
+    """
+    Generate an auth token for E2E testing without Firebase authentication.
+
+    This endpoint is only available when E2E_TEST_AUTH_SECRET is configured.
+    It creates or retrieves a test user and returns a valid JWT token.
+
+    SECURITY: This endpoint should NEVER be enabled in production.
+    """
+    if not config.E2E_TEST_AUTH_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E2E test authentication is not enabled",
+        )
+
+    if request.secret != config.E2E_TEST_AUTH_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid E2E test auth secret",
+        )
+
+    logger.warning(
+        "E2E test auth endpoint used - should only be enabled in test environments",
+        email=request.email,
+    )
+
+    # Handle school-based user types (EDUCATOR, SCHOOL_ADMIN)
+    school_id = request.school_id
+    if request.user_type in (UserAccountType.EDUCATOR, UserAccountType.SCHOOL_ADMIN):
+        if school_id is None:
+            # Get or create a test school for E2E testing
+            from sqlalchemy import select
+
+            from app.models import School
+
+            test_school = session.execute(
+                select(School).where(School.name == "E2E Test School")
+            ).scalar_one_or_none()
+            if test_school is None:
+                test_school = School(
+                    name="E2E Test School",
+                    country_code="NZL",
+                    state=SchoolState.ACTIVE,
+                    info={
+                        "location": {
+                            "suburb": "Test",
+                            "state": "Test",
+                            "postcode": "0000",
+                        }
+                    },
+                )
+                session.add(test_school)
+                session.commit()
+                session.refresh(test_school)
+                logger.info("Created E2E test school", school_id=test_school.id)
+            school_id = test_school.id
+
+    user_data = UserCreateIn(
+        name=f"E2E Test User ({request.email})",
+        email=request.email,
+        type=request.user_type,
+        school_id=school_id,
+        info=UserInfo(
+            sign_in_provider="e2e_test",
+            picture=None,
+        ),
+    )
+    user, was_created = crud.user.get_or_create(session, user_data)
+
+    if was_created:
+        logger.info("Created E2E test user", user_id=user.id, email=request.email)
+
+    if not user.is_active:
+        user.is_active = True
+        session.add(user)
+        session.commit()
+
+    wriveted_access_token = create_user_access_token(user)
+
+    return {
+        "access_token": wriveted_access_token,
+        "token_type": "bearer",
+    }

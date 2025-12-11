@@ -10,6 +10,8 @@ from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings
 from app.models import EventLevel, School
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
 from app.schemas.labelset import LabelSetDetail
 from app.schemas.recommendations import (
     HueyBook,
@@ -43,7 +45,7 @@ async def get_recommendations(
     logger.debug("Recommendation endpoint called", parameters=data)
 
     if data.wriveted_identifier is not None:
-        school = await crud.school.aget_by_wriveted_id_or_404(
+        school = await school_repository.aget_by_wriveted_id_or_404(
             db=asession, wriveted_id=data.wriveted_identifier
         )
         # TODO check account is allowed to `read` school
@@ -189,7 +191,7 @@ async def get_recommendations_with_fallback(
         # inserting into postgreSQL, which BaseModel.dict() doesn't do
         event_recommendation_data = [json.loads(b.json()) for b in filtered_books[:10]]
 
-        await crud.event.acreate(
+        await event_repository.acreate(
             asession,
             title="Made a recommendation",
             description=f"Made a recommendation of {len(filtered_books)} books",
@@ -203,7 +205,7 @@ async def get_recommendations_with_fallback(
         )
     else:
         if len(row_results) == 0:
-            await crud.event.acreate(
+            await event_repository.acreate(
                 asession,
                 title="No books",
                 description="No books met the criteria for recommendation",
@@ -230,7 +232,7 @@ async def get_recommended_editions_and_labelsets(
 ):
     collection_id = None
     if school_id is not None:
-        school = await crud.school.aget(asession, id=school_id)
+        school = await school_repository.aget(asession, id=school_id)
         logger.debug("Recommendation request for school", school=school)
         if school.collection is not None:
             collection_id = school.collection.id

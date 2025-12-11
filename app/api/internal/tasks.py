@@ -8,12 +8,12 @@ from pydantic import BaseModel
 from structlog import get_logger
 
 from app.api.dependencies.async_db_dep import DBSessionDep
-from app.crud.chat_repo import chat_repo
+from app.repositories.chat_repository import chat_repo
 from app.services.node_processor_core import node_processor_core
 from app.services.task_handler_decorator import (
-    idempotent_task_handler,
     build_action_result_data,
     build_webhook_result_data,
+    idempotent_task_handler,
 )
 
 logger = get_logger()
@@ -48,7 +48,7 @@ async def _action_core_logic(
     x_idempotency_key: str,
 ) -> Dict[str, Any]:
     """Core business logic for action node processing."""
-    
+
     # Use shared core logic instead of duplicated implementation
     if payload.action_type == "composite":
         # Multiple actions
@@ -58,14 +58,11 @@ async def _action_core_logic(
         )
     else:
         # Single action
-        action = {
-            "type": payload.action_type,
-            "params": payload.params
-        }
+        action = {"type": payload.action_type, "params": payload.params}
         await node_processor_core.execute_action_operations(
             session, current_session, [action]
         )
-    
+
     return {
         "idempotency_key": x_idempotency_key,
         "action_type": payload.action_type,
@@ -97,12 +94,12 @@ async def _webhook_core_logic(
     x_idempotency_key: str,
 ) -> Dict[str, Any]:
     """Core business logic for webhook node processing."""
-    
+
     # Use shared core logic instead of duplicated implementation
     result = await node_processor_core.execute_webhook_operation(
         session, current_session, payload.webhook_config
     )
-    
+
     return {
         "idempotency_key": x_idempotency_key,
         "webhook_result": result,
@@ -124,5 +121,3 @@ async def process_webhook_node_task(
 ) -> Dict[str, Any]:
     """Process a WEBHOOK node task from Cloud Tasks with database idempotency."""
     pass  # All logic handled by decorator
-
-

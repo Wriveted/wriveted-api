@@ -7,6 +7,8 @@ from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
 )
 from app.db.session import get_session
+from app.repositories.labelset_repository import labelset_repository
+from app.repositories.work_repository import work_repository
 from app.schemas.labelset import LabelSetPatch
 
 logger = get_logger()
@@ -27,14 +29,16 @@ async def bulk_patch_labelsets(
     errors = 0
 
     for patch in patches:
-        work = crud.work.find_by_isbn(session, patch.isbn)
+        work = work_repository.find_by_isbn(session, patch.isbn)
         if not work:
             unknown += 1
             continue
 
         try:
-            labelset = crud.labelset.get_or_create(session, work, False)
-            labelset = crud.labelset.patch(session, labelset, patch.patch_data, False)
+            labelset = labelset_repository.get_or_create(session, work, False)
+            labelset = labelset_repository.patch(
+                session, labelset, patch.patch_data, False
+            )
 
             # TODO: add to Huey's Picks booklist
             # if patch.huey_pick:

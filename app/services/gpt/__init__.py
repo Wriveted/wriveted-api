@@ -12,6 +12,7 @@ from app import crud
 from app.config import get_settings
 from app.models.labelset import LabelOrigin
 from app.models.work import Work
+from app.repositories.service_account_repository import service_account_repository
 from app.schemas.gpt import (
     GptLabelResponse,
     GptPromptResponse,
@@ -271,7 +272,7 @@ async def label_and_update_work(work: Work, session):
     labelset_update = work_to_gpt_labelset_update(work)
     changes = WorkUpdateIn(labelset=labelset_update)
 
-    gpt = crud.service_account.get_or_404(
+    gpt = service_account_repository.get_or_404(
         db=session, id=settings.GPT_SERVICE_ACCOUNT_ID
     )
 

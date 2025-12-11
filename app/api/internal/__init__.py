@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -15,6 +16,8 @@ from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.internal.tasks import router as tasks_router
 from app.db.session import get_session
 from app.models.event import EventSlackChannel
+from app.repositories.service_account_repository import service_account_repository
+from app.repositories.work_repository import work_repository
 from app.schemas.feedback import SendEmailPayload, SendSmsPayload
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.services import search
@@ -60,7 +63,7 @@ class ProcessEventPayload(BaseModel):
 def process_event(data: ProcessEventPayload):
     """
     Legacy endpoint for direct event processing.
-    
+
     Note: This endpoint is maintained for backward compatibility but new
     events will be processed via the EventOutbox system for better reliability.
     """
@@ -73,20 +76,17 @@ def process_event(data: ProcessEventPayload):
 async def process_outbox_events(session: DBSessionDep):
     """
     Process pending events from the EventOutbox.
-    
+
     This is the new unified background processor that handles all reliable
     event delivery including Slack alerts, webhooks, and internal processing.
     """
     from app.services.event_outbox_service import EventOutboxService
-    
+
     outbox_service = EventOutboxService()
     stats = await outbox_service.process_pending_events(session)
-    
+
     logger.info("EventOutbox processing completed", stats=stats)
-    return {
-        "msg": "EventOutbox processing completed",
-        "stats": stats
-    }
+    return {"msg": "EventOutbox processing completed", "stats": stats}
 
 
 class EventSlackAlertPayload(BaseModel):
@@ -102,13 +102,15 @@ def event_to_slack_alert(
 ):
     """
     Legacy endpoint for direct Slack alerts.
-    
+
     Note: This endpoint is now deprecated. New code should use the unified
     create_event workflow with slack_channel parameter, which automatically
     queues alerts via the EventOutbox for better reliability.
     """
-    logger.warning("Using deprecated direct Slack alert endpoint. Consider using unified event workflow.", 
-                  event_id=data.event_id)
+    logger.warning(
+        "Using deprecated direct Slack alert endpoint. Consider using unified event workflow.",
+        event_id=data.event_id,
+    )
     handle_event_to_slack_alert(
         session, data.event_id, data.slack_channel, extra=data.slack_extra
     )
@@ -162,7 +164,7 @@ async def handle_generate_labels(
     session: Session = Depends(get_session),
 ):
     logger.info("Internal API generating labels for work", work_id=data.work_id)
-    work = crud.work.get_or_404(db=session, id=data.work_id)
+    work = work_repository.get_or_404(db=session, id=data.work_id)
     try:
         await label_and_update_work(work, session)
         logger.info(
@@ -174,6 +176,28 @@ async def handle_generate_labels(
     return {"msg": "ok"}
 
 
+# Maintenance: Regenerate flow_data snapshots
+class RegenerateFlowsPayload(BaseModel):
+    flow_ids: Optional[List[UUID]] = None
+
+
+@router.post("/flows/regenerate-snapshots")
+async def regenerate_flow_snapshots(
+    session: DBSessionDep,
+    payload: RegenerateFlowsPayload | None = None,
+):
+    """
+    Rebuild `flow_definitions.flow_data` from canonical tables for all (or specified) flows.
+    """
+    from app.services.flow_service import FlowService
+
+    service = FlowService()
+    ids = payload.flow_ids if payload else None
+    stats = await service.regenerate_all_flow_data(session, ids)
+    logger.info("Regenerated flow snapshots", stats=stats)
+    return {"msg": "ok", "stats": stats}
+
+
 @router.post("/send-email")
 def handle_send_email(
     data: SendEmailPayload,
@@ -182,7 +206,7 @@ def handle_send_email(
 ):
     logger.info("Internal API sending emails")
     user_account = crud.user.get(db=session, id=data.user_id)
-    svc_account = crud.service_account.get(db=session, id=data.service_account_id)
+    svc_account = service_account_repository.get(db=session, id=data.service_account_id)
     account = user_account or svc_account
     send_sendgrid_email(data.email_data, session, sg, account=account)
 

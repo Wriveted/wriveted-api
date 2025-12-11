@@ -7,10 +7,13 @@ import requests
 from google.api_core.exceptions import NotFound
 from structlog import get_logger
 
-from app import crud
 from app.config import get_settings
 from app.models.event import EventLevel
 from app.models.work import WorkType
+from app.repositories.author_repository import author_repository
+from app.repositories.edition_repository import edition_repository
+from app.repositories.labelset_repository import labelset_repository
+from app.repositories.work_repository import work_repository
 from app.schemas.author import AuthorCreateIn
 from app.schemas.hydration import HydratedBookData
 from app.schemas.labelset import LabelSetCreateIn
@@ -184,7 +187,7 @@ def save_editions(
     for book_data in hydrated_book_data:
         isbn = book_data.isbn
         # Get the edition (should exist), work (?), and labelset
-        edition = crud.edition.get(session, id=isbn)
+        edition = edition_repository.get(session, id=isbn)
         edition.edition_title = book_data.title
 
         if edition.info is None and book_data.info is not None:
@@ -211,24 +214,26 @@ def save_editions(
                 series_number=book_data.series_number,
             )
             authors = [
-                crud.author.get_or_create(session, AuthorCreateIn.model_validate(a))
+                author_repository.get_or_create(
+                    session, AuthorCreateIn.model_validate(a)
+                )
                 for a in book_data.authors
             ]
 
-            work = crud.work.get_or_create(
+            work = work_repository.get_or_create(
                 session, work_data=work_data_in, authors=authors
             )
             logger.info("Created new work", work_id=work.id)
             edition.work = work
 
-        labelset = crud.labelset.get_or_create(session, work=work)
+        labelset = labelset_repository.get_or_create(session, work=work)
         estimated_labelset = book_data.labelset
         logger.info("Estimated labelset", data=estimated_labelset)
 
         # Update the labelset with the estimated labelset
         labelset_patch = LabelSetCreateIn.model_validate(estimated_labelset)
         logger.info("Patching labelset", labelset_id=labelset.id, data=labelset_patch)
-        labelset = crud.labelset.patch(
+        labelset = labelset_repository.patch(
             session,
             labelset=labelset,
             data=labelset_patch,

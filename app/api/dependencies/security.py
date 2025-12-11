@@ -23,6 +23,7 @@ from app.config import get_settings
 from app.db.session import get_session
 from app.models import ServiceAccount, ServiceAccountType, User
 from app.models.user import UserAccountType
+from app.repositories.service_account_repository import service_account_repository
 from app.services.security import (
     TokenPayload,
     create_access_token,
@@ -126,7 +127,7 @@ def get_optional_service_account(
     aud, access_token_type, identifier = token_data.sub.lower().split(":")
 
     if access_token_type == "service-account":
-        return crud.service_account.get_or_404(db, id=identifier)
+        return service_account_repository.get_or_404(db, id=identifier)
 
     return None
 

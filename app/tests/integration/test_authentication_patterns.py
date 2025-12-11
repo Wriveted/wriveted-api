@@ -34,6 +34,8 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
+    await async_session.rollback()
+
     # Clean up before test runs
     for table in cms_tables:
         try:
@@ -46,6 +48,8 @@ async def cleanup_cms_data(async_session):
     await async_session.commit()
 
     yield
+
+    await async_session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:

@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, select, text, distinct, case, delete
+from sqlalchemy import and_, case, cast, delete, distinct, func, or_, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,7 @@ from app.models.cms import (
     InteractionType,
     SessionStatus,
 )
+from app.schemas.analytics import FlowAnalytics
 from app.schemas.cms import (
     ConnectionCreate,
     ContentCreate,
@@ -36,7 +37,6 @@ from app.schemas.cms import (
     NodeUpdate,
     SessionCreate,
 )
-from app.schemas.analytics import FlowAnalytics
 
 logger = get_logger()
 
@@ -403,26 +403,21 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
             # Extract connections from flow_data and create FlowConnection records
             connections = flow_data.get("connections", [])
             if connections:
-                from app.models.cms import FlowConnection, ConnectionType
+                from app.models.cms import FlowConnection
+                from app.services.flow_utils import token_to_enum
 
                 for conn_data in connections:
                     try:
-                        # Map connection type from flow_data to ConnectionType enum
-                        conn_type_str = conn_data.get("type", "DEFAULT").upper()
-                        if conn_type_str == "DEFAULT":
-                            conn_type = ConnectionType.DEFAULT
-                        elif conn_type_str == "CONDITIONAL":
-                            conn_type = ConnectionType.CONDITIONAL
-                        else:
-                            conn_type = ConnectionType.DEFAULT  # default fallback
+                        # Map connection type via centralized utils
+                        conn_type = token_to_enum(conn_data.get("type"))
 
                         flow_connection = FlowConnection(
                             flow_id=db_obj.id,
                             source_node_id=conn_data.get("source", ""),
                             target_node_id=conn_data.get("target", ""),
                             connection_type=conn_type,
-                            conditions={},
-                            info={},
+                            conditions=conn_data.get("conditions", {}) or {},
+                            info=conn_data.get("info", {}) or {},
                         )
                         db.add(flow_connection)
                     except Exception as e:
@@ -485,10 +480,11 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         """Clone an existing flow with nodes and connections, using eager loading."""
         try:
             # Import the schema we need
-            from app.schemas.cms import FlowCreate
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
+
             from app.models.cms import FlowDefinition
+            from app.schemas.cms import FlowCreate
 
             # Store the source flow ID and safely extract attributes
             source_flow_id = source_flow.id
@@ -540,8 +536,9 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         self, db: AsyncSession, source_flow_id: UUID, target_flow_id: UUID
     ):
         """Helper to clone nodes and connections using raw SQL to avoid async issues."""
-        from sqlalchemy import text
         import json
+
+        from sqlalchemy import text
 
         # Clone nodes using raw SQL INSERT FROM SELECT
         clone_nodes_sql = text("""
@@ -581,7 +578,8 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         Preserves fallback_flow_data when no relational records exist.
         """
         from sqlalchemy import select, update
-        from app.models.cms import FlowNode, FlowConnection, FlowDefinition
+
+        from app.models.cms import FlowConnection, FlowDefinition, FlowNode
 
         # Fetch all nodes for this flow
         nodes_stmt = select(FlowNode).where(FlowNode.flow_id == flow_id)
@@ -1108,6 +1106,7 @@ class CRUDConversationAnalytics(CRUDBase[ConversationAnalytics, Any, Any]):
     ):
         """Get analytics for a specific node in a flow."""
         from datetime import timedelta
+
         from app.schemas.analytics import NodeAnalytics
 
         # Set default date range if not provided

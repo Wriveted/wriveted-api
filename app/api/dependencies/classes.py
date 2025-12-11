@@ -3,9 +3,9 @@ import uuid
 from fastapi import Depends, Path
 from sqlalchemy.orm import Session
 
-from app import crud
 from app.db.session import get_session
 from app.models.class_group import ClassGroup
+from app.repositories.class_group_repository import class_group_repository
 
 
 def get_class_from_id(
@@ -14,7 +14,7 @@ def get_class_from_id(
     ),
     session: Session = Depends(get_session),
 ):
-    return crud.class_group.get_or_404(db=session, id=id)
+    return class_group_repository.get_or_404(db=session, class_group_id=id)
 
 
 def get_school_from_class_id(

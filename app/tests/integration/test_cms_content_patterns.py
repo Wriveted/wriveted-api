@@ -4,9 +4,10 @@ CMS Content Pattern Tests - Comprehensive content creation and validation.
 Extracted from ad-hoc test_cms_content.py and enhanced for integration testing.
 """
 
+from typing import Any, Dict, List
+
 import pytest
 from sqlalchemy import text
-from typing import Dict, List, Any
 
 
 @pytest.fixture(autouse=True)
@@ -23,6 +24,8 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
+    await async_session.rollback()
+
     # Clean up before test runs
     for table in cms_tables:
         try:
@@ -35,6 +38,8 @@ async def cleanup_cms_data(async_session):
     await async_session.commit()
 
     yield
+
+    await async_session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:

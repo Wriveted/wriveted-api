@@ -83,6 +83,8 @@ types-setuptools = "^80.9.0.20250529"
 #langchain-google-vertexai = "^1.0.3"
 #langchain-google-community = "^1.0.3"
 #wikipedia = "^1.4.0"
+playwright = "^1.56.0"
+pytest-playwright = "^0.7.2"
 
 
 

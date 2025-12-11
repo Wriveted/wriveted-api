@@ -25,10 +25,11 @@ from app.api.dependencies.security import (
     get_current_active_user,
     get_optional_authenticated_user,
 )
-from app.crud.chat_repo import chat_repo
+from app.config import get_settings
 from app.crud.cms import CRUDConversationSession
 from app.models import User
 from app.models.cms import SessionStatus
+from app.repositories.chat_repository import chat_repo
 from app.schemas.cms import (
     ConversationHistoryResponse,
     InteractionCreate,
@@ -40,8 +41,7 @@ from app.schemas.cms import (
 )
 from app.schemas.pagination import Pagination
 from app.security.csrf import generate_csrf_token, set_secure_session_cookie
-from app.services.chat_runtime import chat_runtime, FlowNotFoundError
-from app.config import get_settings
+from app.services.chat_runtime import FlowNotFoundError, chat_runtime
 
 logger = get_logger()
 
@@ -58,7 +58,7 @@ async def start_conversation(
     session: DBSessionDep,
     session_data: SessionCreate = Body(...),
     current_user: Optional[User] = Security(get_optional_authenticated_user),
-    settings = Depends(get_settings),
+    settings=Depends(get_settings),
 ):
     """Start a new conversation session."""
 
@@ -104,11 +104,11 @@ async def start_conversation(
         # Set secure session cookie and CSRF token
         csrf_token = generate_csrf_token()
 
-        # Set CSRF token cookie
+        # Set CSRF token cookie (httponly=False required for double-submit pattern)
         response.set_cookie(
             "csrf_token",
             csrf_token,
-            httponly=True,
+            httponly=False,
             samesite="strict",
             secure=not settings.DEBUG,  # Only secure in production (non-debug)
             max_age=3600 * 24,  # 24 hours

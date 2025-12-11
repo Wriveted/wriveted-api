@@ -3,6 +3,7 @@ from starlette import status
 from app import crud
 from app.api.dependencies.security import create_user_access_token
 from app.models import Subscription
+from app.repositories.subscription_repository import subscription_repository
 from app.schemas.users.user_update import UserUpdateIn
 
 
@@ -124,8 +125,12 @@ def test_get_subscribed_parent_user(
     )
 
     subscription_id = "sub_123"
-    if existing_subscription := crud.subscription.get(db=session, id=subscription_id):
-        crud.subscription.remove(db=session, id=existing_subscription.id)
+    if existing_subscription := subscription_repository.get_by_id(
+        db=session, subscription_id=subscription_id
+    ):
+        subscription_repository.delete(
+            db=session, subscription_id=existing_subscription.id
+        )
 
     new_subscription = Subscription(
         id=subscription_id,
@@ -273,8 +278,12 @@ def test_user_create_with_checkout_session_id(
         crud.user.remove(db=session, id=existing_user.id)
 
     subscription_id = "sub_123"
-    if existing_subscription := crud.subscription.get(db=session, id=subscription_id):
-        crud.subscription.remove(db=session, id=existing_subscription.id)
+    if existing_subscription := subscription_repository.get_by_id(
+        db=session, subscription_id=subscription_id
+    ):
+        subscription_repository.delete(
+            db=session, subscription_id=existing_subscription.id
+        )
 
     orphaned_subscription = Subscription(
         id="sub_123",
@@ -327,4 +336,4 @@ def test_user_create_with_checkout_session_id(
     json = response.json()
     assert json["subscription"] is None
 
-    crud.subscription.remove(db=session, id=orphaned_subscription.id)
+    subscription_repository.delete(db=session, subscription_id=orphaned_subscription.id)

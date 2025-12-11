@@ -8,6 +8,7 @@ from structlog import get_logger
 from app import crud
 from app.config import get_settings
 from app.models import Edition
+from app.repositories.edition_repository import edition_repository
 from app.schemas.edition import EditionCreateIn
 
 logger = get_logger()
@@ -17,7 +18,7 @@ settings = get_settings()
 async def compare_known_editions(session, isbn_list: List[str]):
     valid_isbns = clean_isbns(isbn_list)
     known_matches: list[Edition] = (
-        session.execute(crud.edition.get_multi_query(db=session, ids=valid_isbns))
+        session.execute(edition_repository.get_multi_query(db=session, ids=valid_isbns))
         .scalars()
         .all()
     )
@@ -69,14 +70,16 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
         logger.info(
             f"Will have to create {len(new_editions_hydrated)} new hydrated editions"
         )
-        crud.edition.create_in_bulk(session, bulk_edition_data=new_editions_hydrated)
+        edition_repository.create_in_bulk(
+            session, bulk_edition_data=new_editions_hydrated
+        )
         logger.info("Created new hydrated editions")
 
     if len(new_editions_unhydrated) > 0:
         logger.info(
             f"Will have to create {len(new_editions_unhydrated)} new unhydrated editions"
         )
-        await crud.edition.create_in_bulk_unhydrated(
+        await edition_repository.create_in_bulk_unhydrated(
             session, isbn_list=new_editions_unhydrated
         )
         logger.info("Created new unhydrated editions")
@@ -89,7 +92,7 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
 
 
 async def create_missing_editions_unhydrated(session: Session, isbn_list: list[str]):
-    final_primary_keys = await crud.edition.create_in_bulk_unhydrated(
+    final_primary_keys = await edition_repository.create_in_bulk_unhydrated(
         session, isbn_list=isbn_list
     )
     return final_primary_keys

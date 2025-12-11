@@ -28,6 +28,7 @@ from app.models.collection import Collection
 from app.models.edition import Edition
 from app.models.labelset import LabelSet, RecommendStatus
 from app.models.work import Work
+from app.repositories.edition_repository import edition_repository
 from app.schemas.collection import (
     CollectionAndItemsUpdateIn,
     CollectionItemCreateIn,
@@ -157,7 +158,7 @@ async def add_editions_to_collection_by_isbn(
     (
         final_primary_keys,
         num_editions_created,
-    ) = await crud.edition.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
+    ) = await edition_repository.create_in_bulk_unhydrated(session, isbn_list=isbn_list)
 
     if not final_primary_keys:
         raise HTTPException(

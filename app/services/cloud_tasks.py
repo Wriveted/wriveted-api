@@ -8,7 +8,7 @@ from google.cloud import tasks_v2
 from structlog import get_logger
 
 from app.config import get_settings
-from app.crud.chat_repo import chat_repo
+from app.repositories.chat_repository import chat_repo
 
 logger = get_logger()
 settings = get_settings()
