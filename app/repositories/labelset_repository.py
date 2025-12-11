@@ -1,11 +1,16 @@
+"""
+Labelset repository - domain-focused data access for Labelset domain.
+
+Replaces the generic CRUDLabelset class with proper repository pattern.
+"""
+
+from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app.crud import CRUDBase
-from app.crud.base import deep_merge_dicts
 from app.models import LabelSetHue
 from app.models.hue import Hue
 from app.models.labelset import LabelOrigin, LabelSet, RecommendStatus
@@ -13,6 +18,7 @@ from app.models.labelset_hue_association import Ordinal
 from app.models.reading_ability import ReadingAbility
 from app.models.work import Work
 from app.schemas.labelset import LabelSetCreateIn
+from app.utils.dict_utils import deep_merge_dicts
 
 ORIGIN_WEIGHTS = {
     "HUMAN": 5,
@@ -32,25 +38,91 @@ ORIGIN_WEIGHTS = {
 logger = get_logger()
 
 
-class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
+class LabelsetRepository(ABC):
+    """Repository interface for Labelset domain operations."""
+
+    @abstractmethod
+    def get_by_id(self, db: Session, labelset_id: str) -> Optional[LabelSet]:
+        """Get a labelset by its ID."""
+        pass
+
+    @abstractmethod
     def get_hue_by_key(self, db: Session, key: str) -> Optional[Hue]:
+        """Get a hue by its key."""
+        pass
+
+    @abstractmethod
+    def get_reading_ability_by_key(
+        self, db: Session, key: str
+    ) -> Optional[ReadingAbility]:
+        """Get a reading ability by its key."""
+        pass
+
+    @abstractmethod
+    def get_labelset_hues_by_labelset_id(self, db: Session, id: str) -> list[LabelSet]:
+        """Get all hues for a labelset."""
+        pass
+
+    @abstractmethod
+    def get_or_create(self, db: Session, work: Work, commit: bool = True) -> LabelSet:
+        """Get or create a labelset for a work."""
+        pass
+
+    @abstractmethod
+    def patch(
+        self,
+        db: Session,
+        labelset: LabelSet,
+        data: LabelSetCreateIn,
+        commit: bool = True,
+    ) -> LabelSet:
+        """Patch a labelset with authority-based updates."""
+        pass
+
+    @abstractmethod
+    def create(
+        self, db: Session, obj_in: LabelSetCreateIn | dict, commit: bool = True
+    ) -> LabelSet:
+        """Create a labelset."""
+        pass
+
+    @abstractmethod
+    def update(
+        self, db: Session, db_obj: LabelSet, obj_in: Any, commit: bool = True
+    ) -> LabelSet:
+        """Update a labelset."""
+        pass
+
+
+class LabelsetRepositoryImpl(LabelsetRepository):
+    """Implementation of LabelsetRepository."""
+
+    def get_by_id(self, db: Session, labelset_id: str) -> Optional[LabelSet]:
+        """Get a labelset by its ID."""
+        return db.get(LabelSet, labelset_id)
+
+    def get_hue_by_key(self, db: Session, key: str) -> Optional[Hue]:
+        """Get a hue by its key."""
         return db.execute(select(Hue).where(Hue.key == key)).scalar_one_or_none()
 
     def get_reading_ability_by_key(
         self, db: Session, key: str
     ) -> Optional[ReadingAbility]:
+        """Get a reading ability by its key."""
         return db.execute(
             select(ReadingAbility).where(ReadingAbility.key == key)
         ).scalar_one_or_none()
 
     def get_labelset_hues_by_labelset_id(self, db: Session, id: str) -> list[LabelSet]:
+        """Get all hues for a labelset."""
         return (
             db.execute(select(LabelSetHue).where(LabelSetHue.labelset_id == id))
             .scalars()
             .all()
         )
 
-    def get_or_create(self, db: Session, work: Work, commit=True) -> LabelSet:
+    def get_or_create(self, db: Session, work: Work, commit: bool = True) -> LabelSet:
+        """Get or create a labelset for a work."""
         labelset = work.labelset
 
         if not labelset:
@@ -64,10 +136,13 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         return labelset
 
     def patch(
-        self, db: Session, labelset: LabelSet, data: LabelSetCreateIn, commit=True
+        self,
+        db: Session,
+        labelset: LabelSet,
+        data: LabelSetCreateIn,
+        commit: bool = True,
     ) -> LabelSet:
-        """Fill a LabelSet with data, replacing existing if the origin of new data holds more authority"""
-
+        """Patch a labelset with authority-based updates."""
         updated = False
 
         # HUES
@@ -83,9 +158,7 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             }
             old_hues = {hue.key for hue in labelset.hues}
 
-            # only update if set of new hues is different (not worried about ordinals)
             if new_hues != old_hues:
-                # clear out old hues, simpler than messing with ordinals
                 db.query(LabelSetHue).filter_by(labelset_id=labelset.id).delete()
 
                 for hue_key in new_hues:
@@ -105,7 +178,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                             )
                         )
 
-            # a higher authority may provide identical info, but we still want to update the origin
             labelset.hue_origin = data.hue_origin if new_hues else None
             updated = True
 
@@ -120,7 +192,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                     labelset.min_age = data.min_age
                 if data.max_age is not None:
                     labelset.max_age = data.max_age
-                # doesn't make sense to remove only one of min/max age
                 if data.min_age is None and data.max_age is None:
                     labelset.min_age = None
                     labelset.max_age = None
@@ -146,7 +217,6 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
         # RECOMMEND STATUS
         if data.recommend_status_origin and data.recommend_status:
             if labelset.recommend_status == RecommendStatus.BAD_CONTROVERSIAL:
-                # only allow human-originated data to overwrite bad_controversial labelsets
                 if data.recommend_status_origin == LabelOrigin.HUMAN:
                     labelset.recommend_status = data.recommend_status
                     labelset.recommend_status_origin = data.recommend_status_origin
@@ -188,10 +258,8 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
                 labelset.info = data.info.copy()
                 updated = True
             elif data.info.items() >= labelset.info.items():
-                # merge data.info into labelset.info
                 deep_merge_dicts(labelset.info, data.info)
                 updated = True
-                # remove keys in labelset.info that are not in data.info
                 for key in labelset.info.keys() - data.info.keys():
                     labelset.info[key] = None
 
@@ -208,5 +276,40 @@ class CRUDLabelset(CRUDBase[LabelSet, LabelSetCreateIn, Any]):
             db.refresh(labelset)
         return labelset
 
+    def create(
+        self, db: Session, obj_in: LabelSetCreateIn | dict, commit: bool = True
+    ) -> LabelSet:
+        """Create a labelset."""
+        if isinstance(obj_in, dict):
+            create_data = obj_in
+        else:
+            create_data = obj_in.model_dump()
 
-labelset = CRUDLabelset(LabelSet)
+        orm_obj = LabelSet(**create_data)
+        db.add(orm_obj)
+        if commit:
+            db.commit()
+            db.refresh(orm_obj)
+        return orm_obj
+
+    def update(
+        self, db: Session, db_obj: LabelSet, obj_in: Any, commit: bool = True
+    ) -> LabelSet:
+        """Update a labelset."""
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.model_dump(exclude_unset=True)
+
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        db.add(db_obj)
+        if commit:
+            db.commit()
+            db.refresh(db_obj)
+        return db_obj
+
+
+# Singleton instance
+labelset_repository = LabelsetRepositoryImpl()

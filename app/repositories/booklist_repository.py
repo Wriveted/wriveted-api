@@ -1,12 +1,17 @@
+"""
+Booklist repository - domain-focused data access for Booklist domain.
+
+Replaces the generic CRUDBookList class with proper repository pattern.
+"""
+
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from structlog import get_logger
 
-from app.crud import CRUDBase
-from app.crud.base import deep_merge_dicts
 from app.models import School, User
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
@@ -17,33 +22,149 @@ from app.schemas.booklist import (
     BookListUpdateIn,
     ItemUpdateType,
 )
-from app.services.booklists import (
-    handle_booklist_feature_image_update,
-    handle_new_booklist_feature_image,
-)
+from app.utils.dict_utils import deep_merge_dicts
 
 logger = get_logger()
 
 
-class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
-    def create(self, db: Session, *, obj_in: BookListCreateIn, commit=True) -> BookList:
+class BooklistRepository(ABC):
+    """Repository interface for Booklist domain operations."""
+
+    @abstractmethod
+    def get_by_id(self, db: Session, booklist_id: int) -> Optional[BookList]:
+        """Get a booklist by its ID."""
+        pass
+
+    @abstractmethod
+    def get_or_404(self, db: Session, id: int) -> BookList:
+        """Get a booklist by ID or raise 404."""
+        pass
+
+    @abstractmethod
+    def create(
+        self, db: Session, obj_in: BookListCreateIn, commit: bool = True
+    ) -> BookList:
+        """Create a booklist with items and image handling."""
+        pass
+
+    @abstractmethod
+    async def acreate(
+        self, db: AsyncSession, obj_in: BookListCreateIn, commit: bool = True
+    ) -> BookList:
+        """Async version of create."""
+        pass
+
+    @abstractmethod
+    def get_all_query_with_optional_filters(
+        self,
+        db: Session,
+        list_type: Optional[str] = None,
+        sharing_type: Optional[str] = None,
+        school: Optional[School] = None,
+        user: Optional[User] = None,
+        query_string: Optional[str] = None,
+    ):
+        """Get a filtered query for booklists."""
+        pass
+
+    @abstractmethod
+    def update(
+        self, db: Session, db_obj: BookList, obj_in: BookListUpdateIn
+    ) -> BookList:
+        """Update a booklist and its items."""
+        pass
+
+    @abstractmethod
+    def apply_pagination(self, query, skip: int = 0, limit: int = 100):
+        """Apply pagination to a query."""
+        pass
+
+    @abstractmethod
+    def count_query(self, db: Session, query) -> int:
+        """Count the number of results in a query."""
+        pass
+
+    @abstractmethod
+    def _update_item_in_booklist(
+        self, db: Session, booklist_id: int, item_update: BookListItemUpdateIn
+    ):
+        """Update an item in a booklist."""
+        pass
+
+    @abstractmethod
+    def _remove_item_from_booklist(
+        self,
+        db: Session,
+        booklist_orm_object: BookList,
+        item_to_remove: BookListItemUpdateIn,
+    ):
+        """Remove an item from a booklist."""
+        pass
+
+    @abstractmethod
+    def _add_item_to_booklist(
+        self,
+        db: Session,
+        booklist_orm_object: BookList,
+        item_update: BookListItemUpdateIn,
+    ):
+        """Add an item to a booklist."""
+        pass
+
+    @abstractmethod
+    async def _aadd_item_to_booklist(
+        self,
+        db: AsyncSession,
+        booklist_orm_object: BookList,
+        item_update: BookListItemUpdateIn,
+    ):
+        """Async version of _add_item_to_booklist."""
+        pass
+
+
+class BooklistRepositoryImpl(BooklistRepository):
+    """Implementation of BooklistRepository."""
+
+    def get_by_id(self, db: Session, booklist_id: int) -> Optional[BookList]:
+        """Get a booklist by its ID."""
+        return db.get(BookList, booklist_id)
+
+    def get_or_404(self, db: Session, id: int) -> BookList:
+        """Get a booklist by ID or raise 404."""
+        from fastapi import HTTPException
+
+        booklist = self.get_by_id(db, id)
+        if not booklist:
+            raise HTTPException(
+                status_code=404, detail=f"Booklist with id {id} not found"
+            )
+        return booklist
+
+    def create(
+        self, db: Session, obj_in: BookListCreateIn, commit: bool = True
+    ) -> BookList:
+        """Create a booklist with items and image handling."""
         items = obj_in.items
         obj_in.items = []
 
-        # we need the resulting orm object to get the id for the image url,
-        # so we need to store this to handle after the object is created
         image_url_data = None
         if obj_in.info and obj_in.info.image_url:
             image_url_data = obj_in.info.image_url
             del obj_in.info.image_url
 
-        booklist_orm_object = super().create(db=db, obj_in=obj_in, commit=commit)
+        booklist_orm_object = BookList(**obj_in.model_dump())
+        db.add(booklist_orm_object)
+        if commit:
+            db.commit()
+            db.refresh(booklist_orm_object)
+
         logger.debug(
             "Booklist entry created in database", booklist_id=booklist_orm_object.id
         )
 
-        # now that the booklist is created, we can handle the image url
         if image_url_data:
+            from app.services.booklists import handle_new_booklist_feature_image
+
             image_url = (
                 image_url_data
                 if is_url(image_url_data)
@@ -63,7 +184,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                 db=db,
                 booklist_orm_object=booklist_orm_object,
                 item_update=BookListItemUpdateIn(
-                    action=ItemUpdateType.ADD, **item.dict()
+                    action=ItemUpdateType.ADD, **item.model_dump()
                 ),
             )
 
@@ -71,25 +192,30 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         return booklist_orm_object
 
     async def acreate(
-        self, db: AsyncSession, *, obj_in: BookListCreateIn, commit=True
+        self, db: AsyncSession, obj_in: BookListCreateIn, commit: bool = True
     ) -> BookList:
+        """Async version of create."""
         items = obj_in.items
         obj_in.items = []
 
-        # we need the resulting orm object to get the id for the image url,
-        # so we need to store this to handle after the object is created
         image_url_data = None
         if obj_in.info and obj_in.info.image_url:
             image_url_data = obj_in.info.image_url
             del obj_in.info.image_url
 
-        booklist_orm_object = await super().acreate(db=db, obj_in=obj_in, commit=commit)
+        booklist_orm_object = BookList(**obj_in.model_dump())
+        db.add(booklist_orm_object)
+        if commit:
+            await db.commit()
+            await db.refresh(booklist_orm_object)
+
         logger.debug(
             "Booklist entry created in database", booklist_id=booklist_orm_object.id
         )
 
-        # now that the booklist is created, we can handle the image url
         if image_url_data:
+            from app.services.booklists import handle_new_booklist_feature_image
+
             image_url = (
                 image_url_data
                 if is_url(image_url_data)
@@ -109,7 +235,7 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                 db=db,
                 booklist_orm_object=booklist_orm_object,
                 item_update=BookListItemUpdateIn(
-                    action=ItemUpdateType.ADD, **item.dict()
+                    action=ItemUpdateType.ADD, **item.model_dump()
                 ),
             )
 
@@ -125,7 +251,8 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         user: Optional[User] = None,
         query_string: Optional[str] = None,
     ):
-        booklists_query = self.get_all_query(db=db, order_by=BookList.created_at.desc())
+        """Get a filtered query for booklists."""
+        booklists_query = select(BookList).order_by(BookList.created_at.desc())
 
         if list_type is not None:
             booklists_query = booklists_query.where(BookList.type == list_type)
@@ -143,12 +270,15 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         return booklists_query
 
     def update(
-        self, db: Session, *, db_obj: BookList, obj_in: BookListUpdateIn
+        self, db: Session, db_obj: BookList, obj_in: BookListUpdateIn
     ) -> BookList:
+        """Update a booklist and its items."""
         item_changes = obj_in.items if obj_in.items is not None else []
         del obj_in.items
-        # Update the book list object
-        if obj_in.info and "image_url" in obj_in.info.dict(exclude_unset=True):
+
+        if obj_in.info and "image_url" in obj_in.info.model_dump(exclude_unset=True):
+            from app.services.booklists import handle_booklist_feature_image_update
+
             obj_in.info.image_url = (
                 obj_in.info.image_url
                 if is_url(obj_in.info.image_url)
@@ -156,9 +286,13 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                     booklist=db_obj, image_data=obj_in.info.image_url
                 )
             )
-        booklist_orm_object = super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
-        # Now update the items one by one
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        db.add(db_obj)
+
         for change in item_changes:
             match change.action:
                 case ItemUpdateType.ADD:
@@ -175,12 +309,23 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                     )
 
         db.commit()
-        db.refresh(booklist_orm_object)
-        return booklist_orm_object
+        db.refresh(db_obj)
+        return db_obj
+
+    def apply_pagination(self, query, skip: int = 0, limit: int = 100):
+        """Apply pagination to a query."""
+        return query.offset(skip).limit(limit)
+
+    def count_query(self, db: Session, query) -> int:
+        """Count the number of results in a query."""
+        cte = query.cte()
+        aliased_booklist = aliased(BookList, cte)
+        return db.scalar(select(func.count(aliased_booklist.id)))
 
     def _update_item_in_booklist(
-        self, db: Session, *, booklist_id: int, item_update: BookListItemUpdateIn
+        self, db: Session, booklist_id: int, item_update: BookListItemUpdateIn
     ):
+        """Update an item in a booklist."""
         item_orm_object = db.scalar(
             select(BookListItem)
             .where(BookListItem.booklist_id == booklist_id)
@@ -190,22 +335,12 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             logger.warning("Skipping update of missing item in booklist")
             return
 
-        # Deal with an item's position change
         if item_update.order_id is not None:
             old_position = item_orm_object.order_id
-
-            # This little gem tells postgresql to only check the constraints
-            # AFTER the whole transaction is ready to commit.
             db.execute(text("SET CONSTRAINTS ALL DEFERRED"))
 
             new_position = item_update.order_id
             if new_position < old_position:
-                # Change requested is to move an item up - towards 0 (the start of the list)
-                # E.g new_position=2, old_position=12
-                # We have to move every item down the list one from the new insertion point to the old point.
-                # Move every item greater than the new position but less than the old position down the list
-                # by one position (by adding one to their position/order_id)
-
                 stmt = (
                     update(BookListItem)
                     .where(BookListItem.booklist_id == booklist_id)
@@ -214,10 +349,6 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
                     .values(order_id=BookListItem.order_id + 1)
                 )
             else:
-                # Moving an item down towards the end of the list.
-                # E.g new_position=10, old_position=2
-                # Move every item above old position but less than new position up the list by one
-                # We have to move every item that is after the insertion point
                 stmt = (
                     update(BookListItem)
                     .where(BookListItem.booklist_id == booklist_id)
@@ -241,10 +372,10 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
     def _remove_item_from_booklist(
         self,
         db: Session,
-        *,
         booklist_orm_object: BookList,
         item_to_remove: BookListItemUpdateIn,
     ):
+        """Remove an item from a booklist."""
         item_position = db.scalar(
             select(BookListItem.order_id)
             .where(BookListItem.booklist_id == booklist_orm_object.id)
@@ -259,7 +390,6 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             .where(BookListItem.booklist_id == booklist_orm_object.id)
             .where(BookListItem.work_id == item_to_remove.work_id)
         )
-        # Need to split this into two transactions to avoid violating the unique constraint
         db.commit()
         logger.debug(
             "Move all the following items up the list one", position=item_position
@@ -277,11 +407,10 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
     def _add_item_to_booklist(
         self,
         db: Session,
-        *,
         booklist_orm_object: BookList,
         item_update: BookListItemUpdateIn,
     ):
-        # If an item is already in the booklist, we just ignore it.
+        """Add an item to a booklist."""
         existing_item_position = db.scalar(
             select(BookListItem.order_id)
             .where(BookListItem.booklist_id == booklist_orm_object.id)
@@ -291,12 +420,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             logger.debug("Got asked to add an item that is already present")
             return
 
-        # The slightly tricky bit here is to deal with the order_id
         if item_update.order_id is None:
-            # Insert at the end of the booklist
             new_order_id = booklist_orm_object.book_count
         else:
-            # We have to move every item that is after the insertion point
             stmt = (
                 update(BookListItem)
                 .where(BookListItem.booklist_id == booklist_orm_object.id)
@@ -309,7 +435,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         new_orm_item = BookListItem(
             booklist_id=booklist_orm_object.id,
             work_id=item_update.work_id,
-            info=item_update.info.dict() if item_update.info is not None else None,
+            info=item_update.info.model_dump()
+            if item_update.info is not None
+            else None,
             order_id=new_order_id,
         )
 
@@ -321,11 +449,10 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
     async def _aadd_item_to_booklist(
         self,
         db: AsyncSession,
-        *,
         booklist_orm_object: BookList,
         item_update: BookListItemUpdateIn,
     ):
-        # If an item is already in the booklist, we just ignore it.
+        """Async version of _add_item_to_booklist."""
         existing_item_position = await db.scalar(
             select(BookListItem.order_id)
             .where(BookListItem.booklist_id == booklist_orm_object.id)
@@ -335,12 +462,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
             logger.debug("Got asked to add an item that is already present")
             return
 
-        # The slightly tricky bit here is to deal with the order_id
         if item_update.order_id is None:
-            # Insert at the end of the booklist
             new_order_id = booklist_orm_object.book_count
         else:
-            # We have to move every item that is after the insertion point
             stmt = (
                 update(BookListItem)
                 .where(BookListItem.booklist_id == booklist_orm_object.id)
@@ -353,7 +477,9 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         new_orm_item = BookListItem(
             booklist_id=booklist_orm_object.id,
             work_id=item_update.work_id,
-            info=item_update.info.dict() if item_update.info is not None else None,
+            info=item_update.info.model_dump()
+            if item_update.info is not None
+            else None,
             order_id=new_order_id,
         )
 
@@ -363,4 +489,5 @@ class CRUDBookList(CRUDBase[BookList, BookListCreateIn, BookListUpdateIn]):
         return new_orm_item
 
 
-booklist = CRUDBookList(BookList)
+# Singleton instance
+booklist_repository = BooklistRepositoryImpl()
