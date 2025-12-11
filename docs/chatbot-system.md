@@ -67,9 +67,13 @@ The system uses a hybrid execution model optimized for the FastAPI/PostgreSQL/Cl
 
 ### Execution Model
 
-- **Synchronous Execution**: MESSAGE and QUESTION nodes (immediate response required)
-- **Asynchronous Execution**: ACTION and WEBHOOK nodes (background processing via Cloud Tasks)
-- **Mixed Mode**: COMPOSITE nodes (sync coordination, async internal processing)
+The system supports three execution contexts:
+
+- **Frontend Execution**: MESSAGE, QUESTION, and SCRIPT nodes execute in the browser (instant, no server call)
+- **Backend Execution**: WEBHOOK, ACTION, and CONDITION nodes execute server-side (secure, async via Cloud Tasks)
+- **Mixed Execution**: COMPOSITE nodes coordinate both frontend and backend operations
+
+See [docs/execution-contexts.md](execution-contexts.md) for detailed information.
 
 ## Core Components
 
@@ -367,7 +371,35 @@ Calls external services.
 #### 6. Composite Node
 Custom reusable components (similar to Landbot Bricks).
 
-#### 7. API Call Action
+#### 7. Script Node (Frontend Execution)
+Execute custom TypeScript/JavaScript code in the browser for DOM manipulation, external libraries, and client-side logic.
+
+```json
+{
+  "id": "init_print",
+  "type": "script",
+  "execution_context": "frontend",
+  "content": {
+    "language": "typescript",
+    "code": "document.getElementById('print-btn').style.display = 'block';",
+    "inputs": {
+      "bookList": "temp.liked_books"
+    },
+    "outputs": ["temp.print_ready"],
+    "dependencies": [
+      "https://cdn.jsdelivr.net/npm/print-js@1.6.0/dist/print.js"
+    ],
+    "timeout": 5000
+  },
+  "connections": {
+    "default": "show_print_confirmation"
+  }
+}
+```
+
+See [docs/script-nodes.md](script-nodes.md) for detailed documentation.
+
+#### 8. API Call Action
 Internal service integration for dynamic data and processing.
 
 ```json
@@ -550,6 +582,55 @@ Composite nodes use explicit I/O to prevent variable scope pollution:
   }
 }
 ```
+
+## Theming System
+
+The chatbot includes a comprehensive theming system that separates visual presentation from flow logic.
+
+### Architecture
+
+- **ChatTheme Model**: Stores reusable theme configurations (colors, typography, bot personality, layout)
+- **School Assignment**: Each school can have a default theme
+- **Flow Override**: Individual flows can specify custom themes
+- **Inheritance**: Flow theme → School theme → Global default
+
+### Theme Configuration
+
+Themes use JSONB configuration for flexibility:
+
+```json
+{
+  "colors": {
+    "primary": "#1890ff",
+    "userBubble": "#e6f7ff",
+    "botBubble": "#f0f0f0"
+  },
+  "typography": {
+    "fontFamily": "system-ui",
+    "fontSize": {"medium": "14px"}
+  },
+  "bot": {
+    "name": "Huey",
+    "avatar": "https://example.com/avatar.png",
+    "typingIndicator": "dots"
+  },
+  "layout": {
+    "position": "bottom-right",
+    "width": 400,
+    "height": 600
+  }
+}
+```
+
+### Benefits
+
+1. **White-labeling**: Schools get branded chatbot experiences
+2. **Reusability**: One flow, multiple visual styles
+3. **A/B Testing**: Test theme variations easily
+4. **Maintainability**: Update appearance without touching flows
+5. **Performance**: Themes cached separately at CDN edge
+
+See [docs/theming-system.md](theming-system.md) for complete documentation.
 
 ## Data Migration from Landbot
 
@@ -786,7 +867,7 @@ Robust fallback handling for external webhook calls with failure threshold and t
 - **Comprehensive Testing**: Integration tests covering core functionality
 
 #### Async Processing Architecture
-- **Cloud Tasks Integration**: Full async processing for ACTION and WEBHOOK nodes
+- **Cloud Tasks Integration**: Full async processing for ACTION and WEBHOOK nodes ✅
 - **Idempotency Protection**: Prevents duplicate side effects on task retries
 - **Event Ordering**: Revision-based task validation prevents out-of-order execution
 - **Fallback Mechanisms**: Graceful degradation to sync processing when needed
@@ -795,7 +876,10 @@ Robust fallback handling for external webhook calls with failure threshold and t
 - **CSRF Protection**: Double-submit cookie pattern for state-changing endpoints
 - **Secure Session Cookies**: HttpOnly, SameSite=Strict, Secure attributes
 - **State Integrity**: Full SHA-256 hashing for concurrency conflict detection
-- **Secret Management**: Framework for runtime secret injection (ready for implementation)
+- **Secret Management Framework**: `{{secret:key}}` syntax supported in variable resolver ⚠️
+  - Note: Google Secret Manager integration is example code only
+  - Production deployment requires wiring up secret resolver in application startup
+  - See `app/services/variable_resolver.py` lines 393-416 for implementation example
 
 #### Node Input Validation System ✅ COMPLETED
 - **Rigorous Input Validation**: Pydantic-based schemas for all node types prevent runtime errors
@@ -815,34 +899,38 @@ Robust fallback handling for external webhook calls with failure threshold and t
 - **FastAPI Integration**: Lifespan management with automatic startup/shutdown
 - **Event Types**: session_started, node_changed, session_status_changed, session_deleted
 
-### ✅ Recently Completed
+### ✅ Recently Completed (Production-Ready Features)
 
-#### Database Events & Real-time Notifications ✅ COMPLETED
+#### Database Events & Real-time Notifications ✅ PRODUCTION-READY
 - **PostgreSQL Triggers**: notify_flow_event function triggers on conversation_sessions changes
 - **Event Listener**: Real-time PostgreSQL NOTIFY/LISTEN for flow state changes
 - **Webhook Notifications**: HTTP webhook delivery with retries and HMAC signatures
 - **Event Types**: session_started, node_changed, session_status_changed, session_deleted
 - **Integration**: FastAPI lifespan management with automatic startup/shutdown
+- **Usage**: Actively integrated in `app/events/__init__.py` and wired into FastAPI app
 
-#### Variable Substitution Enhancement ✅ COMPLETED
-- **Variable Scope System**: Complete support for all scopes (`{{user.}}`, `{{context.}}`, `{{temp.}}`, `{{input.}}`, `{{output.}}`, `{{local.}}`, `{{secret:}}`)
+#### Variable Substitution Enhancement ✅ PRODUCTION-READY
+- **Variable Scope System**: Complete support for all scopes (`{{user.}}`, `{{context.}}`, `{{temp.}}`, `{{input.}}`, `{{output.}}`, `{{local.}}`)
+- **Secret References**: `{{secret:key}}` syntax supported ⚠️ (see Security section - wiring required)
 - **Validation**: Input validation and error handling for malformed variable references
 - **Nested Access**: Dot notation support for nested object access patterns
+- **Usage**: Active in all node processors for variable resolution
 
-#### Enhanced Node Processors ✅ COMPLETED
-- **CompositeNodeProcessor**: Explicit I/O mapping with variable scoping (`{{input.}}`, `{{output.}}`, `{{local.}}`)
+#### Enhanced Node Processors ✅ PRODUCTION-READY
+- **CompositeNodeProcessor**: Explicit I/O mapping with variable scoping (276 lines implementation)
 - **Circuit Breaker Patterns**: Resilient webhook calls with failure detection and fallback responses
 - **API Call Action Type**: Internal service integration with authentication and response mapping
 - **Variable Scope System**: Complete support for all scopes with validation and nested access
+- **Testing**: Comprehensive integration tests covering all node types
 
-#### Wriveted Platform Integration ✅ COMPLETED
-- **Chatbot API Endpoints**: Three specialized endpoints for chatbot conversations
+#### Wriveted Platform Integration ✅ PRODUCTION-READY
+- **Chatbot API Endpoints**: Three specialized endpoints registered in `app/api/chatbot_integrations.py`
   - `/chatbot/recommendations`: Book recommendations with chatbot-optimized responses
   - `/chatbot/assessment/reading-level`: Reading level assessment with detailed feedback
   - `/chatbot/users/{user_id}/profile`: User profile data for conversation context
 - **Internal API Integration**: Uses existing Wriveted services internally (recommendations, user management)
-- **API Routing**: Integrated into main API router for external access
-- **Example Implementations**: Complete examples for api_call action usage in flows
+- **API Routing**: Integrated into main API router at `app/api/external_api_router.py`
+- **Authentication**: Proper authentication via `get_current_active_user_or_service_account`
 
 ### ❌ Planned (Post-MVP)
 
@@ -867,7 +955,7 @@ Robust fallback handling for external webhook calls with failure threshold and t
 
 ### Critical Security Patterns
 
-#### Webhook Secrets Management ❗
+#### Webhook Secrets Management ⚠️ FRAMEWORK READY
 **Never embed API tokens directly in flow definitions.** Use secret references that are injected at runtime:
 
 ```json
@@ -876,19 +964,31 @@ Robust fallback handling for external webhook calls with failure threshold and t
   "content": {
     "url": "https://api.example.com/endpoint",
     "headers": {
-      "Authorization": "Bearer {secret:api_service_token}",
-      "X-API-Key": "{secret:external_api_key}"
+      "Authorization": "Bearer {{secret:api_service_token}}",
+      "X-API-Key": "{{secret:external_api_key}}"
     }
   }
 }
 ```
 
-**Implementation**:
-- Store secrets in Google Secret Manager or similar secure service
-- Reference secrets by key: `{secret:key_name}`
-- Inject actual values at runtime during node processing
-- Never log or persist actual secret values
-- Rotate secrets regularly with zero-downtime deployment
+**Implementation Status**:
+- ✅ Variable resolver framework supports `{{secret:key_name}}` syntax
+- ⚠️ Google Secret Manager integration is **example code only** (not wired up)
+- ❌ Production deployment requires manual wiring of secret resolver:
+  ```python
+  # Required in application startup (not currently done):
+  from app.services.variable_resolver import google_secret_resolver
+  resolver = VariableResolver()
+  resolver.set_secret_resolver(google_secret_resolver)
+  ```
+- ✅ Pattern prevents logging or persisting actual secret values
+- ✅ Framework supports zero-downtime secret rotation once wired up
+
+**Before Production Use**:
+1. Wire up `set_secret_resolver()` in `app/events/__init__.py` or main application startup
+2. Configure Google Secret Manager credentials
+3. Test secret injection in development environment
+4. Document secret key naming conventions for team
 
 #### CORS & CSRF Protection ✅ IMPLEMENTED
 For the `/chat/sessions/{token}/interact` endpoint and other state-changing chat operations:
@@ -969,3 +1069,9 @@ def calculate_state_hash(state_data: dict) -> str:
 15. **Circuit Breakers**: Implement fallback behavior for external service failures
 16. **Node Input Validation**: Use rigorous validation schemas and CEL business rules to prevent runtime errors
 17. **Validation Severity**: Address ERROR level validation issues before deployment, review WARNINGs
+### Flow Storage Model
+
+- Normalized-first: `flow_nodes` and `flow_connections` are the canonical representation of a flow. The runtime executes exclusively against these tables.
+- JSON snapshot: `flow_definitions.flow_data` is maintained as a regenerated snapshot for import/export, caching, and versioning. After node/connection edits, services rebuild the snapshot from the canonical tables while preserving non-graph keys (e.g., `variables`).
+- Import compatibility: incoming `flow_data` is materialized into canonical tables on create. Unsupported connection types (e.g., `CONDITIONAL`) are mapped to `DEFAULT` with conditions preserved.
+- Service surface: All flow writes and reads are centralized in `FlowService`; the former `FlowWorkflowService` has been deprecated and removed.

@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     Integer,
     String,
     Text,
@@ -18,7 +19,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,13 +39,21 @@ class ContentType(CaseInsensitiveStringEnum):
     PROMPT = "prompt"
 
 
+class ExecutionContext(CaseInsensitiveStringEnum):
+    FRONTEND = "FRONTEND"
+    BACKEND = "BACKEND"
+    MIXED = "MIXED"
+
+
 class NodeType(CaseInsensitiveStringEnum):
-    MESSAGE = "message"
-    QUESTION = "question"
-    CONDITION = "condition"
-    ACTION = "action"
-    WEBHOOK = "webhook"
-    COMPOSITE = "composite"
+    START = "START"
+    MESSAGE = "MESSAGE"
+    QUESTION = "QUESTION"
+    CONDITION = "CONDITION"
+    ACTION = "ACTION"
+    WEBHOOK = "WEBHOOK"
+    COMPOSITE = "COMPOSITE"
+    SCRIPT = "SCRIPT"
 
 
 class ConnectionType(CaseInsensitiveStringEnum):
@@ -113,6 +122,10 @@ class CMSContent(Base):
         index=True,
     )
 
+    # Full-text search document maintained by trigger (see app/db/functions.py & app/db/triggers.py)
+    # Declared here to keep schema in SQLAlchemy; populated by trigger on INSERT/UPDATE
+    search_document: Mapped[Optional[str]] = mapped_column(TSVECTOR, nullable=True)
+
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true"), index=True
     )
@@ -131,11 +144,11 @@ class CMSContent(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.current_timestamp(),
+        DateTime(timezone=True),
+        server_default=func.now(),
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
@@ -164,6 +177,15 @@ class CMSContent(Base):
             (Allow, "role:user", "read"),
         ]
         return policies
+
+    # SQLAlchemy index declaration for GIN index on search_document
+    __table_args__ = (
+        Index(
+            "idx_cms_content_search_document",
+            "search_document",
+            postgresql_using="gin",
+        ),
+    )
 
 
 class CMSContentVariant(Base):
@@ -246,7 +268,7 @@ class FlowDefinition(Base):
         nullable=False,  # type: ignore[arg-type]
     )
 
-    entry_node_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    entry_node_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     info: Mapped[dict] = mapped_column(
         MutableDict.as_mutable(JSONB),  # type: ignore[arg-type]
@@ -263,17 +285,32 @@ class FlowDefinition(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.current_timestamp(),
+        DateTime(timezone=True),
+        server_default=func.now(),
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
     )
 
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Trace retention configuration (days to keep execution traces)
+    retention_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("30")
+    )
+
+    # Flow-level tracing configuration
+    trace_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    trace_sample_rate: Mapped[float] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("100"),  # Percentage (0-100)
+    )
 
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", name="fk_flow_created_by", ondelete="SET NULL"),
@@ -342,6 +379,13 @@ class FlowNode(Base):
         Enum(NodeType, name="enum_flow_node_type"), nullable=False, index=True
     )
 
+    execution_context: Mapped[ExecutionContext] = mapped_column(
+        Enum(ExecutionContext, name="enum_execution_context"),
+        nullable=False,
+        server_default=text("'backend'"),
+        index=True,
+    )
+
     template: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     content: Mapped[dict] = mapped_column(
@@ -362,11 +406,11 @@ class FlowNode(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.current_timestamp(),
+        DateTime(timezone=True),
+        server_default=func.now(),
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
@@ -549,6 +593,14 @@ class ConversationSession(Base):
 
     state_hash: Mapped[Optional[str]] = mapped_column(String(44), nullable=True)
 
+    # Execution tracing fields
+    trace_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    trace_level: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, server_default=text("'standard'")
+    )
+
     # Relationships
     user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[user_id], lazy="select"
@@ -560,6 +612,10 @@ class ConversationSession(Base):
 
     history: Mapped[list["ConversationHistory"]] = relationship(
         "ConversationHistory", back_populates="session", cascade="all, delete-orphan"
+    )
+
+    execution_steps: Mapped[list["FlowExecutionStep"]] = relationship(
+        "FlowExecutionStep", back_populates="session", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
@@ -651,6 +707,82 @@ class ConversationAnalytics(Base):
         return f"<ConversationAnalytics {self.flow_id} {self.node_id} {self.date}>"
 
 
+class ChatTheme(Base):
+    __tablename__ = "chat_themes"  # type: ignore[assignment]
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+        primary_key=True,
+    )
+
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey(
+            "schools.wriveted_identifier", name="fk_theme_school", ondelete="CASCADE"
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    config: Mapped[dict] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        nullable=False,  # type: ignore[arg-type]
+    )
+
+    logo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true"), index=True
+    )
+
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+
+    version: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default=text("'1.0'")
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", name="fk_theme_created_by", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    created_by_user: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[created_by], lazy="select"
+    )
+
+    def __repr__(self) -> str:
+        return f"<ChatTheme {self.name} v{self.version}>"
+
+    def __acl__(self) -> List[tuple[Any, str, str]]:
+        """Defines who can do what to the theme"""
+        policies = [
+            (Allow, "role:admin", All),
+            (Allow, "role:user", "read"),
+        ]
+        return policies
+
+
 class IdempotencyRecord(Base):
     __tablename__ = "task_idempotency_records"  # type: ignore[assignment]
 
@@ -695,3 +827,166 @@ class IdempotencyRecord(Base):
 
     def __repr__(self) -> str:
         return f"<IdempotencyRecord {self.idempotency_key} {self.status}>"
+
+
+class TraceLevel(CaseInsensitiveStringEnum):
+    """Trace detail level for session replay."""
+
+    MINIMAL = "minimal"
+    STANDARD = "standard"
+    VERBOSE = "verbose"
+
+
+class FlowExecutionStep(Base):
+    """Captures detailed execution data for each node visit during a session.
+
+    Used for session replay and debugging. State snapshots are PII-masked.
+    """
+
+    __tablename__ = "flow_execution_steps"  # type: ignore[assignment]
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+        primary_key=True,
+    )
+
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "conversation_sessions.id",
+            name="fk_exec_step_session",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    node_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    node_type: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    step_number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # State snapshots (PII-masked)
+    state_before: Mapped[Dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    state_after: Mapped[Dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    # Node-specific execution details (typed per node type)
+    execution_details: Mapped[Dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSONB),
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    # Connection taken to next node
+    connection_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    next_node_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Timing
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Error tracking
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_details: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Relationships
+    session: Mapped["ConversationSession"] = relationship(
+        "ConversationSession", back_populates="execution_steps"
+    )
+
+    __table_args__ = (
+        Index("idx_exec_steps_session_step", "session_id", "step_number"),
+        Index(
+            "idx_exec_steps_flow_date",
+            "session_id",
+            "started_at",
+            postgresql_where=text("completed_at IS NOT NULL"),
+        ),
+        Index(
+            "idx_exec_steps_errors",
+            "session_id",
+            "node_id",
+            postgresql_where=text("error_message IS NOT NULL"),
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<FlowExecutionStep {self.step_number}: {self.node_id} ({self.node_type})>"
+        )
+
+
+class TraceAccessAudit(Base):
+    """Audit log for tracking access to sensitive trace data."""
+
+    __tablename__ = "trace_access_audit"  # type: ignore[assignment]
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+        primary_key=True,
+    )
+
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "conversation_sessions.id",
+            name="fk_trace_audit_session",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    accessed_by: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", name="fk_trace_audit_user", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    access_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # 'view_trace', 'export', 'list'
+
+    accessed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
+
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Which steps/fields were accessed
+    data_accessed: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSONB, nullable=True
+    )
+
+    # Relationships
+    session: Mapped["ConversationSession"] = relationship(
+        "ConversationSession", foreign_keys=[session_id]
+    )
+    user: Mapped["User"] = relationship("User", foreign_keys=[accessed_by])
+
+    def __repr__(self) -> str:
+        return f"<TraceAccessAudit {self.access_type} by {self.accessed_by}>"

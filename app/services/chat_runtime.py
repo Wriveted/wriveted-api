@@ -25,7 +25,6 @@ def sanitize_user_input(user_input: str) -> str:
     return html.escape(user_input) if user_input else user_input
 
 
-from app.crud.chat_repo import chat_repo
 from app.models.cms import (
     ConnectionType,
     ConversationSession,
@@ -35,6 +34,7 @@ from app.models.cms import (
     NodeType,
     SessionStatus,
 )
+from app.repositories.chat_repository import chat_repo
 from app.services.variable_resolver import create_session_resolver
 
 logger = get_logger()
@@ -118,6 +118,14 @@ class MessageNodeProcessor(NodeProcessor):
                         "Error loading content", content_id=content_id, error=str(e)
                     )
 
+        # Fallback: check for direct "text" in node content
+        if not messages and node_content.get("text"):
+            raw_text = node_content["text"]
+            # Apply variable substitution from session state
+            session_state = session.state or {}
+            rendered_text = self.runtime.substitute_variables(raw_text, session_state)
+            messages.append({"type": "text", "text": rendered_text})
+
         # Record the message in history
         await chat_repo.add_interaction_history(
             db,
@@ -191,6 +199,7 @@ class QuestionNodeProcessor(NodeProcessor):
 
         # Handle both CMS content references and inline content
         question_config = node_content.get("question", {})
+        question_message = None
 
         # Check if question is a string (inline content) or dict (CMS reference)
         if isinstance(question_config, str):
@@ -218,9 +227,10 @@ class QuestionNodeProcessor(NodeProcessor):
                     content_id=content_id,
                     error=str(e),
                 )
-        elif isinstance(question_config, str):
-            # Use the inline question text we already prepared
-            pass  # question_message is already set above
+
+        # Fallback: check for direct "text" key in node content
+        if question_message is None and node_content.get("text"):
+            question_message = {"text": node_content["text"]}
 
         # Record question in history
         await chat_repo.add_interaction_history(
@@ -254,6 +264,8 @@ class QuestionNodeProcessor(NodeProcessor):
         input_type: str,
     ) -> Dict[str, Any]:
         """Process user response to question."""
+        from app.repositories.chat_repository import chat_repo
+
         node_content = node.content or {}
 
         # Get variable name from CMS content if available
@@ -347,25 +359,38 @@ class QuestionNodeProcessor(NodeProcessor):
             },
         )
 
-        # Determine next connection based on input
-        connection_type = ConnectionType.DEFAULT
+        # Get all outgoing connections from this node for routing logic
+        connections = await chat_repo.get_node_connections(
+            db, flow_id=node.flow_id, source_node_id=node.node_id
+        )
 
-        if input_type == "button":
-            # Check if it matches predefined options
-            options = node_content.get("options", [])
-            for i, option in enumerate(options):
-                if (
-                    option.get("payload") == user_input
-                    or option.get("value") == user_input
-                ):
-                    if i == 0:
-                        connection_type = ConnectionType.OPTION_0
-                    elif i == 1:
-                        connection_type = ConnectionType.OPTION_1
+        # Check if any connections have conditions (indicating dynamic choice routing needed)
+        has_conditional_connections = any(conn.conditions for conn in connections)
+
+        if input_type == "button" and has_conditional_connections:
+            # For button inputs with conditional connections, store the selected option value
+            choice_updates = {"temp": {"user_choice": user_input}}
+            updated_session = await chat_repo.update_session_state(
+                db,
+                session_id=session.id,
+                state_updates=choice_updates,
+                expected_revision=session.revision,
+            )
+            # Use updated session for condition evaluation
+            session = updated_session
+
+            # Find matching connection using new dynamic logic
+            next_connection = await self._find_matching_connection(db, node, session)
+        else:
+            # For simple text inputs or button inputs without conditions, use first DEFAULT connection
+            next_connection = None
+            for connection in connections:
+                if connection.connection_type == ConnectionType.DEFAULT:
+                    next_connection = connection
                     break
-
-        # Get next node
-        next_connection = await self.get_next_connection(db, node, connection_type)
+            # Fallback to first connection if no DEFAULT found
+            if not next_connection and connections:
+                next_connection = connections[0]
         next_node = None
 
         if next_connection:
@@ -379,6 +404,87 @@ class QuestionNodeProcessor(NodeProcessor):
             "state_was_updated": state_was_updated,
             "session": session,  # Return the updated session object
         }
+
+    async def _find_matching_connection(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        session: ConversationSession,
+    ) -> Optional[FlowConnection]:
+        """Find connection that matches current session state conditions."""
+        from app.crud.chat import chat_repo
+        from app.services.variable_resolver import create_session_resolver
+
+        # Get all outgoing connections from this node
+        connections = await chat_repo.get_node_connections(
+            db, flow_id=node.flow_id, source_node_id=node.node_id
+        )
+
+        if not connections:
+            return None
+
+        # Create variable resolver for condition evaluation
+        resolver = create_session_resolver(session.state or {})
+
+        # Try to find a connection whose conditions match
+        for connection in connections:
+            if connection.conditions:
+                try:
+                    # Evaluate condition using the current session state
+                    condition_result = self._evaluate_condition(
+                        connection.conditions, resolver
+                    )
+                    if condition_result:
+                        self.logger.info(
+                            "Found matching connection",
+                            connection_id=connection.id,
+                            conditions=connection.conditions,
+                        )
+                        return connection
+                except Exception as e:
+                    self.logger.warning(
+                        "Error evaluating connection condition",
+                        connection_id=connection.id,
+                        conditions=connection.conditions,
+                        error=str(e),
+                    )
+                    continue
+
+        # If no conditions matched, try to find a DEFAULT connection
+        for connection in connections:
+            if (
+                connection.connection_type == ConnectionType.DEFAULT
+                and not connection.conditions
+            ):
+                return connection
+
+        # Return first connection as fallback
+        return connections[0] if connections else None
+
+    def _evaluate_condition(self, conditions: dict, resolver) -> bool:
+        """Evaluate a condition using JSONLogic-style syntax."""
+        if not conditions:
+            return True
+
+        # Simple condition evaluation for {"if": {"var": "temp.user_choice", "eq": "fiction"}}
+        if "if" in conditions:
+            condition = conditions["if"]
+
+            if "var" in condition and "eq" in condition:
+                var_name = condition["var"]
+                expected_value = condition["eq"]
+
+                try:
+                    # Use variable resolver to get the value
+                    actual_value = resolver.substitute_variables(f"{{{{{var_name}}}}}")
+                    # Remove the {{ }} wrapper that might remain
+                    if actual_value.startswith("{{") and actual_value.endswith("}}"):
+                        return False  # Variable not found
+                    return str(actual_value) == str(expected_value)
+                except Exception:
+                    return False
+
+        return False
 
     async def _render_question_message(
         self, content, session_state: Dict[str, Any]
@@ -439,6 +545,7 @@ class ChatRuntime:
             ActionNodeProcessor,
             CompositeNodeProcessor,
             ConditionNodeProcessor,
+            ScriptNodeProcessor,
             WebhookNodeProcessor,
         )
 
@@ -446,6 +553,7 @@ class ChatRuntime:
         self.register_processor(NodeType.ACTION, ActionNodeProcessor)
         self.register_processor(NodeType.WEBHOOK, WebhookNodeProcessor)
         self.register_processor(NodeType.COMPOSITE, CompositeNodeProcessor)
+        self.register_processor(NodeType.SCRIPT, ScriptNodeProcessor)
 
         self._additional_processors_registered = True
 
@@ -706,7 +814,11 @@ class ChatRuntime:
                 serialized[key] = [
                     self._flow_node_to_dict(item)
                     if isinstance(item, FlowNode)
-                    else item
+                    else (
+                        self._serialize_node_result(item)
+                        if isinstance(item, dict)
+                        else item
+                    )
                     for item in value
                 ]
             elif isinstance(value, dict):

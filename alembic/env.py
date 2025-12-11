@@ -26,6 +26,7 @@ from app.db.base_class import Base  # noqa
 
 # from app.db.extensions import pgvector_ex
 from app.db.functions import (
+    cms_content_tsvector_update,
     public_encode_uri_component,
     refresh_search_view_v1_function,
     refresh_work_collection_frequency_view_function,
@@ -34,6 +35,7 @@ from app.db.functions import (
     update_edition_title_from_work,
 )
 from app.db.triggers import (
+    cms_content_tsvector_trigger,
     editions_update_edition_title_trigger,
     works_update_edition_title_from_work_trigger,
 )
@@ -51,12 +53,14 @@ register_entities(
         refresh_search_view_v1_function,
         refresh_work_collection_frequency_view_function,
         public_encode_uri_component,
+        cms_content_tsvector_update,
         # Views
         collection_frequency_view,
         search_view_v1,
         # Triggers
         editions_update_edition_title_trigger,
         works_update_edition_title_from_work_trigger,
+        cms_content_tsvector_trigger,
     ]
 )
 

@@ -19,6 +19,9 @@ from app.db.session import get_session
 from app.models.event import EventLevel
 from app.models.service_account import ServiceAccount
 from app.models.user import User
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
+from app.repositories.service_account_repository import service_account_repository
 from app.schemas.events.event import EventCreateIn
 from app.schemas.events.event_detail import (
     EventDetail,
@@ -47,7 +50,7 @@ async def create(
     session: Session = Depends(get_session),
 ):
     if data.school_id is not None:
-        school = crud.school.get_by_wriveted_id_or_404(
+        school = school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=data.school_id
         )
         if (
@@ -70,7 +73,7 @@ async def create(
         school=school,
         account=specified_user or account,
         # Unified workflow automatically handles background processing
-        enable_processing=True
+        enable_processing=True,
     )
 
     # Note: Background task queuing now handled automatically by create_event
@@ -150,13 +153,13 @@ async def get_events(
         user = None
 
     service_account = (
-        crud.service_account.get_or_404(db=session, id=service_account_id)
+        service_account_repository.get_or_404(db=session, id=service_account_id)
         if service_account_id
         else None
     )
 
     if school_id is not None:
-        school = crud.school.get_by_wriveted_id_or_404(
+        school = school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=school_id
         )
         if not has_permission(principals, "read", school):
@@ -171,7 +174,7 @@ async def get_events(
         school = None
 
     try:
-        events = crud.event.get_all_with_optional_filters(
+        events = event_repository.get_all_with_optional_filters(
             session,
             query_string=query,
             match_prefix=match_prefix,
@@ -205,7 +208,7 @@ async def get_event_types(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    event_types = crud.event.get_types(
+    event_types = event_repository.get_types(
         session,
         level=level,
         skip=pagination.skip,

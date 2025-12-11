@@ -19,6 +19,10 @@ from app.models import Author, Work
 from app.models.edition import Edition
 from app.models.work import WorkType
 from app.permissions import Permission
+from app.repositories.author_repository import author_repository
+from app.repositories.edition_repository import edition_repository
+from app.repositories.labelset_repository import labelset_repository
+from app.repositories.work_repository import work_repository
 from app.schemas.work import (
     WorkBrief,
     WorkCreateWithEditionsIn,
@@ -54,7 +58,7 @@ def get_work(
     ),
     session: Session = Depends(get_session),
 ) -> Work:
-    return crud.work.get_or_404(db=session, id=work_id)
+    return work_repository.get_or_404(db=session, id=work_id)
 
 
 @router.get(
@@ -69,7 +73,7 @@ async def get_works(
     pagination: PaginatedQueryParams = Depends(),
     session: Session = Depends(get_session),
 ):
-    works_query = crud.work.get_all_query(session).where(Work.type == type)
+    works_query = work_repository.get_all_query(session).where(Work.type == type)
 
     if author_id is not None:
         works_query = works_query.where(Work.authors.any(Author.id == author_id))
@@ -85,7 +89,7 @@ async def get_works(
 
     works = (
         session.execute(
-            crud.work.apply_pagination(
+            work_repository.apply_pagination(
                 works_query, skip=pagination.skip, limit=pagination.limit
             )
         )
@@ -112,7 +116,6 @@ async def get_works(
         output.append(brief)
 
     return output
-    # return crud.work.apply_pagination(works_query, skip=pagination.skip, limit=pagination.limit)
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail | WorkEnriched)
@@ -188,15 +191,15 @@ async def create_work_with_editions(
     authors = [
         # Authors could be int or AuthorCreateIn objects
         (
-            crud.author.get(db=session, id=author_data)
+            author_repository.get_by_id(db=session, author_id=author_data)
             if isinstance(author_data, int)
-            else crud.author.get_or_create(db=session, author_data=author_data)
+            else author_repository.get_or_create(db=session, author_data=author_data)
         )
         for author_data in work_data.authors
     ]
     logger.debug("Processed authors for new work", authors=authors)
     del work_data.authors
-    work = crud.work.create(db=session, obj_in=work_data)
+    work = work_repository.create(db=session, obj_in=work_data)
     work.authors = authors
     logger.debug("Created new work", work=work)
 
@@ -208,7 +211,7 @@ async def create_work_with_editions(
                 f"Skipping edition with invalid ISBN: {unsanitized_isbn}", work=work
             )
             continue
-        edition = crud.edition.get_or_create_unhydrated(db=session, isbn=isbn)
+        edition = edition_repository.get_or_create_unhydrated(db=session, isbn=isbn)
         edition.work = work
         session.add(edition)
 
@@ -253,14 +256,14 @@ async def update_work(
         #     labelset_update.labelled_by_sa_id = str(account.id)
 
         logger.info("Updating labels", label_updates=labelset_update)
-        labelset = crud.labelset.get_or_create(session, work_orm, False)
+        labelset = labelset_repository.get_or_create(session, work_orm, False)
         old_labelset_data = labelset.get_label_dict(session)
-        labelset = crud.labelset.patch(session, labelset, labelset_update, True)
+        labelset = labelset_repository.patch(session, labelset, labelset_update, True)
         new_labelset_data = labelset.get_label_dict(session)
         labelset_changes = compare_dicts(old_labelset_data, new_labelset_data)
         del changes.labelset
 
-    updated = crud.work.update(db=session, db_obj=work_orm, obj_in=changes)
+    updated = work_repository.update(db=session, db_obj=work_orm, obj_in=changes)
     new_work_data = updated.get_dict(session)
 
     logger.info("Updated work", updated=updated)
@@ -303,4 +306,4 @@ async def delete_work(
         },
         account=account,
     )
-    return crud.work.remove(db=session, id=work_orm.id)
+    return work_repository.remove(db=session, id=work_orm.id)

@@ -9,6 +9,7 @@ from app.models.labelset import LabelSet, RecommendStatus
 from app.models.labelset_hue_association import LabelSetHue, Ordinal
 from app.models.labelset_reading_ability_association import LabelSetReadingAbility
 from app.models.work import Work
+from app.repositories.labelset_repository import labelset_repository
 from app.services.booklists import generate_reading_pathway_lists
 from app.services.recommendations import gen_next_reading_ability
 
@@ -29,7 +30,7 @@ async def test_read_now_read_next_generation(
     bad_works = works_list[0:10]
     for work in bad_works:
         session.add(work)
-        labelset = crud.labelset.create(
+        labelset = labelset_repository.create(
             session,
             obj_in={
                 "min_age": 90,
@@ -52,7 +53,7 @@ async def test_read_now_read_next_generation(
     good_for_now_works = works_list[10:20]
     for work in good_for_now_works:
         session.add(work)
-        labelset = crud.labelset.create(
+        labelset = labelset_repository.create(
             session,
             obj_in={
                 "min_age": 0,
@@ -75,7 +76,7 @@ async def test_read_now_read_next_generation(
     good_for_next_works = works_list[20:30]
     for work in good_for_next_works:
         session.add(work)
-        labelset = crud.labelset.create(
+        labelset = labelset_repository.create(
             session,
             obj_in={
                 "min_age": 0,

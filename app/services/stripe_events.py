@@ -15,6 +15,9 @@ from app.models.event import EventSlackChannel
 from app.models.product import Product
 from app.models.subscription import Subscription, SubscriptionType
 from app.models.user import UserAccountType
+from app.repositories.product_repository import product_repository
+from app.repositories.school_repository import school_repository
+from app.repositories.subscription_repository import subscription_repository
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
 from app.services.background_tasks import queue_background_task
@@ -181,7 +184,7 @@ def _extract_user_and_customer_from_stripe_object(
                     "Client reference id matches User associated with Stripe customer id",
                     referenced_user_id=referenced_user.id,
                 )
-        elif school := crud.school.get_by_wriveted_id(
+        elif school := school_repository.get_by_wriveted_id(
             session, wriveted_id=client_reference_id
         ):
             logger.info(
@@ -234,7 +237,9 @@ def _handle_invoice_paid(
 
     # Get the subscription from Stripe and fetch the current expiration date
     stripe_subscription = StripeSubscription.retrieve(stripe_subscription_id)
-    subscription = crud.subscription.get(session, stripe_subscription_id)
+    subscription = subscription_repository.get_by_id(
+        session, subscription_id=stripe_subscription_id
+    )
     if subscription is None:
         logger.warning(
             "Invoice paid event references a subscription that is not in the database"
@@ -260,7 +265,7 @@ def _handle_invoice_paid(
         school=school,
         account=wriveted_user,
         enable_processing=False,  # No processing needed for payment received
-        external_notifications=False  # Internal accounting event
+        external_notifications=False,  # Internal accounting event
     )
 
 
@@ -341,7 +346,7 @@ def _handle_checkout_session_completed(
         base_subscription_data=base_subscription_data,
         checkout_session_id=checkout_session_id,
     )
-    subscription = crud.subscription.upsert(session, base_subscription_data)
+    subscription = subscription_repository.upsert(session, base_subscription_data)
     logger.debug("Upserted subscription in our database", subscription=subscription)
 
     # update the subscription in our database with the latest information
@@ -352,7 +357,7 @@ def _handle_checkout_session_completed(
     subscription.latest_checkout_session_id = checkout_session_id
 
     # fetch from db instead of stripe object in case we have a product name override
-    product = crud.product.get(session, stripe_price_id)
+    product = product_repository.get_by_id(session, product_id=stripe_price_id)
     product_name = product.name if product else "Unknown Product"
 
     create_event(
@@ -380,7 +385,7 @@ def _handle_checkout_session_completed(
             # "product_link": f"https://dashboard.stripe.com/products/{stripe_price_id}",
         },
         enable_processing=True,  # This will automatically handle background processing via EventOutbox
-        external_notifications=True  # This will ensure Slack alerts are sent
+        external_notifications=True,  # This will ensure Slack alerts are sent
     )
 
     # Processing automatically handled by unified workflow via enable_processing=True
@@ -388,10 +393,10 @@ def _handle_checkout_session_completed(
     # Send subscription welcome email via EventOutbox for reliable delivery
     if wriveted_parent_id is not None and stripe_customer_email:
         logger.info("Sending subscription welcome email via EventOutbox")
-        
+
         # Local import to avoid circular dependency
-        from app.services.email_notification import send_email_reliable_sync, EmailType
-        
+        from app.services.email_notification import EmailType, send_email_reliable_sync
+
         email_data = {
             "from_email": "orders@hueybooks.com",
             "from_name": "Huey Books",
@@ -403,16 +408,18 @@ def _handle_checkout_session_completed(
                 "checkout_session_id": checkout_session_id,
             },
         }
-        
+
         # Send as TRANSACTIONAL email - critical business email with 5 retries
         send_email_reliable_sync(
             db=session,
             email_data=email_data,
             email_type=EmailType.TRANSACTIONAL,
-            user_id=str(wriveted_user.id) if wriveted_user else None
+            user_id=str(wriveted_user.id) if wriveted_user else None,
         )
     elif wriveted_parent_id is not None and not stripe_customer_email:
-        logger.warning("Skipping subscription welcome email - no customer email address available")
+        logger.warning(
+            "Skipping subscription welcome email - no customer email address available"
+        )
 
     return subscription
 
@@ -466,7 +473,9 @@ def _handle_subscription_created(
     logger.debug(
         "Creating subscription in our database", subscription_data=subscription_data
     )
-    subscription, created = crud.subscription.get_or_create(session, subscription_data)
+    subscription, created = subscription_repository.get_or_create(
+        session, subscription_data
+    )
     if created:
         logger.info("Created a new subscription", subscription=subscription)
 
@@ -497,7 +506,9 @@ def _handle_subscription_updated(
                 "Found wriveted user id in Stripe Customer metadata", user=wriveted_user
             )
 
-    subscription = crud.subscription.get(session, id=stripe_subscription_id)
+    subscription = subscription_repository.get_by_id(
+        session, subscription_id=stripe_subscription_id
+    )
     if not subscription:
         logger.warning(
             "Ignoring subscription update event for missing subscription",
@@ -544,7 +555,7 @@ def _handle_subscription_updated(
         school=school,
         account=wriveted_user,
         enable_processing=False,  # No processing needed for updates
-        external_notifications=False  # Internal accounting event
+        external_notifications=False,  # Internal accounting event
     )
 
     return subscription
@@ -554,7 +565,9 @@ def _handle_subscription_cancelled(
     session, wriveted_user: Optional[User], school: School | None, event_data: dict
 ):
     stripe_subscription_id = event_data.get("id")
-    subscription = crud.subscription.get(session, id=stripe_subscription_id)
+    subscription = subscription_repository.get_by_id(
+        session, subscription_id=stripe_subscription_id
+    )
 
     if subscription is not None:
         logger.info("Marking subscription as inactive", subscription=subscription)
@@ -578,7 +591,7 @@ def _handle_subscription_cancelled(
             account=wriveted_user,
             slack_channel=EventSlackChannel.MEMBERSHIPS,  # Important business event - notify team
             enable_processing=False,  # No processing needed for cancellations
-            external_notifications=True  # Team should be notified of cancellations
+            external_notifications=True,  # Team should be notified of cancellations
         )
     else:
         logger.info(
@@ -594,16 +607,18 @@ def _sync_stripe_price_with_wriveted_product(
     # We upsert into product table to avoid conflict
 
     logger.debug("Syncing Stripe price with Wriveted product")
-    wriveted_product = crud.product.get(session, id=stripe_price_id)
+    wriveted_product = product_repository.get_by_id(session, product_id=stripe_price_id)
     if not wriveted_product:
         logger.info("Creating new product in db")
         stripe_price = StripePrice.retrieve(stripe_price_id)
         stripe_product = StripeProduct.retrieve(stripe_price.product)
 
-        crud.product.upsert(
+        product_repository.upsert(
             session, ProductCreateIn(id=stripe_price_id, name=stripe_product.name)
         )
-        wriveted_product = crud.product.get(session, id=stripe_price_id)
+        wriveted_product = product_repository.get_by_id(
+            session, product_id=stripe_price_id
+        )
 
         logger.info(
             "Created new product in db",

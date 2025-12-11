@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.api.dependencies.security import get_active_principals
 from app.db.session import get_session
+from app.repositories.school_repository import school_repository
 
 
 def get_collection_from_id(
@@ -51,7 +52,7 @@ async def validate_collection_creation(
     body = await request.json()
 
     if school_id := body.get("school_id"):
-        school = crud.school.get_by_wriveted_id_or_404(
+        school = school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=school_id
         )
         if not has_permission(principals, "update", school):

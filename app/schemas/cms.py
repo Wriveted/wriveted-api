@@ -259,7 +259,7 @@ class FlowCreate(BaseModel):
     description: Optional[str] = None
     version: str = Field(..., max_length=50)
     flow_data: Dict[str, Any]
-    entry_node_id: str = Field(..., max_length=255)
+    entry_node_id: Optional[str] = Field(None, max_length=255)
     info: Optional[Dict[str, Any]] = Field(default={})
     is_published: Optional[bool] = False
     is_active: Optional[bool] = True
@@ -295,7 +295,7 @@ class FlowBrief(BaseModel):
 class FlowDetail(FlowBrief):
     description: Optional[str] = None
     flow_data: Dict[str, Any]
-    entry_node_id: str
+    entry_node_id: Optional[str] = Field(None, max_length=255)
     info: Dict[str, Any] = Field()
     created_by: Optional[UUID4] = None
     published_by: Optional[UUID4] = None
@@ -642,3 +642,151 @@ class WebhookNodeContent(BaseModel):
     method: str = "POST"
     headers: Optional[Dict[str, str]] = {}
     payload: Optional[Dict[str, Any]] = {}
+
+
+# Chat Theme Schemas
+class ChatThemeColors(BaseModel):
+    primary: str = Field(default="#1890ff", pattern=r"^#[0-9a-fA-F]{6}$")
+    secondary: str = Field(default="#52c41a", pattern=r"^#[0-9a-fA-F]{6}$")
+    background: str = Field(default="#ffffff", pattern=r"^#[0-9a-fA-F]{6}$")
+    backgroundAlt: str = Field(default="#f5f5f5", pattern=r"^#[0-9a-fA-F]{6}$")
+    userBubble: str = Field(default="#e6f7ff", pattern=r"^#[0-9a-fA-F]{6}$")
+    userBubbleText: str = Field(default="#000000", pattern=r"^#[0-9a-fA-F]{6}$")
+    botBubble: str = Field(default="#f0f0f0", pattern=r"^#[0-9a-fA-F]{6}$")
+    botBubbleText: str = Field(default="#262626", pattern=r"^#[0-9a-fA-F]{6}$")
+    border: str = Field(default="#d9d9d9", pattern=r"^#[0-9a-fA-F]{6}$")
+    shadow: str = Field(default="rgba(0,0,0,0.1)")
+    error: str = Field(default="#ff4d4f", pattern=r"^#[0-9a-fA-F]{6}$")
+    success: str = Field(default="#52c41a", pattern=r"^#[0-9a-fA-F]{6}$")
+    warning: str = Field(default="#faad14", pattern=r"^#[0-9a-fA-F]{6}$")
+    text: str = Field(default="#262626", pattern=r"^#[0-9a-fA-F]{6}$")
+    textMuted: str = Field(default="#8c8c8c", pattern=r"^#[0-9a-fA-F]{6}$")
+    link: str = Field(default="#1890ff", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class ChatThemeFontSize(BaseModel):
+    small: str = Field(default="12px")
+    medium: str = Field(default="14px")
+    large: str = Field(default="16px")
+
+
+class ChatThemeFontWeight(BaseModel):
+    normal: int = Field(default=400)
+    medium: int = Field(default=500)
+    bold: int = Field(default=600)
+
+
+class ChatThemeTypography(BaseModel):
+    fontFamily: str = Field(
+        default="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    )
+    fontSize: ChatThemeFontSize = Field(default_factory=ChatThemeFontSize)
+    lineHeight: float = Field(default=1.5)
+    fontWeight: ChatThemeFontWeight = Field(default_factory=ChatThemeFontWeight)
+
+
+class ChatThemeBubbles(BaseModel):
+    borderRadius: int = Field(default=12)
+    padding: str = Field(default="12px 16px")
+    maxWidth: str = Field(default="80%")
+    spacing: int = Field(default=8)
+
+
+class ChatThemeBot(BaseModel):
+    name: str = Field(default="Huey")
+    avatar: str = Field(default="")
+    typingIndicator: str = Field(default="dots", pattern=r"^(dots|text|wave|none)$")
+    typingSpeed: int = Field(default=50)
+    responseDelay: int = Field(default=500)
+
+
+class ChatThemeLayout(BaseModel):
+    position: str = Field(
+        default="bottom-right",
+        pattern=r"^(bottom-right|bottom-left|bottom-center|fullscreen|inline)$",
+    )
+    width: Union[int, str] = Field(default=400)
+    height: Union[int, str] = Field(default=600)
+    maxWidth: str = Field(default="90vw")
+    maxHeight: str = Field(default="90vh")
+    margin: str = Field(default="20px")
+    padding: str = Field(default="16px")
+    showHeader: bool = Field(default=True)
+    showFooter: bool = Field(default=True)
+    headerHeight: int = Field(default=60)
+    footerHeight: int = Field(default=80)
+
+
+class ChatThemeAnimations(BaseModel):
+    enabled: bool = Field(default=True)
+    messageEntry: str = Field(default="fade", pattern=r"^(fade|slide|none)$")
+    duration: int = Field(default=300)
+    easing: str = Field(default="ease-in-out")
+
+
+class ChatThemeAccessibility(BaseModel):
+    highContrast: bool = Field(default=False)
+    reduceMotion: bool = Field(default=False)
+    fontSize: str = Field(default="default", pattern=r"^(default|large|xlarge)$")
+
+
+class ChatThemeConfig(BaseModel):
+    colors: ChatThemeColors = Field(default_factory=ChatThemeColors)
+    typography: ChatThemeTypography = Field(default_factory=ChatThemeTypography)
+    bubbles: ChatThemeBubbles = Field(default_factory=ChatThemeBubbles)
+    bot: ChatThemeBot = Field(default_factory=ChatThemeBot)
+    layout: ChatThemeLayout = Field(default_factory=ChatThemeLayout)
+    animations: ChatThemeAnimations = Field(default_factory=ChatThemeAnimations)
+    accessibility: ChatThemeAccessibility = Field(
+        default_factory=ChatThemeAccessibility
+    )
+    customCSS: Optional[str] = None
+
+
+class ChatThemeCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    school_id: Optional[UUID4] = None
+    config: ChatThemeConfig
+    logo_url: Optional[str] = Field(None, max_length=512)
+    avatar_url: Optional[str] = Field(None, max_length=512)
+    is_active: bool = Field(default=True)
+    is_default: bool = Field(default=False)
+    version: str = Field(default="1.0", max_length=50)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChatThemeUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    config: Optional[ChatThemeConfig] = None
+    logo_url: Optional[str] = Field(None, max_length=512)
+    avatar_url: Optional[str] = Field(None, max_length=512)
+    is_active: Optional[bool] = None
+    is_default: Optional[bool] = None
+    version: Optional[str] = Field(None, max_length=50)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChatThemeDetail(BaseModel):
+    id: UUID4
+    name: str
+    description: Optional[str] = None
+    school_id: Optional[UUID4] = None
+    config: Dict[str, Any]
+    logo_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_active: bool
+    is_default: bool
+    version: str
+    created_at: datetime
+    updated_at: datetime
+    created_by: Optional[UUID4] = None
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class ChatThemeResponse(PaginatedResponse):
+    data: List[ChatThemeDetail]

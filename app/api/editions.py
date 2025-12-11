@@ -6,12 +6,15 @@ from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
-from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.editions import get_edition_from_isbn
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.db.session import get_session
 from app.models import Edition
+from app.repositories.edition_repository import edition_repository
+from app.repositories.event_repository import event_repository
+from app.repositories.illustrator_repository import illustrator_repository
+from app.repositories.work_repository import work_repository
 from app.schemas import is_url
 from app.schemas.edition import (
     EditionBrief,
@@ -42,15 +45,15 @@ async def get_editions(
     session: Session = Depends(get_session),
 ):
     if work_id is not None:
-        work = crud.work.get_or_404(session, id=work_id)
+        work = work_repository.get_or_404(session, id=work_id)
         return work.editions[pagination.skip : pagination.skip + pagination.limit]
     elif query is not None:
-        statement = crud.edition.get_all_query(session).where(
+        statement = edition_repository.get_all_query(session).where(
             Edition.title.match(query)
         )
         return session.scalars(statement).all()
     else:
-        return crud.edition.get_all(
+        return edition_repository.get_all(
             session, skip=pagination.skip, limit=pagination.limit
         )
 
@@ -90,7 +93,7 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     except AssertionError:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid isbn")
 
-    return crud.edition.get_or_404(db=session, id=isbn)
+    return edition_repository.get_or_404(db=session, isbn=isbn)
 
 
 @router.post("/edition", response_model=EditionDetail)
@@ -99,7 +102,7 @@ async def add_edition(
     session: Session = Depends(get_session),
 ):
     try:
-        edition = crud.edition.create_new_edition(session, edition_data)
+        edition = edition_repository.create_new_edition(session, edition_data)
     except ValueError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
 
@@ -130,12 +133,12 @@ async def update_edition(
     for illustrator_data in edition_data.illustrators or []:
         if isinstance(illustrator_data, int):
             new_illustrators.append(
-                crud.illustrator.get_or_404(session, illustrator_data)
+                illustrator_repository.get_or_404(session, illustrator_data)
             )
         else:
             try:
                 new_illustrators.append(
-                    crud.illustrator.create(
+                    illustrator_repository.create(
                         session,
                         obj_in=IllustratorCreateIn(**dict(illustrator_data)),
                     )
@@ -158,7 +161,7 @@ async def update_edition(
         if cover_url:
             update_data["cover_url"] = cover_url
 
-    updated_edition = crud.edition.update(
+    updated_edition = edition_repository.update(
         db=session, db_obj=edition, obj_in=update_data, merge_dicts=merge_dicts
     )
 
@@ -167,7 +170,7 @@ async def update_edition(
         if not is_url(new_url):
             changes_dict["cover_url"] = "[BASE64 IMAGE]"
 
-    crud.event.create(
+    event_repository.create(
         session,
         title="Edition updated",
         description=f"Made a change to '{updated_edition.title}'",
@@ -194,7 +197,7 @@ async def bulk_add_editions(
         f"Bulk load of {len(isbns)} editions complete. Created {created} new editions."
     )
 
-    crud.event.create(
+    event_repository.create(
         session,
         title="Bulk editions added",
         description=msg,

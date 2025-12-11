@@ -1,13 +1,14 @@
 from app import crud
 from app.models import Student
 from app.models.user import UserAccountType
+from app.repositories.school_repository import school_repository
 from app.schemas.users.user_create import UserCreateIn
 from app.tests.util.random_strings import random_lower_string
 
 
 def test_get_school_with_no_students(session, test_school, test_class_group):
     # session.flush()
-    school = crud.school.get_by_wriveted_id_or_404(
+    school = school_repository.get_by_wriveted_id_or_404(
         db=session, wriveted_id=str(test_school.wriveted_identifier)
     )
     assert school.id == test_school.id
@@ -38,7 +39,7 @@ def test_remove_school_with_students(session_factory, test_school, test_class_gr
 
         print("Students added to school")
 
-        school = crud.school.get_by_wriveted_id_or_404(
+        school = school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=str(test_school.wriveted_identifier)
         )
         print(school)
@@ -48,7 +49,7 @@ def test_remove_school_with_students(session_factory, test_school, test_class_gr
         assert isinstance(school.students[0], Student)
 
         print("Removing school")
-        crud.school.remove(db=session, obj_in=school)
+        school_repository.remove(db=session, obj_in=school)
         session.commit()
         session.close()
 

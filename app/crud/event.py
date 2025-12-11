@@ -1,8 +1,13 @@
+"""
+DEPRECATED: Use app.repositories.event_repository instead.
+
+This module is maintained for backward compatibility only.
+"""
+
+import warnings
 from datetime import datetime
 from typing import Any, Optional, Union
 
-from sqlalchemy import cast, distinct, func, select
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -12,12 +17,23 @@ from app.crud import CRUDBase
 from app.models import Event, ServiceAccount, User
 from app.models.event import EventLevel
 from app.models.school import School
+from app.repositories.event_repository import event_repository
 from app.schemas.events.event import EventCreateIn
 
 logger = get_logger()
 
 
 class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
+    """DEPRECATED: Use EventRepository from app.repositories instead."""
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "CRUDEvent is deprecated. Use EventRepository from app.repositories.event_repository",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
+
     def create(
         self,
         session: Session,
@@ -29,17 +45,17 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         account: Optional[Union[ServiceAccount, User]] = None,
         commit: bool = True,
     ):
-        description, event = self._create_internal(
-            account, description, info, level, school, title
+        """DEPRECATED: Delegates to event_repository.create()."""
+        return event_repository.create(
+            session=session,
+            title=title,
+            description=description,
+            info=info,
+            level=level,
+            school=school,
+            account=account,
+            commit=commit,
         )
-        session.add(event)
-        if commit:
-            session.commit()
-            session.refresh(event)
-
-        # If an event was worth recording in the database we probably also want to log it
-        logger.info(f"{title} - {description}", level=level)
-        return event
 
     async def acreate(
         self,
@@ -52,40 +68,17 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         account: Optional[Union[ServiceAccount, User]] = None,
         commit: bool = True,
     ):
-        description, event = self._create_internal(
-            account, description, info, level, school, title
-        )
-        session.add(event)
-        if commit:
-            await session.commit()
-            await session.refresh(event)
-
-        # If an event was worth recording in the database we probably also want to log it
-        logger.info(
-            f"{title} - {description}",
-            level=level,
-            school=school,
-            account_id=account.id if account else None,
-        )
-        return event
-
-    def _create_internal(self, account, description, info, level, school, title):
-        description = description or ""
-        info = info or {}
-        user_id = account.id if isinstance(account, User) else None
-        service_account_id = account.id if isinstance(account, ServiceAccount) else None
-        school_id = school.id if school is not None else None
-        info["description"] = description
-        event = Event(
+        """DEPRECATED: Delegates to event_repository.acreate()."""
+        return await event_repository.acreate(
+            session=session,
             title=title,
+            description=description,
             info=info,
             level=level,
-            school_id=school_id,
-            user_id=user_id,
-            service_account_id=service_account_id,
+            school=school,
+            account=account,
+            commit=commit,
         )
-
-        return description, event
 
     def get_all_with_optional_filters_query(
         self,
@@ -99,69 +92,22 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         info_jsonpath_match: Optional[str] = None,
         since: datetime | None = None,
     ):
-        event_query = self.get_all_query(db=db, order_by=Event.timestamp.desc())
-
-        if query_string is not None:
-            if isinstance(query_string, str):
-                query_string = [query_string]
-
-            # https://docs.sqlalchemy.org/en/14/dialects/postgresql.html?highlight=search#full-text-search
-            if match_prefix:
-                filters = [
-                    func.lower(Event.title).startswith(query.lower())
-                    for query in query_string
-                ]
-            else:
-                filters = [
-                    func.lower(Event.title).contains(query.lower())
-                    for query in query_string
-                ]
-            if filters:
-                if len(filters) == 1:
-                    event_query = event_query.where(filters[0])
-                else:
-                    # Create OR condition from multiple filters
-                    combined_filter = filters[0]
-                    for f in filters[1:]:
-                        combined_filter = combined_filter | f
-                    event_query = event_query.where(combined_filter)
-
-        if level is not None:
-            included_levels = self.get_log_levels_above_level(level)
-            event_query = event_query.where(Event.level.in_(included_levels))
-
-        if school is not None:
-            event_query = event_query.where(Event.school == school)
-
-        if user is not None:
-            event_query = event_query.where(Event.user == user)
-
-        if service_account is not None:
-            event_query = event_query.where(Event.service_account == service_account)
-
-        if info_jsonpath_match is not None:
-            # Apply the jsonpath filter to the info field
-            event_query = event_query.where(
-                func.jsonb_path_match(cast(Event.info, JSONB), info_jsonpath_match).is_(
-                    True
-                )
-            )
-
-        if since is not None:
-            event_query = event_query.where(Event.timestamp >= since)
-
-        return event_query
+        """DEPRECATED: Delegates to event_repository.get_all_with_optional_filters_query()."""
+        return event_repository.get_all_with_optional_filters_query(
+            db=db,
+            query_string=query_string,
+            match_prefix=match_prefix,
+            level=level,
+            school=school,
+            user=user,
+            service_account=service_account,
+            info_jsonpath_match=info_jsonpath_match,
+            since=since,
+        )
 
     def get_log_levels_above_level(self, level):
-        # Include levels that are higher as well!
-        logging_levels = ["debug", "normal", "warning", "error"]
-        try:
-            level_index = logging_levels.index(level)
-        except ValueError:
-            # If the level is not in the list, just use the highest level
-            level_index = len(logging_levels) - 1
-        included_levels = logging_levels[level_index:]
-        return included_levels
+        """DEPRECATED: Delegates to event_repository.get_log_levels_above_level()."""
+        return event_repository.get_log_levels_above_level(level)
 
     def get_all_with_optional_filters(
         self,
@@ -177,27 +123,20 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         skip: int = 0,
         limit: int = 100,
     ):
-        optional_filters = {
-            "query_string": query_string,
-            "match_prefix": match_prefix,
-            "level": level,
-            "school": school,
-            "user": user,
-            "service_account": service_account,
-            "info_jsonpath_match": info_jsonpath_match,
-            "since": since,
-        }
-        logger.debug("Querying events", **optional_filters)
-        query = self.apply_pagination(
-            self.get_all_with_optional_filters_query(db=db, **optional_filters),
+        """DEPRECATED: Delegates to event_repository.get_all_with_optional_filters()."""
+        return event_repository.get_all_with_optional_filters(
+            db=db,
+            query_string=query_string,
+            match_prefix=match_prefix,
+            level=level,
+            school=school,
+            user=user,
+            service_account=service_account,
+            info_jsonpath_match=info_jsonpath_match,
+            since=since,
             skip=skip,
             limit=limit,
         )
-        try:
-            return db.scalars(query).all()
-        except (ProgrammingError, DataError) as e:
-            logger.error("Error querying events", error=e, **optional_filters)
-            raise ValueError("Problem filtering events")
 
     def get_types(
         self,
@@ -206,14 +145,8 @@ class CRUDEvent(CRUDBase[Event, EventCreateIn, Any]):
         skip: int = 0,
         limit: int = 100,
     ):
-        s = select(distinct(Event.title))
-        if level is not None:
-            included_levels = self.get_log_levels_above_level(level)
-            s = s.where(Event.level.in_(included_levels))
-
-        query = self.apply_pagination(s, skip=skip, limit=limit)
-
-        return db.scalars(query).all()
+        """DEPRECATED: Delegates to event_repository.get_types()."""
+        return event_repository.get_types(db=db, level=level, skip=skip, limit=limit)
 
 
 event = CRUDEvent(Event)

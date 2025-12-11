@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.db.session import get_session
+from app.repositories.school_repository import school_repository
 
 
 def get_school_from_wriveted_id(
@@ -14,7 +15,7 @@ def get_school_from_wriveted_id(
         ..., description="UUID representing a unique school in the Wriveted database"
     ),
 ):
-    return crud.school.get_by_wriveted_id_or_404(
+    return school_repository.get_by_wriveted_id_or_404(
         db=session, wriveted_id=wriveted_identifier
     )
 
@@ -25,7 +26,7 @@ async def aget_school_from_wriveted_id(
         ..., description="UUID representing a unique school in the Wriveted database"
     ),
 ):
-    return await crud.school.aget_by_wriveted_id_or_404(
+    return await school_repository.aget_by_wriveted_id_or_404(
         db=session, wriveted_id=wriveted_identifier
     )
 
@@ -39,6 +40,6 @@ def get_optional_school_from_wriveted_id_query(
     if wriveted_identifier is None:
         return None
     else:
-        return crud.school.get_by_wriveted_id_or_404(
+        return school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=wriveted_identifier
         )

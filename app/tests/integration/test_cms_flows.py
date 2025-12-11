@@ -38,6 +38,8 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
+    await async_session.rollback()
+
     # Clean up before test runs
     for table in cms_tables:
         try:
@@ -50,6 +52,8 @@ async def cleanup_cms_data(async_session):
     await async_session.commit()
 
     yield
+
+    await async_session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:
@@ -1111,6 +1115,115 @@ class TestFlowValidation:
         data = response.json()
         assert data["is_valid"] is False
         assert len(data["validation_errors"]) > 0
+
+    def test_flow_with_invalid_variable_syntax_warns(
+        self, client, backend_service_account_headers
+    ):
+        """Test validation warns about variables without scope prefix."""
+        # Create flow with invalid variable syntax (missing scope prefix)
+        flow_data = {
+            "name": "Flow With Invalid Variables",
+            "version": "1.0.0",
+            "entry_node_id": "start",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "START",
+                        "position": {"x": 0, "y": 0},
+                        "content": {},
+                    },
+                    {
+                        "id": "message1",
+                        "type": "MESSAGE",
+                        "position": {"x": 0, "y": 100},
+                        "content": {
+                            # Invalid: missing scope prefix
+                            "text": "Hello {{ name }}, your color is {{ favorite_color }}!"
+                        },
+                    },
+                ],
+                "connections": [
+                    {"source": "start", "target": "message1", "type": "DEFAULT"}
+                ],
+            },
+        }
+
+        create_response = client.post(
+            "v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+        assert create_response.status_code == status.HTTP_201_CREATED
+        flow_id = create_response.json()["id"]
+
+        # Validate should return warnings about variable syntax
+        response = client.get(
+            f"v1/cms/flows/{flow_id}/validate",
+            headers=backend_service_account_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # Flow is still valid but has warnings
+        assert data["is_valid"] is True
+        # Should have warnings about missing scope prefix
+        assert len(data["validation_warnings"]) >= 2
+        # Check that warnings mention the variables
+        warnings_text = " ".join(data["validation_warnings"])
+        assert "name" in warnings_text
+        assert "favorite_color" in warnings_text
+        assert "temp." in warnings_text  # Should suggest correct syntax
+
+    def test_flow_with_valid_variable_syntax_no_warnings(
+        self, client, backend_service_account_headers
+    ):
+        """Test validation passes with correct variable syntax."""
+        # Create flow with valid variable syntax (proper scope prefix)
+        flow_data = {
+            "name": "Flow With Valid Variables",
+            "version": "1.0.0",
+            "entry_node_id": "start",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "START",
+                        "position": {"x": 0, "y": 0},
+                        "content": {},
+                    },
+                    {
+                        "id": "message1",
+                        "type": "MESSAGE",
+                        "position": {"x": 0, "y": 100},
+                        "content": {
+                            # Valid: uses temp. scope prefix
+                            "text": "Hello {{ temp.name }}, your color is {{ temp.favorite_color }}!"
+                        },
+                    },
+                ],
+                "connections": [
+                    {"source": "start", "target": "message1", "type": "DEFAULT"}
+                ],
+            },
+        }
+
+        create_response = client.post(
+            "v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+        assert create_response.status_code == status.HTTP_201_CREATED
+        flow_id = create_response.json()["id"]
+
+        # Validate should pass without variable warnings
+        response = client.get(
+            f"v1/cms/flows/{flow_id}/validate",
+            headers=backend_service_account_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["is_valid"] is True
+        # No variable-related warnings (might have other warnings like orphaned nodes)
+        var_warnings = [w for w in data["validation_warnings"] if "Variable" in w]
+        assert len(var_warnings) == 0
 
 
 class TestFlowAuthentication:

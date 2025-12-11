@@ -250,6 +250,10 @@ class Settings(BaseSettings):
 
     ENABLE_OTEL_GOOGLE_EXPORTER: bool = False
 
+    # E2E Test configuration - when set, enables test auth endpoints
+    # This should NEVER be set in production
+    E2E_TEST_AUTH_SECRET: Optional[str] = None
+
     model_config = SettingsConfigDict(case_sensitive=True, use_enum_values=True)
 
 

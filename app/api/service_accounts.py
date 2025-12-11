@@ -15,6 +15,7 @@ from app.api.dependencies.security import (
 from app.config import get_settings
 from app.db.session import get_session
 from app.models import Event, ServiceAccount, User
+from app.repositories.service_account_repository import service_account_repository
 from app.schemas.service_account import (
     ServiceAccountBrief,
     ServiceAccountCreatedResponse,
@@ -46,11 +47,11 @@ async def get_service_accounts(
 
     """
     logger.info("Listing service accounts", requester=current_account)
-    query = crud.service_account.get_all_query(db=session)
+    query = service_account_repository.get_all_query(db=session)
     if not include_inactive:
         query = query.where(ServiceAccount.is_active == True)
 
-    query = crud.service_account.apply_pagination(
+    query = service_account_repository.apply_pagination(
         query, skip=pagination.skip, limit=pagination.limit
     )
 
@@ -67,7 +68,7 @@ async def create_service_account(
 ):
     logger.info("Creating a new service account", requester=current_account)
 
-    new_service_account = crud.service_account.create(
+    new_service_account = service_account_repository.create(
         db=session, obj_in=service_account_data
     )
 
@@ -99,7 +100,7 @@ async def create_service_account(
 async def get_service_account_detail(
     service_account_id: str, session: Session = Depends(get_session)
 ):
-    return crud.service_account.get_or_404(db=session, id=service_account_id)
+    return service_account_repository.get_or_404(db=session, id=service_account_id)
 
 
 @router.put(
@@ -110,8 +111,10 @@ async def update_service_account(
     service_account_data: ServiceAccountUpdateIn,
     session: Session = Depends(get_session),
 ):
-    service_account = crud.service_account.get_or_404(db=session, id=service_account_id)
-    return crud.service_account.update(
+    service_account = service_account_repository.get_or_404(
+        db=session, id=service_account_id
+    )
+    return service_account_repository.update(
         db=session, db_obj=service_account, obj_in=service_account_data
     )
 
@@ -130,7 +133,9 @@ async def delete_service_account(
         service_account_id=service_account_id,
     )
 
-    service_account = crud.service_account.get_or_404(db=session, id=service_account_id)
+    service_account = service_account_repository.get_or_404(
+        db=session, id=service_account_id
+    )
 
     session.add(
         Event(

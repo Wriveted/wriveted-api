@@ -21,6 +21,9 @@ from app.db.session import get_session
 from app.models import School, ServiceAccount, User
 from app.models.class_group import ClassGroup
 from app.permissions import Permission
+from app.repositories.class_group_repository import class_group_repository
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
 from app.schemas.class_group import (
     ClassGroupBrief,
     ClassGroupBriefWithJoiningCode,
@@ -88,7 +91,7 @@ async def get_filtered_classes(
 
         school = None
     else:
-        school = crud.school.get_by_wriveted_id_or_404(
+        school = school_repository.get_by_wriveted_id_or_404(
             db=session, wriveted_id=school_id
         )
         if not has_permission(principals, "read", school):
@@ -100,7 +103,7 @@ async def get_filtered_classes(
     # At this point we know that we have either a school id, or the request is from an admin
     # In both cases we are allowed to "read" the school.
 
-    class_list = crud.class_group.get_all_with_optional_filters(
+    class_list = class_group_repository.search(
         session,
         query_string=query,
         school=school,
@@ -139,7 +142,7 @@ def add_class(
     if class_data.school_id is None:
         class_data.school_id = str(school.wriveted_identifier)
     try:
-        new_class_orm = crud.class_group.create(db=session, obj_in=class_data)
+        new_class_orm = class_group_repository.create(db=session, obj_in=class_data)
     except IntegrityError as e:
         logger.warning("Database integrity error while adding class", exc_info=e)
         raise HTTPException(
@@ -147,7 +150,7 @@ def add_class(
             detail="Couldn't add class to school. It might already exist? Check the name.",
         )
 
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="New class created",
         description=f"{account.name} created class '{new_class_orm.name}'",
@@ -179,7 +182,7 @@ async def update_class(
     session: Session = Depends(get_session),
 ):
     logger.debug("Updating class", target_class=class_orm)
-    updated_class = crud.class_group.update(
+    updated_class = class_group_repository.update(
         db=session, db_obj=class_orm, obj_in=changes
     )
     return updated_class
@@ -201,11 +204,11 @@ async def delete_class(
     🔒 caller needs `delete` permission on the class, and `update` permission
     on the school.
     """
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="Class Deleted",
         description=f"Class {class_orm.name} in {school.name} deleted.",
         account=account,
         school=school,
     )
-    return crud.class_group.remove(db=session, id=class_orm.id)
+    return class_group_repository.remove(db=session, id=class_orm.id)

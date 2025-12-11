@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.db.session import get_session
 from app.models.booklist import BookList, ListSharingType, ListType
+from app.repositories.booklist_repository import booklist_repository
 
 
 def get_booklist_from_wriveted_id(
@@ -15,7 +16,7 @@ def get_booklist_from_wriveted_id(
     ),
     session: Session = Depends(get_session),
 ):
-    return crud.booklist.get_or_404(db=session, id=booklist_identifier)
+    return booklist_repository.get_or_404(db=session, id=booklist_identifier)
 
 
 def get_public_huey_booklist_from_slug(

@@ -23,6 +23,8 @@ from app.db.session import get_session
 from app.models import School, SchoolAdmin, ServiceAccount
 from app.models.user import User
 from app.permissions import Permission
+from app.repositories.event_repository import event_repository
+from app.repositories.school_repository import school_repository
 from app.schemas.school import (
     SchoolBookbotInfo,
     SchoolCreateIn,
@@ -117,7 +119,7 @@ async def get_schools(
         principals, "read-collection", bulk_school_access_control_list
     )
 
-    schools = await crud.school.get_all_with_optional_filters(
+    schools = await school_repository.get_all_with_optional_filters(
         session,
         country_code=country_code,
         state=state,
@@ -246,7 +248,7 @@ async def update_school(
     """
     if patch.status:
         if patch.status != school.state:
-            await crud.event.acreate(
+            await event_repository.acreate(
                 session=session,
                 title=f"School account made {patch.status.upper()}",
                 description=f"School '{school.name}' status updated to {patch.status.upper()}",
@@ -254,7 +256,7 @@ async def update_school(
                 account=account,
             )
         school.state = patch.status
-    await crud.event.acreate(
+    await event_repository.acreate(
         session=session,
         title="School Updated",
         description=f"School '{school.name}' in {school.country.name} updated.",
@@ -262,8 +264,8 @@ async def update_school(
         account=account,
         commit=False,
     )
-    updated_orm_object = await crud.school.aupdate(
-        session=session, obj_in=patch, db_obj=school
+    updated_orm_object = await school_repository.aupdate(
+        db=session, db_obj=school, obj_in=patch
     )
 
     return updated_orm_object
@@ -285,14 +287,14 @@ async def bulk_add_schools(
     """Bulk API to add schools"""
 
     new_schools = [
-        crud.school.create(db=session, obj_in=school_data, commit=False)
+        school_repository.create(db=session, obj_in=school_data, commit=False)
         for school_data in schools
     ]
 
     for school in new_schools:
         school.info["experiments"] = get_experiments(school=school)
 
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="Bulk created schools",
         description=f"Added {len(new_schools)} schools to database.",
@@ -323,10 +325,10 @@ def add_school(
     session: Session = Depends(get_session),
 ):
     try:
-        school_orm = crud.school.create(db=session, obj_in=school, commit=False)
+        school_orm = school_repository.create(db=session, obj_in=school, commit=False)
         school_orm.info["experiments"] = get_experiments(school=school_orm)
         session.commit()
-        crud.event.create(
+        event_repository.create(
             session=session,
             title="New school created",
             description=f"{account.name} created school '{school.name}'",
@@ -349,12 +351,12 @@ def delete_school(
     session: Session = Depends(get_session),
 ):
     logger.info("Deleting a school", account=account, school=school)
-    crud.event.create(
+    event_repository.create(
         session=session,
         title="School Deleted",
         description=f"School {school.name} in {school.country.name} deleted.",
         account=account,
         commit=False,
     )
-    crud.school.remove(db=session, obj_in=school)
+    school_repository.remove(db=session, obj_in=school)
     return {"msg": "School deleted"}

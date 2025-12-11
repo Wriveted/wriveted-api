@@ -23,6 +23,8 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
+    await async_session.rollback()
+
     # Clean up before test runs
     for table in cms_tables:
         try:
@@ -36,6 +38,8 @@ async def cleanup_cms_data(async_session):
 
     yield
 
+    await async_session.rollback()
+
     # Clean up after test runs
     for table in cms_tables:
         try:
@@ -48,7 +52,6 @@ async def cleanup_cms_data(async_session):
     await async_session.commit()
 
 
-from app.crud.chat_repo import chat_repo
 from app.db.session import get_async_session_maker
 from app.models.cms import (
     ConversationSession,
@@ -57,6 +60,7 @@ from app.models.cms import (
     SessionStatus,
     TaskExecutionStatus,
 )
+from app.repositories.chat_repository import chat_repo
 from app.tests.util.random_strings import random_lower_string
 
 
@@ -590,7 +594,7 @@ async def test_concurrent_task_processing():
 async def test_expired_records_query(async_session):
     """Test finding expired idempotency records."""
     # Clean up any existing expired records from previous tests
-    from sqlalchemy import func, delete
+    from sqlalchemy import delete, func
 
     await async_session.execute(
         delete(IdempotencyRecord).where(
@@ -646,7 +650,7 @@ async def test_expired_records_query(async_session):
 async def test_stuck_processing_tasks_query(async_session):
     """Test finding tasks stuck in processing state."""
     # Clean up any existing stuck records from previous tests
-    from sqlalchemy import func, delete
+    from sqlalchemy import delete, func
 
     await async_session.execute(
         delete(IdempotencyRecord).where(

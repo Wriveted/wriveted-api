@@ -1,14 +1,15 @@
 services:
 
   db:
-    image: postgres:16
+    image: postgres:18
+    command: ["postgres", "-c", "max_connections=100"]
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
       - POSTGRES_PASSWORD=password
-    #ports:
-    #  - 5432:5432
+    ports:
+      - 5432:5432
     healthcheck:
       test: pg_isready -q -h db -p 5432 -U postgres
       interval: 5s
@@ -24,13 +25,23 @@ services:
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
-      - POSTGRESQL_SERVER=db/
+      - POSTGRESQL_SERVER=db
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
       - SLACK_BOT_TOKEN=unused-key-for-testing
       - WRIVETED_INTERNAL_API=http://internal:8888
       - OPENAI_API_KEY=unused-test-key-for-testing
+    volumes:
+      - ./alembic:/app/alembic:rw
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      cache_from:
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api-development:${TAG-latest}"
+        - "asia.gcr.io/wriveted-api/wriveted-api/wriveted-api:${TAG-latest}"
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
   api:
     image: "gcr.io/wriveted-api/wriveted-api:${TAG-latest}"
     entrypoint: uvicorn "app.main:app" --host 0.0.0.0 --reload
@@ -40,7 +51,7 @@ services:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
       - SQLALCHEMY_ASYNC_URI=postgresql+asyncpg://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
-      - POSTGRESQL_SERVER=db/
+      - POSTGRESQL_SERVER=db
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
@@ -51,8 +62,9 @@ services:
       - SQLALCHEMY_WARN_20=true
       - OPENAI_API_KEY=unused-test-key-for-testing
       - DEBUG=true
+      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8080","http://localhost:8000","http://127.0.0.1:8000"]
     ports:
-      - "8000"
+      - "8000:8000"
     volumes:
       - ./app:/app/app:rw
       - /etc/localtime:/etc/localtime:ro
@@ -73,7 +85,8 @@ services:
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
-      - POSTGRESQL_SERVER=db/
+      - POSTGRESQL_SERVER=db
+      - SQLALCHEMY_ASYNC_URI=postgresql+asyncpg://postgres:password@db/postgres
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing

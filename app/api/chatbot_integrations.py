@@ -24,6 +24,7 @@ from app.models.collection_item_activity import (
     CollectionItemReadStatus,
 )
 from app.models.labelset_hue_association import LabelSetHue
+from app.repositories.school_repository import school_repository
 
 # from app.schemas.recommendations import ReadingAbilityKey  # Future use for reading level mapping
 from app.services.recommendations import get_recommended_labelset_query
@@ -367,7 +368,7 @@ async def get_user_profile(
             # Get school context
             if user.school_id:
                 try:
-                    school = await crud.school.aget(db=db, id=user.school_id)
+                    school = await school_repository.aget(db=db, id=user.school_id)
                     if school:
                         profile.school_name = school.name
                         profile.school_id = school.id

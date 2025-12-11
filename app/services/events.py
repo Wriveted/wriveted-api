@@ -5,9 +5,6 @@ if TYPE_CHECKING:
     from app.services.event_outbox_service import EventPriority
 
 from pydantic import ValidationError
-
-# NOTE: Slack SDK imports removed - now handled by SlackNotificationService
-from app.services.slack_notification import send_slack_alert_reliable_sync
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
@@ -21,6 +18,11 @@ from app.models.collection_item_activity import CollectionItemReadStatus
 from app.models.event import EventLevel, EventSlackChannel
 from app.models.service_account import ServiceAccount
 from app.models.user import User, UserAccountType
+from app.repositories.booklist_repository import booklist_repository
+from app.repositories.collection_item_activity_repository import (
+    collection_item_activity_repository,
+)
+from app.repositories.edition_repository import edition_repository
 from app.schemas.booklist import (
     BookListCreateIn,
     BookListItemInfo,
@@ -33,6 +35,9 @@ from app.schemas.events.huey_events import HueyBookReviewedInfo
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import ReadingLogEventFeedback
 from app.services.feedback import process_reader_feedback_alerts
+
+# NOTE: Slack SDK imports removed - now handled by SlackNotificationService
+from app.services.slack_notification import send_slack_alert_reliable_sync
 
 # EventPriority imported in TYPE_CHECKING block above
 
@@ -374,7 +379,7 @@ def process_reading_logged_event(session: Session, event: Event):
         reader_id=event.user_id,
         status=status,
     )
-    crud.collection_item_activity.create(session, obj_in=activity)
+    collection_item_activity_repository.create(session, obj_in=activity)
 
     item: CollectionItem = crud.collection.get_collection_item(
         db=session, collection_item_id=log_data.collection_item_id
@@ -431,7 +436,7 @@ def update_or_create_liked_books(
     booklist_name="Liked Books",
 ):
     # See if the "Liked Books" booklist exists.
-    liked_booklist_query = crud.booklist.get_all_query_with_optional_filters(
+    liked_booklist_query = booklist_repository.get_all_query_with_optional_filters(
         db=session,
         list_type=booklist_type,
         school=school,
@@ -441,7 +446,7 @@ def update_or_create_liked_books(
     booklist = session.scalars(liked_booklist_query).first()
     if booklist is None:
         logger.info("Creating a new booklist", type=booklist_type)
-        booklist = crud.booklist.create(
+        booklist = booklist_repository.create(
             db=session,
             obj_in=BookListCreateIn(
                 name=booklist_name,
@@ -454,7 +459,7 @@ def update_or_create_liked_books(
 
     # Update with any newly liked items. Existing likes will be skipped
     logger.info("Updating booklist", booklist_id=booklist.id)
-    booklist = crud.booklist.update(
+    booklist = booklist_repository.update(
         db=session, db_obj=booklist, obj_in=BookListUpdateIn(items=liked_items)
     )
     return booklist
@@ -493,7 +498,7 @@ def get_liked_books_from_book_review_event(
 def booklist_item_update_from_isbn(
     session, isbn, book_liked
 ) -> Optional[BookListItemUpdateIn]:
-    edition = crud.edition.get(db=session, id=isbn)
+    edition = edition_repository.get(db=session, id=isbn)
     if edition and book_liked:
         liked_booklist_item = BookListItemUpdateIn(
             action=ItemUpdateType.ADD,

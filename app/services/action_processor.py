@@ -14,13 +14,13 @@ from typing import Any, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
-from app.crud.chat_repo import chat_repo
 from app.models.cms import (
     ConnectionType,
     ConversationSession,
     FlowNode,
     InteractionType,
 )
+from app.repositories.chat_repository import chat_repo
 from app.services.api_client import ApiCallConfig, get_api_client
 from app.services.chat_runtime import NodeProcessor
 from app.services.cloud_tasks import cloud_tasks

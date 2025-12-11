@@ -13,6 +13,7 @@ from app.models.user import User, UserAccountType
 from app.schemas.users.huey_attributes import HueyAttributes
 from app.schemas.users.user_create import UserCreateIn
 from app.services.booklists import generate_reading_pathway_lists_sync
+
 # Local import to avoid circular dependency
 # from app.services.events import create_event
 from app.services.util import oxford_comma_join
@@ -51,10 +52,13 @@ def handle_user_creation(
             children_string = oxford_comma_join(
                 [child.name for child in children_to_create or []]
             )
-            
+
             # Local import to avoid circular dependency
-            from app.services.email_notification import send_email_reliable_sync, EmailType
-            
+            from app.services.email_notification import (
+                EmailType,
+                send_email_reliable_sync,
+            )
+
             email_data = {
                 "from_email": "hello@hueybooks.com",
                 "from_name": "Huey Books",
@@ -68,12 +72,12 @@ def handle_user_creation(
                     ),
                 },
             }
-            
+
             send_email_reliable_sync(
                 db=session,
                 email_data=email_data,
                 email_type=EmailType.ONBOARDING,
-                user_id=str(new_user.id)
+                user_id=str(new_user.id),
             )
 
         if user_data.type == UserAccountType.PARENT and checkout_session_id:
@@ -83,6 +87,7 @@ def handle_user_creation(
 
     # Local import to avoid circular dependency
     from app.services.events import create_event
+
     create_event(
         session,
         title="User created",
@@ -266,9 +271,9 @@ def link_parent_with_subscription_via_checkout_session(
     """
     Link a user with a subscription via a checkout session ID.
     """
-    from app import crud
+    from app.repositories.subscription_repository import subscription_repository
 
-    subscription = crud.subscription.get_by_checkout_session_id(
+    subscription = subscription_repository.get_by_checkout_session_id(
         db=session, checkout_session_id=checkout_session_id
     )
     if subscription and not subscription.parent:
