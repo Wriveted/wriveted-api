@@ -40,20 +40,20 @@ class ContentType(CaseInsensitiveStringEnum):
 
 
 class ExecutionContext(CaseInsensitiveStringEnum):
-    FRONTEND = "FRONTEND"
-    BACKEND = "BACKEND"
-    MIXED = "MIXED"
+    FRONTEND = "frontend"
+    BACKEND = "backend"
+    MIXED = "mixed"
 
 
 class NodeType(CaseInsensitiveStringEnum):
-    START = "START"
-    MESSAGE = "MESSAGE"
-    QUESTION = "QUESTION"
-    CONDITION = "CONDITION"
-    ACTION = "ACTION"
-    WEBHOOK = "WEBHOOK"
-    COMPOSITE = "COMPOSITE"
-    SCRIPT = "SCRIPT"
+    START = "start"
+    MESSAGE = "message"
+    QUESTION = "question"
+    CONDITION = "condition"
+    ACTION = "action"
+    WEBHOOK = "webhook"
+    COMPOSITE = "composite"
+    SCRIPT = "script"
 
 
 class ConnectionType(CaseInsensitiveStringEnum):
@@ -599,6 +599,11 @@ class ConversationSession(Base):
     )
     trace_level: Mapped[Optional[str]] = mapped_column(
         String(20), nullable=True, server_default=text("'standard'")
+    )
+
+    # Flow version at session start - for historical replay accuracy
+    flow_version: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True, index=True
     )
 
     # Relationships
