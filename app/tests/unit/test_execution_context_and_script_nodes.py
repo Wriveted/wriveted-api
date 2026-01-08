@@ -57,6 +57,7 @@ class TestNodeTypeEnum:
     def test_all_node_types(self):
         """Test all NodeType enum values."""
         expected_types = {
+            "start",
             "message",
             "question",
             "condition",
