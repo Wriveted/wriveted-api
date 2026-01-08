@@ -22,9 +22,9 @@ jobs:
       uses: snok/install-poetry@v1
     - name: 🐍 Set up Python
       id: python
-      uses: actions/setup-python@v4.7.0
+      uses: actions/setup-python@v5
       with:
-        python-version-file: "pyproject.toml"
+        python-version: "3.13"
         cache: 'poetry'
     - name: 🗄 Set up PostgreSQL
       uses: danielweller-swp/postgresql-action@v2
