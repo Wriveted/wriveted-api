@@ -120,6 +120,12 @@ class School:
         ]
 ```
 
+# Huey Books Terms Acceptance
+
+School admins accept Huey Books terms via `PATCH /v1/school/{wriveted_identifier}` by
+updating `school.info.terms_acceptance.huey_books` with a version and timestamp. When
+acceptance changes, the API records an `Event` titled "Huey Books terms accepted".
+
 # Development
 
 ## Python Dependencies are managed with Poetry

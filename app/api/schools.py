@@ -1,4 +1,5 @@
-from typing import List, Optional, Union
+import copy
+from typing import Any, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi_permissions import Allow, Authenticated, Deny, has_permission
@@ -7,7 +8,6 @@ from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
-from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.school import (
@@ -33,6 +33,7 @@ from app.schemas.school import (
     SchoolSelectorOption,
 )
 from app.services.experiments import get_experiments
+from app.utils.dict_utils import deep_merge_dicts
 
 logger = get_logger()
 
@@ -65,6 +66,44 @@ bulk_school_access_control_list = [
     (Deny, "role:lms", "create"),
     (Deny, "role:lms", "batch"),
 ]
+
+
+def _get_huey_terms_acceptance(info: Any) -> Optional[dict]:
+    if not isinstance(info, dict):
+        return None
+    terms_acceptance = info.get("terms_acceptance")
+    if not isinstance(terms_acceptance, dict):
+        return None
+    huey_terms = terms_acceptance.get("huey_books")
+    return huey_terms if isinstance(huey_terms, dict) else None
+
+
+def _is_terms_only_info_patch(patch_info: Any) -> bool:
+    if not isinstance(patch_info, dict):
+        return False
+    if set(patch_info.keys()) != {"terms_acceptance"}:
+        return False
+    terms_acceptance = patch_info.get("terms_acceptance")
+    if not isinstance(terms_acceptance, dict):
+        return False
+    if set(terms_acceptance.keys()) != {"huey_books"}:
+        return False
+    return isinstance(terms_acceptance.get("huey_books"), dict)
+
+
+def _is_terms_only_patch(patch: SchoolPatchOptions, patch_info: Any) -> bool:
+    if any(
+        [
+            patch.status,
+            patch.bookbot_type,
+            patch.lms_type,
+            patch.name,
+            patch.student_domain,
+            patch.teacher_domain,
+        ]
+    ):
+        return False
+    return _is_terms_only_info_patch(patch_info)
 
 
 @router.get(
@@ -246,26 +285,73 @@ async def update_school(
     Only available to users with the "update" permission for the
     selected school; i.e. superusers, and school administrators.
     """
-    if patch.status:
-        if patch.status != school.state:
+    patch_info = patch.info
+    original_info = copy.deepcopy(school.info or {})
+    merged_info = None
+    patch_data = patch.model_copy(deep=True)
+
+    if patch_info is not None:
+        if isinstance(patch_info, dict):
+            merged_info = copy.deepcopy(original_info)
+            deep_merge_dicts(merged_info, patch_info)
+        else:
+            merged_info = patch_info
+        patch_data.info = merged_info
+
+    terms_changed = False
+    terms_payload = None
+    if merged_info is not None:
+        terms_payload = _get_huey_terms_acceptance(merged_info)
+        terms_changed = terms_payload != _get_huey_terms_acceptance(original_info)
+
+    terms_only = _is_terms_only_patch(patch_data, patch_info)
+
+    if patch_data.status:
+        if patch_data.status != school.state:
             await event_repository.acreate(
                 session=session,
-                title=f"School account made {patch.status.upper()}",
-                description=f"School '{school.name}' status updated to {patch.status.upper()}",
+                title=f"School account made {patch_data.status.upper()}",
+                description=(
+                    f"School '{school.name}' status updated to "
+                    f"{patch_data.status.upper()}"
+                ),
                 school=school,
                 account=account,
             )
-        school.state = patch.status
-    await event_repository.acreate(
-        session=session,
-        title="School Updated",
-        description=f"School '{school.name}' in {school.country.name} updated.",
-        school=school,
-        account=account,
-        commit=False,
-    )
+        school.state = patch_data.status
+
+    if terms_changed and terms_payload:
+        accepted_by_user_id = terms_payload.get("accepted_by_user_id")
+        if accepted_by_user_id is None and isinstance(account, User):
+            accepted_by_user_id = str(account.id)
+        await event_repository.acreate(
+            session=session,
+            title="Huey Books terms accepted",
+            description=(
+                f"School '{school.name}' accepted Huey Books terms "
+                f"v{terms_payload.get('version')}"
+            ),
+            info={
+                "terms_version": terms_payload.get("version"),
+                "accepted_at": terms_payload.get("accepted_at"),
+                "accepted_by_user_id": accepted_by_user_id,
+            },
+            school=school,
+            account=account,
+            commit=False,
+        )
+
+    if not terms_only:
+        await event_repository.acreate(
+            session=session,
+            title="School Updated",
+            description=f"School '{school.name}' in {school.country.name} updated.",
+            school=school,
+            account=account,
+            commit=False,
+        )
     updated_orm_object = await school_repository.aupdate(
-        db=session, db_obj=school, obj_in=patch
+        db=session, db_obj=school, obj_in=patch_data
     )
 
     return updated_orm_object

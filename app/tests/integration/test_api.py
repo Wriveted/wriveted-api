@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from starlette import status
 
@@ -158,6 +159,54 @@ def test_update_school_state(
     )
     update_response.raise_for_status()
     assert update_response.json()["state"] == "pending"
+
+
+def test_update_school_terms_acceptance_merges_info_and_logs_event(
+    client,
+    test_school,
+    admin_of_test_school,
+    admin_of_test_school_headers,
+):
+    school_id = test_school.wriveted_identifier
+    accepted_at = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    patch_info = {
+        "terms_acceptance": {
+            "huey_books": {
+                "version": "2026-01-01",
+                "accepted_at": accepted_at,
+                "accepted_by_user_id": str(admin_of_test_school.id),
+            }
+        }
+    }
+
+    update_response = client.patch(
+        f"/v1/school/{school_id}",
+        headers=admin_of_test_school_headers,
+        json={"info": patch_info},
+    )
+    update_response.raise_for_status()
+    updated_school = update_response.json()
+
+    assert updated_school["info"]["location"]["state"] == "Required"
+    assert (
+        updated_school["info"]["terms_acceptance"]["huey_books"]["version"]
+        == "2026-01-01"
+    )
+
+    events_response = client.get(
+        f"/v1/events?school_id={school_id}&query=Huey%20Books%20terms%20accepted",
+        headers=admin_of_test_school_headers,
+    )
+    events_response.raise_for_status()
+    titles = [event["title"] for event in events_response.json()["data"]]
+    assert "Huey Books terms accepted" in titles
+
+    school_updated_response = client.get(
+        f"/v1/events?school_id={school_id}&query=School%20Updated",
+        headers=admin_of_test_school_headers,
+    )
+    school_updated_response.raise_for_status()
+    assert len(school_updated_response.json()["data"]) == 0
     client.patch(
         f"/v1/school/{school_id}",
         headers=admin_of_test_school_headers,

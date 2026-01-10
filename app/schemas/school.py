@@ -33,6 +33,7 @@ class SchoolInfo(BaseModel):
     status: Optional[str] = None
     age_id: Optional[str] = None
     experiments: Optional[dict[str, bool]] = None
+    terms_acceptance: Optional[dict[str, Any]] = None
 
 
 class SchoolBrief(SchoolIdentity):
