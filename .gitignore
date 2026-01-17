@@ -19,6 +19,14 @@ Session.vim
 
 # ide
 .vscode
+.idea
+.claude
+
+# local artifacts
+*.db
 
 # deployment
 /deployment
+
+# archived historical docs
+archive/
