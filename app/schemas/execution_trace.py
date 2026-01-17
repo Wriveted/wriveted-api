@@ -141,6 +141,7 @@ class SessionSummary(BaseModel):
     session_token: str
     user_id: Optional[UUID] = None
     flow_id: UUID
+    flow_version: Optional[str] = None
     status: str
     started_at: datetime
     ended_at: Optional[datetime] = None
