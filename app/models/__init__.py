@@ -48,5 +48,6 @@ from .subscription import Subscription
 from .supporter import Supporter
 from .supporter_reader_association import SupporterReaderAssociation
 from .user import User
+from .webhook_subscription import WebhookSubscription, WebhookSubscriptionStatus
 from .work import Work
 from .wriveted_admin import WrivetedAdmin
