@@ -112,7 +112,16 @@ CREATE TABLE flow_definitions (
 Individual nodes within a flow.
 
 ```sql
-CREATE TYPE enum_flow_node_type AS ENUM ('message', 'question', 'condition', 'action', 'webhook', 'composite');
+CREATE TYPE enum_flow_node_type AS ENUM (
+    'start',
+    'message',
+    'question',
+    'condition',
+    'action',
+    'webhook',
+    'composite',
+    'script'
+);
 
 CREATE TABLE flow_nodes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,35 +157,38 @@ Node content examples:
   "question": {
     "content_id": "uuid-here"
   },
-  "input_type": "buttons",
+  "input_type": "choice",
   "options": [
-    {"text": "Yes", "value": "yes", "payload": "$0"},
-    {"text": "No", "value": "no", "payload": "$1"}
+    {"label": "Yes", "value": "yes"},
+    {"label": "No", "value": "no"}
   ],
   "validation": {
     "required": true,
     "type": "string"
-  }
+  },
+  "variable": "temp.answer"
 }
 
 // Condition Node
 {
   "conditions": [
     {
-      "if": {"var": "user.age", "gte": 13},
-      "then": "teen_flow",
-      "else": "child_flow"
+      "if": "user.age >= 13",
+      "then": "option_0"
     }
-  ]
+  ],
+  "default_path": "option_1"
 }
 
 // Action Node
 {
-  "action": "set_variable",
-  "params": {
-    "variable": "user_profile.reading_level",
-    "value": "intermediate"
-  }
+  "actions": [
+    {
+      "type": "set_variable",
+      "variable": "user_profile.reading_level",
+      "value": "intermediate"
+    }
+  ]
 }
 ```
 
@@ -326,7 +338,7 @@ Uses CEL (Common Expression Language) for flexible, configurable business rule v
 # Question Node Validation  
 {
   "question": {"text": "What's your favorite color?"},
-  "input_type": "choice",  # Must be: text|choice|number|email|phone|url
+  "input_type": "choice",  # Must be: text|choice|multiple_choice|number|email|phone|url|date|slider|image_choice|carousel
   "options": [             # Required for choice questions, 2-10 recommended
     {"value": "red", "label": "Red"},
     {"value": "blue", "label": "Blue"}
@@ -345,6 +357,228 @@ Uses CEL (Common Expression Language) for flexible, configurable business rule v
 }
 ```
 
+## Content Visibility & Ownership
+
+The CMS supports multi-tenant content with school-scoped ownership and visibility controls. This enables school librarians to create and manage their own content while accessing Wriveted's curated global content.
+
+### Visibility Levels
+
+```python
+class ContentVisibility(Enum):
+    PRIVATE = "private"    # Only visible to creator and school admins
+    SCHOOL = "school"      # Visible to all users in the creating school
+    PUBLIC = "public"      # Visible to all authenticated users globally
+    WRIVETED = "wriveted"  # Wriveted-curated global content (admin-only editing)
+```
+
+### Database Schema Additions
+
+Both `cms_content` and `flow_definitions` tables include ownership fields:
+
+```sql
+-- Added to cms_content and flow_definitions
+school_id UUID REFERENCES schools(wriveted_identifier) ON DELETE CASCADE,
+visibility enum_cms_content_visibility DEFAULT 'wriveted'
+```
+
+### Access Control Rules
+
+| Visibility | Who Can View | Who Can Edit |
+|------------|--------------|--------------|
+| `private` | Creator + school admins | Creator + school admins |
+| `school` | All users in the school | School admins |
+| `public` | All authenticated users | Creator + school admins |
+| `wriveted` | All users (default content) | Wriveted admins only |
+
+### Visibility Filtering Logic
+
+When querying content, the system applies visibility filters based on the requesting user:
+
+```python
+# Always include Wriveted global content
+visibility_conditions = [ContentVisibility.WRIVETED]
+
+# Include public content if requested
+if include_public:
+    visibility_conditions.append(ContentVisibility.PUBLIC)
+
+# Include school-scoped content if user belongs to a school
+if user.school_id:
+    visibility_conditions.append(
+        and_(
+            CMSContent.school_id == user.school.wriveted_identifier,
+            CMSContent.visibility.in_([ContentVisibility.SCHOOL, ContentVisibility.PRIVATE])
+        )
+    )
+```
+
+## Random Content Selection
+
+The CMS provides a random content endpoint for dynamic content selection in chatbot flows, with support for tag-based and info-based filtering.
+
+### Endpoint
+
+```
+GET /v1/cms/content/random
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | ContentType | Required. Filter by content type (question, joke, fact, etc.) |
+| `tags` | string[] | Optional. Filter by tags (array overlap match) |
+| `count` | int | Optional. Number of items to return (1-20, default: 1) |
+| `exclude_ids` | UUID[] | Optional. IDs to exclude (for deduplication) |
+| `info.*` | any | Optional. Key:value filtering on `info` JSONB field |
+
+### Info Field Filtering
+
+The `info.*` query parameters allow filtering on arbitrary data stored in the content's `info` JSONB field:
+
+```
+GET /v1/cms/content/random?type=question&info.min_age=5&info.max_age=14&info.theme=doors
+```
+
+This filters content where:
+- `info.min_age` equals 5
+- `info.max_age` equals 14
+- `info.theme` equals "doors"
+
+### Example: Preference Questions for Chatbot
+
+```python
+# Fetch 3 random preference questions for a 10-year-old, excluding already-shown questions
+GET /v1/cms/content/random
+  ?type=question
+  &tags=huey-preference
+  &info.min_age=5
+  &info.max_age=14
+  &count=3
+  &exclude_ids=uuid1,uuid2
+
+# Response
+[
+  {
+    "id": "uuid-here",
+    "type": "question",
+    "content": {
+      "question_text": "Which mystery door will you go through?",
+      "answers": [...]
+    },
+    "tags": ["huey-preference", "theme:doors"],
+    "info": {"min_age": 5, "max_age": 14, "theme": "doors"},
+    "visibility": "wriveted"
+  }
+]
+```
+
+## Preference Question Content Schema
+
+For chatbot flows that collect user preferences (e.g., reading preferences mapped to Huey hue dimensions), use the `question` content type with a structured content schema.
+
+### Content Structure
+
+```json
+{
+  "type": "question",
+  "tags": ["huey-preference", "theme:doors"],
+  "info": {
+    "min_age": 5,
+    "max_age": 14,
+    "theme": "doors",
+    "category": "personality"
+  },
+  "content": {
+    "question_text": "Which mystery door will you go through?",
+    "min_age": 5,
+    "max_age": 14,
+    "answers": [
+      {
+        "text": "The dark, mysterious door",
+        "image_url": "https://storage.googleapis.com/.../door-dark.png",
+        "hue_map": {
+          "hue01_dark_suspense": 1.0,
+          "hue02_beautiful_whimsical": 0.2,
+          "hue03_dark_beautiful": 0.8
+        }
+      },
+      {
+        "text": "The bright, inviting door",
+        "image_url": "https://storage.googleapis.com/.../door-bright.png",
+        "hue_map": {
+          "hue01_dark_suspense": 0.1,
+          "hue02_beautiful_whimsical": 0.9,
+          "hue03_dark_beautiful": 0.3
+        }
+      }
+    ]
+  },
+  "is_active": true,
+  "status": "published",
+  "visibility": "wriveted"
+}
+```
+
+### Pydantic Validation
+
+The `PreferenceQuestionContent` schema validates:
+- `question_text`: Non-empty string
+- `min_age`/`max_age`: Integers 0-99
+- `answers`: 2-6 unique answer options
+- `hue_map`: Dictionary with valid HueKeys and weights between 0.0-1.0
+
+```python
+class PreferenceAnswer(BaseModel):
+    text: str  # Display text (required, non-empty)
+    image_url: Optional[str]  # Optional image URL
+    hue_map: Dict[HueKeys, float]  # Hue dimension weights (0.0-1.0)
+
+class PreferenceQuestionContent(BaseModel):
+    question_text: str
+    min_age: int = Field(0, ge=0, le=99)
+    max_age: int = Field(99, ge=0, le=99)
+    answers: List[PreferenceAnswer] = Field(..., min_length=2, max_length=6)
+```
+
+### Using in Chatbot Flows
+
+Flow nodes can fetch random preference questions and aggregate responses:
+
+```json
+// Question node fetching dynamic content
+{
+  "node_type": "question",
+  "content": {
+    "source": "random",
+    "source_config": {
+      "type": "question",
+      "tags": ["huey-preference"],
+      "info_filters": {"min_age": "${user.age}", "max_age": "${user.age}"},
+      "exclude_from": "temp.shown_question_ids"
+    },
+    "result_variable": "temp.current_answer",
+    "track_shown_in": "temp.shown_question_ids"
+  }
+}
+
+// Action node aggregating collected responses
+{
+  "node_type": "action",
+  "content": {
+    "actions": [
+      {
+        "type": "aggregate",
+        "source": "temp.collected_answers",
+        "target": "user.preference_profile",
+        "operation": "weighted_average",
+        "weight_field": "hue_map"
+      }
+    ]
+  }
+}
+```
+
 ## API Design
 
 ### Content Management Endpoints
@@ -353,7 +587,7 @@ Uses CEL (Common Expression Language) for flexible, configurable business rule v
 
 ```python
 # List content with filtering
-GET /api/cms/content
+GET /v1/cms/content
 Query params:
   - type: ContentType (joke, fact, question, quote, message)
   - tags: string[] (filter by tags)
@@ -363,10 +597,10 @@ Query params:
   - limit: int
 
 # Get specific content
-GET /api/cms/content/{content_id}
+GET /v1/cms/content/{content_id}
 
 # Create content
-POST /api/cms/content
+POST /v1/cms/content
 Body: {
   "type": "joke",
   "content": {
@@ -374,17 +608,17 @@ Body: {
     "punchline": "..."
   },
   "tags": ["science", "kids"],
-  "metadata": {}
+  "info": {}
 }
 
 # Update content
-PUT /api/cms/content/{content_id}
+PUT /v1/cms/content/{content_id}
 
 # Delete content
-DELETE /api/cms/content/{content_id}
+DELETE /v1/cms/content/{content_id}
 
 # Bulk operations
-POST /api/cms/content/bulk
+POST /v1/cms/content/bulk
 Body: {
   "operation": "create|update|delete",
   "items": [...]
@@ -395,10 +629,10 @@ Body: {
 
 ```python
 # List variants for content
-GET /api/cms/content/{content_id}/variants
+GET /v1/cms/content/{content_id}/variants
 
 # Create variant
-POST /api/cms/content/{content_id}/variants
+POST /v1/cms/content/{content_id}/variants
 Body: {
   "variant_key": "holiday_version",
   "variant_data": {...},
@@ -409,7 +643,7 @@ Body: {
 }
 
 # Update variant performance
-POST /api/cms/content/{content_id}/variants/{variant_id}/performance
+POST /v1/cms/content/{content_id}/variants/{variant_id}/performance
 Body: {
   "impressions": 1,
   "engagements": 1
@@ -422,47 +656,57 @@ Body: {
 
 ```python
 # List flows
-GET /api/cms/flows
+GET /v1/cms/flows
 Query params:
   - published: boolean
   - active: boolean
 
 # Get flow definition
-GET /api/cms/flows/{flow_id}
+GET /v1/cms/flows/{flow_id}
 
 # Create flow
-POST /api/cms/flows
+POST /v1/cms/flows
 Body: {
   "name": "Welcome Flow v2",
   "description": "Updated onboarding flow",
   "flow_data": {...},
-  "entry_node_id": "welcome"
+  "entry_node_id": "welcome",
+  "contract": {
+    "entry_requirements": {
+      "variables": ["user.name"]
+    },
+    "return_state": ["temp.onboarding.complete"]
+  }
 }
 
 # Update flow
-PUT /api/cms/flows/{flow_id}
+PUT /v1/cms/flows/{flow_id}
 
-# Publish flow
-POST /api/cms/flows/{flow_id}/publish
+# Publish/unpublish flow
+# Use publish=true/false in the update payload
+PUT /v1/cms/flows/{flow_id}
+Body: {
+  "publish": true
+}
 
 # Clone flow
-POST /api/cms/flows/{flow_id}/clone
+POST /v1/cms/flows/{flow_id}/clone
 
 # Delete flow
-DELETE /api/cms/flows/{flow_id}
+DELETE /v1/cms/flows/{flow_id}
 ```
 
 #### Flow Node Management
 
 ```python
 # List nodes in flow
-GET /api/cms/flows/{flow_id}/nodes
+GET /v1/cms/flows/{flow_id}/nodes
 
 # Get node details
-GET /api/cms/flows/{flow_id}/nodes/{node_id}
+GET /v1/cms/flows/{flow_id}/nodes/{node_id}
 
 # Create node
-POST /api/cms/flows/{flow_id}/nodes
+POST /v1/cms/flows/{flow_id}/nodes
 Body: {
   "node_id": "ask_name",
   "node_type": "question",
@@ -471,13 +715,13 @@ Body: {
 }
 
 # Update node
-PUT /api/cms/flows/{flow_id}/nodes/{node_id}
+PUT /v1/cms/flows/{flow_id}/nodes/{node_id}
 
 # Delete node (and connections)
-DELETE /api/cms/flows/{flow_id}/nodes/{node_id}
+DELETE /v1/cms/flows/{flow_id}/nodes/{node_id}
 
 # Batch update node positions
-PUT /api/cms/flows/{flow_id}/nodes/positions
+PUT /v1/cms/flows/{flow_id}/nodes/positions
 Body: {
   "positions": {
     "node1": {"x": 100, "y": 100},
@@ -490,10 +734,10 @@ Body: {
 
 ```python
 # List connections
-GET /api/cms/flows/{flow_id}/connections
+GET /v1/cms/flows/{flow_id}/connections
 
 # Create connection
-POST /api/cms/flows/{flow_id}/connections
+POST /v1/cms/flows/{flow_id}/connections
 Body: {
   "source_node_id": "ask_name",
   "target_node_id": "greet_user",
@@ -501,7 +745,7 @@ Body: {
 }
 
 # Delete connection
-DELETE /api/cms/flows/{flow_id}/connections/{connection_id}
+DELETE /v1/cms/flows/{flow_id}/connections/{connection_id}
 ```
 
 ### Conversation Runtime Endpoints
@@ -510,7 +754,7 @@ DELETE /api/cms/flows/{flow_id}/connections/{connection_id}
 
 ```python
 # Start conversation
-POST /api/chat/start
+POST /v1/chat/start
 Body: {
   "flow_id": "uuid",
   "user_id": "uuid", // optional
@@ -523,20 +767,20 @@ Response: {
 }
 
 # Get session state
-GET /api/chat/sessions/{session_token}
+GET /v1/chat/sessions/{session_token}
 
 # End session
-POST /api/chat/sessions/{session_token}/end
+POST /v1/chat/sessions/{session_token}/end
 ```
 
 #### Conversation Flow
 
 ```python
 # Send message/input
-POST /api/chat/sessions/{session_token}/interact
+POST /v1/chat/sessions/{session_token}/interact
 Body: {
   "input": "user text or button payload",
-  "input_type": "text|button|file"
+  "input_type": "text|button|file|choice|number|email|date|slider|image_choice|carousel|multiple_choice"
 }
 Response: {
   "messages": [...],
@@ -548,10 +792,10 @@ Response: {
 }
 
 # Get conversation history
-GET /api/chat/sessions/{session_token}/history
+GET /v1/chat/sessions/{session_token}/history
 
 # Update session state
-PATCH /api/chat/sessions/{session_token}/state
+PATCH /v1/chat/sessions/{session_token}/state
 Body: {
   "updates": {
     "user_name": "John",
@@ -566,7 +810,7 @@ Body: {
 
 ```python
 # Get basic flow analytics
-GET /api/analytics/flows/{flow_id}
+GET /v1/cms/flows/{flow_id}/analytics
 Query params:
   - start_date: date (optional, defaults to 30 days ago)
   - end_date: date (optional, defaults to today)
@@ -580,7 +824,7 @@ Response: {
 }
 
 # Get flow conversion funnel
-GET /api/analytics/flows/{flow_id}/funnel
+GET /v1/cms/flows/{flow_id}/analytics/funnel
 Query params:
   - start_date: date (optional)
   - end_date: date (optional)
@@ -599,7 +843,7 @@ Response: {
 }
 
 # Get flow performance over time
-GET /api/analytics/flows/{flow_id}/performance
+GET /v1/cms/flows/{flow_id}/analytics/performance
 Query params:
   - granularity: hourly|daily|weekly (default: daily)
   - days: int (default: 7, max: 90)
@@ -618,7 +862,7 @@ Response: {
 }
 
 # Compare multiple flow versions
-GET /api/analytics/flows/compare
+GET /v1/cms/flows/analytics/compare
 Query params:
   - flow_ids: comma-separated flow IDs (required)
   - start_date: date (optional)
@@ -640,7 +884,7 @@ Response: {
 
 ```python
 # Get node engagement metrics
-GET /api/analytics/flows/{flow_id}/nodes/{node_id}
+GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics
 Query params:
   - start_date: date (optional)
   - end_date: date (optional)
@@ -658,7 +902,7 @@ Response: {
 }
 
 # Get node response analytics
-GET /api/analytics/flows/{flow_id}/nodes/{node_id}/responses
+GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics/responses
 Response: {
   "node_id": "string",
   "response_patterns": [...],
@@ -667,7 +911,7 @@ Response: {
 }
 
 # Get node path analytics (user journey)
-GET /api/analytics/flows/{flow_id}/nodes/{node_id}/paths
+GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics/paths
 Response: {
   "node_id": "string",
   "incoming_paths": [...],
@@ -680,7 +924,7 @@ Response: {
 
 ```python
 # Get content engagement metrics
-GET /api/analytics/content/{content_id}
+GET /v1/cms/content/{content_id}/analytics
 Query params:
   - start_date: date (optional)
   - end_date: date (optional)
@@ -702,7 +946,7 @@ Response: {
 }
 
 # Get A/B test results for content variants
-GET /api/analytics/content/{content_id}/ab-test
+GET /v1/cms/content/{content_id}/analytics/ab-test
 Response: {
   "content_id": "uuid",
   "test_status": "active",
@@ -730,7 +974,7 @@ Response: {
 }
 
 # Get content usage patterns
-GET /api/analytics/content/{content_id}/usage
+GET /v1/cms/content/{content_id}/analytics/usage
 Response: {
   "content_id": "uuid",
   "usage_frequency": 25,
@@ -762,7 +1006,7 @@ Response: {
 
 ```python
 # Get dashboard overview metrics
-GET /api/analytics/dashboard
+GET /v1/cms/analytics/dashboard
 Response: {
   "overview": {
     "total_flows": 23,
@@ -782,7 +1026,7 @@ Response: {
 }
 
 # Get real-time system metrics
-GET /api/analytics/real-time
+GET /v1/cms/analytics/real-time
 Response: {
   "timestamp": "2025-08-09T12:34:56Z",
   "active_sessions": 145,
@@ -801,7 +1045,7 @@ Response: {
 }
 
 # Get top-performing content
-GET /api/analytics/content/top
+GET /v1/cms/analytics/content/top
 Query params:
   - limit: int (default: 10, max: 50)
   - metric: engagement|impressions (default: engagement)
@@ -826,7 +1070,7 @@ Response: {
 }
 
 # Get top-performing flows
-GET /api/analytics/flows/top
+GET /v1/cms/analytics/flows/top
 Query params:
   - limit: int (default: 5, max: 20)
   - metric: completion_rate|sessions (default: completion_rate)
@@ -855,7 +1099,7 @@ Response: {
 
 ```python
 # Export analytics data
-GET /api/analytics/export
+GET /v1/cms/analytics/export
 Query params:
   - format: csv|json|xlsx (default: csv)
   - flow_ids: comma-separated flow IDs (optional)
@@ -872,7 +1116,7 @@ Response: {
 }
 
 # Get export status
-GET /api/analytics/exports/{export_id}/status
+GET /v1/cms/analytics/exports/{export_id}/status
 Response: {
   "export_id": "export-12345abc",
   "status": "completed|processing|failed",
@@ -882,7 +1126,7 @@ Response: {
 }
 
 # Create flow-specific export
-POST /api/analytics/flows/{flow_id}/export
+POST /v1/cms/flows/{flow_id}/analytics/export
 Body: {
   "format": "csv",
   "include_raw_data": true,
@@ -899,7 +1143,7 @@ Response: {
 }
 
 # Create content analytics export
-POST /api/analytics/content/export
+POST /v1/cms/content/analytics/export
 Body: {
   "format": "json",
   "content_filters": {
@@ -916,7 +1160,7 @@ Response: {
 }
 
 # Get filtered analytics summary
-GET /api/analytics/summary
+GET /v1/cms/analytics/summary
 Query params:
   - start_date: date (optional)
   - end_date: date (optional)
@@ -940,7 +1184,7 @@ Response: {
 }
 
 # Get paginated session analytics
-GET /api/analytics/sessions
+GET /v1/cms/analytics/sessions
 Query params:
   - limit: int (default: 10, max: 100)
   - offset: int (default: 0)
@@ -997,7 +1241,7 @@ Response: {
 
 ```python
 # Register webhook
-POST /api/cms/webhooks
+POST /v1/cms/webhooks
 Body: {
   "url": "https://example.com/webhook",
   "events": ["session.started", "session.completed"],
@@ -1005,13 +1249,13 @@ Body: {
 }
 
 # List webhooks
-GET /api/cms/webhooks
+GET /v1/cms/webhooks
 
 # Test webhook
-POST /api/cms/webhooks/{webhook_id}/test
+POST /v1/cms/webhooks/{webhook_id}/test
 
 # Delete webhook
-DELETE /api/cms/webhooks/{webhook_id}
+DELETE /v1/cms/webhooks/{webhook_id}
 ```
 
 ## Integration Points
