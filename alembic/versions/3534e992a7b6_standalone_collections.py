@@ -63,12 +63,12 @@ def upgrade():
     )
 
     # add link to collectionitems table
+    # Note: FK constraint is created explicitly below as fk_collection_items_collection_id
     op.add_column(
         "collection_items",
         sa.Column(
             "collection_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("collections.id", ondelete="CASCADE"),
             nullable=True,
         ),
     )

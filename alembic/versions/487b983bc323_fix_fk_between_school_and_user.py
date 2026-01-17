@@ -25,7 +25,7 @@ def upgrade():
     op.add_column(
         "schools", sa.Column("admin_id", postgresql.UUID(as_uuid=True), nullable=True)
     )
-    op.create_foreign_key(None, "schools", "users", ["admin_id"], ["id"])
+    op.create_foreign_key("fk_school_admin", "schools", "users", ["admin_id"], ["id"])
     op.drop_constraint("fk_admin_school", "users", type_="foreignkey")
     op.drop_column("users", "school_id_as_admin")
     op.add_column("users", sa.Column("school_id_as_admin", sa.Integer(), nullable=True))
@@ -48,7 +48,7 @@ def downgrade():
     op.create_foreign_key(
         "fk_admin_school", "users", "schools", ["school_id_as_admin"], ["id"]
     )
-    op.drop_constraint(None, "schools", type_="foreignkey")
+    op.drop_constraint("fk_school_admin", "schools", type_="foreignkey")
     op.drop_column("schools", "admin_id")
     op.add_column(
         "schools",

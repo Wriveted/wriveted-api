@@ -187,7 +187,7 @@ def upgrade():
     )
 
     # clean up schools table
-    op.drop_constraint("schools_admin_id_fkey", "schools", type_="foreignkey")
+    op.drop_constraint("fk_school_admin", "schools", type_="foreignkey")
     op.drop_column("schools", "admin_id")
 
     # clean up original users table
@@ -235,9 +235,7 @@ def downgrade():
         "schools",
         sa.Column("admin_id", postgresql.UUID(), autoincrement=False, nullable=True),
     )
-    op.create_foreign_key(
-        "schools_admin_id_fkey", "schools", "users", ["admin_id"], ["id"]
-    )
+    op.create_foreign_key("fk_school_admin", "schools", "users", ["admin_id"], ["id"])
 
     op.drop_index(op.f("ix_students_school_id"), table_name="students")
     op.drop_table("students")
