@@ -68,8 +68,17 @@ conversation_sessions_notify_flow_event_trigger = PGTrigger(
     signature="conversation_sessions_notify_flow_event_trigger",
     on_entity="public.conversation_sessions",
     is_constraint=False,
-    definition="""AFTER INSERT OR UPDATE OR DELETE ON public.conversation_sessions 
+    definition="""AFTER INSERT OR UPDATE OR DELETE ON public.conversation_sessions
                   FOR EACH ROW EXECUTE FUNCTION notify_flow_event()""",
+)
+
+# Trigger to update collection timestamps when items change
+update_collections_trigger = PGTrigger(
+    schema="public",
+    signature="update_collections_trigger",
+    on_entity="public.collection_items",
+    is_constraint=False,
+    definition="AFTER INSERT OR UPDATE ON public.collection_items FOR EACH ROW EXECUTE FUNCTION update_collections_function()",
 )
 
 # Trigger to maintain CMS content FTS tsvector

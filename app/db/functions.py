@@ -94,21 +94,21 @@ notify_flow_event_function = PGFunction(
                     'current_node', NEW.current_node_id,
                     'status', NEW.status,
                     'revision', NEW.revision,
-                    'timestamp', extract(epoch from NEW.created_at)
+                    'timestamp', extract(epoch from NEW.started_at)
                 )::text
             );
             RETURN NEW;
         ELSIF TG_OP = 'UPDATE' THEN
-            -- Only notify on significant state changes
-            IF OLD.current_node_id != NEW.current_node_id 
-               OR OLD.status != NEW.status 
-               OR OLD.revision != NEW.revision THEN
+            -- Only notify on significant state changes (use IS DISTINCT FROM for NULL-safe comparison)
+            IF OLD.current_node_id IS DISTINCT FROM NEW.current_node_id
+               OR OLD.status IS DISTINCT FROM NEW.status
+               OR OLD.revision IS DISTINCT FROM NEW.revision THEN
                 PERFORM pg_notify(
                     'flow_events',
                     json_build_object(
-                        'event_type', CASE 
-                            WHEN OLD.status != NEW.status THEN 'session_status_changed'
-                            WHEN OLD.current_node_id != NEW.current_node_id THEN 'node_changed'
+                        'event_type', CASE
+                            WHEN OLD.status IS DISTINCT FROM NEW.status THEN 'session_status_changed'
+                            WHEN OLD.current_node_id IS DISTINCT FROM NEW.current_node_id THEN 'node_changed'
                             ELSE 'session_updated'
                         END,
                         'session_id', NEW.id,
@@ -120,7 +120,7 @@ notify_flow_event_function = PGFunction(
                         'previous_status', OLD.status,
                         'revision', NEW.revision,
                         'previous_revision', OLD.revision,
-                        'timestamp', extract(epoch from NEW.updated_at)
+                        'timestamp', extract(epoch from NEW.last_activity_at)
                     )::text
                 );
             END IF;
