@@ -66,7 +66,7 @@ class CollectionItemActivity(Base):
 
     # index the timestamp and reader_id together to allow for fast "current status" lookups
     Index(
-        "idx_collection_item_activity_log_timestamp_reader_id",
+        "ix_collectionitemactivitys_timestamp_reader_id",
         timestamp,
         reader_id,
     )

@@ -28,7 +28,9 @@ class WrivetedAdmin(User):
 
     # misc
     wriveted_admin_info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     def __repr__(self) -> str:

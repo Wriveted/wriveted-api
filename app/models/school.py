@@ -63,7 +63,10 @@ class School(Base):
     __table_args__ = (
         # Composite INDEX combining country code and country specific IDs e.g. (AUS, ACARA ID)
         Index(
-            "index_schools_by_country", country_code, official_identifier, unique=True
+            "ix_schools_country_code_official_identifier",
+            country_code,
+            official_identifier,
+            unique=True,
         ),
         # Index combining country code and optional state stored in the location key of info.
         # Note alembic can't automatically deal with this, but the migration (and index) exists!
@@ -83,7 +86,9 @@ class School(Base):
     # All users with this email domain will be granted teacher rights
     teacher_domain: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
-    class_groups: Mapped[List["ClassGroup"]] = relationship("ClassGroup", cascade="all, delete-orphan")
+    class_groups: Mapped[List["ClassGroup"]] = relationship(
+        "ClassGroup", cascade="all, delete-orphan"
+    )
 
     # Extra info:
     # school website
@@ -91,7 +96,9 @@ class School(Base):
     # Type,Sector,Status,Geolocation,
     # Parent School ID,AGE ID,
     # Latitude,Longitude
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
 
     country: Mapped[Optional["Country"]] = relationship("Country")
 
@@ -114,17 +121,23 @@ class School(Base):
         server_default=SchoolBookbotType.HUEY_BOOKS,
     )
 
-    lms_type: Mapped[str] = mapped_column(String(50), nullable=False, server_default="none")
+    lms_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default="none"
+    )
 
     # students  = list[Student]  (backref)
     # educators = list[Educator] (backref)
-    admins: Mapped[List["SchoolAdmin"]] = relationship("SchoolAdmin", overlaps="educators,school")
+    admins: Mapped[List["SchoolAdmin"]] = relationship(
+        "SchoolAdmin", overlaps="educators,school"
+    )
 
     booklists: Mapped[List["BookList"]] = relationship(
         "BookList", back_populates="school", cascade="all, delete-orphan"
     )
 
-    events: Mapped[List["Event"]] = relationship("Event", back_populates="school", lazy="dynamic")
+    events: Mapped[List["Event"]] = relationship(
+        "Event", back_populates="school", lazy="dynamic"
+    )
 
     service_accounts: Mapped[List["ServiceAccount"]] = relationship(
         "ServiceAccount",

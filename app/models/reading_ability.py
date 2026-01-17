@@ -10,7 +10,9 @@ class ReadingAbility(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    key: Mapped[str] = mapped_column(String(50), nullable=False, index=True, unique=True)
+    key: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True, unique=True
+    )
     name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
 
     labelsets = relationship(

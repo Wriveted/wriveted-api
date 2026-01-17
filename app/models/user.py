@@ -69,7 +69,9 @@ class User(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     created_at: Mapped[datetime] = mapped_column(

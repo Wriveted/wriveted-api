@@ -32,7 +32,9 @@ class Parent(User):
 
     # misc
     parent_info: Mapped[Optional[Dict]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     subscription: Mapped[Optional["Subscription"]] = relationship(

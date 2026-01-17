@@ -30,7 +30,9 @@ class SchoolAdmin(Educator):
 
     # class_history? other misc
     school_admin_info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     def __repr__(self) -> str:

@@ -112,8 +112,8 @@ class EventOutbox(Base):
     @property
     def is_retryable(self) -> bool:
         """Check if this event can be retried."""
-        retry_count = self.retry_count or 0
-        max_retries = self.max_retries or 3
+        retry_count = self.retry_count if self.retry_count is not None else 0
+        max_retries = self.max_retries if self.max_retries is not None else 3
         return (
             self.status in [EventStatus.PENDING, EventStatus.FAILED]
             and retry_count < max_retries
@@ -122,8 +122,8 @@ class EventOutbox(Base):
     @property
     def should_move_to_dead_letter(self) -> bool:
         """Check if this event should be moved to dead letter queue."""
-        retry_count = self.retry_count or 0
-        max_retries = self.max_retries or 3
+        retry_count = self.retry_count if self.retry_count is not None else 0
+        max_retries = self.max_retries if self.max_retries is not None else 3
         return retry_count > max_retries
 
     def to_dict(self) -> Dict[str, Any]:

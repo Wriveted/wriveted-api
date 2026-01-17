@@ -19,7 +19,9 @@ class Illustrator(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    first_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, index=True)
+    first_name: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, index=True
+    )
     last_name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
 
     name_key: Mapped[str] = mapped_column(
@@ -31,7 +33,9 @@ class Illustrator(Base):
         index=True,
     )
 
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
 
     editions: Mapped[List["Edition"]] = relationship(
         "Edition",

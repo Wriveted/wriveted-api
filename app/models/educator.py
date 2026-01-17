@@ -35,11 +35,15 @@ class Educator(User):
         nullable=False,
         index=True,
     )
-    school: Mapped["School"] = relationship("School", backref="educators", foreign_keys=[school_id])
+    school: Mapped["School"] = relationship(
+        "School", backref="educators", foreign_keys=[school_id]
+    )
 
     # class_history? other misc
     educator_info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        MutableDict.as_mutable(JSON), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSON),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     def __repr__(self) -> str:

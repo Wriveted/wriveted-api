@@ -40,7 +40,9 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    parent: Mapped[Optional["Parent"]] = relationship("Parent", back_populates="subscription")
+    parent: Mapped[Optional["Parent"]] = relationship(
+        "Parent", back_populates="subscription"
+    )
 
     school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
@@ -52,7 +54,9 @@ class Subscription(Base):
         nullable=True,
         index=True,
     )
-    school: Mapped[Optional["School"]] = relationship("School", back_populates="subscription")
+    school: Mapped[Optional["School"]] = relationship(
+        "School", back_populates="subscription"
+    )
 
     type: Mapped[SubscriptionType] = mapped_column(
         Enum(SubscriptionType, name="enum_subscription_type"),
@@ -75,19 +79,25 @@ class Subscription(Base):
     )
     product: Mapped["Product"] = relationship("Product", back_populates="subscriptions")
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
     provider: Mapped[SubscriptionProvider] = mapped_column(
         Enum(SubscriptionProvider, name="enum_subscription_provider"),
         nullable=False,
         default=SubscriptionProvider.STRIPE,
     )
 
-    latest_checkout_session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    latest_checkout_session_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
 
     def __acl__(self) -> List[tuple[Any, str, Any]]:
         res = [

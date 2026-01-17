@@ -30,7 +30,9 @@ class Work(Base):
 
     id: Mapped[intpk] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    type: Mapped[WorkType] = mapped_column(Enum(WorkType), nullable=False, default=WorkType.BOOK)
+    type: Mapped[WorkType] = mapped_column(
+        Enum(WorkType), nullable=False, default=WorkType.BOOK
+    )
 
     # series_id = mapped_column(ForeignKey("series.id", name="fk_works_series_id"), nullable=True)
 
@@ -41,7 +43,9 @@ class Work(Base):
 
     # TODO computed columns for display_title / sort_title
 
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
 
     editions: Mapped[List["Edition"]] = relationship(
         "Edition",
@@ -91,7 +95,7 @@ class Work(Base):
         Looks for cover images first, then falls back to the most recent edition.
         """
         from app.models.edition import Edition
-        
+
         result = session.scalars(
             select(Edition)
             .where(Edition.work_id == self.id)

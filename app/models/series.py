@@ -17,7 +17,9 @@ class Series(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    title: Mapped[str] = mapped_column(String(512), nullable=False, unique=True, index=True)
+    title: Mapped[str] = mapped_column(
+        String(512), nullable=False, unique=True, index=True
+    )
 
     # make lowercase, remove "the " and "a " from the start, remove all non alphanumerics including whitespace.
     # The Chronicles of Narnia  = chroniclesofnarnia
@@ -42,7 +44,9 @@ class Series(Base):
     # author = relationship('Author', back_populates='series', lazy='selectin')
 
     # description etc
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
 
     # TODO order this relationship by the secondary table
     works: Mapped[List["Work"]] = relationship(
