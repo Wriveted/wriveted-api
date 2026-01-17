@@ -55,7 +55,9 @@ class Reader(User):
 
     # reading_ability, age, last_visited, etc
     huey_attributes: Mapped[Optional[dict]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     async def get_principals(self) -> List[str]:

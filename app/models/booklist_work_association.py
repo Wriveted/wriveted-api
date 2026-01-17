@@ -51,9 +51,14 @@ class BookListItem(Base):
     work: Mapped["Work"] = relationship("Work", lazy="joined", viewonly=True)
 
     __table_args__ = (
-        Index("index_booklist_ordered", booklist_id, order_id),
+        Index(
+            "ix_booklistworkassociations_booklist_id_order_id", booklist_id, order_id
+        ),
         UniqueConstraint(
-            "booklist_id", "order_id", name="ck_booklist_order", deferrable=True
+            "booklist_id",
+            "order_id",
+            name="uq_booklistworkassociations_booklist_id_order_id",
+            deferrable=True,
         ),
     )
 

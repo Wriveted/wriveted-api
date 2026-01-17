@@ -2,7 +2,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from fastapi_permissions import All, Allow, Authenticated  # type: ignore[import-untyped]
+from fastapi_permissions import (  # type: ignore[import-untyped]
+    All,
+    Allow,
+    Authenticated,
+)
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -35,7 +39,7 @@ class ClassGroup(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("name", "school_id", name="unique_class_name_per_school"),
+        UniqueConstraint("name", "school_id", name="uq_class_groups_name_school_id"),
     )
 
     school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
@@ -48,8 +52,12 @@ class ClassGroup(Base):
         index=True,
         nullable=True,
     )
-    school: Mapped[Optional["School"]] = relationship("School", back_populates="class_groups", lazy="joined")
-    students: Mapped[List["Student"]] = relationship("Student", back_populates="class_group")
+    school: Mapped[Optional["School"]] = relationship(
+        "School", back_populates="class_groups", lazy="joined"
+    )
+    students: Mapped[List["Student"]] = relationship(
+        "Student", back_populates="class_group"
+    )
 
     name: Mapped[str] = mapped_column(String(256), nullable=False)
 

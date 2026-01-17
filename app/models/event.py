@@ -42,7 +42,8 @@ class Event(Base):
 
     # Any properties for the event
     info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,  # type: ignore[arg-type]
     )
 
     @hybrid_property

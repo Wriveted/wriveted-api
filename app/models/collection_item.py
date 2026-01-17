@@ -82,7 +82,9 @@ class CollectionItem(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            collection_id, edition_isbn, name="unique_editions_per_collection"
+            collection_id,
+            edition_isbn,
+            name="uq_collection_items_collection_id_edition_isbn",
         ),
     )
 

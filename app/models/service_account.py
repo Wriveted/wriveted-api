@@ -42,7 +42,9 @@ class ServiceAccount(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     is_active: Mapped[bool] = mapped_column(Boolean(), default=True)
-    type: Mapped[ServiceAccountType] = mapped_column(Enum(ServiceAccountType), nullable=False, index=True)
+    type: Mapped[ServiceAccountType] = mapped_column(
+        Enum(ServiceAccountType), nullable=False, index=True
+    )
 
     schools: Mapped[List["School"]] = relationship(
         "School",
@@ -57,9 +59,13 @@ class ServiceAccount(Base):
         passive_deletes=True,
     )
 
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB), nullable=True)  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB), nullable=True
+    )  # type: ignore[arg-type]
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )

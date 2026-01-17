@@ -32,7 +32,7 @@ class Student(Reader):
 
     __table_args__ = (
         UniqueConstraint(
-            "username", "school_id", name="unique_student_username_per_school"
+            "username", "school_id", name="uq_students_username_school_id"
         ),
     )
 
@@ -48,7 +48,9 @@ class Student(Reader):
         nullable=False,
         index=True,
     )
-    school: Mapped["School"] = relationship("School", backref="students", foreign_keys=[school_id])
+    school: Mapped["School"] = relationship(
+        "School", backref="students", foreign_keys=[school_id]
+    )
 
     class_group_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -64,7 +66,9 @@ class Student(Reader):
 
     # class_history? other misc
     student_info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        MutableDict.as_mutable(JSONB), nullable=True, default={}  # type: ignore[arg-type]
+        MutableDict.as_mutable(JSONB),
+        nullable=True,
+        default={},  # type: ignore[arg-type]
     )
 
     def __repr__(self) -> str:

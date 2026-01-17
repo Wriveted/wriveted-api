@@ -64,7 +64,9 @@ class Collection(Base):
     )
     user: Mapped[Optional["User"]] = relationship("User", back_populates="collection")
 
-    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(MutableDict.as_mutable(JSONB))  # type: ignore[arg-type]
+    info: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        MutableDict.as_mutable(JSONB)
+    )  # type: ignore[arg-type]
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )

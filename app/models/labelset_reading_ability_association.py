@@ -30,4 +30,6 @@ class LabelSetReadingAbility(Base):
         ),
         primary_key=True,
     )
-    reading_ability: Mapped["ReadingAbility"] = relationship("ReadingAbility", viewonly=True)
+    reading_ability: Mapped["ReadingAbility"] = relationship(
+        "ReadingAbility", viewonly=True
+    )

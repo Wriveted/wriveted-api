@@ -63,7 +63,7 @@ class LabelSet(Base):
 
     # Create an index used to find the most recent labelsets for a work
     Index(
-        "index_work_labelsets",
+        "ix_labelsets_work_id_id",
         work_id,
         id.desc(),
     )
@@ -76,10 +76,14 @@ class LabelSet(Base):
         lazy="selectin",
     )
 
-    hue_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
+    hue_origin: Mapped[Optional[LabelOrigin]] = mapped_column(
+        Enum(LabelOrigin), nullable=True
+    )
 
     huey_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    summary_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
+    summary_origin: Mapped[Optional[LabelOrigin]] = mapped_column(
+        Enum(LabelOrigin), nullable=True
+    )
 
     reading_abilities: Mapped[List["ReadingAbility"]] = relationship(
         "ReadingAbility",
@@ -87,29 +91,35 @@ class LabelSet(Base):
         back_populates="labelsets",
         lazy="selectin",
     )
-    reading_ability_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
+    reading_ability_origin: Mapped[Optional[LabelOrigin]] = mapped_column(
+        Enum(LabelOrigin), nullable=True
+    )
 
     min_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     max_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     Index(
-        "index_age_range",
+        "ix_labelsets_min_age_max_age",
         min_age,
         max_age,
         postgresql_where=and_(min_age.is_not(None), max_age.is_not(None)),
     )
 
-    age_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
+    age_origin: Mapped[Optional[LabelOrigin]] = mapped_column(
+        Enum(LabelOrigin), nullable=True
+    )
 
     recommend_status: Mapped[RecommendStatus] = mapped_column(
         Enum(RecommendStatus), nullable=False, server_default="GOOD"
     )
     Index(
-        "index_good_recommendations",
+        "ix_labelsets_recommend_status",
         recommend_status,
         postgresql_where=(recommend_status == RecommendStatus.GOOD),
     )
 
-    recommend_status_origin: Mapped[Optional[LabelOrigin]] = mapped_column(Enum(LabelOrigin), nullable=True)
+    recommend_status_origin: Mapped[Optional[LabelOrigin]] = mapped_column(
+        Enum(LabelOrigin), nullable=True
+    )
 
     # both service accounts and users could potentially label works
     labelled_by_user_id: Mapped[Optional[int]] = mapped_column(
