@@ -90,6 +90,22 @@ class ContentStatus(CaseInsensitiveStringEnum):
     ARCHIVED = "archived"
 
 
+class ContentVisibility(CaseInsensitiveStringEnum):
+    """Visibility levels for CMS content and flows.
+
+    Controls who can access content:
+    - PRIVATE: Only visible to creator and school admins
+    - SCHOOL: Visible to all users in the creating school
+    - PUBLIC: Visible to all authenticated users globally
+    - WRIVETED: Wriveted-curated global content (admin-only editing)
+    """
+
+    PRIVATE = "private"
+    SCHOOL = "school"
+    PUBLIC = "public"
+    WRIVETED = "wriveted"
+
+
 class CMSContent(Base):
     __tablename__ = "cms_content"  # type: ignore[assignment]
 
@@ -162,6 +178,28 @@ class CMSContent(Base):
         "User", foreign_keys=[created_by], lazy="select"
     )
 
+    # School-scoped ownership and visibility
+    school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_content_school",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    visibility: Mapped[ContentVisibility] = mapped_column(
+        Enum(
+            ContentVisibility,
+            name="enum_cms_content_visibility",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        server_default=text("'wriveted'"),
+        index=True,
+    )
+
     # Relationships
     variants: Mapped[list["CMSContentVariant"]] = relationship(
         "CMSContentVariant", back_populates="content", cascade="all, delete-orphan"
@@ -181,7 +219,7 @@ class CMSContent(Base):
     # SQLAlchemy index declaration for GIN index on search_document
     __table_args__ = (
         Index(
-            "idx_cms_content_search_document",
+            "ix_cms_content_search_document",
             "search_document",
             postgresql_using="gin",
         ),
@@ -322,6 +360,28 @@ class FlowDefinition(Base):
         nullable=True,
     )
 
+    # School-scoped ownership and visibility
+    school_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey(
+            "schools.wriveted_identifier",
+            name="fk_flow_school",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    visibility: Mapped[ContentVisibility] = mapped_column(
+        Enum(
+            ContentVisibility,
+            name="enum_cms_content_visibility",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        server_default=text("'wriveted'"),
+        index=True,
+    )
+
     # Relationships
     created_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[created_by], lazy="select"
@@ -339,7 +399,9 @@ class FlowDefinition(Base):
     )
 
     sessions: Mapped[list["ConversationSession"]] = relationship(
-        "ConversationSession", back_populates="flow"
+        "ConversationSession",
+        back_populates="flow",
+        foreign_keys="[ConversationSession.flow_id]",
     )
 
     analytics: Mapped[list["ConversationAnalytics"]] = relationship(
@@ -348,6 +410,23 @@ class FlowDefinition(Base):
 
     def __repr__(self) -> str:
         return f"<FlowDefinition {self.name} v{self.version}>"
+
+    @property
+    def contract(self) -> Optional[Dict[str, Any]]:
+        """Get the flow contract from info.contract."""
+        info = self.info or {}
+        contract = info.get("contract") or {}
+        return contract or None
+
+    @contract.setter
+    def contract(self, value: Optional[Dict[str, Any]]) -> None:
+        """Set the flow contract in info.contract."""
+        info = dict(self.info or {})
+        if value is None:
+            info.pop("contract", None)
+        else:
+            info["contract"] = value
+        self.info = info
 
     def __acl__(self) -> List[tuple[Any, str, str]]:
         """Defines who can do what to the flow"""
@@ -558,6 +637,15 @@ class ConversationSession(Base):
 
     current_node_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # Track which flow the current node belongs to (for sub-flow support)
+    # Defaults to flow_id but changes when entering sub-flows
+    current_flow_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey(
+            "flow_definitions.id", name="fk_session_current_flow", ondelete="SET NULL"
+        ),
+        nullable=True,
+    )
+
     state: Mapped[dict] = mapped_column(
         MutableDict.as_mutable(JSONB),  # type: ignore[arg-type]
         nullable=False,
@@ -612,7 +700,7 @@ class ConversationSession(Base):
     )
 
     flow: Mapped["FlowDefinition"] = relationship(
-        "FlowDefinition", back_populates="sessions"
+        "FlowDefinition", back_populates="sessions", foreign_keys=[flow_id]
     )
 
     history: Mapped[list["ConversationHistory"]] = relationship(
@@ -922,15 +1010,17 @@ class FlowExecutionStep(Base):
     )
 
     __table_args__ = (
-        Index("idx_exec_steps_session_step", "session_id", "step_number"),
         Index(
-            "idx_exec_steps_flow_date",
+            "ix_flowexecutionsteps_session_id_step_number", "session_id", "step_number"
+        ),
+        Index(
+            "ix_flowexecutionsteps_session_id_started_at",
             "session_id",
             "started_at",
             postgresql_where=text("completed_at IS NOT NULL"),
         ),
         Index(
-            "idx_exec_steps_errors",
+            "ix_flowexecutionsteps_session_id_node_id",
             "session_id",
             "node_id",
             postgresql_where=text("error_message IS NOT NULL"),

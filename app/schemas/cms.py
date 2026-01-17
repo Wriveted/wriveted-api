@@ -8,11 +8,13 @@ from app.models.cms import (
     ConnectionType,
     ContentStatus,
     ContentType,
+    ContentVisibility,
     InteractionType,
     NodeType,
     SessionStatus,
 )
 from app.schemas.pagination import PaginatedResponse
+from app.schemas.recommendations import HueKeys
 
 
 # Content Schemas
@@ -23,6 +25,8 @@ class ContentCreate(BaseModel):
     tags: Optional[List[str]] = []
     is_active: Optional[bool] = True
     status: Optional[ContentStatus] = ContentStatus.DRAFT
+    school_id: Optional[UUID4] = None
+    visibility: ContentVisibility = ContentVisibility.WRIVETED
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -181,6 +185,8 @@ class ContentUpdate(BaseModel):
     is_active: Optional[bool] = None
     status: Optional[ContentStatus] = None
     version: Optional[int] = None
+    school_id: Optional[UUID4] = None
+    visibility: Optional[ContentVisibility] = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -192,6 +198,8 @@ class ContentBrief(BaseModel):
     is_active: bool
     status: ContentStatus
     version: int
+    school_id: Optional[UUID4] = None
+    visibility: ContentVisibility
     created_at: datetime
     updated_at: datetime
 
@@ -252,6 +260,17 @@ class VariantPerformanceUpdate(BaseModel):
 
 
 # Flow Schemas
+class FlowEntryRequirements(BaseModel):
+    variables: List[str] = Field(default_factory=list)
+    description: Optional[str] = None
+
+
+class FlowContract(BaseModel):
+    entry_requirements: Optional[FlowEntryRequirements] = None
+    return_state: List[str] = Field(default_factory=list)
+    notes: Optional[str] = None
+
+
 class FlowCreate(BaseModel):
     name: str = Field(
         ..., min_length=1, max_length=255, description="Flow name cannot be empty"
@@ -261,8 +280,11 @@ class FlowCreate(BaseModel):
     flow_data: Dict[str, Any]
     entry_node_id: Optional[str] = Field(None, max_length=255)
     info: Optional[Dict[str, Any]] = Field(default={})
+    contract: Optional[FlowContract] = None
     is_published: Optional[bool] = False
     is_active: Optional[bool] = True
+    school_id: Optional[UUID4] = None
+    visibility: ContentVisibility = ContentVisibility.WRIVETED
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -274,7 +296,11 @@ class FlowUpdate(BaseModel):
     flow_data: Optional[Dict[str, Any]] = None
     entry_node_id: Optional[str] = Field(None, max_length=255)
     info: Optional[Dict[str, Any]] = Field(default=None)
+    contract: Optional[FlowContract] = None
     is_active: Optional[bool] = None
+    publish: Optional[bool] = None
+    school_id: Optional[UUID4] = None
+    visibility: Optional[ContentVisibility] = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -285,6 +311,8 @@ class FlowBrief(BaseModel):
     version: str
     is_published: bool
     is_active: bool
+    school_id: Optional[UUID4] = None
+    visibility: ContentVisibility
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None
@@ -297,6 +325,7 @@ class FlowDetail(FlowBrief):
     flow_data: Dict[str, Any]
     entry_node_id: Optional[str] = Field(None, max_length=255)
     info: Dict[str, Any] = Field()
+    contract: Optional[FlowContract] = None
     created_by: Optional[UUID4] = None
     published_by: Optional[UUID4] = None
 
@@ -419,7 +448,10 @@ class SessionDetail(BaseModel):
 class SessionStartResponse(BaseModel):
     session_id: UUID4
     session_token: str
+    csrf_token: Optional[str] = None  # Included for cross-origin scenarios
     next_node: Optional[Dict[str, Any]] = None
+    theme_id: Optional[UUID4] = None
+    theme: Optional[Dict[str, Any]] = None  # Full theme config if available
 
 
 class SessionStateUpdate(BaseModel):
@@ -430,7 +462,10 @@ class SessionStateUpdate(BaseModel):
 # Conversation Interaction Schemas
 class InteractionCreate(BaseModel):
     input: str
-    input_type: str = Field(..., pattern="^(text|button|file|choice)$")
+    input_type: str = Field(
+        ...,
+        pattern="^(text|button|file|choice|number|email|date|slider|image_choice|carousel|multiple_choice|continue)$",
+    )
 
 
 class InteractionResponse(BaseModel):
@@ -603,6 +638,61 @@ class QuestionContent(BaseModel):
     input_type: Optional[str] = "text"
 
 
+class PreferenceAnswer(BaseModel):
+    """A single answer option for a preference/personality question.
+
+    Each answer maps to hue dimensions with float weights indicating how
+    strongly selecting this answer correlates with each reading preference.
+    """
+
+    text: str = Field(..., min_length=1, description="Display text for the answer")
+    image_url: Optional[str] = Field(
+        None, max_length=512, description="Optional image URL"
+    )
+    hue_map: Dict[HueKeys, float] = Field(
+        ...,
+        description="Mapping of hue dimensions to weights (0.0-1.0)",
+    )
+
+    @field_validator("hue_map")
+    @classmethod
+    def validate_hue_weights(cls, v: Dict[HueKeys, float]) -> Dict[HueKeys, float]:
+        """Ensure all hue weights are within valid range."""
+        for hue_key, weight in v.items():
+            if not 0.0 <= weight <= 1.0:
+                raise ValueError(
+                    f"Hue weight for {hue_key} must be between 0.0 and 1.0, got {weight}"
+                )
+        return v
+
+
+class PreferenceQuestionContent(BaseModel):
+    """Content schema for preference/personality questions used in chatbot flows.
+
+    These questions help determine a user's reading preferences by mapping
+    their answers to the 13 Huey hue dimensions.
+    """
+
+    question_text: str = Field(..., min_length=1, description="The question to display")
+    min_age: int = Field(0, ge=0, le=99, description="Minimum recommended age")
+    max_age: int = Field(99, ge=0, le=99, description="Maximum recommended age")
+    answers: List[PreferenceAnswer] = Field(
+        ...,
+        min_length=2,
+        max_length=6,
+        description="Answer options (2-6 choices)",
+    )
+
+    @field_validator("answers")
+    @classmethod
+    def validate_answers(cls, v: List[PreferenceAnswer]) -> List[PreferenceAnswer]:
+        """Ensure answers have unique text values."""
+        texts = [a.text for a in v]
+        if len(texts) != len(set(texts)):
+            raise ValueError("Answer text values must be unique within a question")
+        return v
+
+
 class QuoteContent(BaseModel):
     text: str
     author: Optional[str] = None
@@ -622,10 +712,29 @@ class MessageNodeContent(BaseModel):
 
 
 class QuestionNodeContent(BaseModel):
+    """Question node content schema with support for rich input types.
+
+    Input types:
+    - text: Free text input
+    - number: Numeric input with optional min/max
+    - email: Email address input
+    - date: Date picker
+    - choice: Single selection from options (buttons/radio)
+    - multiple_choice: Multiple selection from options (checkboxes)
+    - slider: Range slider (for age, ratings, scales)
+    - image_choice: Single selection from image-based options
+    - carousel: Swipeable carousel for browsing items (e.g., books)
+    """
+
     question: Dict[str, Any]
-    input_type: str
-    options: Optional[List[Dict[str, str]]] = []
+    input_type: str  # Validated by node_input_validation.py
+    options: Optional[
+        List[Dict[str, Any]]
+    ] = []  # Options can have image_url, label, etc.
     validation: Optional[Dict[str, Any]] = {}
+    slider_config: Optional[Dict[str, Any]] = None  # min, max, step, labels
+    carousel_config: Optional[Dict[str, Any]] = None  # items_per_view, show_navigation
+    variable: Optional[str] = None  # Where to store the response
 
 
 class ConditionNodeContent(BaseModel):
@@ -790,3 +899,26 @@ class ChatThemeDetail(BaseModel):
 
 class ChatThemeResponse(PaginatedResponse):
     data: List[ChatThemeDetail]
+
+
+# CEL Evaluation Schemas for test flow modal
+class CELEvaluationRequest(BaseModel):
+    """Request to evaluate a CEL expression with provided context."""
+
+    expression: str = Field(..., description="CEL expression to evaluate")
+    context: Dict[str, Any] = Field(
+        default={}, description="Variables available during evaluation"
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CELEvaluationResponse(BaseModel):
+    """Response from CEL evaluation."""
+
+    expression: str
+    result: Any
+    success: bool
+    error: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True)
