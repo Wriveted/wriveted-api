@@ -29,7 +29,11 @@ class TestNodeInputValidator:
     def test_message_node_validation_success(self):
         """Test successful validation of message node."""
         content = {
-            "messages": [{"content_id": str(uuid4())}, {"content": "Hello world"}],
+            "messages": [
+                {"content_id": str(uuid4())},
+                {"content": "Hello world"},
+                {"text": "Hello text"},
+            ],
             "typing_indicator": True,
         }
 
@@ -119,6 +123,186 @@ class TestNodeInputValidator:
         assert not report.is_valid
         assert len(report.errors) > 0
 
+    def test_question_node_slider_validation_success(self):
+        """Test successful validation of slider input type."""
+        content = {
+            "question": {"text": "How old are you?"},
+            "input_type": "slider",
+            "slider_config": {
+                "min": 5,
+                "max": 18,
+                "step": 1,
+                "default_value": 10,
+                "show_labels": True,
+                "min_label": "Young",
+                "max_label": "Older",
+            },
+            "variable": "temp.age",
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert report.is_valid
+        assert len(report.errors) == 0
+
+    def test_question_node_slider_invalid_range(self):
+        """Test slider validation fails when min >= max."""
+        content = {
+            "question": {"text": "Rate your experience"},
+            "input_type": "slider",
+            "slider_config": {
+                "min": 100,
+                "max": 0,  # Invalid: min > max
+            },
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert not report.is_valid
+        assert any("min" in error.message.lower() for error in report.errors)
+
+    def test_question_node_slider_invalid_step(self):
+        """Test slider validation fails with non-positive step."""
+        content = {
+            "question": {"text": "Choose a value"},
+            "input_type": "slider",
+            "slider_config": {
+                "min": 0,
+                "max": 100,
+                "step": 0,  # Invalid: step must be positive
+            },
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert not report.is_valid
+        assert any("step" in error.message.lower() for error in report.errors)
+
+    def test_question_node_image_choice_validation_success(self):
+        """Test successful validation of image_choice input type."""
+        content = {
+            "question": {"text": "Which door will you choose?"},
+            "input_type": "image_choice",
+            "options": [
+                {
+                    "value": "dark_door",
+                    "label": "Dark Door",
+                    "image_url": "https://example.com/dark-door.png",
+                },
+                {
+                    "value": "bright_door",
+                    "label": "Bright Door",
+                    "image_url": "https://example.com/bright-door.png",
+                },
+            ],
+            "variable": "temp.door_choice",
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert report.is_valid
+        assert len(report.errors) == 0
+
+    def test_question_node_image_choice_missing_image(self):
+        """Test image_choice validation fails without image_url."""
+        content = {
+            "question": {"text": "Choose an option"},
+            "input_type": "image_choice",
+            "options": [
+                {"value": "option1", "label": "Option 1"},  # Missing image_url
+            ],
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert not report.is_valid
+        assert any("image" in error.message.lower() for error in report.errors)
+
+    def test_question_node_image_choice_empty_options(self):
+        """Test image_choice validation fails with no options."""
+        content = {
+            "question": {"text": "Pick one"},
+            "input_type": "image_choice",
+            "options": [],  # Invalid: must have at least one option
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert not report.is_valid
+
+    def test_question_node_carousel_validation_success(self):
+        """Test successful validation of carousel input type."""
+        content = {
+            "question": {"text": "Browse and select a book"},
+            "input_type": "carousel",
+            "options": [
+                {
+                    "value": "book_1",
+                    "title": "The Dragon's Quest",
+                    "image_url": "https://example.com/book1.png",
+                    "description": "An epic adventure story",
+                },
+                {
+                    "value": "book_2",
+                    "title": "Mystery Manor",
+                    "description": "A thrilling mystery",
+                },
+            ],
+            "carousel_config": {
+                "items_per_view": 2,
+                "show_navigation": True,
+            },
+            "variable": "temp.selected_book",
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert report.is_valid
+        assert len(report.errors) == 0
+
+    def test_question_node_carousel_empty_options(self):
+        """Test carousel validation fails with no items."""
+        content = {
+            "question": {"text": "Browse items"},
+            "input_type": "carousel",
+            "options": [],  # Invalid: must have at least one item
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert not report.is_valid
+
+    def test_question_node_multiple_choice_validation(self):
+        """Test successful validation of multiple_choice input type."""
+        content = {
+            "question": {"text": "Select your interests"},
+            "input_type": "multiple_choice",
+            "options": [
+                {"value": "adventure", "label": "Adventure"},
+                {"value": "mystery", "label": "Mystery"},
+                {"value": "fantasy", "label": "Fantasy"},
+            ],
+            "variable": "temp.interests",
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert report.is_valid
+        assert len(report.errors) == 0
+
+    def test_question_node_date_input_type(self):
+        """Test successful validation of date input type."""
+        content = {
+            "question": {"text": "When is your birthday?"},
+            "input_type": "date",
+            "variable": "user.birthday",
+        }
+
+        report = self.validator.validate_node(self.node_id, NodeType.QUESTION, content)
+
+        assert report.is_valid
+        assert len(report.errors) == 0
+
     def test_condition_node_validation_success(self):
         """Test successful validation of condition node."""
         content = {
@@ -168,8 +352,11 @@ class TestNodeInputValidator:
                     "params": {"variable": "temp.counter", "value": 1},
                 },
                 {
-                    "type": "api_call",
-                    "params": {"url": "https://api.example.com/test", "method": "POST"},
+                    "type": "aggregate",
+                    "params": {
+                        "expression": "sum(temp.scores)",
+                        "target": "user.total",
+                    },
                 },
             ]
         }

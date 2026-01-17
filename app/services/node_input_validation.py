@@ -92,21 +92,44 @@ class MessageContentSchema(BaseModel):
         for i, msg in enumerate(v):
             if not isinstance(msg, dict):
                 raise ValueError(f"Message {i} must be a dictionary")
-            if "content_id" not in msg and "content" not in msg:
+            if "content_id" not in msg and "content" not in msg and "text" not in msg:
                 raise ValueError(
-                    f"Message {i} must have either 'content_id' or 'content' field"
+                    f"Message {i} must have 'content_id', 'content', or 'text' field"
                 )
         return v
 
 
 class QuestionContentSchema(BaseModel):
-    """Validation schema for question node content."""
+    """Validation schema for question node content.
+
+    Supported input types:
+    - text: Free text input
+    - number: Numeric input with optional min/max
+    - email: Email address input
+    - phone: Phone number input
+    - url: URL input
+    - date: Date picker
+    - choice: Single selection from options (buttons/radio)
+    - multiple_choice: Multiple selection from options (checkboxes)
+    - slider: Range slider (for age, ratings, scales)
+    - image_choice: Single selection from image-based options (for visual preference questions)
+    - carousel: Swipeable carousel for browsing items (e.g., books)
+    """
 
     question: Dict[str, Any] = Field(...)
-    input_type: str = Field(..., pattern=r"^(text|choice|number|email|phone|url)$")
-    options: Optional[List[Dict[str, str]]] = None
+    input_type: str = Field(
+        ...,
+        pattern=r"^(text|choice|multiple_choice|number|email|phone|url|date|slider|image_choice|carousel)$",
+    )
+    options: Optional[List[Dict[str, Any]]] = None
     validation: Optional[Dict[str, Any]] = None
     variable: Optional[str] = Field(None, pattern=r"^[a-zA-Z_][a-zA-Z0-9_.]*$")
+
+    # Slider-specific configuration
+    slider_config: Optional[Dict[str, Any]] = None
+
+    # Carousel-specific configuration
+    carousel_config: Optional[Dict[str, Any]] = None
 
     @field_validator("question")
     @classmethod
@@ -121,9 +144,10 @@ class QuestionContentSchema(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_choice_options(self):
-        """Validate options for choice questions."""
-        if self.input_type == "choice":
+    def validate_input_type_config(self):
+        """Validate configuration for specific input types."""
+        # Validate choice and multiple_choice options
+        if self.input_type in ("choice", "multiple_choice"):
             if not self.options or len(self.options) == 0:
                 raise ValueError("Choice questions must have at least one option")
             for i, option in enumerate(self.options):
@@ -131,6 +155,42 @@ class QuestionContentSchema(BaseModel):
                     raise ValueError(f"Option {i} must be a dictionary")
                 if "value" not in option:
                     raise ValueError(f"Option {i} must have a 'value' field")
+
+        # Validate image_choice options - must have image_url
+        if self.input_type == "image_choice":
+            if not self.options or len(self.options) == 0:
+                raise ValueError("Image choice questions must have at least one option")
+            for i, option in enumerate(self.options):
+                if not isinstance(option, dict):
+                    raise ValueError(f"Option {i} must be a dictionary")
+                if "value" not in option:
+                    raise ValueError(f"Option {i} must have a 'value' field")
+                if "image_url" not in option and "image" not in option:
+                    raise ValueError(
+                        f"Option {i} must have an 'image_url' or 'image' field for image_choice"
+                    )
+
+        # Validate slider configuration
+        if self.input_type == "slider":
+            config = self.slider_config or {}
+            min_val = config.get("min", 0)
+            max_val = config.get("max", 100)
+            if min_val >= max_val:
+                raise ValueError("Slider 'min' must be less than 'max'")
+            step = config.get("step", 1)
+            if step <= 0:
+                raise ValueError("Slider 'step' must be positive")
+
+        # Validate carousel configuration
+        if self.input_type == "carousel":
+            if not self.options or len(self.options) == 0:
+                raise ValueError("Carousel must have at least one item")
+            for i, option in enumerate(self.options):
+                if not isinstance(option, dict):
+                    raise ValueError(f"Carousel item {i} must be a dictionary")
+                if "value" not in option:
+                    raise ValueError(f"Carousel item {i} must have a 'value' field")
+
         return self
 
 
@@ -170,8 +230,7 @@ class ActionContentSchema(BaseModel):
             "remove",
             "clear",
             "calculate",
-            "api_call",
-            "webhook",
+            "aggregate",
         }
 
         for i, action in enumerate(v):
@@ -238,13 +297,13 @@ class ActionContentSchema(BaseModel):
                     f"Action {index} (calculate) must have 'result_variable' field"
                 )
 
-        elif action_type == "api_call":
-            if "url" not in params:
-                raise ValueError(f"Action {index} (api_call) must have 'url' field")
-
-        elif action_type == "webhook":
-            if "url" not in params:
-                raise ValueError(f"Action {index} (webhook) must have 'url' field")
+        elif action_type == "aggregate":
+            if "expression" not in params:
+                raise ValueError(
+                    f"Action {index} (aggregate) must have 'expression' field"
+                )
+            if "target" not in params:
+                raise ValueError(f"Action {index} (aggregate) must have 'target' field")
 
 
 class WebhookContentSchema(BaseModel):

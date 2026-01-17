@@ -1,5 +1,6 @@
 """Integration tests for the chat runtime."""
 
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -64,6 +65,39 @@ from app.services.chat_runtime import chat_runtime
 from app.tests.util.random_strings import random_lower_string
 
 
+async def _create_message_flow(async_session):
+    flow = FlowDefinition(
+        id=uuid4(),
+        name="Trace Test Flow",
+        version="1.0",
+        flow_data={},
+        entry_node_id="welcome",
+        is_published=True,
+        is_active=True,
+    )
+    async_session.add(flow)
+
+    content = CMSContent(
+        id=uuid4(),
+        type=ContentType.MESSAGE,
+        content={"text": "Trace Test Message"},
+        is_active=True,
+    )
+    async_session.add(content)
+
+    message_node = FlowNode(
+        flow_id=flow.id,
+        node_id="welcome",
+        node_type=NodeType.MESSAGE,
+        content={"messages": [{"content_id": str(content.id)}]},
+    )
+    async_session.add(message_node)
+
+    await async_session.commit()
+
+    return flow, message_node
+
+
 @pytest.mark.asyncio
 async def test_message_node_processing(async_session, test_user_account):
     """Test processing a simple message node."""
@@ -118,6 +152,52 @@ async def test_message_node_processing(async_session, test_user_account):
     assert len(result["messages"]) == 1
     assert result["messages"][0]["content"]["text"] == "Welcome Test User!"
     assert result["typing_indicator"] is True
+
+
+@pytest.mark.asyncio
+async def test_message_node_processing_inline_content(async_session, test_user_account):
+    """Test processing a message node with inline message content."""
+    flow = FlowDefinition(
+        id=uuid4(),
+        name="Inline Message Flow",
+        version="1.0",
+        flow_data={},
+        entry_node_id="welcome",
+        is_published=True,
+        is_active=True,
+    )
+    async_session.add(flow)
+
+    message_node = FlowNode(
+        flow_id=flow.id,
+        node_id="welcome",
+        node_type=NodeType.MESSAGE,
+        content={
+            "messages": [
+                {"content": "Hello {{temp.name}}!", "delay": 250},
+                {"text": "Welcome back, {{temp.name}}."},
+            ]
+        },
+    )
+    async_session.add(message_node)
+
+    await async_session.commit()
+
+    session = await chat_runtime.start_session(
+        async_session,
+        flow_id=flow.id,
+        user_id=test_user_account.id,
+        session_token=f"test_token_{random_lower_string(10)}",
+        initial_state={"temp": {"name": "Avery"}},
+    )
+
+    result = await chat_runtime.get_initial_node(async_session, flow.id, session)
+
+    assert result["type"] == "messages"
+    assert len(result["messages"]) == 2
+    assert result["messages"][0]["content"]["text"] == "Hello Avery!"
+    assert result["messages"][0]["delay"] == 250
+    assert result["messages"][1]["content"]["text"] == "Welcome back, Avery."
 
 
 @pytest.mark.asyncio
@@ -217,6 +297,106 @@ async def test_question_node_processing(async_session, test_user_account):
         async_session, session_token=session.session_token
     )
     assert updated_session.state["temp"]["name"] == "John Doe"
+
+
+@pytest.mark.asyncio
+async def test_start_session_sets_trace_flags(async_session, test_user_account):
+    flow = FlowDefinition(
+        id=uuid4(),
+        name="Trace Config Flow",
+        version="1.0",
+        flow_data={},
+        entry_node_id="welcome",
+        is_published=True,
+        is_active=True,
+        trace_enabled=True,
+        trace_sample_rate=100,
+    )
+    async_session.add(flow)
+
+    message_node = FlowNode(
+        flow_id=flow.id,
+        node_id="welcome",
+        node_type=NodeType.MESSAGE,
+        content={"text": "hello"},
+    )
+    async_session.add(message_node)
+
+    await async_session.commit()
+
+    session = await chat_runtime.start_session(
+        async_session,
+        flow_id=flow.id,
+        user_id=test_user_account.id,
+        session_token=f"trace_token_{random_lower_string(10)}",
+    )
+
+    assert session.trace_enabled is True
+    assert session.trace_level == "standard"
+
+
+@pytest.mark.asyncio
+async def test_process_node_records_trace(async_session, test_user_account):
+    flow, message_node = await _create_message_flow(async_session)
+
+    session = await chat_runtime.start_session(
+        async_session,
+        flow_id=flow.id,
+        user_id=test_user_account.id,
+        session_token=f"trace_token_{random_lower_string(10)}",
+    )
+    session.trace_enabled = True
+    await async_session.commit()
+    await async_session.refresh(session)
+
+    with (
+        patch(
+            "app.services.chat_runtime.execution_trace_service.get_next_step_number",
+            new_callable=AsyncMock,
+            return_value=1,
+        ),
+        patch(
+            "app.services.chat_runtime.execution_trace_service.record_step_async",
+            new_callable=AsyncMock,
+        ) as record_mock,
+    ):
+        result = await chat_runtime.process_node(async_session, message_node, session)
+
+    record_mock.assert_awaited()
+    assert result["type"] == "messages"
+
+
+@pytest.mark.asyncio
+async def test_process_node_trace_failure_does_not_crash(
+    async_session, test_user_account
+):
+    flow, message_node = await _create_message_flow(async_session)
+
+    session = await chat_runtime.start_session(
+        async_session,
+        flow_id=flow.id,
+        user_id=test_user_account.id,
+        session_token=f"trace_token_{random_lower_string(10)}",
+    )
+    session.trace_enabled = True
+    await async_session.commit()
+    await async_session.refresh(session)
+
+    with (
+        patch(
+            "app.services.chat_runtime.execution_trace_service.get_next_step_number",
+            new_callable=AsyncMock,
+            return_value=1,
+        ),
+        patch(
+            "app.services.chat_runtime.execution_trace_service.record_step_async",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("queue full"),
+        ),
+    ):
+        result = await chat_runtime.process_node(async_session, message_node, session)
+
+    assert result["type"] == "messages"
 
 
 @pytest.mark.asyncio
