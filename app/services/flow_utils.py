@@ -10,6 +10,8 @@ _TOKEN_TO_ENUM: Dict[str, ConnectionType] = {
     "FAILURE": ConnectionType.FAILURE,
     "$0": ConnectionType.OPTION_0,
     "$1": ConnectionType.OPTION_1,
+    "OPTION_0": ConnectionType.OPTION_0,
+    "OPTION_1": ConnectionType.OPTION_1,
 }
 
 _ENUM_TO_TOKEN: Dict[str, str] = {
