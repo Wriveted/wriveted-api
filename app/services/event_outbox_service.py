@@ -7,10 +7,13 @@ This service implements the Event Outbox Pattern with dual strategy:
 
 """
 
+import hashlib
+import hmac
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
+import httpx
 from sqlalchemy import and_, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -19,6 +22,29 @@ from structlog import get_logger
 from app.models.event_outbox import EventOutbox, EventPriority, EventStatus
 
 logger = get_logger()
+
+# HTTP client for webhook delivery (singleton)
+_http_client: Optional[httpx.AsyncClient] = None
+
+
+async def get_http_client() -> httpx.AsyncClient:
+    """Get or create a shared HTTP client for webhook delivery."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            follow_redirects=True,
+            limits=httpx.Limits(max_keepalive_connections=20, max_connections=100),
+        )
+    return _http_client
+
+
+async def close_http_client() -> None:
+    """Close the shared HTTP client."""
+    global _http_client
+    if _http_client is not None and not _http_client.is_closed:
+        await _http_client.aclose()
+        _http_client = None
 
 
 class EventOutboxService:
@@ -362,35 +388,170 @@ class EventOutboxService:
             return False
 
     async def _deliver_webhook(self, event: EventOutbox) -> bool:
-        """Deliver event via webhook."""
-        # Simulate webhook delivery
-        # In real implementation would use httpx or aiohttp
+        """
+        Deliver event via HTTP webhook.
+
+        The destination format can be:
+        - "webhook:<url>" - Direct URL
+        - "webhook_test" - Test mode (uses payload instructions)
+        - "webhook_immediate" - Test mode for immediate delivery
+
+        Supports:
+        - HMAC signature verification (via headers.secret)
+        - Custom headers (via event.headers)
+        - Configurable timeout (via headers.timeout_seconds)
+        - Response status code validation
+        """
         logger.info(
-            "Delivering webhook", event_id=event.id, destination=event.destination
+            "Delivering webhook",
+            event_id=event.id,
+            destination=event.destination,
+            event_type=event.event_type,
         )
 
-        # For testing purposes, simulate delivery based on payload instructions
+        # Test mode: simulate delivery based on payload instructions
         if event.destination in ["webhook_test", "webhook_immediate"]:
-            # Check if test wants to simulate failure
             simulate_success = event.payload.get("simulate_success", True)
+            simulate_timeout = event.payload.get("simulate_timeout", False)
+            simulate_status_code = event.payload.get("simulate_status_code", 200)
+
+            if simulate_timeout:
+                logger.info(
+                    "Webhook delivery simulated timeout for test",
+                    event_id=event.id,
+                )
+                raise httpx.TimeoutException("Simulated timeout")
+
+            if simulate_status_code >= 400:
+                logger.info(
+                    "Webhook delivery simulated HTTP error for test",
+                    event_id=event.id,
+                    status_code=simulate_status_code,
+                )
+                return False
 
             if not simulate_success:
                 logger.info(
                     "Webhook delivery simulated failure for test",
                     event_id=event.id,
-                    destination=event.destination,
-                    simulate_success=simulate_success,
                 )
                 return False
-            else:
+
+            logger.info(
+                "Webhook delivery simulated successfully for test",
+                event_id=event.id,
+            )
+            return True
+
+        # Extract webhook URL from destination
+        if event.destination.startswith("webhook:"):
+            webhook_url = event.destination[8:]  # Remove "webhook:" prefix
+        else:
+            logger.error(
+                "Invalid webhook destination format",
+                event_id=event.id,
+                destination=event.destination,
+            )
+            return False
+
+        # Build request headers
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Wriveted-EventOutbox/1.0",
+            "X-Event-Type": event.event_type,
+            "X-Event-ID": str(event.id),
+            "X-Correlation-ID": event.correlation_id or str(event.id),
+        }
+
+        # Add custom headers from event
+        if event.headers:
+            custom_headers = {
+                k: v
+                for k, v in event.headers.items()
+                if k not in ("secret", "timeout_seconds")  # Exclude internal config
+            }
+            headers.update(custom_headers)
+
+        # Prepare payload
+        import json
+
+        payload_json = json.dumps(event.payload, default=str)
+        payload_bytes = payload_json.encode("utf-8")
+
+        # Add HMAC signature if secret is provided
+        secret = event.headers.get("secret") if event.headers else None
+        if secret:
+            signature = hmac.new(
+                secret.encode("utf-8"),
+                payload_bytes,
+                hashlib.sha256,
+            ).hexdigest()
+            headers["X-Webhook-Signature"] = f"sha256={signature}"
+
+        # Get timeout from headers or use default
+        timeout_seconds = 30
+        if event.headers and "timeout_seconds" in event.headers:
+            try:
+                timeout_seconds = int(event.headers["timeout_seconds"])
+            except (ValueError, TypeError):
+                pass
+
+        try:
+            client = await get_http_client()
+            response = await client.post(
+                webhook_url,
+                content=payload_bytes,
+                headers=headers,
+                timeout=timeout_seconds,
+            )
+
+            # Check response status
+            if response.status_code < 400:
                 logger.info(
-                    "Webhook delivery simulated successfully for test",
+                    "Webhook delivered successfully",
                     event_id=event.id,
-                    destination=event.destination,
+                    url=webhook_url,
+                    status_code=response.status_code,
                 )
                 return True
+            else:
+                logger.warning(
+                    "Webhook returned error status",
+                    event_id=event.id,
+                    url=webhook_url,
+                    status_code=response.status_code,
+                    response_text=response.text[:500] if response.text else None,
+                )
+                return False
 
-        raise NotImplementedError("TODO: Webhook delivery not implemented")
+        except httpx.TimeoutException as e:
+            logger.error(
+                "Webhook request timed out",
+                event_id=event.id,
+                url=webhook_url,
+                timeout=timeout_seconds,
+                error=str(e),
+            )
+            raise
+
+        except httpx.RequestError as e:
+            logger.error(
+                "Webhook request failed",
+                event_id=event.id,
+                url=webhook_url,
+                error=str(e),
+            )
+            raise
+
+        except Exception as e:
+            logger.error(
+                "Unexpected error during webhook delivery",
+                event_id=event.id,
+                url=webhook_url,
+                error=str(e),
+                exc_info=True,
+            )
+            raise
 
     async def _deliver_slack(self, event: EventOutbox) -> bool:
         """Deliver event to Slack."""
