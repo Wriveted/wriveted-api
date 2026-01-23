@@ -273,16 +273,13 @@ class BusinessRulesEngine:
         results = []
 
         # Build context for CEL evaluation
+        # Note: CEL has built-in `has()` function for field existence checks
+        # Custom functions should be registered via cel_evaluator, not as variables
         context = {
             "node_id": node_id,
             "node_type": node_type.value,
             "content": node_content,
             "content_size": len(str(node_content)),
-            # Helper functions
-            "has_field": lambda obj, field: field in obj
-            if isinstance(obj, dict)
-            else False,
-            "trim": lambda s: s.strip() if isinstance(s, str) else str(s).strip(),
         }
 
         # Apply rules that match this node type
