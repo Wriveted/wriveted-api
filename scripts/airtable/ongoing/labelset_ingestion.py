@@ -159,7 +159,7 @@ response = httpx.patch(
     "http://localhost:8000/v1/labelsets",
     json=json_body,
     headers={
-        "Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc3NTg3MzAsImlhdCI6MTY0NzA2NzUzMCwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjkxODRjNzY5LTU5NDctNGMyMy1iNWU0LTVlODYxMjQ4NTdmZSJ9.5kkAelJ3ZQv7AdOD7cMpiw7fW4kDr3J9AmLWb0ymJps"
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc3NTg3MzAsImlhdCI6MTY0NzA2NzUzMCwic3ViIjoiV3JpdmV0ZWQ6VXNlci1BY2NvdW50OjkxODRjNzY5LTU5NDctNGMyMy1iNWU0LTVlODYxMjQ4NTdmZSJ9.5kkAelJ3ZQv7AdOD7cMpiw7fW4kDr3J9AmLWb0ymJps"
     },
     timeout=120,
 )

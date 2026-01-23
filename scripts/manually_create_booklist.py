@@ -2,25 +2,9 @@
 # directly to the database. E.g. if running via docker-compose
 import csv
 import os
-from typing import Optional
 
-from sqlalchemy import distinct, func, select
-from sqlalchemy.orm import aliased
-
-from app.api.recommendations import get_recommended_editions_and_labelsets
-from app.models import (
-    BookList,
-    BookListItem,
-    CollectionItem,
-    Edition,
-    Hue,
-    LabelSet,
-    LabelSetHue,
-    ReadingAbility,
-    Work,
-)
+from app.models import BookList, BookListItem
 from app.models.booklist import ListType
-from app.schemas.recommendations import ReadingAbilityKey
 
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
 # os.environ['POSTGRESQL_PASSWORD'] = ''
@@ -30,8 +14,9 @@ os.environ["POSTGRESQL_SERVER"] = "localhost/"
 
 import logging
 
-from app import api, config, crud, db, models, schemas
+from app import config
 from app.db.session import get_session
+from app.repositories.edition_repository import edition_repository
 
 logging.basicConfig()
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
@@ -48,7 +33,9 @@ for i, line in enumerate(huey_picks_data):
 
     isbns = isbns_str.split(",")
 
-    editions = session.scalars(crud.edition.get_multi_query(db=session, ids=isbns))
+    editions = session.scalars(
+        edition_repository.get_multi_query(db=session, isbns=isbns)
+    )
 
     for edition in editions:
         if (

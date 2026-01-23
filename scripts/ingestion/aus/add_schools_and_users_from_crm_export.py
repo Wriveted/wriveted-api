@@ -13,16 +13,12 @@ os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"
 # Note we have to set at least the above environment variables before importing our application code
 
 import csv
-import json
-import time
 from typing import Optional
 
-import httpx
 import pydantic
 from pydantic import EmailStr
 
-from app import api, config, crud, db, models, schemas
-from app.api.dependencies.security import create_user_access_token
+from app import config, crud
 from app.db.session import get_session
 
 settings = config.get_settings()

@@ -2,16 +2,13 @@
 This script hydrates all the books matching some criteria.
 """
 
-import os.path
-from typing import List
-
 import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db.session import database_connection
-from app.models import Collection, Work
+from app.models import Collection
 
 settings = get_settings()
 api_token = ""

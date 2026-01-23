@@ -6,7 +6,7 @@ import time
 
 import httpx
 import humanize as humanize
-from pydantic import AnyHttpUrl, BaseSettings
+from pydantic import BaseSettings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("wriveted.spydus")
@@ -75,7 +75,7 @@ def get_manifestation_ids(config: Settings, startIndex=1, count=10, timeout=120)
 
     try:
         data = response.json()
-    except Exception as e:
+    except Exception:
         logger.warning(response.status_code)
         logger.warning(f"JSON didn't parse.\n{response.text}")
     end_time = time.time()

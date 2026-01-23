@@ -25,7 +25,6 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from pydantic import BaseModel, validator
 
 from examples.config import settings
@@ -156,9 +155,9 @@ def main():
             )
             wriveted_api_response.raise_for_status()
             work_detail_response = wriveted_api_response.json()
-            isbn_to_wriveted_edition_info[parsed_row.isbn][
-                "work-detail"
-            ] = work_detail_response
+            isbn_to_wriveted_edition_info[parsed_row.isbn]["work-detail"] = (
+                work_detail_response
+            )
         else:
             print(
                 f"Skipping row {row_number} (no corresponding work found in Wriveted DB or is duplicate work)"

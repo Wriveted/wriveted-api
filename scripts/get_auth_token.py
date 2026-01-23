@@ -5,7 +5,6 @@ import os
 from datetime import timedelta
 
 from app.models import ServiceAccount
-from app.schemas.users.user_create import UserCreateIn
 from app.services.security import create_access_token
 
 os.environ["POSTGRESQL_SERVER"] = "localhost"
@@ -14,9 +13,9 @@ os.environ["POSTGRESQL_SERVER"] = "localhost"
 
 # Note we have to set at least the above environment variables before importing our application code
 
-from app import api, config, crud, db, models, schemas
+from app import crud
 from app.api.dependencies.security import create_user_access_token
-from app.db.session import SessionManager, get_session, get_session_maker
+from app.db.session import SessionManager, get_session_maker
 
 with SessionManager(get_session_maker()) as session:
     user = crud.user.get_by_account_email(db=session, email="hardbyte@gmail.com")
