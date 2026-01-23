@@ -8,6 +8,10 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
+# Disable event listener in tests to prevent connection pool exhaustion
+# Must be set BEFORE importing app modules that load settings
+os.environ["DISABLE_EVENT_LISTENER"] = "true"
+
 import psutil
 import pytest
 from fastapi import FastAPI
@@ -18,17 +22,14 @@ from starlette.testclient import TestClient
 # Set up verbose logging for debugging test setup failures
 logger = logging.getLogger(__name__)
 
+
 # Global engine cache to prevent creating too many engines
 # Note: Only cache sync engines due to asyncio event loop conflicts with async engines
 _test_engine_cache = {}
 
 from app import crud
 from app.api.dependencies.security import create_user_access_token
-from app.db.session import (
-    database_connection,
-    get_async_session_maker,
-    get_session_maker,
-)
+from app.db.session import database_connection, get_session_maker
 from app.main import app, get_settings
 from app.models import (
     Collection,
@@ -128,7 +129,12 @@ def test_app() -> FastAPI:
 
 
 @pytest.fixture
-async def async_client(test_app):
+async def async_client(test_app, reset_global_state):
+    """AsyncClient for testing with proper event listener cleanup.
+
+    Depends on reset_global_state to ensure event listener connections
+    are properly cleaned up between tests.
+    """
     from httpx import ASGITransport
 
     logger.debug("Creating async HTTP client for testing")
@@ -166,8 +172,12 @@ async def async_client(test_app):
 
 
 @pytest.fixture
-async def internal_async_client():
-    """AsyncClient for the internal API with timeout protection."""
+async def internal_async_client(reset_global_state):
+    """AsyncClient for the internal API with timeout protection.
+
+    Depends on reset_global_state to ensure event listener connections
+    are properly cleaned up between tests.
+    """
     from httpx import ASGITransport
 
     from app.internal_api import internal_app
@@ -382,8 +392,6 @@ async def async_session(reset_global_state):
     """Create an isolated async session for each test with proper cleanup and timeouts."""
     import asyncio
     import os
-
-    import psutil
 
     test_name = (
         os.environ.get("PYTEST_CURRENT_TEST", "unknown").split("::")[-1].split(" ")[0]
@@ -781,6 +789,50 @@ def test_schooladmin_account_headers(test_schooladmin_account_token):
 @pytest.fixture()
 def test_wrivetedadmin_account_headers(test_wrivetedadmin_account_token):
     return {"Authorization": f"bearer {test_wrivetedadmin_account_token}"}
+
+
+@pytest.fixture
+async def async_client_authenticated_as_wriveted_user(
+    async_client: AsyncClient, test_wrivetedadmin_account_token
+):
+    """AsyncClient with Wriveted admin user authentication headers."""
+    async_client.headers.update(
+        {"Authorization": f"bearer {test_wrivetedadmin_account_token}"}
+    )
+    return async_client
+
+
+@pytest.fixture
+async def async_client_authenticated_as_service_account(
+    async_client: AsyncClient, backend_service_account_token
+):
+    """AsyncClient with backend service account authentication headers."""
+    async_client.headers.update(
+        {"Authorization": f"bearer {backend_service_account_token}"}
+    )
+    return async_client
+
+
+@pytest.fixture
+async def wriveted_admin(async_session):
+    """Async fixture for wriveted admin user for use in async tests."""
+    from app.models.user import User, UserAccountType
+
+    user = User(
+        name="integration test account (wriveted admin)",
+        email=f"{random_lower_string(6)}@test.com",
+        type=UserAccountType.WRIVETED,
+    )
+    async_session.add(user)
+    await async_session.flush()
+
+    yield user
+
+    try:
+        await async_session.delete(user)
+        await async_session.commit()
+    except Exception:
+        await async_session.rollback()
 
 
 @pytest.fixture()
