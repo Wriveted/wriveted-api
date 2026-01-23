@@ -4,7 +4,7 @@
 import logging
 import os
 
-from sqlalchemy import cast, func, select, text
+from sqlalchemy import cast, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
@@ -14,16 +14,14 @@ from app.config import get_settings
 logging.basicConfig()
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
-from app.schemas.class_group import ClassGroupCreateIn
 
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
 # os.environ['POSTGRESQL_PASSWORD'] = ''
 os.environ["SECRET_KEY"] = ""
 # Note we have to set at least the above environment variables before importing our application code
 
-from app import api, config, crud, db, models, schemas
-from app.api.dependencies.security import create_user_access_token
-from app.db.session import SessionManager, database_connection, get_session_maker
+from app import models
+from app.db.session import database_connection
 
 # with SessionManager(get_session_maker()) as session:
 settings = get_settings()

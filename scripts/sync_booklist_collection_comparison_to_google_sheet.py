@@ -114,7 +114,7 @@ def main():
                 )
                 try:
                     wriveted_api_response.raise_for_status()
-                except httpx.HTTPStatusError as e:
+                except httpx.HTTPStatusError:
                     print(f"Skipping {isbn} (couldn't locate in Wriveted DB)")
                     continue
 
@@ -212,7 +212,7 @@ def main():
     )
 
     # Use R1C1 notation to avoid column ZZ etc
-    range_start = f"R1C4"
+    range_start = "R1C4"
     range_end = f"R3C{4 + len(wriveted_school_ids)}"
     (
         sheet.values()

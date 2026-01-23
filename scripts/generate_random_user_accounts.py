@@ -10,10 +10,10 @@ os.environ["POSTGRESQL_SERVER"] = "localhost/"
 os.environ["SECRET_KEY"] = ""
 # Note we have to set at least the above environment variables before importing our application code
 
-from app import api, config, crud, db, models, schemas
-from app.api.dependencies.security import create_user_access_token
+from app import config, crud
 from app.db.session import get_session
-from app.models.user import User, UserAccountType
+from app.models.user import UserAccountType
+from app.repositories.class_group_repository import class_group_repository
 from app.services.users import generate_random_users
 
 session = next(get_session(settings=config.get_settings()))
@@ -22,20 +22,18 @@ school_id = "784039ba-7eda-406d-9058-efe65f62f034"
 school = crud.school.get_by_wriveted_id_or_404(db=session, wriveted_id=school_id)
 print(school)
 
-current_classes = crud.class_group.get_all_with_optional_filters(session, school=school)
+current_classes = class_group_repository.search(session, school=school)
 print(current_classes)
 
 if len(current_classes) < 3:
-    crud.class_group.create(
+    class_group_repository.create(
         db=session,
         obj_in=ClassGroupCreateIn(
             school_id=school_id, name=f"Test Class {len(current_classes)}"
         ),
     )
 
-    current_classes = crud.class_group.get_all_with_optional_filters(
-        session, school=school
-    )
+    current_classes = class_group_repository.search(session, school=school)
 
 num_users = 3
 

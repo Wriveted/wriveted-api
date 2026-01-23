@@ -1,20 +1,7 @@
 # Ensure your environment variables are set such that this script can connect
 # directly to the database. E.g. if running via docker-compose
 import os
-from typing import Optional
 
-from sqlalchemy import distinct, select
-from sqlalchemy.orm import aliased
-
-from app.models import (
-    CollectionItem,
-    Edition,
-    Hue,
-    LabelSet,
-    LabelSetHue,
-    ReadingAbility,
-    Work,
-)
 from app.services.recommendations import get_recommended_labelset_query
 
 os.environ["POSTGRESQL_SERVER"] = "localhost/"
@@ -25,7 +12,7 @@ os.environ["SECRET_KEY"] = "CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78"
 
 import logging
 
-from app import api, config, crud, db, models, schemas
+from app import config
 from app.db.session import get_session
 
 logging.basicConfig()

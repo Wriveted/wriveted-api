@@ -101,7 +101,7 @@ class StudentUser(HttpUser):
     def register_student_and_login(self):
         if not hasattr(self, "username"):
             new_student_response = self.client.post(
-                f"/v1/auth/register-student",
+                "/v1/auth/register-student",
                 json={
                     "first_name": "".join(
                         random.choice("abcdefghijklmnopqrstuvwxyz")
@@ -116,7 +116,7 @@ class StudentUser(HttpUser):
             self.username = new_student_response["username"]
 
         student_login_response = self.client.post(
-            f"/v1/auth/class-code",
+            "/v1/auth/class-code",
             json={
                 "username": self.username,
                 "class_joining_code": self.class_info["join_code"],
@@ -131,7 +131,7 @@ class StudentUser(HttpUser):
     @task
     def student_login(self):
         student_login_response = self.client.post(
-            f"/v1/auth/class-code",
+            "/v1/auth/class-code",
             json={
                 "username": self.username,
                 "class_joining_code": self.class_info["join_code"],
@@ -184,7 +184,7 @@ class StudentUser(HttpUser):
     @task
     def get_recommendation_from_school(self):
         self.client.post(
-            f"/v1/recommend",
+            "/v1/recommend",
             headers={"Authorization": f"Bearer {self.access_token}"},
             params={"limit": 5},
             json={
@@ -204,7 +204,7 @@ class StudentUser(HttpUser):
     @task
     def get_recommendation_from_any(self):
         self.client.post(
-            f"/v1/recommend",
+            "/v1/recommend",
             headers={"Authorization": f"Bearer {self.access_token}"},
             params={"limit": 5},
             json={

@@ -1,20 +1,15 @@
 import csv
 import ctypes as ct
-import os
-from typing import List
 
 import pydantic_core
 from more_itertools import chunked
 from rich import print
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.config import get_settings
 from app.db.session import database_connection
-from app.models import Edition
 from app.schemas.author import AuthorCreateIn
-from app.services.util import chunks
 
 GCP_PROJECT_ID: str = "wriveted-api"
 GCP_LOCATION: str = "us-central1"

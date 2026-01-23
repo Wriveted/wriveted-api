@@ -46,7 +46,7 @@ def get_or_create_test_school(wriveted_api_host, admin_token, test_school_id=42)
             f"{wriveted_api_host}/v1/school/{school_info['wriveted_identifier']}",
             headers={"Authorization": f"Bearer {admin_token}"},
             json={
-                "state": f"ACTIVE",
+                "state": "ACTIVE",
             },
             timeout=30,
         )
