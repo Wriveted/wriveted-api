@@ -6,12 +6,12 @@ condition logic, action execution, webhook calls, and composite node handling.
 """
 
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
-from app.models.cms import ConversationSession, FlowNode, NodeType
+from app.models.cms import ConnectionType, ConversationSession, FlowNode, NodeType
 from app.services.cel_evaluator import evaluate_cel_expression
 from app.services.circuit_breaker import get_circuit_breaker
 from app.services.node_input_validation import validate_node_input
@@ -320,262 +320,6 @@ class ConditionNodeProcessor:
             return None
 
 
-class ActionNodeProcessor:
-    """
-    Processes action nodes that perform operations without user interaction.
-
-    Handles variable assignments, API calls, and other side effects with
-    proper idempotency and error handling for async execution.
-    """
-
-    def __init__(self, chat_repo):
-        self.chat_repo = chat_repo
-        self.variable_resolver = VariableResolver()
-
-    async def process(
-        self,
-        session: ConversationSession,
-        node_content: Dict[str, Any],
-        user_input: Optional[str] = None,
-        custom_resolver: Optional[VariableResolver] = None,
-    ) -> Tuple[Optional[str], Dict[str, Any]]:
-        """
-        Process an action node by executing all specified actions.
-
-        Args:
-            session: Current conversation session
-            node_content: Node configuration with actions
-            user_input: User input (not used for action nodes)
-            custom_resolver: Optional custom variable resolver for composite nodes
-
-        Returns:
-            Tuple of (next_node_id, response_data)
-        """
-        try:
-            actions = node_content.get("actions", [])
-            action_results = []
-
-            # Generate idempotency key for this action execution
-            idempotency_key = (
-                f"{session.id}:{session.current_node_id}:{session.revision}"
-            )
-
-            # Execute each action in sequence
-            for i, action in enumerate(actions):
-                action_id = f"{idempotency_key}:{i}"
-
-                try:
-                    result = await self._execute_action(
-                        action, session, action_id, custom_resolver
-                    )
-                    action_results.append(result)
-
-                    # Update session state if action modified it
-                    if result.get("state_updates"):
-                        session.state.update(result["state_updates"])
-
-                except Exception as action_error:
-                    logger.error(
-                        "Action execution failed",
-                        session_id=session.id,
-                        action_index=i,
-                        action_type=action.get("type"),
-                        error=str(action_error),
-                        exc_info=True,
-                    )
-                    # Return error path if action fails
-                    return "error", {
-                        "error": f"Action {i} failed: {str(action_error)}",
-                        "failed_action": action,
-                        "action_results": action_results,
-                    }
-
-            # All actions completed successfully
-            logger.info(
-                "All actions completed successfully",
-                session_id=session.id,
-                action_count=len(actions),
-                idempotency_key=idempotency_key,
-            )
-
-            return "success", {
-                "actions_completed": len(actions),
-                "action_results": action_results,
-                "idempotency_key": idempotency_key,
-            }
-
-        except Exception as e:
-            logger.error(
-                "Error processing action node",
-                session_id=session.id,
-                error=str(e),
-                exc_info=True,
-            )
-            return "error", {"error": "Failed to process actions"}
-
-    async def _execute_action(
-        self,
-        action: Dict[str, Any],
-        session: ConversationSession,
-        action_id: str,
-        custom_resolver: Optional[VariableResolver] = None,
-    ) -> Dict[str, Any]:
-        """Execute a single action and return results."""
-        action_type = action.get("type")
-
-        if action_type == "set_variable":
-            return await self._set_variable_action(action, session, custom_resolver)
-        elif action_type == "api_call":
-            return await self._api_call_action(action, session, action_id)
-        elif action_type == "webhook":
-            return await self._webhook_action(action, session, action_id)
-        else:
-            raise ValueError(f"Unknown action type: {action_type}")
-
-    async def _set_variable_action(
-        self,
-        action: Dict[str, Any],
-        session: ConversationSession,
-        custom_resolver: Optional[VariableResolver] = None,
-    ) -> Dict[str, Any]:
-        """Execute a set_variable action."""
-        variable = action.get("variable")
-        value = action.get("value")
-
-        if not variable:
-            raise ValueError("set_variable action requires 'variable' field")
-
-        # Resolve value if it contains variable references (handle both strings and complex objects)
-        if custom_resolver:
-            resolver = custom_resolver
-        else:
-            from app.services.variable_resolver import create_session_resolver
-
-            resolver = create_session_resolver(session.state)
-
-        if isinstance(value, str):
-            resolved_value = resolver.substitute_variables(value)
-            try:
-                # Try to parse as JSON if it looks like structured data
-                if resolved_value.startswith(("{", "[")):
-                    resolved_value = json.loads(resolved_value)
-            except json.JSONDecodeError:
-                pass  # Keep as string
-        elif isinstance(value, (dict, list)):
-            # Recursively resolve variables in complex objects
-            resolved_value = resolver.substitute_object(value)
-        else:
-            resolved_value = value
-
-        # Set the variable in session state
-        self._set_nested_value(session.state, variable, resolved_value)
-
-        # For composite scope variables, also provide structured state updates
-        state_updates = {}
-        if variable.startswith(("input.", "output.", "local.", "temp.")):
-            # Parse composite scope variable paths (e.g., "output.processed_name" -> scope="output", key="processed_name")
-            parts = variable.split(".", 1)
-            if len(parts) == 2:
-                scope, key = parts
-                if scope in [
-                    "output",
-                    "local",
-                    "temp",
-                ]:  # Don't update read-only input scope
-                    state_updates[variable] = resolved_value
-                    # Also provide the structured update for composite scope
-                    state_updates[f"_composite_scope_{scope}_{key}"] = resolved_value
-        else:
-            state_updates[variable] = resolved_value
-
-        return {
-            "type": "set_variable",
-            "variable": variable,
-            "value": resolved_value,
-            "state_updates": state_updates,
-        }
-
-    async def _api_call_action(
-        self, action: Dict[str, Any], session: ConversationSession, action_id: str
-    ) -> Dict[str, Any]:
-        """Execute an api_call action using the internal API client."""
-        from app.services.api_client import ApiCallConfig, InternalApiClient
-
-        config_data = action.get("config", {})
-
-        # Create API call configuration
-        api_config = ApiCallConfig(
-            endpoint=config_data.get("endpoint"),
-            method=config_data.get("method", "GET"),
-            headers=config_data.get("headers", {}),
-            body=config_data.get("body", {}),
-            query_params=config_data.get("query_params", {}),
-            response_mapping=config_data.get("response_mapping", {}),
-            timeout=config_data.get("timeout", 30),
-            circuit_breaker=config_data.get("circuit_breaker", {}),
-            fallback_response=config_data.get("fallback_response"),
-            store_full_response=config_data.get("store_full_response", False),
-            response_variable=config_data.get("response_variable"),
-            error_variable=config_data.get("error_variable"),
-        )
-
-        # Execute API call
-        api_client = InternalApiClient()
-        result = await api_client.execute_api_call(api_config, session.state)
-
-        # Update session state with response data
-        state_updates = {}
-        if result.mapped_data:
-            state_updates.update(result.mapped_data)
-        if result.full_response and api_config.response_variable:
-            state_updates[api_config.response_variable] = result.full_response
-        if result.error and api_config.error_variable:
-            state_updates[api_config.error_variable] = result.error
-
-        return {
-            "type": "api_call",
-            "endpoint": api_config.endpoint,
-            "success": result.success,
-            "status_code": result.status_code,
-            "response_data": result.mapped_data,
-            "state_updates": state_updates,
-            "action_id": action_id,
-        }
-
-    async def _webhook_action(
-        self, action: Dict[str, Any], session: ConversationSession, action_id: str
-    ) -> Dict[str, Any]:
-        """Execute a webhook action with circuit breaker protection."""
-        # This would integrate with the webhook calling system
-        # For now, return a placeholder implementation
-
-        webhook_url = action.get("url")
-        webhook_method = action.get("method", "POST")
-
-        return {
-            "type": "webhook",
-            "url": webhook_url,
-            "method": webhook_method,
-            "success": True,
-            "action_id": action_id,
-            "note": "Webhook execution placeholder - would call external API",
-        }
-
-    def _set_nested_value(self, data: Dict[str, Any], path: str, value: Any) -> None:
-        """Set nested value in dictionary using dot notation."""
-        keys = path.split(".")
-        current = data
-
-        # Navigate to the parent of the target key
-        for key in keys[:-1]:
-            if key not in current:
-                current[key] = {}
-            current = current[key]
-
-        # Set the final value
-        current[keys[-1]] = value
-
-
 class WebhookNodeProcessor:
     """
     Processes webhook nodes that call external HTTP APIs.
@@ -584,27 +328,32 @@ class WebhookNodeProcessor:
     and response mapping for robust external integrations.
     """
 
-    def __init__(self, chat_repo):
-        self.chat_repo = chat_repo
+    def __init__(self, runtime):
+        self.runtime = runtime
         self.variable_resolver = VariableResolver()
+        self.logger = logger
 
     async def process(
         self,
+        db: AsyncSession,
+        node: FlowNode,
         session: ConversationSession,
-        node_content: Dict[str, Any],
-        user_input: Optional[str] = None,
-    ) -> Tuple[Optional[str], Dict[str, Any]]:
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
         Process a webhook node by making HTTP API calls.
 
         Args:
+            db: Database session
+            node: FlowNode with webhook configuration
             session: Current conversation session
-            node_content: Node configuration with webhook details
-            user_input: User input (not used for webhook nodes)
+            context: Additional context data
 
         Returns:
-            Tuple of (next_node_id, response_data)
+            Dict with webhook result and next node info
         """
+        node_content = node.content or {}
+
         try:
             webhook_url = node_content.get("url")
             if not webhook_url:
@@ -618,8 +367,8 @@ class WebhookNodeProcessor:
             # Resolve webhook configuration
             resolved_url = resolver.substitute_variables(webhook_url)
             method = node_content.get("method", "POST")
-            headers = self._resolve_headers(node_content.get("headers", {}))
-            body = self._resolve_body(node_content.get("body", {}))
+            headers = self._resolve_headers(node_content.get("headers", {}), resolver)
+            body = self._resolve_body(node_content.get("body", {}), resolver)
             timeout = node_content.get("timeout", 30)
 
             # Get circuit breaker for this webhook
@@ -639,24 +388,26 @@ class WebhookNodeProcessor:
             if mapped_data:
                 session.state.update(mapped_data)
 
-            logger.info(
+            self.logger.info(
                 "Webhook call completed successfully",
                 session_id=session.id,
                 webhook_url=resolved_url,
                 status_code=response_data.get("status_code"),
             )
 
-            return "success", {
+            return {
+                "type": "webhook",
+                "success": True,
                 "webhook_response": response_data,
                 "mapped_data": mapped_data,
                 "url": resolved_url,
             }
 
         except Exception as e:
-            logger.error(
+            self.logger.error(
                 "Webhook call failed",
                 session_id=session.id,
-                webhook_url=webhook_url,
+                node_id=node.node_id,
                 error=str(e),
                 exc_info=True,
             )
@@ -665,19 +416,38 @@ class WebhookNodeProcessor:
             fallback = node_content.get("fallback_response", {})
             if fallback:
                 session.state.update(fallback)
-                return "fallback", {"fallback_used": True, "error": str(e)}
+                return {
+                    "type": "webhook",
+                    "success": False,
+                    "fallback_used": True,
+                    "error": str(e),
+                }
 
-            return "error", {"error": str(e)}
+            return {
+                "type": "webhook",
+                "success": False,
+                "error": str(e),
+            }
 
-    def _resolve_headers(self, headers: Dict[str, str]) -> Dict[str, str]:
+    def _resolve_headers(
+        self, headers: Dict[str, str], resolver: VariableResolver
+    ) -> Dict[str, str]:
         """Resolve variable references in headers."""
-        # This method will be called with a resolver in scope
-        return headers  # Placeholder - needs session context
+        resolved = {}
+        for key, value in headers.items():
+            if isinstance(value, str):
+                resolved[key] = resolver.substitute_variables(value)
+            else:
+                resolved[key] = value
+        return resolved
 
-    def _resolve_body(self, body: Dict[str, Any]) -> Dict[str, Any]:
+    def _resolve_body(
+        self, body: Dict[str, Any], resolver: VariableResolver
+    ) -> Dict[str, Any]:
         """Resolve variable references in request body."""
-        # This method will be called with a resolver in scope
-        return body  # Placeholder - needs session context
+        if isinstance(body, dict):
+            return resolver.substitute_object(body)
+        return body
 
     async def _make_webhook_request(
         self, url: str, method: str, headers: Dict[str, str], body: Any, timeout: int
@@ -745,20 +515,261 @@ class CompositeNodeProcessor:
     """
     Processes composite nodes that encapsulate complex multi-step operations.
 
+    Supports two modes:
+    1. Sub-flow invocation: When composite_flow_id is present, invokes another flow
+    2. Child nodes execution: Executes inline child nodes sequentially
+
     Provides explicit input/output mapping, variable scoping, and sequential
     execution of child nodes with proper isolation.
     """
 
-    def __init__(self, chat_repo):
-        self.chat_repo = chat_repo
+    def __init__(self, runtime):
+        """Initialize with runtime reference (matches NodeProcessor interface)."""
+        self.runtime = runtime
         self.variable_resolver = VariableResolver()
+        self.logger = logger
 
     async def process(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        session: ConversationSession,
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Process a composite node following the standard NodeProcessor interface.
+
+        Args:
+            db: Database session
+            node: The composite FlowNode to process
+            session: Current conversation session
+            context: Execution context
+
+        Returns:
+            Dict with processing results
+        """
+        node_content = node.content or {}
+
+        # Check if this is a sub-flow invocation
+        composite_flow_id = node_content.get("composite_flow_id")
+        if composite_flow_id:
+            return await self._process_subflow(
+                db, node, session, composite_flow_id, node_content
+            )
+
+        # Otherwise, process inline child nodes
+        return await self._process_inline_children(db, node, session, node_content)
+
+    async def _process_subflow(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        session: ConversationSession,
+        composite_flow_id: str,
+        node_content: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Process a composite node that invokes a sub-flow."""
+        from uuid import UUID
+
+        from app import crud
+        from app.repositories.chat_repository import chat_repo
+
+        try:
+            # Get the sub-flow
+            sub_flow_id = UUID(composite_flow_id)
+            sub_flow = await crud.flow.aget(db, sub_flow_id)
+
+            if not sub_flow:
+                self.logger.error(
+                    "Sub-flow not found",
+                    composite_flow_id=composite_flow_id,
+                    node_id=node.node_id,
+                )
+                return {
+                    "type": "error",
+                    "error": f"Sub-flow not found: {composite_flow_id}",
+                }
+
+            # Get entry node of sub-flow
+            entry_node = await chat_repo.get_flow_node(
+                db, flow_id=sub_flow_id, node_id=sub_flow.entry_node_id
+            )
+
+            if not entry_node:
+                return {
+                    "type": "error",
+                    "error": f"Sub-flow entry node not found: {sub_flow.entry_node_id}",
+                }
+
+            # Get the composite node's outgoing connection (return node after sub-flow completes)
+            connections = await chat_repo.get_node_connections(
+                db, flow_id=node.flow_id, source_node_id=node.node_id
+            )
+            return_node_id = None
+            for conn in connections:
+                if conn.connection_type == ConnectionType.DEFAULT:
+                    return_node_id = conn.target_node_id
+                    break
+
+            # Push parent flow context to session.info flow_stack for return after sub-flow
+            flow_stack = list(session.info.get("flow_stack", []))
+            flow_stack.append(
+                {
+                    "parent_flow_id": str(node.flow_id),
+                    "return_node_id": return_node_id,
+                    "composite_node_id": node.node_id,
+                }
+            )
+
+            # Update session with sub-flow context
+            session = await chat_repo.update_session_state(
+                db,
+                session_id=session.id,
+                state_updates={},
+                current_flow_id=sub_flow_id,
+            )
+            # Update info separately (using SQLAlchemy's mutable tracking)
+            session.info["flow_stack"] = flow_stack
+            from sqlalchemy.orm.attributes import flag_modified
+
+            flag_modified(session, "info")
+            await db.commit()
+            await db.refresh(session)
+
+            self.logger.info(
+                "Invoking sub-flow",
+                parent_flow_id=str(node.flow_id),
+                sub_flow_id=composite_flow_id,
+                sub_flow_name=sub_flow.name,
+                entry_node_id=entry_node.node_id,
+                return_node_id=return_node_id,
+                flow_stack_depth=len(flow_stack),
+            )
+
+            # Process the sub-flow's entry node and continue through message nodes
+            # until we hit a question node or end of flow
+            all_messages = []
+            current_node = entry_node
+            final_result = None
+
+            while current_node:
+                result = await self.runtime.process_node(db, current_node, session)
+                final_result = result
+
+                # Collect messages from message nodes
+                if result.get("type") == "messages":
+                    messages = result.get("messages", [])
+                    all_messages.extend(messages)
+
+                    # Check if there's a next node to process
+                    next_node = result.get("next_node")
+                    if next_node:
+                        # If next node is a question, include it and stop
+                        if next_node.node_type == NodeType.QUESTION:
+                            question_result = await self.runtime.process_node(
+                                db, next_node, session
+                            )
+                            final_result = {
+                                "type": "messages",
+                                "messages": all_messages,
+                                "next_node": question_result,
+                            }
+                            break
+                        # If next node is also a message, continue processing
+                        elif next_node.node_type == NodeType.MESSAGE:
+                            current_node = next_node
+                            continue
+                        else:
+                            # For other node types (condition, action, etc.),
+                            # continue processing them automatically
+                            current_node = next_node
+                            continue
+                    else:
+                        # No next node, we're done
+                        break
+                elif result.get("type") == "question":
+                    # Hit a question node, include collected messages and stop
+                    if all_messages:
+                        final_result = {
+                            "type": "messages",
+                            "messages": all_messages,
+                            "next_node": result,
+                        }
+                    break
+                elif result.get("type") == "condition":
+                    # Process condition and follow the path
+                    next_node = result.get("next_node")
+                    if next_node:
+                        current_node = next_node
+                        continue
+                    else:
+                        break
+                elif result.get("type") == "action":
+                    # Process action and continue
+                    next_node = result.get("next_node")
+                    if next_node:
+                        current_node = next_node
+                        continue
+                    else:
+                        break
+                else:
+                    # Unknown type or end, stop processing
+                    break
+
+            # Build final result with all collected messages
+            if all_messages and final_result:
+                if final_result.get("type") != "messages":
+                    final_result = {
+                        "type": "messages",
+                        "messages": all_messages,
+                        "next_node": final_result
+                        if final_result.get("type") == "question"
+                        else None,
+                    }
+                else:
+                    final_result["messages"] = all_messages
+
+            # Add composite node metadata to result
+            if final_result:
+                final_result["composite_name"] = node_content.get(
+                    "composite_name", sub_flow.name
+                )
+                final_result["sub_flow_id"] = composite_flow_id
+
+            return final_result or {
+                "type": "error",
+                "error": "Sub-flow produced no result",
+            }
+
+        except Exception as e:
+            self.logger.error(
+                "Error processing sub-flow composite node",
+                node_id=node.node_id,
+                composite_flow_id=composite_flow_id,
+                error=str(e),
+            )
+            return {
+                "type": "error",
+                "error": f"Sub-flow invocation failed: {str(e)}",
+            }
+
+    async def _process_inline_children(
+        self,
+        db: AsyncSession,
+        node: FlowNode,
+        session: ConversationSession,
+        node_content: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Process a composite node with inline child nodes."""
+        # This is the original behavior for composite nodes with inline children
+        return await self._process_legacy(session, node_content)
+
+    async def _process_legacy(
         self,
         session: ConversationSession,
         node_content: Dict[str, Any],
         user_input: Optional[str] = None,
-    ) -> Tuple[Optional[str], Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Process a composite node by executing child nodes in sequence.
 
@@ -768,7 +779,7 @@ class CompositeNodeProcessor:
             user_input: User input (not used for composite nodes)
 
         Returns:
-            Tuple of (next_node_id, response_data)
+            Dict with processing results
         """
         try:
             # Extract composite configuration
@@ -780,7 +791,11 @@ class CompositeNodeProcessor:
                 logger.warning(
                     "Composite node has no child nodes", session_id=session.id
                 )
-                return "complete", {"warning": "No child nodes to execute"}
+                return {
+                    "type": "composite",
+                    "status": "complete",
+                    "warning": "No child nodes to execute",
+                }
 
             # Create isolated scope for composite execution
             composite_scope = await self._create_composite_scope(session, inputs)
@@ -823,8 +838,8 @@ class CompositeNodeProcessor:
                         error=str(child_error),
                         exc_info=True,
                     )
-                    # Return error in the expected format for the test
-                    return "error", {
+                    return {
+                        "type": "error",
                         "error": f"Child node {i} failed: {str(child_error)}",
                         "execution_results": execution_results,
                     }
@@ -839,7 +854,9 @@ class CompositeNodeProcessor:
                 outputs_mapped=len(output_mapping),
             )
 
-            return "complete", {
+            return {
+                "type": "composite",
+                "status": "complete",
                 "execution_results": execution_results,
                 "output_mapping": output_mapping,
                 "child_nodes_executed": len(child_nodes),
@@ -852,7 +869,7 @@ class CompositeNodeProcessor:
                 error=str(e),
                 exc_info=True,
             )
-            return "error", {"error": "Failed to process composite node"}
+            return {"type": "error", "error": "Failed to process composite node"}
 
     async def _create_composite_scope(
         self, session: ConversationSession, inputs: Dict[str, str]
@@ -916,42 +933,47 @@ class CompositeNodeProcessor:
 
         # Process the child node based on its type
         if node_type == "action":
-            # Create a temporary action processor for the child node
-            action_processor = ActionNodeProcessor(self.chat_repo)
-
-            # Execute actions with composite scope using the temp_resolver
-            next_node, result = await action_processor.process(
-                session, node_content, custom_resolver=temp_resolver
+            # Execute inline actions directly
+            return await self._execute_inline_actions(
+                node_content, session, composite_scope, temp_resolver
             )
 
-            # Check if the action processor returned an error
-            if next_node == "error":
-                # Propagate the error up to the composite processor
-                raise Exception(result.get("error", "Unknown action processing error"))
+        elif node_type == "condition":
+            # Evaluate inline condition using CEL
+            # For inline child nodes, we don't need the full ConditionNodeProcessor
+            conditions = node_content.get("conditions", [])
+            default_path = node_content.get("default_path", "default")
 
-            # Extract state_updates from action_results and put them at the top level
-            consolidated_state_updates = {}
-            if "action_results" in result:
-                for action_result in result["action_results"]:
-                    if "state_updates" in action_result:
-                        consolidated_state_updates.update(
-                            action_result["state_updates"]
+            for condition in conditions:
+                condition_expr = condition.get("if")
+                if condition_expr:
+                    try:
+                        # Evaluate CEL expression against current composite scope
+                        merged_context = {**session.state, **composite_scope}
+                        result_value = evaluate_cel_expression(
+                            condition_expr, merged_context
+                        )
+                        if result_value:
+                            return {
+                                "type": "condition",
+                                "condition_result": True,
+                                "matched_condition": condition_expr,
+                                "target_path": condition.get("then"),
+                            }
+                    except Exception as e:
+                        logger.warning(
+                            "Inline condition evaluation failed",
+                            condition=condition_expr,
+                            error=str(e),
                         )
 
-            # Add consolidated state_updates to the result
-            if consolidated_state_updates:
-                result["state_updates"] = consolidated_state_updates
-
-            return result
-
-        elif node_type == "condition":
-            # Create a temporary condition processor
-            condition_processor = ConditionNodeProcessor(self.chat_repo)
-            condition_processor.variable_resolver = temp_resolver
-
-            # Evaluate condition with composite scope
-            _, result = await condition_processor.process(session, node_content)
-            return result
+            # No conditions matched, return default
+            return {
+                "type": "condition",
+                "condition_result": False,
+                "used_default": True,
+                "default_path": default_path,
+            }
 
         else:
             logger.warning(
@@ -960,6 +982,244 @@ class CompositeNodeProcessor:
                 node_index=node_index,
             )
             return {"warning": f"Unsupported child node type: {node_type}"}
+
+    async def _execute_inline_actions(
+        self,
+        node_content: Dict[str, Any],
+        session: ConversationSession,
+        composite_scope: Dict[str, Any],
+        resolver: VariableResolver,
+    ) -> Dict[str, Any]:
+        """Execute inline action nodes within a composite scope.
+
+        Supports set_variable and aggregate action types for inline child nodes.
+        """
+        actions = node_content.get("actions", [])
+        action_results = []
+        state_updates = {}
+
+        for i, action in enumerate(actions):
+            action_type = action.get("type")
+
+            try:
+                if action_type == "set_variable":
+                    result = self._execute_set_variable(
+                        action, session, composite_scope, resolver
+                    )
+                    action_results.append(result)
+                    if result.get("state_updates"):
+                        state_updates.update(result["state_updates"])
+
+                elif action_type == "aggregate":
+                    result = self._execute_aggregate(action, session, composite_scope)
+                    action_results.append(result)
+                    if result.get("state_updates"):
+                        state_updates.update(result["state_updates"])
+
+                else:
+                    raise ValueError(f"Unsupported inline action type: {action_type}")
+
+            except Exception as e:
+                logger.error(
+                    "Inline action execution failed",
+                    action_index=i,
+                    action_type=action_type,
+                    error=str(e),
+                )
+                raise
+
+        return {
+            "type": "action",
+            "actions_completed": len(actions),
+            "action_results": action_results,
+            "state_updates": state_updates,
+        }
+
+    def _execute_set_variable(
+        self,
+        action: Dict[str, Any],
+        session: ConversationSession,
+        composite_scope: Dict[str, Any],
+        resolver: VariableResolver,
+    ) -> Dict[str, Any]:
+        """Execute a set_variable action within composite scope."""
+        variable = action.get("variable")
+        value = action.get("value")
+
+        if not variable:
+            raise ValueError("set_variable action requires 'variable' field")
+
+        # Resolve value if it contains variable references
+        if isinstance(value, str):
+            resolved_value = resolver.substitute_variables(value)
+            try:
+                if resolved_value.startswith(("{", "[")):
+                    resolved_value = json.loads(resolved_value)
+            except json.JSONDecodeError:
+                pass
+        elif isinstance(value, (dict, list)):
+            resolved_value = resolver.substitute_object(value)
+        else:
+            resolved_value = value
+
+        # Determine target scope for the variable
+        state_updates = {}
+        if variable.startswith("output."):
+            # Set in composite output scope
+            key = variable[7:]  # Remove "output." prefix
+            composite_scope.setdefault("output", {})[key] = resolved_value
+            state_updates[variable] = resolved_value
+        elif variable.startswith("local."):
+            # Set in composite local scope
+            key = variable[6:]  # Remove "local." prefix
+            composite_scope.setdefault("local", {})[key] = resolved_value
+            state_updates[variable] = resolved_value
+        elif variable.startswith("temp."):
+            # Set in session temp scope
+            self._set_nested_value(session.state, variable, resolved_value)
+            state_updates[variable] = resolved_value
+        else:
+            # Set directly in session state
+            self._set_nested_value(session.state, variable, resolved_value)
+            state_updates[variable] = resolved_value
+
+        return {
+            "type": "set_variable",
+            "variable": variable,
+            "value": resolved_value,
+            "state_updates": state_updates,
+        }
+
+    def _execute_aggregate(
+        self,
+        action: Dict[str, Any],
+        session: ConversationSession,
+        composite_scope: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Execute an aggregate action using CEL expressions."""
+        expression = action.get("expression")
+        target = action.get("target")
+
+        if not target:
+            raise ValueError("Aggregate action requires 'target' field")
+
+        # Merge session state with composite scope for evaluation
+        merged_context = {**session.state, **composite_scope}
+
+        if expression:
+            try:
+                result = evaluate_cel_expression(expression, merged_context)
+
+                state_updates = {}
+                if result is not None:
+                    # Determine target scope
+                    if target.startswith("output."):
+                        key = target[7:]
+                        composite_scope.setdefault("output", {})[key] = result
+                    else:
+                        self._set_nested_value(session.state, target, result)
+                    state_updates[target] = result
+
+                return {
+                    "type": "aggregate",
+                    "expression": expression,
+                    "target": target,
+                    "result": result,
+                    "state_updates": state_updates,
+                }
+
+            except Exception as e:
+                logger.error(
+                    "CEL aggregate expression failed",
+                    expression=expression,
+                    error=str(e),
+                )
+                return {
+                    "type": "aggregate",
+                    "expression": expression,
+                    "error": f"CEL evaluation failed: {str(e)}",
+                    "state_updates": {},
+                }
+
+        # Legacy format support
+        source = action.get("source")
+        if not source:
+            raise ValueError(
+                "Aggregate action requires either 'expression' or 'source' field"
+            )
+
+        field = action.get("field")
+        operation = action.get("operation", "sum")
+        merge_strategy = action.get("merge_strategy", "sum")
+
+        cel_expression = self._build_cel_expression(
+            source, field, operation, merge_strategy
+        )
+
+        try:
+            result = evaluate_cel_expression(cel_expression, merged_context)
+
+            state_updates = {}
+            if result is not None:
+                if target.startswith("output."):
+                    key = target[7:]
+                    composite_scope.setdefault("output", {})[key] = result
+                else:
+                    self._set_nested_value(session.state, target, result)
+                state_updates[target] = result
+
+            return {
+                "type": "aggregate",
+                "operation": operation,
+                "source": source,
+                "target": target,
+                "result": result,
+                "state_updates": state_updates,
+            }
+
+        except Exception as e:
+            logger.error(
+                "CEL aggregate expression failed",
+                expression=cel_expression,
+                error=str(e),
+            )
+            return {
+                "type": "aggregate",
+                "operation": operation,
+                "error": f"CEL evaluation failed: {str(e)}",
+                "state_updates": {},
+            }
+
+    def _build_cel_expression(
+        self, source: str, field: Optional[str], operation: str, merge_strategy: str
+    ) -> str:
+        """Build a CEL expression from legacy aggregate action config."""
+        if field:
+            data_expr = f"{source}.map(x, x.{field})"
+        else:
+            data_expr = source
+
+        if operation == "sum":
+            return f"sum({data_expr})"
+        elif operation == "avg":
+            return f"avg({data_expr})"
+        elif operation == "max":
+            return f"max({data_expr})"
+        elif operation == "min":
+            return f"min({data_expr})"
+        elif operation == "count":
+            return f"size({data_expr})"
+        elif operation == "merge":
+            if merge_strategy == "max":
+                return f"merge_max({data_expr})"
+            elif merge_strategy == "last":
+                return f"merge_last({data_expr})"
+            else:
+                return f"merge({data_expr})"
+        elif operation == "collect":
+            return f"flatten({data_expr})"
+        else:
+            raise ValueError(f"Unknown aggregate operation: {operation}")
 
     async def _map_outputs(
         self,
