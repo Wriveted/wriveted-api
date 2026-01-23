@@ -12,6 +12,7 @@ from fastapi import (
     Response,
     Security,
 )
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 from structlog import get_logger
@@ -28,7 +29,7 @@ from app.api.dependencies.security import (
 from app.config import get_settings
 from app.crud.cms import CRUDConversationSession
 from app.models import User
-from app.models.cms import SessionStatus
+from app.models.cms import ChatTheme, SessionStatus
 from app.repositories.chat_repository import chat_repo
 from app.schemas.cms import (
     ConversationHistoryResponse,
@@ -101,16 +102,47 @@ async def start_conversation(
             session, session_data.flow_id, conversation_session
         )
 
+        # Load theme if flow has one configured
+        theme_id = None
+        theme_config = None
+        flow = await crud.flow.aget(session, session_data.flow_id)
+        if flow and flow.flow_data:
+            # Theme ID can be in flow_data.theme_id or info.theme_id
+            theme_id_str = flow.flow_data.get("theme_id") or flow.info.get("theme_id")
+            if theme_id_str:
+                try:
+                    theme_id = (
+                        UUID(theme_id_str)
+                        if isinstance(theme_id_str, str)
+                        else theme_id_str
+                    )
+                    # Load the theme config
+                    theme_result = await session.execute(
+                        select(ChatTheme).where(
+                            ChatTheme.id == theme_id, ChatTheme.is_active == True
+                        )
+                    )
+                    theme = theme_result.scalar_one_or_none()
+                    if theme:
+                        theme_config = theme.config
+                except (ValueError, TypeError):
+                    logger.warning(
+                        "Invalid theme_id in flow",
+                        flow_id=session_data.flow_id,
+                        theme_id=theme_id_str,
+                    )
+
         # Set secure session cookie and CSRF token
         csrf_token = generate_csrf_token()
 
         # Set CSRF token cookie (httponly=False required for double-submit pattern)
+        # In debug mode, use lax samesite to allow cross-port local development
         response.set_cookie(
             "csrf_token",
             csrf_token,
             httponly=False,
-            samesite="strict",
-            secure=not settings.DEBUG,  # Only secure in production (non-debug)
+            samesite="lax" if settings.DEBUG else "strict",
+            secure=not settings.DEBUG,
             max_age=3600 * 24,  # 24 hours
         )
 
@@ -134,7 +166,10 @@ async def start_conversation(
         return SessionStartResponse(
             session_id=conversation_session.id,
             session_token=session_token,
+            csrf_token=csrf_token,  # Include in response for cross-origin scenarios
             next_node=initial_node,
+            theme_id=theme_id,
+            theme=theme_config,
         )
 
     except HTTPException:
