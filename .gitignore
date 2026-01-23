@@ -30,3 +30,38 @@ Session.vim
 
 # archived historical docs
 archive/
+
+# Temporary debug/test scripts
+debug_*.py
+test_*.py
+fix_*.py
+activate_*.py
+get_*_token.py
+setup_*.py
+validate_*.py
+import_*.py
+update_*.py
+
+# Test artifacts and output
+test_output.log
+*.png
+test_*.sh
+e2e_tests/
+
+# Data files and reports
+*.csv
+*.json
+!pyproject.toml
+!package.json
+landbot_extraction_output/
+
+# Credentials (should never be committed)
+scripts/credentials.json
+scripts/token.json
+examples/http-client.private.env.json
+
+# Tool artifacts
+.playwright-mcp/
+
+# SQL scripts (usually one-off fixes)
+*.sql
