@@ -5,7 +5,6 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
-from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.security import get_current_active_user_or_service_account
 from app.config import get_settings

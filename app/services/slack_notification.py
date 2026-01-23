@@ -12,17 +12,17 @@ reliable event-driven delivery.
 """
 
 import json
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from structlog import get_logger
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
-from app.config import get_settings
 from app import crud
-from app.models.event import Event, EventSlackChannel, EventLevel
+from app.config import get_settings
+from app.models.event import Event, EventLevel, EventSlackChannel
 from app.services.event_outbox_service import EventOutboxService, EventPriority
 from app.services.exceptions import ServiceException
 

@@ -121,6 +121,11 @@ class BooklistRepository(ABC):
         """Async version of _add_item_to_booklist."""
         pass
 
+    @abstractmethod
+    def remove(self, db: Session, id: int) -> BookList:
+        """Delete a booklist by ID."""
+        pass
+
 
 class BooklistRepositoryImpl(BooklistRepository):
     """Implementation of BooklistRepository."""
@@ -487,6 +492,13 @@ class BooklistRepositoryImpl(BooklistRepository):
         await db.commit()
         await db.refresh(booklist_orm_object)
         return new_orm_item
+
+    def remove(self, db: Session, id: int) -> BookList:
+        """Delete a booklist by ID."""
+        booklist = self.get_or_404(db, id)
+        db.delete(booklist)
+        db.commit()
+        return booklist
 
 
 # Singleton instance

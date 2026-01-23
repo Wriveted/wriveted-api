@@ -44,7 +44,6 @@ async def generate_reading_pathway_lists(
     populating each with `limit` appropriate books based on the provided `huey_attributes`
     """
 
-    from app import crud
     from app.db.session import get_async_session_maker
 
     logger.info(

@@ -13,7 +13,8 @@ from app.models.user import User
 from app.schemas.events.special_events import ReadingLogEvent
 from app.schemas.feedback import SendSmsPayload
 from app.schemas.sendgrid import SendGridEmailData
-# Import needed for SMS notifications  
+
+# Import needed for SMS notifications
 from app.services.background_tasks import queue_background_task
 from app.services.util import truncate_to_full_word_with_ellipsis
 
@@ -61,13 +62,13 @@ def process_reader_feedback_alert_email(
     )
 
     # Local import to avoid circular dependency
-    from app.services.email_notification import send_email_reliable_sync, EmailType
-    
+    from app.services.email_notification import EmailType, send_email_reliable_sync
+
     send_email_reliable_sync(
         db=session,
         email_data=email_data.dict(),
         email_type=EmailType.NOTIFICATION,
-        user_id=str(reader.id)
+        user_id=str(reader.id),
     )
 
 

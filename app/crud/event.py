@@ -8,7 +8,6 @@ import warnings
 from datetime import datetime
 from typing import Any, Optional, Union
 
-from sqlalchemy.exc import DataError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from structlog import get_logger

@@ -1,7 +1,6 @@
 from fastapi import Depends, Path
 from sqlalchemy.orm import Session
 
-from app import crud
 from app.db.session import get_session
 from app.repositories.edition_repository import edition_repository
 from app.services.editions import get_definitive_isbn

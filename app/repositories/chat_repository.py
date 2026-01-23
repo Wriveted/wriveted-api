@@ -24,6 +24,7 @@ from app.models.cms import (
 )
 
 logger = get_logger()
+_UNSET = object()
 
 
 class ChatRepository:
@@ -55,6 +56,9 @@ class ChatRepository:
         session_token: str,
         initial_state: Optional[Dict[str, Any]] = None,
         meta_data: Optional[Dict[str, Any]] = None,
+        flow_version: Optional[str] = None,
+        trace_enabled: Optional[bool] = None,
+        trace_level: Optional[str] = None,
     ) -> ConversationSession:
         """Create a new conversation session with initial state."""
         state = initial_state or {}
@@ -69,6 +73,9 @@ class ChatRepository:
             status=SessionStatus.ACTIVE,
             revision=1,
             state_hash=state_hash,
+            flow_version=flow_version,
+            trace_enabled=bool(trace_enabled) if trace_enabled is not None else False,
+            trace_level=trace_level or "standard",
         )
 
         db.add(session)
@@ -84,6 +91,7 @@ class ChatRepository:
         session_id: UUID,
         state_updates: Dict[str, Any],
         current_node_id: Optional[str] = None,
+        current_flow_id: Any = _UNSET,
         expected_revision: Optional[int] = None,
     ) -> ConversationSession:
         """Update session state with optimistic concurrency control."""
@@ -128,6 +136,9 @@ class ChatRepository:
 
         if current_node_id:
             session.current_node_id = current_node_id
+
+        if current_flow_id is not _UNSET:
+            session.current_flow_id = current_flow_id
 
         # Debug logging for state persistence (commented out for performance)
         # self.logger.info(

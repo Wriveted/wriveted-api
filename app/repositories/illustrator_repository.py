@@ -117,7 +117,6 @@ class IllustratorRepositoryImpl(IllustratorRepository):
         orm_obj = Illustrator(
             first_name=obj_in.first_name,
             last_name=obj_in.last_name,
-            name_key=first_last_to_name_key(obj_in.first_name, obj_in.last_name),
             info=obj_in.info or {},
         )
         db.add(orm_obj)
@@ -143,9 +142,6 @@ class IllustratorRepositoryImpl(IllustratorRepository):
             {
                 "first_name": illustrator.first_name,
                 "last_name": illustrator.last_name,
-                "name_key": first_last_to_name_key(
-                    illustrator.first_name, illustrator.last_name
-                ),
                 "info": {} if illustrator.info is None else illustrator.info,
             }
             for illustrator in bulk_illustrator_data_in

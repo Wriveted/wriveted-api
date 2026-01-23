@@ -3,7 +3,6 @@ import uuid
 from fastapi import Depends, Path, Query
 from sqlalchemy.orm import Session
 
-from app import crud
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.db.session import get_session
 from app.repositories.school_repository import school_repository

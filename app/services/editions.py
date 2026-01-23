@@ -5,7 +5,6 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.config import get_settings
 from app.models import Edition
 from app.repositories.edition_repository import edition_repository

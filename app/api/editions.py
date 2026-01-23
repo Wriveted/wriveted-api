@@ -38,7 +38,7 @@ router = APIRouter(
 
 
 @router.get("/editions", response_model=List[EditionBrief])
-async def get_editions(
+def get_editions(
     work_id: Optional[str] = Query(None, description="Filter editions by work"),
     query: Optional[str] = Query(None, description="Query string"),
     pagination: PaginatedQueryParams = Depends(),
@@ -87,7 +87,7 @@ async def compare_bulk_editions(
 
 
 @router.get("/edition/{isbn}", response_model=EditionDetail)
-async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
+def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
     try:
         isbn = get_definitive_isbn(isbn)
     except AssertionError:
@@ -97,7 +97,7 @@ async def get_book_by_isbn(isbn: str, session: Session = Depends(get_session)):
 
 
 @router.post("/edition", response_model=EditionDetail)
-async def add_edition(
+def add_edition(
     edition_data: EditionCreateIn,
     session: Session = Depends(get_session),
 ):
@@ -116,7 +116,7 @@ async def add_edition(
 
 
 @router.patch("/edition/{isbn}", response_model=EditionDetail)
-async def update_edition(
+def update_edition(
     edition_data: EditionUpdateIn,
     session: Session = Depends(get_session),
     edition=Depends(get_edition_from_isbn),

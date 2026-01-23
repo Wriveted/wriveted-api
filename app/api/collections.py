@@ -1,13 +1,11 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Security
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-import app.services.collections as collections_service
-from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.async_db_dep import DBSessionDep
 from app.api.dependencies.booklist import get_booklist_from_wriveted_id

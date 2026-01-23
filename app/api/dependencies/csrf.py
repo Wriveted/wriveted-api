@@ -1,6 +1,5 @@
 """CSRF protection dependencies for FastAPI endpoints."""
 
-import os
 from fastapi import Depends, HTTPException, Request
 from structlog import get_logger
 

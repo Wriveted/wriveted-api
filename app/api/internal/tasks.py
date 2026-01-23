@@ -3,12 +3,11 @@
 from typing import Any, Dict
 from uuid import UUID
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header
 from pydantic import BaseModel
 from structlog import get_logger
 
 from app.api.dependencies.async_db_dep import DBSessionDep
-from app.repositories.chat_repository import chat_repo
 from app.services.node_processor_core import node_processor_core
 from app.services.task_handler_decorator import (
     build_action_result_data,

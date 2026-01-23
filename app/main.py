@@ -8,8 +8,8 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 from structlog import get_logger
 
-from app.api.external_api_router import api_router
 from app.api.analytics import router as analytics_router
+from app.api.external_api_router import api_router
 from app.config import get_settings
 from app.events import lifespan
 from app.logging import init_logging, init_tracing
@@ -117,7 +117,9 @@ if settings.BACKEND_CORS_ORIGINS:
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
-app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/cms", tags=["analytics"])
+app.include_router(
+    analytics_router, prefix=f"{settings.API_V1_STR}/cms", tags=["analytics"]
+)
 
 
 @app.get("/")

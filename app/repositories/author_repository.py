@@ -118,7 +118,6 @@ class AuthorRepositoryImpl(AuthorRepository):
         orm_obj = Author(
             first_name=obj_in.first_name,
             last_name=obj_in.last_name,
-            name_key=first_last_to_name_key(obj_in.first_name, obj_in.last_name),
             info=obj_in.info or {},
         )
         db.add(orm_obj)
@@ -144,7 +143,6 @@ class AuthorRepositoryImpl(AuthorRepository):
             {
                 "first_name": author.first_name,
                 "last_name": author.last_name,
-                "name_key": first_last_to_name_key(author.first_name, author.last_name),
                 "info": {} if author.info is None else author.info,
             }
             for author in bulk_author_data_in

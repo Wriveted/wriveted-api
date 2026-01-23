@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
-from app import crud
 from app.api.dependencies.security import (
     get_current_active_superuser_or_backend_service_account,
 )

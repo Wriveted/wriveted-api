@@ -13,7 +13,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app.models import Author, Series, Work

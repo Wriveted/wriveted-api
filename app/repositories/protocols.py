@@ -8,8 +8,6 @@ They enable:
 - Decoupling from concrete implementations
 """
 
-from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol
 from uuid import UUID
 
@@ -17,9 +15,7 @@ from app.models.cms import (
     CMSContent,
     ConversationHistory,
     ConversationSession,
-    FlowConnection,
     FlowDefinition,
-    FlowNode,
 )
 from app.models.event_outbox import EventOutbox
 
@@ -67,6 +63,8 @@ class ConversationRepository(Protocol):
         user_id: Optional[UUID],
         session_token: str,
         initial_state: Optional[Dict[str, Any]] = None,
+        trace_enabled: Optional[bool] = None,
+        trace_level: Optional[str] = None,
     ) -> ConversationSession: ...
 
     async def update_session_state(
