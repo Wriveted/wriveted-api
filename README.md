@@ -193,6 +193,16 @@ In `scripts` there are Python scripts that will connect directly to the
 database outside of the FastAPI application. For example `get_auth_token.py`
 can be run to generate an auth token for any user.
 
+### Chatflow demo scripts
+
+For local CMS flow testing, `scripts/create_cipher_clubhouse_flow.py` creates a
+multi-cipher, kid-friendly flow set (hub + ROT13, Caesar, Atbash, Morse) using
+the CMS API. Example:
+
+```shell
+python scripts/create_cipher_clubhouse_flow.py <jwt_token> --theme-id <theme_id>
+```
+
 # Deployment
 
 ## Google Cloud Platform

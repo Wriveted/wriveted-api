@@ -69,11 +69,40 @@ The system uses a hybrid execution model optimized for the FastAPI/PostgreSQL/Cl
 
 The system supports three execution contexts:
 
-- **Frontend Execution**: MESSAGE, QUESTION, and SCRIPT nodes execute in the browser (instant, no server call)
+- **Frontend Execution**: MESSAGE, QUESTION, and SCRIPT nodes are designed to execute in the browser (instant, no server call)
 - **Backend Execution**: WEBHOOK, ACTION, and CONDITION nodes execute server-side (secure, async via Cloud Tasks)
 - **Mixed Execution**: COMPOSITE nodes coordinate both frontend and backend operations
 
-See [docs/execution-contexts.md](execution-contexts.md) for detailed information.
+#### Execution Context Implementation Status
+
+| Component | Status |
+|-----------|--------|
+| ExecutionContext enum in models | ✅ Implemented |
+| FlowNode.execution_context field | ✅ Implemented |
+| Backend node execution | ✅ Implemented |
+| Frontend node execution in chat widget | ❌ Not implemented |
+| State synchronization (frontend↔backend) | ❌ Not implemented |
+
+> **Note**: Currently all nodes execute server-side. The frontend execution model is documented as the target architecture but not yet implemented in the chat widget.
+
+#### Backend-First Execution (Current)
+
+All node types currently make API calls to the backend:
+```
+User input → API call → Backend processes node → Response to widget
+```
+
+#### Frontend-First Execution (Planned)
+
+When implemented, frontend-executable nodes will process locally:
+```
+User input → Frontend processes MESSAGE/QUESTION locally → Backend only for WEBHOOK/ACTION
+```
+
+Performance benefits of frontend execution:
+- Instant message display (0ms vs 100-300ms)
+- Reduced server load
+- Offline capability for simple flows
 
 ## Core Components
 
@@ -83,7 +112,7 @@ See [docs/execution-contexts.md](execution-contexts.md) for detailed information
 - **`cms_content`**: Stores all content types (jokes, facts, questions, quotes, messages, prompts)
 - **`cms_content_variants`**: A/B testing variants with performance tracking
 - **`flow_definitions`**: Chatbot flow definitions (replacing Landbot flows)
-- **`flow_nodes`**: Individual nodes within flows (message, question, condition, action, webhook, composite)
+- **`flow_nodes`**: Individual nodes within flows (start, message, question, condition, action, webhook, composite, script)
 - **`flow_connections`**: Connections between nodes with conditional logic
 - **`conversation_sessions`**: Active chat sessions with state management and concurrency control
 - **`conversation_history`**: Complete interaction history
@@ -172,7 +201,7 @@ Key methods:
 
 **Rigorous Node Processor Input Validation** with comprehensive error prevention:
 
-- **Pydantic-based validation schemas** for all node types (Message, Question, Condition, Action, Webhook, Composite)
+- **Pydantic-based validation schemas** for content-bearing node types (Message, Question, Condition, Action, Webhook, Composite, Script)
 - **CEL-based business rules engine** for flexible, configurable validation rules
 - **Validation severity levels**: ERROR (blocks processing), WARNING (logs issues), INFO (provides guidance)
 - **Comprehensive validation reports** with field-level error messages and suggested fixes
@@ -317,11 +346,13 @@ Performs operations without user interaction.
       },
       {
         "type": "api_call",
-        "method": "POST",
-        "url": "/api/users/{user.id}/preferences",
-        "body": {
-          "genres": "{book_preferences}",
-          "reading_level": "{reading_level}"
+        "config": {
+          "endpoint": "/v1/recommend",
+          "method": "POST",
+          "body": {
+            "wriveted_identifier": "{{user.school_id}}",
+            "age": "{{user.age}}"
+          }
         }
       }
     ]
@@ -397,10 +428,12 @@ Execute custom TypeScript/JavaScript code in the browser for DOM manipulation, e
 }
 ```
 
-See [docs/script-nodes.md](script-nodes.md) for detailed documentation.
+See [chatflow-node-types.md](chatflow-node-types.md#script-node) for detailed SCRIPT node documentation.
 
 #### 8. API Call Action
 Internal service integration for dynamic data and processing.
+
+`config.endpoint` is resolved relative to the `WRIVETED_INTERNAL_API` base URL.
 
 ```json
 {
@@ -411,7 +444,7 @@ Internal service integration for dynamic data and processing.
       {
         "type": "api_call",
         "config": {
-          "endpoint": "/api/recommendations",
+          "endpoint": "/v1/recommend",
           "method": "POST",
           "body": {
             "user_id": "{{user.id}}",

@@ -3,7 +3,7 @@
 
 ### ADR-001: Repository Pattern over Generic CRUD
 
-**Status**: Proposed  
+**Status**: Accepted/Implemented  
 **Date**: 2025-08-08  
 **Context**: Current generic CRUD pattern encourages "one function per query" leakage and doesn't express domain concepts clearly.
 
@@ -45,7 +45,7 @@
 
 ### ADR-003: Event Outbox over NOTIFY/LISTEN for Critical Events
 
-**Status**: Proposed  
+**Status**: Accepted/Implemented  
 **Date**: 2025-08-08  
 **Context**: NOTIFY/LISTEN is unreliable for critical business events (8KB limit, no persistence, unreliable delivery).
 
@@ -66,7 +66,7 @@
 
 ### ADR-004: Advisory Locks over Optimistic Locking for Session State
 
-**Status**: Proposed  
+**Status**: Accepted/Implemented  
 **Date**: 2025-08-08  
 **Context**: Session state has multiple concurrent writers (user interactions, background tasks, webhooks). Optimistic locking leads to lost updates.
 
@@ -87,7 +87,7 @@
 
 ### ADR-005: Service Layer Exceptions over HTTP Exceptions
 
-**Status**: Proposed  
+**Status**: Accepted/Implemented  
 **Date**: 2025-08-08  
 **Context**: Current error handling mixes HTTP concerns with business logic, making services hard to test and reuse.
 
