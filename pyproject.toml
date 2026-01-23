@@ -99,9 +99,23 @@ profile = "black"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 timeout = 300
+cache_dir = "/tmp/pytest_cache"
 addopts = [
     "--strict-markers",
     "--tb=short"
+]
+filterwarnings = [
+    "ignore:.*FieldValidationInfo.*:DeprecationWarning",
+    "ignore:.*CRUDCollection is deprecated.*:DeprecationWarning",
+    "ignore:.*CRUDEvent is deprecated.*:DeprecationWarning",
+    "ignore:.*pydantic.error_wrappers.*:UserWarning",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:.*Pydantic serializer warnings.*:UserWarning",
+    "ignore:.*Duplicate Operation ID.*:UserWarning",
+    "ignore:.*You should not use the 'timeout' argument with the TestClient.*:DeprecationWarning",
+    "ignore:.*conflicts with persistent instance.*:sqlalchemy.exc.SAWarning",
+    "ignore:.*incompatible polymorphic identity.*:sqlalchemy.exc.SAWarning",
+    "ignore:.*expected to delete .* rows.*:sqlalchemy.exc.SAWarning",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -129,4 +143,3 @@ exclude = [
     "scripts",
     "tests",
     ]
-
