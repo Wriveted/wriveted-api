@@ -57,8 +57,23 @@ jobs:
           registry: asia.gcr.io
           username: _json_key
           password: ${{ secrets.GCR_ACCESS }}
-      - run: |
-          ./scripts/integration-tests.sh
+      - name: Run integration tests
+        run: ./scripts/integration-tests.sh
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+
+  isolated-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GCR
+        uses: docker/login-action@v2
+        with:
+          registry: asia.gcr.io
+          username: _json_key
+          password: ${{ secrets.GCR_ACCESS }}
+      - name: Run isolated tests
+        run: ./scripts/integration-tests.sh --run-isolated-tests
         env:
           PR_NUMBER: ${{ github.event.number }}
 
