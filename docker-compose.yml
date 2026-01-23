@@ -2,7 +2,7 @@ services:
 
   db:
     image: postgres:18
-    command: ["postgres", "-c", "max_connections=100"]
+    command: ["postgres", "-c", "max_connections=200"]
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
     environment:
@@ -62,7 +62,9 @@ services:
       - SQLALCHEMY_WARN_20=true
       - OPENAI_API_KEY=unused-test-key-for-testing
       - DEBUG=true
-      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8080","http://localhost:8000","http://127.0.0.1:8000"]
+      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:3005","http://localhost:3006","http://localhost:3007","http://localhost:3008","http://localhost:3009","http://localhost:3010","http://localhost:8080","http://localhost:8000","http://127.0.0.1:8000"]
+      - DISABLE_EVENT_LISTENER=true
+      - CSRF_SKIP_COOKIE_VALIDATION=true
     ports:
       - "8000:8000"
     volumes:
@@ -95,6 +97,7 @@ services:
       - WRIVETED_INTERNAL_API=http://internal:8888
       - SQLALCHEMY_WARN_20=true
       - OPENAI_API_KEY=unused-test-key-for-testing
+      - DISABLE_EVENT_LISTENER=true
     ports:
       - "8888"
     volumes:
