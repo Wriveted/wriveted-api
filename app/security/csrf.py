@@ -7,6 +7,8 @@ from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from structlog import get_logger
 
+from app.config import get_settings
+
 logger = get_logger()
 
 
@@ -51,7 +53,28 @@ def generate_csrf_token() -> str:
 
 
 def validate_csrf_token(request: Request):
-    """Validate CSRF token using double-submit cookie pattern."""
+    """Validate CSRF token using double-submit cookie pattern.
+
+    In cross-origin development mode (CSRF_SKIP_COOKIE_VALIDATION=True),
+    only validates that the X-CSRF-Token header is present and non-empty.
+    This allows cross-origin requests from localhost:3006 to localhost:8000.
+    """
+    settings = get_settings()
+
+    # Get token from header (always required)
+    header_token = request.headers.get("X-CSRF-Token")
+    if not header_token:
+        logger.warning(
+            "CSRF validation failed: No token in header", path=request.url.path
+        )
+        raise HTTPException(status_code=403, detail="CSRF token missing in header")
+
+    # In cross-origin development mode, skip cookie validation
+    if settings.CSRF_SKIP_COOKIE_VALIDATION:
+        logger.debug(
+            "CSRF validation (header-only mode) successful", path=request.url.path
+        )
+        return
 
     # Get token from cookie
     cookie_token = request.cookies.get("csrf_token")
@@ -60,14 +83,6 @@ def validate_csrf_token(request: Request):
             "CSRF validation failed: No token in cookie", path=request.url.path
         )
         raise HTTPException(status_code=403, detail="CSRF token missing in cookie")
-
-    # Get token from header
-    header_token = request.headers.get("X-CSRF-Token")
-    if not header_token:
-        logger.warning(
-            "CSRF validation failed: No token in header", path=request.url.path
-        )
-        raise HTTPException(status_code=403, detail="CSRF token missing in header")
 
     # Compare tokens
     if not secrets.compare_digest(cookie_token, header_token):
@@ -85,12 +100,15 @@ def validate_csrf_token(request: Request):
 def set_secure_session_cookie(
     response: Response, name: str, value: str, max_age: int = 3600, debug: bool = False
 ):
-    """Set a secure session cookie with proper security attributes."""
+    """Set a secure session cookie with proper security attributes.
+
+    In debug mode, uses 'lax' samesite to allow cross-port local development.
+    """
     response.set_cookie(
         name,
         value,
         httponly=True,
-        samesite="strict",
-        secure=not debug,  # Only secure in production (non-debug)
+        samesite="lax" if debug else "strict",
+        secure=not debug,
         max_age=max_age,
     )

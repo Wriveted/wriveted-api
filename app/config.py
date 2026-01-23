@@ -177,6 +177,7 @@ class Settings(BaseSettings):
         # Local development URLs
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:3005",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         # Production URLs
@@ -253,6 +254,15 @@ class Settings(BaseSettings):
     # E2E Test configuration - when set, enables test auth endpoints
     # This should NEVER be set in production
     E2E_TEST_AUTH_SECRET: Optional[str] = None
+
+    # Disable event listener for tests to prevent connection pool exhaustion
+    # Set to True in test environment to skip PostgreSQL LISTEN/NOTIFY
+    DISABLE_EVENT_LISTENER: bool = False
+
+    # Disable CSRF cookie validation for cross-origin development
+    # When True, only validates the X-CSRF-Token header, not the cookie
+    # This should only be enabled in development/debug mode
+    CSRF_SKIP_COOKIE_VALIDATION: bool = False
 
     model_config = SettingsConfigDict(case_sensitive=True, use_enum_values=True)
 

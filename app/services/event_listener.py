@@ -222,18 +222,33 @@ def get_event_listener() -> FlowEventListener:
 
 
 def reset_event_listener() -> None:
-    """Reset the global event listener instance for testing."""
+    """Reset the global event listener instance for testing.
+
+    This properly closes the connection to prevent connection pool exhaustion.
+    Note: Connection closing is best-effort since we may not be in async context.
+    """
     global _event_listener
     if _event_listener is not None:
-        # Try to clean up the existing listener
         try:
-            if (
-                _event_listener.connection
-                and not _event_listener.connection.is_closed()
-            ):
-                # Note: This is sync, but in tests we may not be in async context
-                pass
+            # Cancel the keep-alive task if running
+            if _event_listener._listen_task is not None:
+                _event_listener._listen_task.cancel()
+                _event_listener._listen_task = None
+            _event_listener.is_listening = False
+
+            # Mark connection for closure - actual close happens on GC
+            # We can't reliably close async connections from sync context
+            if _event_listener.connection is not None:
+                try:
+                    if not _event_listener.connection.is_closed():
+                        # Try to terminate the connection - this is sync-safe
+                        _event_listener.connection.terminate()
+                except Exception:
+                    # Connection may already be closing/closed
+                    pass
+                _event_listener.connection = None
         except Exception:
+            # Ensure we still reset even if cleanup fails
             pass
     _event_listener = None
 
