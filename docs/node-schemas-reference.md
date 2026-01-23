@@ -496,36 +496,26 @@ class WebhookNodeContent(BaseModel):
 
 ---
 
-## 8. START Node
+## 8. Flow Entry Point
 
-**Node Type**: `start`
-**Purpose**: Define entry point for flows (optional - flows can start at any MESSAGE node)
+Flows do not use a dedicated START node. Instead, the `entry_node_id` field on the flow definition specifies which node to begin execution at. This should point directly to the first meaningful node (typically a MESSAGE or QUESTION node).
 
-### Status: **Under Review**
-User question: "is this needed - how about inside composite nodes - is a start just assumed?"
-
-### Possible Content
 ```json
 {
-  "welcome_message": "Welcome!",
-  "initial_variables": {
-    "session.started_at": "{{timestamp}}",
-    "temp.step": 0
-  },
-  "entry_conditions": {
-    "required_variables": ["user.id"],
-    "allowed_sources": ["web", "mobile"]
+  "entry_node_id": "welcome",
+  "flow_data": {
+    "nodes": [
+      {
+        "id": "welcome",
+        "type": "MESSAGE",
+        "content": { "text": "Welcome!" }
+      }
+    ]
   }
 }
 ```
 
-### Fields for Custom Panel (If Implemented)
-- **Welcome Message** (optional): Initial greeting
-- **Initial Variables** (optional): Variables to set on flow start
-- **Entry Conditions** (optional): Requirements to enter flow
-- **Metadata** (optional): Flow entry tracking info
-
-**Note**: Many flows use a MESSAGE node with `node_id: "start"` as the entry point instead of a dedicated START node type.
+For composite nodes, execution begins at the first node in the `nodes` array.
 
 ---
 

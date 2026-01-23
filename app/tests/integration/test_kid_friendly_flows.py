@@ -39,15 +39,9 @@ def get_personality_quiz_flow_data() -> dict[str, Any]:
         "description": "A fun personality quiz that matches kids to famous book characters",
         "flow_type": "chatbot",
         "version": "1.0.0",
-        "entry_node_id": "start-node",
+        "entry_node_id": "welcome",
         "flow_data": {
             "nodes": [
-                {
-                    "id": "start-node",
-                    "type": "START",
-                    "position": {"x": 100, "y": 50},
-                    "content": {},
-                },
                 {
                     "id": "welcome",
                     "type": "MESSAGE",
@@ -150,7 +144,6 @@ def get_personality_quiz_flow_data() -> dict[str, Any]:
                 },
             ],
             "connections": [
-                {"source": "start-node", "target": "welcome", "type": "DEFAULT"},
                 {"source": "welcome", "target": "start-button", "type": "DEFAULT"},
                 {"source": "start-button", "target": "q1-adventure", "type": "DEFAULT"},
                 {
@@ -187,7 +180,7 @@ def get_personality_quiz_flow_data() -> dict[str, Any]:
                 {"source": "result-kind", "target": "goodbye", "type": "DEFAULT"},
                 {"source": "result-creative", "target": "goodbye", "type": "DEFAULT"},
             ],
-            "entry_node_id": "start-node",
+            "entry_node_id": "welcome",
         },
     }
 
@@ -207,15 +200,9 @@ def get_mood_tracker_flow_data() -> dict[str, Any]:
         "description": "A fun way for kids to express and explore their feelings with emojis",
         "flow_type": "chatbot",
         "version": "1.0.0",
-        "entry_node_id": "start-node",
+        "entry_node_id": "welcome",
         "flow_data": {
             "nodes": [
-                {
-                    "id": "start-node",
-                    "type": "START",
-                    "position": {"x": 100, "y": 50},
-                    "content": {},
-                },
                 {
                     "id": "welcome",
                     "type": "MESSAGE",
@@ -290,7 +277,6 @@ def get_mood_tracker_flow_data() -> dict[str, Any]:
                 },
             ],
             "connections": [
-                {"source": "start-node", "target": "welcome", "type": "DEFAULT"},
                 {"source": "welcome", "target": "mood-question", "type": "DEFAULT"},
                 {
                     "source": "mood-question",
@@ -333,7 +319,7 @@ def get_mood_tracker_flow_data() -> dict[str, Any]:
                     "condition": "temp.check_again == 'no'",
                 },
             ],
-            "entry_node_id": "start-node",
+            "entry_node_id": "welcome",
         },
     }
 
@@ -353,15 +339,9 @@ def get_library_adventure_flow_data() -> dict[str, Any]:
         "description": "A choose-your-own-adventure game set in an enchanted library",
         "flow_type": "chatbot",
         "version": "1.0.0",
-        "entry_node_id": "start-node",
+        "entry_node_id": "intro",
         "flow_data": {
             "nodes": [
-                {
-                    "id": "start-node",
-                    "type": "START",
-                    "position": {"x": 100, "y": 50},
-                    "content": {},
-                },
                 {
                     "id": "intro",
                     "type": "MESSAGE",
@@ -519,7 +499,6 @@ def get_library_adventure_flow_data() -> dict[str, Any]:
                 },
             ],
             "connections": [
-                {"source": "start-node", "target": "intro", "type": "DEFAULT"},
                 {"source": "intro", "target": "get-name", "type": "DEFAULT"},
                 {"source": "get-name", "target": "first-room", "type": "DEFAULT"},
                 {"source": "first-room", "target": "first-choice", "type": "DEFAULT"},
@@ -567,7 +546,7 @@ def get_library_adventure_flow_data() -> dict[str, Any]:
                 },
                 {"source": "treasure-success", "target": "victory", "type": "DEFAULT"},
             ],
-            "entry_node_id": "start-node",
+            "entry_node_id": "intro",
         },
     }
 
@@ -586,15 +565,9 @@ def get_simple_greeting_flow_data() -> dict[str, Any]:
         "description": "A minimal flow for testing basic functionality",
         "flow_type": "chatbot",
         "version": "1.0.0",
-        "entry_node_id": "start",
+        "entry_node_id": "ask-name",
         "flow_data": {
             "nodes": [
-                {
-                    "id": "start",
-                    "type": "START",
-                    "position": {"x": 100, "y": 50},
-                    "content": {},
-                },
                 {
                     "id": "ask-name",
                     "type": "QUESTION",
@@ -615,10 +588,9 @@ def get_simple_greeting_flow_data() -> dict[str, Any]:
                 },
             ],
             "connections": [
-                {"source": "start", "target": "ask-name", "type": "DEFAULT"},
                 {"source": "ask-name", "target": "greet", "type": "DEFAULT"},
             ],
-            "entry_node_id": "start",
+            "entry_node_id": "ask-name",
         },
     }
 
@@ -689,7 +661,7 @@ class TestKidFriendlyFlowCreation:
         data = response.json()
         assert data["name"] == "Which Book Character Are You?"
         assert data["version"] == "1.0.0"
-        assert data["entry_node_id"] == "start-node"
+        assert data["entry_node_id"] == "welcome"
         assert "id" in data
 
     def test_create_mood_tracker_flow(self, client, backend_service_account_headers):
