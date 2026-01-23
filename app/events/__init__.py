@@ -12,6 +12,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.config import get_settings
 from app.services.event_listener import get_event_listener, register_default_handlers
 from app.services.webhook_notifier import get_webhook_notifier, webhook_event_handler
 
@@ -25,6 +26,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     This handles the PostgreSQL event listener lifecycle during application startup/shutdown.
     """
+    settings = get_settings()
+
+    # Skip event system if disabled (e.g., in tests)
+    if settings.DISABLE_EVENT_LISTENER:
+        logger.info("Event listener disabled via DISABLE_EVENT_LISTENER setting")
+        yield
+        return
 
     # Startup
     logger.info("Starting event system...")
