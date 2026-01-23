@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from starlette import status
 from structlog import get_logger
 
-from app import crud
 from app.api.common.pagination import PaginatedQueryParams
 from app.api.dependencies.classes import get_class_from_id, get_school_from_class_id
 from app.api.dependencies.school import get_school_from_wriveted_id

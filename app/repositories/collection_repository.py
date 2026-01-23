@@ -15,8 +15,6 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session, aliased, contains_eager, raiseload
 from structlog import get_logger
 
-from app import crud
-from app.crud.base import deep_merge_dicts
 from app.models import Author, Edition, Work
 from app.models.collection import Collection
 from app.models.collection_item import CollectionItem
@@ -38,6 +36,7 @@ from app.services.cover_images import (
     handle_new_collection_item_cover_image,
 )
 from app.services.editions import get_definitive_isbn
+from app.utils.dict_utils import deep_merge_dicts
 
 logger = get_logger()
 
@@ -475,7 +474,7 @@ class CollectionRepositoryImpl(CollectionRepository):
         ]
         stmt = pg_upsert(CollectionItem)
         stmt = stmt.on_conflict_do_update(
-            constraint="unique_editions_per_collection",
+            constraint="uq_collection_items_collection_id_edition_isbn",
             set_={
                 "copies_available": stmt.excluded.copies_available,
                 "copies_total": stmt.excluded.copies_total,
@@ -537,7 +536,7 @@ class CollectionRepositoryImpl(CollectionRepository):
 
         stmt = (
             pg_upsert(CollectionItem).on_conflict_do_update(
-                constraint="unique_editions_per_collection",
+                constraint="uq_collection_items_collection_id_edition_isbn",
                 set_=new_orm_item_data,
             )
             if ignore_conflicts
@@ -562,6 +561,8 @@ class CollectionRepositoryImpl(CollectionRepository):
             logger.warning(
                 f"Item with no isbn added to a school collection #{collection_orm_object.id}"
             )
+            from app import crud
+
             crud.event.create(
                 session=db,
                 level="warning",

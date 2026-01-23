@@ -18,7 +18,8 @@ class CloudTasksService:
     """Service for managing Cloud Tasks queue operations."""
 
     def __init__(self):
-        self.client = tasks_v2.CloudTasksClient()
+        self._client = None
+        self._queue_path = None
         self.logger = logger
 
         # Cloud Tasks configuration
@@ -26,10 +27,21 @@ class CloudTasksService:
         self.location = settings.GCP_LOCATION
         self.queue_name = settings.GCP_CLOUD_TASKS_NAME or "chatbot-async-nodes"
 
-        # Full queue path
-        self.queue_path = self.client.queue_path(
-            self.project_id, self.location, self.queue_name
-        )
+    @property
+    def client(self):
+        """Lazy-load the Cloud Tasks client."""
+        if self._client is None:
+            self._client = tasks_v2.CloudTasksClient()
+        return self._client
+
+    @property
+    def queue_path(self):
+        """Lazy-compute the queue path."""
+        if self._queue_path is None:
+            self._queue_path = self.client.queue_path(
+                self.project_id, self.location, self.queue_name
+            )
+        return self._queue_path
 
     async def enqueue_action_task(
         self,

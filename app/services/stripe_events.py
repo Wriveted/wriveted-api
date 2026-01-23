@@ -20,7 +20,6 @@ from app.repositories.school_repository import school_repository
 from app.repositories.subscription_repository import subscription_repository
 from app.schemas.product import ProductCreateIn
 from app.schemas.subscription import SubscriptionCreateIn
-from app.services.background_tasks import queue_background_task
 from app.services.events import create_event
 
 logger = get_logger()

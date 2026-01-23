@@ -4,7 +4,6 @@ from fastapi import Depends, HTTPException, Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import crud
 from app.db.session import get_session
 from app.models.booklist import BookList, ListSharingType, ListType
 from app.repositories.booklist_repository import booklist_repository

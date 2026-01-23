@@ -65,7 +65,7 @@ def get_work(
     "/works",
     response_model=List[WorkBrief],
 )
-async def get_works(
+def get_works(
     query: Optional[str] = Query(None, description="Query string"),
     author_id: Optional[int] = Query(None, description="Author's Wriveted Id"),
     isbn: Optional[str] = Query(None, description="Isbn"),
@@ -119,7 +119,7 @@ async def get_works(
 
 
 @router.get("/work/{work_id}", response_model=WorkDetail | WorkEnriched)
-async def get_work_by_id(
+def get_work_by_id(
     work: Work = Depends(get_work),
     full_detail: bool = Query(
         default=True,
@@ -154,7 +154,7 @@ async def get_work_by_id(
     "/work/{work_id}/generate-labels",
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
 )
-async def generate_work_label(work: Work = Depends(get_work)):
+def generate_work_label(work: Work = Depends(get_work)):
     """
     Queue an internal task to generate a label for a work using GPT-4.
 
@@ -174,7 +174,7 @@ async def generate_work_label(work: Work = Depends(get_work)):
         Permission("create", bulk_work_access_control_list),
     ],
 )
-async def create_work_with_editions(
+def create_work_with_editions(
     work_data: WorkCreateWithEditionsIn,
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),
@@ -237,7 +237,7 @@ async def create_work_with_editions(
         Permission("update", bulk_work_access_control_list),
     ],
 )
-async def update_work(
+def update_work(
     changes: WorkUpdateIn,
     work_orm: Work = Depends(get_work),
     account=Depends(get_current_active_user_or_service_account),
@@ -292,7 +292,7 @@ async def update_work(
         Permission("delete", bulk_work_access_control_list),
     ],
 )
-async def delete_work(
+def delete_work(
     work_orm: Work = Depends(get_work),
     account=Depends(get_current_active_user_or_service_account),
     session: Session = Depends(get_session),

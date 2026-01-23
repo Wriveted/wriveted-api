@@ -11,10 +11,8 @@ This replaces direct queue_background_task("send-email") calls with
 reliable event-driven delivery.
 """
 
-import json
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
