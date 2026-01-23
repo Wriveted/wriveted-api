@@ -9,7 +9,6 @@ This service follows the established architecture patterns in the codebase:
 - Follows the established service layer patterns like CMSWorkflowService
 """
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
@@ -164,14 +163,18 @@ class FlowService:
         Performs validation and emits events for flow creation.
         """
         try:
+            requested_publish = bool(flow_data.is_published)
+
             # Create the flow
-            flow = await self.flow_repo.create_flow(db, flow_data, created_by)
+            create_payload = flow_data.model_copy(update={"is_published": False})
+            flow = await self.flow_repo.create_flow(db, create_payload, created_by)
 
             # Materialize nodes and connections from provided snapshot (if any)
             try:
                 from app.services.flow_snapshot import materialize_snapshot
 
                 await materialize_snapshot(db, flow.id, flow_data.flow_data or {})
+                await self._regenerate_flow_data(db, flow.id, commit=False)
             except Exception as e:
                 logger.warning(
                     "Failed to materialize flow graph from flow_data", error=str(e)
@@ -198,6 +201,9 @@ class FlowService:
                 created_by=created_by,
             )
 
+            if requested_publish:
+                flow = await self.publish_flow(db, flow.id, created_by, None)
+
             return flow
 
         except Exception as e:
@@ -207,7 +213,11 @@ class FlowService:
             raise CMSWorkflowError(f"Failed to create flow: {str(e)}")
 
     async def update_flow(
-        self, db: AsyncSession, flow_id: UUID, update_data: FlowUpdate
+        self,
+        db: AsyncSession,
+        flow_id: UUID,
+        update_data: FlowUpdate,
+        published_by: Optional[UUID] = None,
     ) -> FlowDefinition:
         """
         Update flow with business validation.
@@ -216,22 +226,65 @@ class FlowService:
         """
         try:
             # Ensure flow exists
-            existing_flow = await self.get_flow_by_id(db, flow_id)
+            await self.get_flow_by_id(db, flow_id)
+
+            update_payload = update_data.model_dump(exclude_unset=True)
+            publish_flag = update_payload.pop("publish", None)
+            is_published_flag = update_payload.pop("is_published", None)
+            if publish_flag is None:
+                publish_flag = is_published_flag
+
+            flow_data_payload = update_payload.get("flow_data")
+            filtered_update = FlowUpdate.model_validate(update_payload)
 
             # Update the flow
-            updated_flow = await self.flow_repo.update_flow(db, flow_id, update_data)
-
-            # Emit flow updated event
-            await self._emit_flow_event(
-                db,
-                "flow_updated",
-                flow_id,
-                {
-                    "flow_name": updated_flow.name,
-                    "changes": update_data.model_dump(exclude_unset=True),
-                },
+            updated_flow = await self.flow_repo.update_flow(
+                db, flow_id, filtered_update
             )
-            # Ensure outbox event persists
+
+            if flow_data_payload is not None:
+                from app.services.flow_snapshot import materialize_snapshot
+
+                await materialize_snapshot(db, flow_id, flow_data_payload or {})
+                await self._regenerate_flow_data(db, flow_id, commit=False)
+
+            # Emit flow updated event only if we changed actual fields
+            if update_payload:
+                await self._emit_flow_event(
+                    db,
+                    "flow_updated",
+                    flow_id,
+                    {
+                        "flow_name": updated_flow.name,
+                        "changes": update_payload,
+                    },
+                )
+
+            if publish_flag is not None:
+                if publish_flag:
+                    await self._validate_flow_for_publishing(db, flow_id)
+                    updated_flow = await self.flow_repo.publish_flow(
+                        db, flow_id, published_by, None
+                    )
+                    await self._emit_flow_event(
+                        db,
+                        "flow_published",
+                        flow_id,
+                        {
+                            "flow_name": updated_flow.name,
+                            "published_by": str(published_by) if published_by else None,
+                            "version": updated_flow.version,
+                        },
+                    )
+                else:
+                    updated_flow = await self.flow_repo.unpublish_flow(db, flow_id)
+                    await self._emit_flow_event(
+                        db,
+                        "flow_unpublished",
+                        flow_id,
+                        {"flow_name": updated_flow.name},
+                    )
+
             await db.commit()
 
             logger.info(
@@ -459,9 +512,10 @@ class FlowService:
             # Create the node
             node = await self.flow_repo.create_node(db, flow_id, node_data)
 
+            await self._regenerate_flow_data(db, flow_id, commit=False)
+
             logger.info("Created node", node_id=node.id, flow_id=flow_id)
 
-            # Persist
             await db.commit()
             return node
 
@@ -483,6 +537,8 @@ class FlowService:
             # Update the node
             updated_node = await self.flow_repo.update_node(db, node_id, update_data)
 
+            await self._regenerate_flow_data(db, existing.flow_id, commit=False)
+
             logger.info("Updated node", node_id=node_id)
 
             await db.commit()
@@ -495,15 +551,19 @@ class FlowService:
     async def delete_node(self, db: AsyncSession, node_id: UUID) -> bool:
         """Delete node and its connections."""
         try:
+            existing = await self.flow_repo.get_node_by_db_id(db, node_id)
+            if not existing:
+                logger.warning("Node not found for deletion", node_id=node_id)
+                return False
+
             # Delete the node and its connections
             deleted = await self.flow_repo.delete_node_with_connections(db, node_id)
 
             if deleted:
                 logger.info("Deleted node with connections", node_id=node_id)
-            else:
-                logger.warning("Node not found for deletion", node_id=node_id)
 
             if deleted:
+                await self._regenerate_flow_data(db, existing.flow_id, commit=False)
                 await db.commit()
             return deleted
 
@@ -526,6 +586,7 @@ class FlowService:
                 flow_id,
                 {"positions_count": len(positions)},
             )
+            await self._regenerate_flow_data(db, flow_id, commit=False)
             await db.commit()
         except Exception as e:
             logger.error(
@@ -535,7 +596,7 @@ class FlowService:
 
     # Snapshot regeneration orchestration
     async def _regenerate_flow_data(
-        self, db: AsyncSession, flow_id: UUID
+        self, db: AsyncSession, flow_id: UUID, *, commit: bool = True
     ) -> FlowDefinition:
         """Regenerate flow.flow_data using FlowSnapshotBuilder."""
         from sqlalchemy import select
@@ -551,8 +612,9 @@ class FlowService:
             db, flow_id, preserve=flow.flow_data or {}
         )
         flow.flow_data = snapshot
-        await db.commit()
-        await db.refresh(flow)
+        if commit:
+            await db.commit()
+            await db.refresh(flow)
         return flow
 
     async def regenerate_all_flow_data(
@@ -619,6 +681,8 @@ class FlowService:
                 db, flow_id, connection_data
             )
 
+            await self._regenerate_flow_data(db, flow_id, commit=False)
+
             logger.info(
                 "Created connection", connection_id=connection.id, flow_id=flow_id
             )
@@ -635,17 +699,21 @@ class FlowService:
     async def delete_connection(self, db: AsyncSession, connection_id: UUID) -> bool:
         """Delete connection by ID."""
         try:
+            existing = await self.flow_repo.get_connection_by_id(db, connection_id)
+            if not existing:
+                logger.warning(
+                    "Connection not found for deletion", connection_id=connection_id
+                )
+                return False
+
             # Delete the connection
             deleted = await self.flow_repo.delete_connection(db, connection_id)
 
             if deleted:
                 logger.info("Deleted connection", connection_id=connection_id)
-            else:
-                logger.warning(
-                    "Connection not found for deletion", connection_id=connection_id
-                )
 
             if deleted:
+                await self._regenerate_flow_data(db, existing.flow_id, commit=False)
                 await db.commit()
             return deleted
 
@@ -712,7 +780,7 @@ class FlowService:
         else:
             entry_in_db = any(n.node_id == entry_id for n in (flow.nodes or []))
             entry_in_json = any(
-                (n.get("node_id") == entry_id)
+                (n.get("node_id") == entry_id or n.get("id") == entry_id)
                 for n in (flow.flow_data or {}).get("nodes", [])
             )
             if not (entry_in_db or entry_in_json):

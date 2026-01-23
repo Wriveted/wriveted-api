@@ -304,16 +304,24 @@ class FlowRepositoryImpl(FlowRepository):
     ) -> FlowDefinition:
         """Create new flow."""
         # Create the base flow record
+        info_payload = flow_data.info or {}
+        if flow_data.contract is not None:
+            info_payload = {
+                **info_payload,
+                "contract": flow_data.contract.model_dump(exclude_none=True),
+            }
         flow = FlowDefinition(
             name=flow_data.name,
             description=flow_data.description,
             version=flow_data.version,
             flow_data=flow_data.flow_data,
             entry_node_id=flow_data.entry_node_id,
-            info=flow_data.info or {},
-            is_published=flow_data.is_published or False,
+            info=info_payload,
+            is_published=False,
             is_active=flow_data.is_active if flow_data.is_active is not None else True,
             created_by=created_by,
+            school_id=flow_data.school_id,
+            visibility=flow_data.visibility,
         )
 
         db.add(flow)
@@ -334,10 +342,30 @@ class FlowRepositoryImpl(FlowRepository):
         flow = result.scalar_one()
 
         # Update fields
-        update_dict = update_data.model_dump(exclude_unset=True)
+        update_dict = update_data.model_dump(
+            exclude_unset=True, exclude={"info", "contract"}
+        )
+        info_provided = "info" in update_data.model_fields_set
+        contract_provided = "contract" in update_data.model_fields_set
         for field, value in update_dict.items():
             if hasattr(flow, field):
                 setattr(flow, field, value)
+
+        if info_provided:
+            updated_info = update_data.info or {}
+            if not contract_provided:
+                existing_contract = flow.contract
+                if existing_contract:
+                    updated_info = {**updated_info, "contract": existing_contract}
+            flow.info = updated_info
+
+        if contract_provided:
+            contract_payload = (
+                update_data.contract.model_dump(exclude_none=True)
+                if update_data.contract is not None
+                else None
+            )
+            flow.contract = contract_payload
 
         await db.flush()
 
@@ -369,6 +397,11 @@ class FlowRepositoryImpl(FlowRepository):
             is_active=True,
             is_published=False,
             created_by=created_by,
+            school_id=source_flow.school_id,
+            visibility=source_flow.visibility,
+            trace_enabled=source_flow.trace_enabled,
+            trace_sample_rate=source_flow.trace_sample_rate,
+            retention_days=source_flow.retention_days,
         )
 
         db.add(cloned_flow)

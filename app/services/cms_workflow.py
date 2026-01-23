@@ -339,6 +339,12 @@ class CMSWorkflowService:
             "status": content.status.value
             if hasattr(content, "status") and content.status
             else "draft",
+            "visibility": content.visibility.value
+            if hasattr(content, "visibility") and content.visibility
+            else "wriveted",
+            "school_id": str(content.school_id)
+            if hasattr(content, "school_id") and content.school_id
+            else None,
             "version": content.version if hasattr(content, "version") else 1,
             "created_at": content.created_at.isoformat()
             if hasattr(content, "created_at")
