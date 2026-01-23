@@ -6,7 +6,6 @@ This document describes the supported node types in the chatflow system, their c
 
 | Type | Description | Processor | Execution Context |
 |------|-------------|-----------|-------------------|
-| `START` | Entry point of a flow | No processor (handled by runtime) | Backend |
 | `MESSAGE` | Display messages to user | `MessageNodeProcessor` | Backend |
 | `QUESTION` | Collect user input | `QuestionNodeProcessor` | Backend |
 | `CONDITION` | Branch based on logic | `ConditionNodeProcessor` | Backend |
@@ -17,15 +16,24 @@ This document describes the supported node types in the chatflow system, their c
 
 ---
 
-## START Node
+## Flow Entry Point
 
-Entry point of every flow. Must be connected to the first content node.
+Flows specify their entry point via the `entry_node_id` field, which should point directly to the first meaningful node (typically a MESSAGE or QUESTION node). There is no dedicated START node type - the runtime begins execution at whatever node `entry_node_id` references.
 
-### Content Structure
 ```json
-{}
+{
+  "entry_node_id": "welcome",
+  "flow_data": {
+    "nodes": [
+      {
+        "id": "welcome",
+        "type": "MESSAGE",
+        "content": { "text": "Welcome to the chat!" }
+      }
+    ]
+  }
+}
 ```
-No content required. The START node simply transitions to its connected node.
 
 ---
 
