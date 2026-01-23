@@ -9,7 +9,6 @@ Tests:
 """
 
 import pytest
-from pydantic import ValidationError
 
 from app.models.cms import ExecutionContext, NodeType
 from app.schemas.cms import NodeCreate

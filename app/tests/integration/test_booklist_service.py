@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
 
-from app import crud
 from app.models.booklist import BookList
 from app.models.booklist_work_association import BookListItem
 from app.models.labelset import LabelSet, RecommendStatus

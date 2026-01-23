@@ -6,14 +6,11 @@ instead of using direct background task queuing.
 """
 
 import json
-from unittest.mock import Mock, patch
 from uuid import uuid4
 
-import pytest
 from sqlalchemy import text
 
 from app.models.event_outbox import EventOutbox, EventPriority, EventStatus
-from app.schemas.sendgrid import SendGridEmailData
 from app.services.email_notification import EmailType, send_email_reliable_sync
 
 
@@ -138,7 +135,6 @@ def test_email_type_priority_mapping(session):
 
 def test_email_outbox_processing_simulation(session):
     """Test that email events can be processed from the outbox."""
-    from app.models.event_outbox import EventOutbox, EventPriority, EventStatus
 
     # Create an email outbox event directly (simulating what the service does)
     email_data = {

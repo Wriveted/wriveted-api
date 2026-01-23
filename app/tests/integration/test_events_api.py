@@ -1,5 +1,4 @@
 import datetime
-import time
 
 from starlette import status
 
@@ -172,10 +171,11 @@ def test_post_events_api_background_process(
     assert create_event_response.json()["level"] == "warning"
 
     # Process EventOutbox queue to trigger background processing
-    from app.services.event_outbox_service import EventOutboxService
-    from app.db.session import get_async_session_maker
-    from unittest.mock import patch
     import asyncio
+    from unittest.mock import patch
+
+    from app.db.session import get_async_session_maker
+    from app.services.event_outbox_service import EventOutboxService
 
     async def process_outbox():
         async_session_maker = get_async_session_maker()

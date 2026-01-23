@@ -7,7 +7,8 @@ separation of concerns and dependency injection patterns.
 
 import json
 import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
+
 import pytest
 
 # Set test environment variables before any imports
@@ -18,11 +19,11 @@ os.environ.setdefault("SECRET_KEY", "test")
 os.environ.setdefault("SLACK_BOT_TOKEN", "test-token")
 
 from app.models.event import Event, EventLevel, EventSlackChannel
-from app.services.slack_notification import (
-    SlackNotificationService,
-    SlackNotificationError,
-)
 from app.services.event_outbox_service import EventOutboxService, EventPriority
+from app.services.slack_notification import (
+    SlackNotificationError,
+    SlackNotificationService,
+)
 
 
 class TestSlackNotificationService:

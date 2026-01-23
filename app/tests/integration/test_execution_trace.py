@@ -98,8 +98,10 @@ async def trace_test_flow(async_client, backend_service_account_headers):
     flow = response.json()
 
     # Publish the flow
-    publish_response = await async_client.post(
-        f"/v1/cms/flows/{flow['id']}/publish", headers=backend_service_account_headers
+    publish_response = await async_client.put(
+        f"/v1/cms/flows/{flow['id']}",
+        json={"publish": True},
+        headers=backend_service_account_headers,
     )
     assert publish_response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
 
@@ -127,7 +129,7 @@ class TestExecutionTraceService:
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.ACTIVE,
             current_node_id="start",
-            session_data={"trace_enabled": True},
+            state={"trace_enabled": True},
         )
         async_session.add(session)
         await async_session.flush()
@@ -167,7 +169,7 @@ class TestExecutionTraceService:
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.ACTIVE,
             current_node_id="question",
-            session_data={},
+            state={},
         )
         async_session.add(session)
         await async_session.flush()
@@ -212,7 +214,7 @@ class TestExecutionTraceService:
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.COMPLETED,
             current_node_id="question",
-            session_data={},
+            state={},
             started_at=datetime.utcnow() - timedelta(minutes=5),
             ended_at=datetime.utcnow(),
         )
@@ -267,7 +269,7 @@ class TestExecutionTraceService:
                 flow_id=flow_id,
                 status=SessionStatus.COMPLETED if i < 3 else SessionStatus.ACTIVE,
                 current_node_id="question",
-                session_data={},
+                state={},
                 started_at=datetime.utcnow() - timedelta(hours=i),
             )
             async_session.add(session)
@@ -394,7 +396,7 @@ class TestTraceAuditService:
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.COMPLETED,
             current_node_id="question",
-            session_data={},
+            state={},
         )
         async_session.add(session)
         await async_session.flush()
@@ -463,7 +465,7 @@ class TestSessionReplayAPI:
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.COMPLETED,
             current_node_id="question",
-            session_data={},
+            state={},
         )
         async_session.add(session)
         await async_session.flush()

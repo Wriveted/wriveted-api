@@ -28,7 +28,7 @@ async def test_cms_content_search_document_exists(async_session):
             """
             SELECT 1
             FROM pg_indexes
-            WHERE tablename = 'cms_content' AND indexname = 'idx_cms_content_search_document'
+            WHERE tablename = 'cms_content' AND indexname = 'ix_cms_content_search_document'
             """
         )
     )

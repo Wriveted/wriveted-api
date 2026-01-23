@@ -10,8 +10,11 @@ from sqlalchemy import text
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_cms_data(async_session):
-    """Clean up CMS data before and after each test to ensure test isolation."""
+def cleanup_cms_data(session):
+    """Clean up CMS data before and after each test to ensure test isolation.
+
+    Uses synchronous session since tests use synchronous client fixture.
+    """
     cms_tables = [
         "cms_content",
         "cms_content_variants",
@@ -23,33 +26,29 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up before test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
     yield
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
 
 class TestCMSWithAuthentication:
@@ -375,8 +374,8 @@ class TestCMSWithAuthentication:
         flow_id = create_response.json()["id"]
 
         # Publish the flow so it can be used for chat
-        publish_response = client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        publish_response = client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -478,8 +477,8 @@ class TestCMSWithAuthentication:
         # 4. Start a chat session with the created flow
         print("   💬 Starting chat session...")
         # First publish the flow
-        publish_response = client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        publish_response = client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )

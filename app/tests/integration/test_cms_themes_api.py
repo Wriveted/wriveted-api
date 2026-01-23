@@ -18,30 +18,33 @@ from starlette import status
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_theme_data(async_session):
-    """Clean up theme data before and after each test."""
-    await async_session.rollback()
+def cleanup_theme_data(session):
+    """Clean up theme data before and after each test.
+
+    Uses synchronous session since tests use synchronous client fixture.
+    """
+    session.rollback()
 
     try:
-        await async_session.execute(text("TRUNCATE TABLE chat_themes CASCADE"))
-        await async_session.commit()
+        session.execute(text("DELETE FROM chat_themes"))
+        session.commit()
     except Exception:
-        await async_session.rollback()
+        session.rollback()
 
     yield
 
-    await async_session.rollback()
+    session.rollback()
     try:
-        await async_session.execute(text("TRUNCATE TABLE chat_themes CASCADE"))
-        await async_session.commit()
+        session.execute(text("DELETE FROM chat_themes"))
+        session.commit()
     except Exception:
-        await async_session.rollback()
+        session.rollback()
 
 
 class TestThemeCRUD:
     """Test basic theme CRUD operations."""
 
-    def test_create_theme_minimal(self, client, backend_service_account_headers):
+    def test_create_theme_minimal(self, client, test_wrivetedadmin_account_headers):
         """Test creating a minimal theme."""
         theme_data = {
             "name": "Minimal Theme",
@@ -53,7 +56,9 @@ class TestThemeCRUD:
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -63,7 +68,7 @@ class TestThemeCRUD:
         assert data["is_active"] is True
         assert "id" in data
 
-    def test_create_theme_full_config(self, client, backend_service_account_headers):
+    def test_create_theme_full_config(self, client, test_wrivetedadmin_account_headers):
         """Test creating a theme with full configuration."""
         theme_data = {
             "name": "Complete Theme",
@@ -96,7 +101,9 @@ class TestThemeCRUD:
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -105,7 +112,7 @@ class TestThemeCRUD:
         assert data["logo_url"] == "https://example.com/logo.png"
         assert "typography" in data["config"]
 
-    def test_get_theme_by_id(self, client, backend_service_account_headers):
+    def test_get_theme_by_id(self, client, test_wrivetedadmin_account_headers):
         """Test retrieving a theme by ID."""
         theme_data = {
             "name": "Test Theme",
@@ -116,12 +123,14 @@ class TestThemeCRUD:
         }
 
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
         response = client.get(
-            f"v1/cms/themes/{theme_id}", headers=backend_service_account_headers
+            f"/v1/cms/themes/{theme_id}", headers=test_wrivetedadmin_account_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -129,16 +138,16 @@ class TestThemeCRUD:
         assert data["id"] == theme_id
         assert data["name"] == "Test Theme"
 
-    def test_get_nonexistent_theme(self, client, backend_service_account_headers):
+    def test_get_nonexistent_theme(self, client, test_wrivetedadmin_account_headers):
         """Test retrieving non-existent theme returns 404."""
         fake_id = str(uuid.uuid4())
         response = client.get(
-            f"v1/cms/themes/{fake_id}", headers=backend_service_account_headers
+            f"/v1/cms/themes/{fake_id}", headers=test_wrivetedadmin_account_headers
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_update_theme(self, client, backend_service_account_headers):
+    def test_update_theme(self, client, test_wrivetedadmin_account_headers):
         """Test updating a theme."""
         theme_data = {
             "name": "Original Theme",
@@ -149,7 +158,9 @@ class TestThemeCRUD:
         }
 
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
@@ -162,9 +173,9 @@ class TestThemeCRUD:
         }
 
         response = client.put(
-            f"v1/cms/themes/{theme_id}",
+            f"/v1/cms/themes/{theme_id}",
             json=update_data,
-            headers=backend_service_account_headers,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -172,7 +183,7 @@ class TestThemeCRUD:
         assert data["name"] == "Updated Theme"
         assert data["config"]["colors"]["primary"] == "#ff0000"
 
-    def test_delete_theme(self, client, backend_service_account_headers):
+    def test_delete_theme(self, client, test_wrivetedadmin_account_headers):
         """Test deleting a theme."""
         theme_data = {
             "name": "Theme to Delete",
@@ -183,35 +194,41 @@ class TestThemeCRUD:
         }
 
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
         response = client.delete(
-            f"v1/cms/themes/{theme_id}", headers=backend_service_account_headers
+            f"/v1/cms/themes/{theme_id}", headers=test_wrivetedadmin_account_headers
         )
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
+        # Soft delete means theme is still accessible but is_active=False
         get_response = client.get(
-            f"v1/cms/themes/{theme_id}", headers=backend_service_account_headers
+            f"/v1/cms/themes/{theme_id}", headers=test_wrivetedadmin_account_headers
         )
-        assert get_response.status_code == status.HTTP_404_NOT_FOUND
+        assert get_response.status_code == status.HTTP_200_OK
+        assert get_response.json()["is_active"] is False
 
 
 class TestThemeListing:
     """Test theme listing and filtering."""
 
-    def test_list_themes_empty(self, client, backend_service_account_headers):
+    def test_list_themes_empty(self, client, test_wrivetedadmin_account_headers):
         """Test listing themes when none exist."""
-        response = client.get("v1/cms/themes", headers=backend_service_account_headers)
+        response = client.get(
+            "/v1/cms/themes", headers=test_wrivetedadmin_account_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["pagination"]["total"] == 0
         assert len(data["data"]) == 0
 
-    def test_list_themes_multiple(self, client, backend_service_account_headers):
+    def test_list_themes_multiple(self, client, test_wrivetedadmin_account_headers):
         """Test listing multiple themes."""
         for i in range(3):
             theme_data = {
@@ -222,19 +239,23 @@ class TestThemeListing:
                 },
             }
             client.post(
-                "v1/cms/themes",
+                "/v1/cms/themes",
                 json=theme_data,
-                headers=backend_service_account_headers,
+                headers=test_wrivetedadmin_account_headers,
             )
 
-        response = client.get("v1/cms/themes", headers=backend_service_account_headers)
+        response = client.get(
+            "/v1/cms/themes", headers=test_wrivetedadmin_account_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["pagination"]["total"] == 3
         assert len(data["data"]) == 3
 
-    def test_list_themes_with_pagination(self, client, backend_service_account_headers):
+    def test_list_themes_with_pagination(
+        self, client, test_wrivetedadmin_account_headers
+    ):
         """Test theme listing with pagination."""
         for i in range(5):
             theme_data = {
@@ -245,13 +266,13 @@ class TestThemeListing:
                 },
             }
             client.post(
-                "v1/cms/themes",
+                "/v1/cms/themes",
                 json=theme_data,
-                headers=backend_service_account_headers,
+                headers=test_wrivetedadmin_account_headers,
             )
 
         response = client.get(
-            "v1/cms/themes?limit=2&skip=0", headers=backend_service_account_headers
+            "/v1/cms/themes?limit=2&skip=0", headers=test_wrivetedadmin_account_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -260,29 +281,33 @@ class TestThemeListing:
         assert data["pagination"]["total"] == 5
 
     def test_list_themes_filter_by_active(
-        self, client, backend_service_account_headers
+        self, client, test_wrivetedadmin_account_headers
     ):
         """Test filtering themes by active status."""
         theme_data = {
             "name": "Active Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
             "is_active": True,
         }
         client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         inactive_data = {
             "name": "Inactive Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
             "is_active": False,
         }
         client.post(
-            "v1/cms/themes", json=inactive_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=inactive_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         response = client.get(
-            "v1/cms/themes?active=true", headers=backend_service_account_headers
+            "/v1/cms/themes?active=true", headers=test_wrivetedadmin_account_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -297,47 +322,55 @@ class TestThemeAuthentication:
         """Test creating theme without authentication fails."""
         theme_data = {
             "name": "Unauthorized Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
 
-        response = client.post("v1/cms/themes", json=theme_data)
+        response = client.post("/v1/cms/themes", json=theme_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_get_theme_requires_auth(self, client):
         """Test getting theme without authentication fails."""
-        response = client.get(f"v1/cms/themes/{uuid.uuid4()}")
+        response = client.get(f"/v1/cms/themes/{uuid.uuid4()}")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_theme_requires_auth(self, client, backend_service_account_headers):
+    def test_update_theme_requires_auth(
+        self, client, test_wrivetedadmin_account_headers
+    ):
         """Test updating theme without authentication fails."""
         theme_data = {
             "name": "Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
         update_data = {"name": "Updated Name"}
-        response = client.put(f"v1/cms/themes/{theme_id}", json=update_data)
+        response = client.put(f"/v1/cms/themes/{theme_id}", json=update_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_delete_theme_requires_auth(self, client, backend_service_account_headers):
+    def test_delete_theme_requires_auth(
+        self, client, test_wrivetedadmin_account_headers
+    ):
         """Test deleting theme without authentication fails."""
         theme_data = {
             "name": "Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
-        response = client.delete(f"v1/cms/themes/{theme_id}")
+        response = client.delete(f"/v1/cms/themes/{theme_id}")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -346,7 +379,7 @@ class TestThemeSchoolAssociation:
     """Test theme association with schools."""
 
     def test_create_theme_for_school(
-        self, client, backend_service_account_headers, test_school
+        self, client, test_wrivetedadmin_account_headers, test_school
     ):
         """Test creating a theme associated with a school."""
         theme_data = {
@@ -360,7 +393,9 @@ class TestThemeSchoolAssociation:
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -368,33 +403,33 @@ class TestThemeSchoolAssociation:
         assert data["school_id"] == str(test_school.wriveted_identifier)
 
     def test_list_themes_filter_by_school(
-        self, client, backend_service_account_headers, test_school
+        self, client, test_wrivetedadmin_account_headers, test_school
     ):
         """Test filtering themes by school."""
         school_theme = {
             "name": "School Theme",
             "school_id": str(test_school.wriveted_identifier),
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
         client.post(
-            "v1/cms/themes",
+            "/v1/cms/themes",
             json=school_theme,
-            headers=backend_service_account_headers,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         global_theme = {
             "name": "Global Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
         client.post(
-            "v1/cms/themes",
+            "/v1/cms/themes",
             json=global_theme,
-            headers=backend_service_account_headers,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         response = client.get(
-            f"v1/cms/themes?school_id={test_school.wriveted_identifier}",
-            headers=backend_service_account_headers,
+            f"/v1/cms/themes?school_id={test_school.wriveted_identifier}",
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -409,15 +444,23 @@ class TestThemeSchoolAssociation:
 class TestThemeValidation:
     """Test theme configuration validation."""
 
-    def test_create_theme_invalid_config(self, client, backend_service_account_headers):
+    def test_create_theme_invalid_config(
+        self, client, test_wrivetedadmin_account_headers
+    ):
         """Test creating theme with invalid config structure."""
+        # Config with invalid nested structure - colors.primary must be a hex string
         theme_data = {
             "name": "Invalid Theme",
-            "config": {},
+            "config": {
+                "colors": {"primary": "not-a-hex-color"},
+                "bot": {"name": "Test"},
+            },
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code in [
@@ -426,20 +469,24 @@ class TestThemeValidation:
         ]
 
     def test_create_theme_missing_required_fields(
-        self, client, backend_service_account_headers
+        self, client, test_wrivetedadmin_account_headers
     ):
         """Test creating theme without required fields."""
         theme_data = {
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_theme_partial_config(self, client, backend_service_account_headers):
+    def test_update_theme_partial_config(
+        self, client, test_wrivetedadmin_account_headers
+    ):
         """Test partial update of theme config."""
         theme_data = {
             "name": "Theme",
@@ -449,7 +496,9 @@ class TestThemeValidation:
             },
         }
         create_response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
         theme_id = create_response.json()["id"]
 
@@ -458,9 +507,9 @@ class TestThemeValidation:
         }
 
         response = client.put(
-            f"v1/cms/themes/{theme_id}",
+            f"/v1/cms/themes/{theme_id}",
             json=update_data,
-            headers=backend_service_account_headers,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -471,15 +520,17 @@ class TestThemeValidation:
 class TestThemeDefaults:
     """Test theme default settings."""
 
-    def test_create_theme_defaults(self, client, backend_service_account_headers):
+    def test_create_theme_defaults(self, client, test_wrivetedadmin_account_headers):
         """Test that theme gets proper default values."""
         theme_data = {
             "name": "Theme with Defaults",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -488,16 +539,18 @@ class TestThemeDefaults:
         assert data["is_default"] is False
         assert data["version"] == "1.0"
 
-    def test_set_theme_as_default(self, client, backend_service_account_headers):
+    def test_set_theme_as_default(self, client, test_wrivetedadmin_account_headers):
         """Test marking a theme as default."""
         theme_data = {
             "name": "Default Theme",
-            "config": {"colors": {"primary": "#000"}, "bot": {"name": "Test"}},
+            "config": {"colors": {"primary": "#000000"}, "bot": {"name": "Test"}},
             "is_default": True,
         }
 
         response = client.post(
-            "v1/cms/themes", json=theme_data, headers=backend_service_account_headers
+            "/v1/cms/themes",
+            json=theme_data,
+            headers=test_wrivetedadmin_account_headers,
         )
 
         assert response.status_code == status.HTTP_201_CREATED

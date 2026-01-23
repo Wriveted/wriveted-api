@@ -8,9 +8,6 @@ Tests:
 - Theme config JSONB field validation
 """
 
-import pytest
-from pydantic import ValidationError
-
 
 class TestChatThemeConfigValidation:
     """Test ChatTheme configuration validation."""

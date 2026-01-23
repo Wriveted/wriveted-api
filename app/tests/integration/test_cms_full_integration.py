@@ -418,7 +418,8 @@ class TestCMSFlowAPI:
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Programming Skills Assessment Flow"
-        assert data["version"] == "2.1"
+        # Version auto-increments when is_published=True: 2.1 -> 2.2.0
+        assert data["version"] == "2.2.0"
         assert data["is_published"] is True
         assert data["is_active"] is True
         assert len(data["flow_data"]["nodes"]) == 5
@@ -519,8 +520,8 @@ class TestChatAPI:
         )
 
         # Publish the flow so it can be used for chat
-        publish_response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        publish_response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=auth_headers,
         )
@@ -664,12 +665,21 @@ class TestCMSIntegrationWorkflow:
                 assert response.status_code == 201
                 created_content_ids.append(response.json()["id"])
 
-            # 2. Create a flow
+            # 2. Create a flow with valid nodes (required for publishing)
             flow_data = {
                 "name": "Isolated Test Flow",
                 "version": "1.0",
                 "is_published": True,
-                "flow_data": {},
+                "flow_data": {
+                    "nodes": [
+                        {
+                            "id": "start",
+                            "type": "message",
+                            "content": {"text": "Welcome to the test flow"},
+                        }
+                    ],
+                    "connections": [],
+                },
                 "entry_node_id": "start",
             }
             response = await async_client.post(

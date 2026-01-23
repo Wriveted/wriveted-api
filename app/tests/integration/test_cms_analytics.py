@@ -29,8 +29,11 @@ from starlette import status
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_cms_data(async_session):
-    """Clean up CMS data before and after each test to ensure test isolation."""
+def cleanup_cms_data(session):
+    """Clean up CMS data before and after each test to ensure test isolation.
+
+    Uses synchronous session since tests use synchronous client fixture.
+    """
     cms_tables = [
         "cms_content",
         "cms_content_variants",
@@ -42,33 +45,29 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up before test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
     yield
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
 
 class TestFlowAnalytics:
@@ -76,11 +75,17 @@ class TestFlowAnalytics:
 
     def test_get_flow_analytics_basic(self, client, backend_service_account_headers):
         """Test basic flow analytics retrieval."""
-        # First create a flow to analyze
+        # First create a flow to analyze with valid nodes (required for publishing)
         flow_data = {
             "name": "Analytics Test Flow",
             "version": "1.0.0",
-            "flow_data": {"entry_point": "start"},
+            "flow_data": {
+                "entry_point": "start",
+                "nodes": [
+                    {"id": "start", "type": "message", "content": {"text": "Hello"}}
+                ],
+                "connections": [],
+            },
             "entry_node_id": "start",
             "is_published": True,
         }

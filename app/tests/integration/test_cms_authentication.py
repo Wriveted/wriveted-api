@@ -116,8 +116,8 @@ class TestCMSAuthentication:
 
         # Try to publish flow without authentication
         fake_id = str(uuid.uuid4())
-        response = await async_client.post(
-            f"/v1/cms/flows/{fake_id}/publish", json={"publish": True}
+        response = await async_client.put(
+            f"/v1/cms/flows/{fake_id}", json={"publish": True}
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -328,8 +328,8 @@ class TestAuthorizationLevels:
         flow_id = response.json()["id"]
 
         # Publish flow (should work with service account)
-        response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )

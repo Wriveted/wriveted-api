@@ -19,7 +19,6 @@ Test Organization:
 """
 
 import uuid
-from typing import Any, Dict
 
 import pytest
 from sqlalchemy import text
@@ -197,6 +196,96 @@ class TestFlowCRUD:
         assert len(data["flow_data"]["nodes"]) == 4
         assert len(data["flow_data"]["connections"]) == 3
 
+    async def test_flow_contract_roundtrip(
+        self, async_client, backend_service_account_headers
+    ):
+        """Ensure flow contract fields persist across create/update."""
+        flow_data = {
+            "name": "Contract Flow",
+            "description": "Flow with explicit contract",
+            "version": "1.0.0",
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "welcome",
+                        "type": "message",
+                        "content": {
+                            "messages": [{"type": "text", "content": "Hi there!"}]
+                        },
+                        "position": {"x": 100, "y": 100},
+                    }
+                ],
+                "connections": [],
+            },
+            "entry_node_id": "welcome",
+            "info": {"category": "onboarding"},
+            "contract": {
+                "entry_requirements": {"variables": ["user.name"]},
+                "return_state": ["temp.onboarding.complete"],
+            },
+        }
+
+        response = await async_client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        flow_id = data["id"]
+        assert data["contract"]["entry_requirements"]["variables"] == ["user.name"]
+        assert data["contract"]["return_state"] == ["temp.onboarding.complete"]
+
+        update_payload = {
+            "description": "Updated description",
+            "info": {"category": "updated"},
+        }
+        response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
+            json=update_payload,
+            headers=backend_service_account_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        updated = response.json()
+        assert updated["contract"]["return_state"] == ["temp.onboarding.complete"]
+        assert updated["info"]["category"] == "updated"
+
+    async def test_contract_property_model_access(self, async_session):
+        """Verify FlowDefinition.contract property reads/writes info.contract correctly."""
+        from app.models.cms import FlowDefinition
+
+        # Create flow with contract via property
+        flow = FlowDefinition(
+            name="Contract Property Test",
+            version="1.0.0",
+            flow_data={"nodes": [], "connections": []},
+            entry_node_id="start",
+            info={"category": "test"},
+        )
+        flow.contract = {
+            "entry_requirements": {"variables": ["user.name"]},
+            "return_state": ["temp.done"],
+        }
+        async_session.add(flow)
+        await async_session.commit()
+        await async_session.refresh(flow)
+
+        # Verify contract is stored in info.contract
+        assert "contract" in flow.info
+        assert flow.info["contract"]["return_state"] == ["temp.done"]
+
+        # Verify property getter works
+        assert flow.contract is not None
+        assert flow.contract["entry_requirements"]["variables"] == ["user.name"]
+
+        # Verify clearing contract
+        flow.contract = None
+        await async_session.commit()
+        await async_session.refresh(flow)
+        assert flow.contract is None
+        assert "contract" not in flow.info
+        assert flow.info["category"] == "test"  # Other info preserved
+
     async def test_get_flow_by_id(self, async_client, backend_service_account_headers):
         """Test retrieving a specific flow by ID."""
         # Create flow first
@@ -356,8 +445,8 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish flow
-        response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -393,15 +482,15 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish first
-        await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
 
         # Now unpublish
-        response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": False},
             headers=backend_service_account_headers,
         )
@@ -467,6 +556,75 @@ class TestFlowNodes:
         assert "message" in node_types
         assert "question" in node_types
 
+    async def test_flow_data_snapshot_updates_on_node_and_connection_changes(
+        self, async_client, backend_service_account_headers
+    ):
+        """Test flow_data snapshot regeneration after node/connection changes."""
+        flow_data = {
+            "name": "Snapshot Update Flow",
+            "description": "Validate flow_data stays in sync",
+            "version": "1.0.0",
+            "flow_data": {},
+            "entry_node_id": "start",
+        }
+
+        create_response = await async_client.post(
+            "/v1/cms/flows", json=flow_data, headers=backend_service_account_headers
+        )
+        flow_id = create_response.json()["id"]
+
+        start_node = {
+            "node_id": "start",
+            "node_type": "message",
+            "content": {"messages": [{"content": "Hello"}]},
+            "position": {"x": 100, "y": 100},
+        }
+        end_node = {
+            "node_id": "end",
+            "node_type": "message",
+            "content": {"messages": [{"content": "Goodbye"}]},
+            "position": {"x": 300, "y": 100},
+        }
+
+        await async_client.post(
+            f"/v1/cms/flows/{flow_id}/nodes",
+            json=start_node,
+            headers=backend_service_account_headers,
+        )
+        await async_client.post(
+            f"/v1/cms/flows/{flow_id}/nodes",
+            json=end_node,
+            headers=backend_service_account_headers,
+        )
+
+        connection = {
+            "source_node_id": "start",
+            "target_node_id": "end",
+            "connection_type": "default",
+        }
+        await async_client.post(
+            f"/v1/cms/flows/{flow_id}/connections",
+            json=connection,
+            headers=backend_service_account_headers,
+        )
+
+        flow_response = await async_client.get(
+            f"/v1/cms/flows/{flow_id}", headers=backend_service_account_headers
+        )
+        assert flow_response.status_code == status.HTTP_200_OK
+
+        snapshot = flow_response.json()["flow_data"]
+        node_ids = {node["id"] for node in snapshot.get("nodes", [])}
+        assert {"start", "end"}.issubset(node_ids)
+
+        connections = snapshot.get("connections", [])
+        assert any(
+            conn.get("source") == "start"
+            and conn.get("target") == "end"
+            and conn.get("type") == "DEFAULT"
+            for conn in connections
+        )
+
 
 class TestFlowValidation:
     """Test flow validation and error handling."""
@@ -509,8 +667,8 @@ class TestFlowValidation:
         """Test publishing a flow that doesn't exist."""
         fake_id = str(uuid.uuid4())
 
-        response = await async_client.post(
-            f"/v1/cms/flows/{fake_id}/publish",
+        response = await async_client.put(
+            f"/v1/cms/flows/{fake_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )

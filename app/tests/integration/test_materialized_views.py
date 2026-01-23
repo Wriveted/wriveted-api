@@ -13,8 +13,8 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import crud
 from app.models.work import WorkType
+from app.repositories.work_repository import work_repository
 from app.schemas.author import AuthorCreateIn
 from app.schemas.work import WorkCreateIn
 
@@ -149,7 +149,7 @@ class TestSearchViewV1MaterializedView:
         assert initial_count == 0
 
         # Add new work to source table
-        new_work = await crud.work.acreate(
+        new_work = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=test_title,
@@ -203,7 +203,7 @@ class TestSearchViewV1MaterializedView:
         test_author_names.append(author_name)
 
         # Create work with searchable content
-        new_work = await crud.work.acreate(
+        new_work = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=test_title,
@@ -276,7 +276,7 @@ class TestSearchViewV1MaterializedView:
         test_author_names.append(author_name)
 
         # Create work
-        work = await crud.work.acreate(
+        work = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=work_title,
@@ -320,7 +320,7 @@ class TestSearchViewV1MaterializedView:
         test_titles.append(test_title)
         test_author_names.append(author_name)
 
-        new_work = await crud.work.acreate(
+        new_work = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=test_title,
@@ -364,7 +364,7 @@ class TestSearchViewV1MaterializedView:
 
         # Work 1: Search term in title (highest weight 'A')
         title1 = f"{search_term} in Title"
-        work1 = await crud.work.acreate(
+        work1 = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=title1,
@@ -376,7 +376,7 @@ class TestSearchViewV1MaterializedView:
 
         # Work 2: Search term in subtitle (weight 'C')
         title2 = f"Different Title {uuid.uuid4().hex[:6]}"
-        work2 = await crud.work.acreate(
+        work2 = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=title2,
@@ -388,7 +388,7 @@ class TestSearchViewV1MaterializedView:
 
         # Work 3: Search term in author name (weight 'C')
         title3 = f"Another Title {uuid.uuid4().hex[:6]}"
-        work3 = await crud.work.acreate(
+        work3 = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=title3,
@@ -463,7 +463,7 @@ class TestSearchViewV1MaterializedView:
         test_titles.append(test_title)
         test_author_names.extend([author1_name, author2_name])
 
-        multi_author_work = await crud.work.acreate(
+        multi_author_work = await work_repository.acreate(
             db=async_session,
             obj_in=WorkCreateIn(
                 title=test_title,
@@ -538,7 +538,7 @@ class TestSearchViewV1MaterializedView:
             test_titles.append(title)
             test_author_names.append(f"{first_name} {last_name}")
 
-            work = await crud.work.acreate(
+            work = await work_repository.acreate(
                 db=async_session,
                 obj_in=WorkCreateIn(
                     title=title,

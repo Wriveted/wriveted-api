@@ -10,7 +10,6 @@ These tests validate:
 6. Backward compatibility functions
 """
 
-import json
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
@@ -34,7 +33,10 @@ class TestEmailNotificationService:
     @pytest.fixture
     def mock_outbox_service(self):
         """Mock EventOutboxService for testing."""
-        return AsyncMock()
+        mock_service = Mock()
+        mock_service.publish_event = AsyncMock()
+        mock_service.publish_event_sync = Mock()
+        return mock_service
 
     @pytest.fixture
     def service(self, mock_outbox_service):

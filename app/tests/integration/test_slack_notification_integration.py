@@ -10,19 +10,19 @@ These tests verify the complete end-to-end workflow for Slack notifications:
 This demonstrates the service layer architecture in practice.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from sqlalchemy import text
 
 from app import crud
 from app.models.event import EventLevel, EventSlackChannel
+from app.services.event_outbox_service import EventPriority
 from app.services.events import create_event, handle_event_to_slack_alert
-from app.services.event_outbox_service import EventOutboxService, EventPriority
 from app.services.slack_notification import (
-    send_slack_alert_reliable_sync,
     send_slack_alert_immediate_sync,
+    send_slack_alert_reliable_sync,
 )
-from app.models.event_outbox import EventOutbox, EventStatus
 
 
 @pytest.fixture(autouse=True)
@@ -356,7 +356,6 @@ class TestSlackNotificationIntegration:
                 mock_config.SLACK_BOT_TOKEN = "xoxb-test-token"
 
                 # Simulate processing failure by updating event manually
-                from datetime import datetime, timedelta
 
                 session.execute(
                     text("""
