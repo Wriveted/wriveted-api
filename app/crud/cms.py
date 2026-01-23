@@ -480,10 +480,7 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         """Clone an existing flow with nodes and connections, using eager loading."""
         try:
             # Import the schema we need
-            from sqlalchemy import select
-            from sqlalchemy.orm import selectinload
 
-            from app.models.cms import FlowDefinition
             from app.schemas.cms import FlowCreate
 
             # Store the source flow ID and safely extract attributes
@@ -536,9 +533,6 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
         self, db: AsyncSession, source_flow_id: UUID, target_flow_id: UUID
     ):
         """Helper to clone nodes and connections using raw SQL to avoid async issues."""
-        import json
-
-        from sqlalchemy import text
 
         # Clone nodes using raw SQL INSERT FROM SELECT
         clone_nodes_sql = text("""
