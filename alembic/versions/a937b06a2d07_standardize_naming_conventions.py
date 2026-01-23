@@ -370,6 +370,16 @@ def downgrade():
         unique=False,
         postgresql_where="((min_age IS NOT NULL) AND (max_age IS NOT NULL))",
     )
+
+    # Drop FKs that depend on uq_flow_node_id BEFORE dropping the constraint
+    op.drop_constraint(
+        "fk_connection_source_node", "flow_connections", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "fk_connection_target_node", "flow_connections", type_="foreignkey"
+    )
+    op.drop_constraint("uq_flow_connection", "flow_connections", type_="unique")
+
     op.drop_constraint("uq_flow_node_id", "flow_nodes", type_="unique")
     op.drop_index(op.f("ix_flow_nodes_execution_context"), table_name="flow_nodes")
     op.create_index(
@@ -441,13 +451,7 @@ def downgrade():
             nullable=False,
         ),
     )
-    op.drop_constraint(
-        "fk_connection_source_node", "flow_connections", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "fk_connection_target_node", "flow_connections", type_="foreignkey"
-    )
-    op.drop_constraint("uq_flow_connection", "flow_connections", type_="unique")
+    # FKs and unique constraint already dropped above (before uq_flow_node_id)
     op.drop_index(op.f("ix_event_outbox_routing_key"), table_name="event_outbox")
     op.drop_index(op.f("ix_event_outbox_correlation_id"), table_name="event_outbox")
     op.alter_column(
