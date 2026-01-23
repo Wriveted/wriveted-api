@@ -5,18 +5,22 @@ This provides domain-specific methods for managing CMS content, flows, and nodes
 instead of generic CRUD operations.
 """
 
-import re
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, select, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from structlog import get_logger
 
-from app.models.cms import CMSContent, ContentStatus, ContentType, FlowDefinition
+from app.models.cms import (
+    CMSContent,
+    ContentStatus,
+    ContentType,
+    ContentVisibility,
+    FlowDefinition,
+)
 
 logger = get_logger()
 
@@ -60,6 +64,35 @@ class CMSRepository(ABC):
         exclude_ids: Optional[List[UUID]] = None,
     ) -> Optional[CMSContent]:
         """Get random content of a specific type for variety in conversations."""
+        pass
+
+    @abstractmethod
+    async def get_random_content(
+        self,
+        db: AsyncSession,
+        content_type: ContentType,
+        count: int = 1,
+        tags: Optional[List[str]] = None,
+        info_filters: Optional[Dict[str, Any]] = None,
+        exclude_ids: Optional[List[UUID]] = None,
+        school_id: Optional[UUID] = None,
+        include_public: bool = True,
+    ) -> List[CMSContent]:
+        """Get N random content items with filtering and visibility control.
+
+        Args:
+            db: Database session
+            content_type: Type of content to retrieve
+            count: Number of random items to return
+            tags: Optional list of tags to filter by (array overlap)
+            info_filters: Optional dict of key:value filters on the info JSONB field
+            exclude_ids: Optional list of content IDs to exclude (for deduplication)
+            school_id: School ID for visibility filtering (includes school-scoped content)
+            include_public: Whether to include PUBLIC visibility content (default True)
+
+        Returns:
+            List of random content items matching criteria, respecting visibility rules
+        """
         pass
 
     @abstractmethod
@@ -252,6 +285,125 @@ class CMSRepositoryImpl(CMSRepository):
 
         return content
 
+    async def get_random_content(
+        self,
+        db: AsyncSession,
+        content_type: ContentType,
+        count: int = 1,
+        tags: Optional[List[str]] = None,
+        info_filters: Optional[Dict[str, Any]] = None,
+        exclude_ids: Optional[List[UUID]] = None,
+        school_id: Optional[UUID] = None,
+        include_public: bool = True,
+    ) -> List[CMSContent]:
+        """Get N random content items with filtering and visibility control.
+
+        Visibility rules:
+        - WRIVETED visibility content is always included (global Wriveted content)
+        - PUBLIC visibility content is included when include_public=True
+        - SCHOOL and PRIVATE visibility requires matching school_id
+        """
+        # Start with base conditions
+        conditions = [
+            CMSContent.type == content_type,
+            CMSContent.is_active == True,
+        ]
+
+        # Build visibility conditions
+        visibility_conditions = [
+            CMSContent.visibility == ContentVisibility.WRIVETED,
+        ]
+
+        if include_public:
+            visibility_conditions.append(
+                CMSContent.visibility == ContentVisibility.PUBLIC
+            )
+
+        if school_id:
+            # Include content owned by this school (SCHOOL or PRIVATE visibility)
+            visibility_conditions.append(
+                and_(
+                    CMSContent.school_id == school_id,
+                    CMSContent.visibility.in_(
+                        [ContentVisibility.SCHOOL, ContentVisibility.PRIVATE]
+                    ),
+                )
+            )
+
+        conditions.append(or_(*visibility_conditions))
+
+        # Apply tag filtering (array overlap)
+        if tags:
+            conditions.append(CMSContent.tags.op("&&")(tags))
+
+        # Apply info JSONB filtering
+        if info_filters:
+            for key, value in info_filters.items():
+                # Handle numeric comparisons for age filtering
+                if key in ("min_age", "max_age") and isinstance(value, (int, str)):
+                    try:
+                        age_value = int(value)
+                        if key == "min_age":
+                            # User's age should be >= content's min_age
+                            # Filter: content.info.min_age <= user_age
+                            conditions.append(
+                                text("(info->>'min_age')::int <= :min_age").bindparams(
+                                    min_age=age_value
+                                )
+                            )
+                        elif key == "max_age":
+                            # User's age should be <= content's max_age
+                            # Filter: content.info.max_age >= user_age
+                            conditions.append(
+                                text("(info->>'max_age')::int >= :max_age").bindparams(
+                                    max_age=age_value
+                                )
+                            )
+                    except (ValueError, TypeError):
+                        logger.warning(
+                            "Invalid age value in info_filters",
+                            key=key,
+                            value=value,
+                        )
+                else:
+                    # Use JSONB containment for other key:value matches
+                    # This checks if info @> '{"key": "value"}'
+                    import json
+
+                    json_filter = json.dumps({key: value})
+                    conditions.append(
+                        text("info @> :json_filter::jsonb").bindparams(
+                            json_filter=json_filter
+                        )
+                    )
+
+        # Apply exclusion list
+        if exclude_ids:
+            conditions.append(~CMSContent.id.in_(exclude_ids))
+
+        # Build query with random ordering
+        query = (
+            select(CMSContent)
+            .where(and_(*conditions))
+            .order_by(func.random())
+            .limit(count)
+        )
+
+        result = await db.execute(query)
+        content_items = list(result.scalars().all())
+
+        logger.debug(
+            "Selected random content",
+            content_type=content_type.value,
+            count=len(content_items),
+            requested_count=count,
+            tags=tags,
+            info_filters=info_filters,
+            school_id=str(school_id) if school_id else None,
+        )
+
+        return content_items
+
     async def publish_flow(
         self,
         db: AsyncSession,
@@ -305,7 +457,10 @@ class CMSRepositoryImpl(CMSRepository):
         self, db: AsyncSession, content_data: dict, created_by: Optional[UUID] = None
     ) -> CMSContent:
         """Create new content item."""
-        from app.models.cms import ContentStatus
+        # Handle visibility - convert string to enum if needed
+        visibility = content_data.get("visibility", ContentVisibility.WRIVETED)
+        if isinstance(visibility, str):
+            visibility = ContentVisibility(visibility)
 
         content = CMSContent(
             type=content_data["type"],
@@ -315,6 +470,8 @@ class CMSRepositoryImpl(CMSRepository):
             is_active=content_data.get("is_active", True),
             status=content_data.get("status", ContentStatus.DRAFT),
             created_by=created_by,
+            school_id=content_data.get("school_id"),
+            visibility=visibility,
         )
 
         db.add(content)
@@ -344,11 +501,13 @@ class CMSRepositoryImpl(CMSRepository):
         # Update fields
         for field, value in update_data.items():
             if hasattr(content, field) and value is not None:
-                # Convert string to enum for status and type fields
+                # Convert string to enum for status, type, and visibility fields
                 if field == "status" and isinstance(value, str):
                     value = ContentStatus(value)
                 elif field == "type" and isinstance(value, str):
                     value = ContentType(value)
+                elif field == "visibility" and isinstance(value, str):
+                    value = ContentVisibility(value)
                 setattr(content, field, value)
 
         # Increment version on content changes

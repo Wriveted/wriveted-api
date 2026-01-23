@@ -23,8 +23,9 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.models import ContentType, ServiceAccount
-from app.models.cms import ChatTheme, FlowDefinition
+from app.models.cms import ChatTheme, ContentVisibility, FlowDefinition
 from app.models.user import User, UserAccountType
+from app.repositories.cms_repository import CMSRepositoryImpl
 from app.schemas.cms import (
     BulkContentDeleteRequest,
     BulkContentDeleteResponse,
@@ -32,6 +33,8 @@ from app.schemas.cms import (
     BulkContentResponse,
     BulkContentUpdateRequest,
     BulkContentUpdateResponse,
+    CELEvaluationRequest,
+    CELEvaluationResponse,
     ChatThemeCreate,
     ChatThemeDetail,
     ChatThemeResponse,
@@ -51,7 +54,6 @@ from app.schemas.cms import (
     FlowCloneRequest,
     FlowCreate,
     FlowDetail,
-    FlowPublishRequest,
     FlowResponse,
     FlowUpdate,
     NodeCreate,
@@ -70,6 +72,7 @@ from app.schemas.execution_trace import (
     TracingConfigResponse,
 )
 from app.schemas.pagination import Pagination
+from app.services.cel_evaluator import evaluate_cel_expression
 from app.services.cms_workflow import CMSWorkflowService
 from app.services.exceptions import (
     CMSWorkflowError,
@@ -93,9 +96,21 @@ def get_flow_service() -> FlowService:
     return FlowService()
 
 
+def get_cms_repository() -> CMSRepositoryImpl:
+    """Dependency function to get CMS Repository instance."""
+    return CMSRepositoryImpl()
+
+
+# Admin-only router for CMS management operations
 router = APIRouter(
     tags=["Digital Content Management System"],
     dependencies=[Security(get_current_active_superuser_or_backend_service_account)],
+)
+
+# User-accessible router for content retrieval (visibility filtering applied)
+user_router = APIRouter(
+    tags=["Digital Content Management System"],
+    dependencies=[Security(get_current_active_user_or_service_account)],
 )
 
 # Content Management Endpoints
@@ -159,6 +174,87 @@ async def list_content(
         pagination=pagination_obj,
         data=content_details,
     )
+
+
+@user_router.get("/content/random", response_model=List[ContentDetail])
+async def get_random_content(
+    request: Request,
+    session: DBSessionDep,
+    type: ContentType = Query(..., description="Content type to retrieve"),
+    count: int = Query(1, ge=1, le=20, description="Number of items to return"),
+    tags: Optional[List[str]] = Query(
+        None, description="Filter by tags (array overlap)"
+    ),
+    exclude_ids: Optional[List[UUID]] = Query(
+        None, description="IDs to exclude (for deduplication)"
+    ),
+    current_user_or_service_account: Union[User, ServiceAccount] = Security(
+        get_current_active_user_or_service_account
+    ),
+    cms_repo: CMSRepositoryImpl = Depends(get_cms_repository),
+):
+    """Get random content items with filtering and visibility control.
+
+    Supports dynamic filtering via info.* query parameters for metadata matching.
+    For example: `?info.min_age=8&info.theme=adventure`
+
+    Visibility rules:
+    - WRIVETED content is always included (global Wriveted content)
+    - PUBLIC content is included by default
+    - SCHOOL and PRIVATE content requires matching school_id from user context
+
+    Common use cases:
+    - Preference questions: `?type=question&tags=huey-preference&info.min_age=8`
+    - Random jokes: `?type=joke&count=3`
+    """
+    # Extract info.* query parameters for JSONB filtering
+    info_filters = {}
+    for key, value in request.query_params.items():
+        if key.startswith("info."):
+            filter_key = key[5:]  # Remove "info." prefix
+            # Try to parse as int for numeric fields
+            try:
+                info_filters[filter_key] = int(value)
+            except ValueError:
+                info_filters[filter_key] = value
+
+    # Get school wriveted_identifier from user context for visibility filtering
+    # CMSContent.school_id is a UUID referencing schools.wriveted_identifier
+    school_wriveted_id = None
+    if isinstance(current_user_or_service_account, User):
+        # Users like Educators have a school relationship with wriveted_identifier
+        school = getattr(current_user_or_service_account, "school", None)
+        if school is not None:
+            school_wriveted_id = getattr(school, "wriveted_identifier", None)
+
+    try:
+        content_items = await cms_repo.get_random_content(
+            db=session,
+            content_type=type,
+            count=count,
+            tags=tags,
+            info_filters=info_filters if info_filters else None,
+            exclude_ids=exclude_ids,
+            school_id=school_wriveted_id,
+            include_public=True,
+        )
+
+        logger.info(
+            "Retrieved random content",
+            content_type=type.value,
+            requested_count=count,
+            returned_count=len(content_items),
+            tags=tags,
+            info_filters=info_filters,
+        )
+
+        return [ContentDetail.model_validate(item) for item in content_items]
+
+    except Exception as e:
+        logger.error("Failed to get random content", error=str(e))
+        raise HTTPException(
+            status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
 
 
 @router.patch("/content/bulk", response_model=BulkContentUpdateResponse)
@@ -642,11 +738,15 @@ async def update_flow(
     session: DBSessionDep,
     flow_id: UUID = Path(description="Flow ID"),
     flow_data: FlowUpdate = Body(...),
+    current_user=Security(get_current_active_user_or_service_account),
     flow_service: FlowService = Depends(get_flow_service),
 ):
     """Update existing flow."""
     try:
-        updated_flow = await flow_service.update_flow(session, flow_id, flow_data)
+        published_by = current_user.id if isinstance(current_user, User) else None
+        updated_flow = await flow_service.update_flow(
+            session, flow_id, flow_data, published_by
+        )
         logger.info("Updated flow", flow_id=flow_id)
         return FlowDetail.model_validate(updated_flow)
     except FlowNotFoundError:
@@ -656,117 +756,6 @@ async def update_flow(
     except (FlowValidationError, CMSWorkflowError) as e:
         raise HTTPException(
             status_code=status_module.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-
-
-@router.post("/flows/{flow_id}/publish")
-async def publish_flow(
-    session: DBSessionDep,
-    flow_id: UUID = Path(description="Flow ID"),
-    publish_request: Optional[FlowPublishRequest] = Body(None),
-    current_user=Security(get_current_active_user_or_service_account),
-    flow_service: FlowService = Depends(get_flow_service),
-):
-    """Publish or unpublish a flow using Flow Service."""
-    try:
-        # Get published_by user ID (only for User accounts, None for ServiceAccount)
-        published_by = current_user.id if isinstance(current_user, User) else None
-
-        # Determine if we're publishing or unpublishing
-        publish = True if publish_request is None else publish_request.publish
-
-        if publish:
-            # Publish the flow
-            # FlowPublishRequest doesn't have version, it has increment_version logic
-            # For now, pass None to use existing flow version
-            flow = await flow_service.publish_flow(session, flow_id, published_by, None)
-        else:
-            # Unpublish the flow
-            flow = await flow_service.unpublish_flow(session, flow_id)
-
-        action = "published" if publish else "unpublished"
-        logger.info(f"Flow {action}", flow_id=flow_id)
-
-        # Convert SQLAlchemy model to dict for response
-        flow_dict = {
-            "id": str(flow.id),
-            "name": flow.name,
-            "description": flow.description,
-            "version": flow.version,
-            "flow_data": flow.flow_data or {},
-            "entry_node_id": flow.entry_node_id,
-            "info": flow.info or {},
-            "is_published": flow.is_published,
-            "is_active": flow.is_active,
-            "published_at": flow.published_at.isoformat()
-            if flow.published_at
-            else None,
-            "published_by": str(flow.published_by) if flow.published_by else None,
-            "created_at": flow.created_at.isoformat() if flow.created_at else None,
-            "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
-            "created_by": str(flow.created_by) if flow.created_by else None,
-        }
-        return flow_dict
-
-    except FlowNotFoundError:
-        raise HTTPException(
-            status_code=status_module.HTTP_404_NOT_FOUND, detail="Flow not found"
-        )
-    except FlowValidationError as e:
-        raise HTTPException(
-            status_code=status_module.HTTP_400_BAD_REQUEST,
-            detail={"error": "validation_failed", "errors": e.errors},
-        )
-    except CMSWorkflowError as e:
-        raise HTTPException(
-            status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": str(e)},
-        )
-
-
-# Removed redundant unpublish endpoint; use /publish with publish=false
-@router.post("/flows/{flow_id}/unpublish", response_model=FlowDetail)
-async def unpublish_flow(
-    session: DBSessionDep,
-    flow_id: UUID = Path(description="Flow ID"),
-    current_user=Security(get_current_active_user_or_service_account),
-    flow_service: FlowService = Depends(get_flow_service),
-):
-    """Unpublish a flow (legacy endpoint)."""
-    try:
-        # Unpublish the flow using FlowService
-        flow = await flow_service.unpublish_flow(session, flow_id)
-        logger.info("Flow unpublished via legacy endpoint", flow_id=flow_id)
-
-        # Convert to FlowDetail response
-        flow_dict = {
-            "id": str(flow.id),
-            "name": flow.name,
-            "description": flow.description,
-            "version": flow.version,
-            "flow_data": flow.flow_data or {},
-            "entry_node_id": flow.entry_node_id,
-            "info": flow.info or {},
-            "is_published": flow.is_published,
-            "is_active": flow.is_active,
-            "published_at": flow.published_at.isoformat()
-            if flow.published_at
-            else None,
-            "published_by": str(flow.published_by) if flow.published_by else None,
-            "created_at": flow.created_at.isoformat() if flow.created_at else None,
-            "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
-            "created_by": str(flow.created_by) if flow.created_by else None,
-        }
-        return FlowDetail.model_validate(flow_dict)
-    except FlowNotFoundError:
-        raise HTTPException(
-            status_code=status_module.HTTP_404_NOT_FOUND, detail="Flow not found"
-        )
-    except Exception as e:
-        logger.error("Failed to unpublish flow", flow_id=flow_id, error=str(e))
-        raise HTTPException(
-            status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unpublish failed: {str(e)}",
         )
 
 
@@ -833,6 +822,44 @@ async def validate_flow(
         raise HTTPException(
             status_code=status_module.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Validation failed: {str(e)}",
+        )
+
+
+@router.post("/flows/evaluate-cel", response_model=CELEvaluationResponse)
+async def evaluate_cel(
+    request: CELEvaluationRequest,
+):
+    """Evaluate a CEL expression with the provided context.
+
+    Used by the test flow modal to evaluate condition nodes server-side
+    using the same CEL engine as the production chatbot runtime.
+    """
+    try:
+        result = evaluate_cel_expression(request.expression, request.context)
+        return CELEvaluationResponse(
+            expression=request.expression,
+            result=result,
+            success=True,
+            error=None,
+        )
+    except ValueError as e:
+        return CELEvaluationResponse(
+            expression=request.expression,
+            result=None,
+            success=False,
+            error=str(e),
+        )
+    except Exception as e:
+        logger.error(
+            "CEL evaluation failed unexpectedly",
+            expression=request.expression,
+            error=str(e),
+        )
+        return CELEvaluationResponse(
+            expression=request.expression,
+            result=None,
+            success=False,
+            error=f"Evaluation error: {str(e)}",
         )
 
 
@@ -1290,9 +1317,6 @@ async def update_theme(
             )
 
     update_data = theme_data.model_dump(exclude_unset=True)
-
-    if "config" in update_data and update_data["config"]:
-        update_data["config"] = update_data["config"].model_dump()
 
     for field, value in update_data.items():
         setattr(theme, field, value)
