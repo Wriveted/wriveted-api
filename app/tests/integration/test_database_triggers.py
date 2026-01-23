@@ -73,9 +73,14 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-async def notify_listener():
-    """Set up PostgreSQL LISTEN connection for testing NOTIFY events."""
+async def notify_listener(reset_global_state):
+    """Set up PostgreSQL LISTEN connection for testing NOTIFY events.
+
+    Depends on reset_global_state to ensure global event listener connections
+    are cleaned up before creating this additional listener connection.
+    """
     received_events: List[Dict[str, Any]] = []
+    conn = None
 
     def listener_callback(connection, pid, channel, payload):
         """Callback to capture NOTIFY events."""
@@ -92,20 +97,33 @@ async def notify_listener():
     db_name = "postgres"
     db_port = 5432
 
-    logger.debug(f"Connecting to database at {db_host}:{db_port}/{db_name}")
-    conn = await asyncpg.connect(
-        host=db_host,
-        port=db_port,
-        user="postgres",
-        password=db_password,
-        database=db_name,
-    )
-    await conn.add_listener("flow_events", listener_callback)
+    try:
+        logger.debug(f"Connecting to database at {db_host}:{db_port}/{db_name}")
+        conn = await asyncio.wait_for(
+            asyncpg.connect(
+                host=db_host,
+                port=db_port,
+                user="postgres",
+                password=db_password,
+                database=db_name,
+            ),
+            timeout=10.0,
+        )
+        await conn.add_listener("flow_events", listener_callback)
 
-    yield conn, received_events
+        yield conn, received_events
 
-    await conn.remove_listener("flow_events", listener_callback)
-    await conn.close()
+    finally:
+        if conn is not None:
+            try:
+                await conn.remove_listener("flow_events", listener_callback)
+            except Exception:
+                pass
+            try:
+                if not conn.is_closed():
+                    conn.terminate()
+            except Exception:
+                pass
 
 
 @pytest.fixture

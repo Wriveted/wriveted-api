@@ -5,6 +5,28 @@ from uuid import uuid4
 import pytest
 from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy import text
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_theme_data(async_session):
+    """Clean up theme data before and after each test."""
+    await async_session.rollback()
+
+    try:
+        await async_session.execute(text("DELETE FROM chat_themes"))
+        await async_session.commit()
+    except Exception:
+        await async_session.rollback()
+
+    yield
+
+    await async_session.rollback()
+    try:
+        await async_session.execute(text("DELETE FROM chat_themes"))
+        await async_session.commit()
+    except Exception:
+        await async_session.rollback()
 
 
 @pytest.mark.asyncio
@@ -85,7 +107,7 @@ async def test_create_global_theme_as_admin(
     }
 
     response = await async_client_authenticated_as_wriveted_user.post(
-        "/api/v1/cms/themes", json=theme_data
+        "/v1/cms/themes", json=theme_data
     )
 
     assert response.status_code == status.HTTP_201_CREATED
@@ -105,9 +127,7 @@ async def test_list_themes(
     async_client_authenticated_as_wriveted_user: AsyncClient,
 ):
     """Test listing themes."""
-    response = await async_client_authenticated_as_wriveted_user.get(
-        "/api/v1/cms/themes"
-    )
+    response = await async_client_authenticated_as_wriveted_user.get("/v1/cms/themes")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -122,7 +142,7 @@ async def test_get_theme(
 ):
     """Test getting a specific theme."""
     create_response = await async_client_authenticated_as_wriveted_user.post(
-        "/api/v1/cms/themes",
+        "/v1/cms/themes",
         json={
             "name": "Test Theme for Get",
             "config": {
@@ -177,7 +197,7 @@ async def test_get_theme(
     theme_id = create_response.json()["id"]
 
     get_response = await async_client_authenticated_as_wriveted_user.get(
-        f"/api/v1/cms/themes/{theme_id}"
+        f"/v1/cms/themes/{theme_id}"
     )
 
     assert get_response.status_code == status.HTTP_200_OK
@@ -192,7 +212,7 @@ async def test_update_theme(
 ):
     """Test updating a theme."""
     create_response = await async_client_authenticated_as_wriveted_user.post(
-        "/api/v1/cms/themes",
+        "/v1/cms/themes",
         json={
             "name": "Theme to Update",
             "config": {
@@ -247,7 +267,7 @@ async def test_update_theme(
     theme_id = create_response.json()["id"]
 
     update_response = await async_client_authenticated_as_wriveted_user.put(
-        f"/api/v1/cms/themes/{theme_id}",
+        f"/v1/cms/themes/{theme_id}",
         json={"name": "Updated Theme Name", "description": "Updated description"},
     )
 
@@ -263,7 +283,7 @@ async def test_delete_theme(
 ):
     """Test soft deleting a theme."""
     create_response = await async_client_authenticated_as_wriveted_user.post(
-        "/api/v1/cms/themes",
+        "/v1/cms/themes",
         json={
             "name": "Theme to Delete",
             "config": {
@@ -318,13 +338,13 @@ async def test_delete_theme(
     theme_id = create_response.json()["id"]
 
     delete_response = await async_client_authenticated_as_wriveted_user.delete(
-        f"/api/v1/cms/themes/{theme_id}"
+        f"/v1/cms/themes/{theme_id}"
     )
 
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
 
     get_response = await async_client_authenticated_as_wriveted_user.get(
-        f"/api/v1/cms/themes/{theme_id}"
+        f"/v1/cms/themes/{theme_id}"
     )
     assert get_response.status_code == status.HTTP_200_OK
     data = get_response.json()
@@ -388,7 +408,7 @@ async def test_non_admin_cannot_create_global_theme(
     }
 
     response = await async_client_authenticated_as_service_account.post(
-        "/api/v1/cms/themes", json=theme_data
+        "/v1/cms/themes", json=theme_data
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -401,7 +421,7 @@ async def test_get_nonexistent_theme(
     """Test getting a theme that doesn't exist."""
     fake_id = uuid4()
     response = await async_client_authenticated_as_wriveted_user.get(
-        f"/api/v1/cms/themes/{fake_id}"
+        f"/v1/cms/themes/{fake_id}"
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND

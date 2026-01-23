@@ -13,7 +13,6 @@ The flows also serve as example content for the CMS and can be used
 to seed development/test databases.
 """
 
-import uuid
 from typing import Any
 
 import pytest
@@ -745,8 +744,9 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish flow
-        publish_response = client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        publish_response = client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
         assert publish_response.status_code == status.HTTP_200_OK
@@ -763,8 +763,9 @@ class TestFlowPublishing:
         )
         flow_id = create_response.json()["id"]
 
-        publish_response = client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        publish_response = client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
         assert publish_response.status_code == status.HTTP_200_OK
@@ -787,8 +788,9 @@ class TestFlowExecution:
         )
         flow_id = create_response.json()["id"]
 
-        client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -827,8 +829,9 @@ class TestFlowExecution:
         )
         flow_id = create_response.json()["id"]
 
-        client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -876,8 +879,9 @@ class TestVariableSubstitution:
         )
         flow_id = create_response.json()["id"]
 
-        client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -943,8 +947,9 @@ class TestConditionalBranching:
         )
         flow_id = create_response.json()["id"]
 
-        client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 

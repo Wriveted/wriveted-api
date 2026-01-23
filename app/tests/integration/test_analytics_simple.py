@@ -3,7 +3,6 @@ Simple Analytics Test - Just test the basic functionality first.
 """
 
 import uuid
-from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import text

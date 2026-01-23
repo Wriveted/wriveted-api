@@ -8,7 +8,7 @@ These tests demonstrate service layer unit testing patterns by:
 4. Testing error handling and edge cases
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest

@@ -4,7 +4,7 @@ Integration tests to verify EventOutbox entries are created for flow operations.
 Covers:
 - flow_created on POST /v1/cms/flows
 - flow_updated on PUT /v1/cms/flows/{id}
-- flow_published on POST /v1/cms/flows/{id}/publish
+- flow_published on PUT /v1/cms/flows/{id} with publish=true
 """
 
 import pytest
@@ -88,8 +88,9 @@ class TestFlowOutboxEvents:
         self, async_client, async_session, backend_service_account_headers
     ):
         flow = await _create_minimal_flow(async_client, backend_service_account_headers)
-        resp = await async_client.post(
-            f"/v1/cms/flows/{flow['id']}/publish",
+        resp = await async_client.put(
+            f"/v1/cms/flows/{flow['id']}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
         assert resp.status_code == status.HTTP_200_OK

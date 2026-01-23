@@ -25,8 +25,11 @@ from starlette import status
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_cms_data(async_session):
-    """Clean up CMS data before and after each test to ensure test isolation."""
+def cleanup_cms_data(session):
+    """Clean up CMS data before and after each test to ensure test isolation.
+
+    Uses synchronous session since tests use synchronous client fixture.
+    """
     cms_tables = [
         "cms_content",
         "cms_content_variants",
@@ -38,33 +41,29 @@ async def cleanup_cms_data(async_session):
         "conversation_analytics",
     ]
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up before test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
     yield
 
-    await async_session.rollback()
+    session.rollback()
 
     # Clean up after test runs
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             # Table might not exist, skip it
             pass
-    await async_session.commit()
+    session.commit()
 
 
 class TestFlowCRUD:
@@ -392,8 +391,9 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish the flow
-        response = client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        response = client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -408,7 +408,17 @@ class TestFlowPublishing:
         flow_data = {
             "name": "Flow to Unpublish",
             "version": "1.0.0",
-            "flow_data": {"entry_point": "start"},
+            "flow_data": {
+                "nodes": [
+                    {
+                        "id": "start",
+                        "type": "start",
+                        "data": {"name": "Start Node", "message": "Welcome"},
+                        "position": {"x": 100, "y": 100},
+                    }
+                ],
+                "connections": [],
+            },
             "entry_node_id": "start",
         }
 
@@ -418,14 +428,16 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish first
-        client.post(
-            f"v1/cms/flows/{flow_id}/publish",
+        client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
         # Then unpublish
-        response = client.post(
-            f"v1/cms/flows/{flow_id}/unpublish",
+        response = client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": False},
             headers=backend_service_account_headers,
         )
 
@@ -436,8 +448,9 @@ class TestFlowPublishing:
     def test_publish_nonexistent_flow(self, client, backend_service_account_headers):
         """Test publishing non-existent flow returns 404."""
         fake_id = str(uuid.uuid4())
-        response = client.post(
-            f"v1/cms/flows/{fake_id}/publish",
+        response = client.put(
+            f"v1/cms/flows/{fake_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -474,10 +487,9 @@ class TestFlowPublishing:
         flow_id = create_response.json()["id"]
 
         # Publish with version increment
-        publish_data = {"increment_version": True, "version_type": "minor"}
-        response = client.post(
-            f"v1/cms/flows/{flow_id}/publish",
-            json=publish_data,
+        response = client.put(
+            f"v1/cms/flows/{flow_id}",
+            json={"publish": True},
             headers=backend_service_account_headers,
         )
 
@@ -894,19 +906,19 @@ class TestFlowConnections:
             json=source_node,
             headers=backend_service_account_headers,
         )
-        source_node_id = source_response.json()["id"]
+        assert source_response.status_code == status.HTTP_201_CREATED
 
         target_response = client.post(
             f"v1/cms/flows/{flow_id}/nodes",
             json=target_node,
             headers=backend_service_account_headers,
         )
-        target_node_id = target_response.json()["id"]
+        assert target_response.status_code == status.HTTP_201_CREATED
 
-        # Create connection
+        # Create connection using the logical node_id, not the database id
         connection_data = {
-            "source_node_id": source_node_id,
-            "target_node_id": target_node_id,
+            "source_node_id": "source_node",
+            "target_node_id": "target_node",
             "connection_type": "default",
             "conditions": {"trigger": "user_response", "value": "yes"},
             "info": {"label": "Yes Branch", "priority": 1},
@@ -920,8 +932,8 @@ class TestFlowConnections:
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        assert data["source_node_id"] == source_node_id
-        assert data["target_node_id"] == target_node_id
+        assert data["source_node_id"] == "source_node"
+        assert data["target_node_id"] == "target_node"
         assert data["connection_type"] == "default"
         assert data["conditions"]["value"] == "yes"
 
@@ -1007,7 +1019,7 @@ class TestFlowConnections:
         flow_id = create_response.json()["id"]
 
         # Create two nodes
-        node1 = client.post(
+        node1_response = client.post(
             f"v1/cms/flows/{flow_id}/nodes",
             json={
                 "node_id": "node1",
@@ -1015,9 +1027,10 @@ class TestFlowConnections:
                 "content": {"messages": []},
             },
             headers=backend_service_account_headers,
-        ).json()["id"]
+        )
+        assert node1_response.status_code == status.HTTP_201_CREATED
 
-        node2 = client.post(
+        node2_response = client.post(
             f"v1/cms/flows/{flow_id}/nodes",
             json={
                 "node_id": "node2",
@@ -1025,12 +1038,13 @@ class TestFlowConnections:
                 "content": {"messages": []},
             },
             headers=backend_service_account_headers,
-        ).json()["id"]
+        )
+        assert node2_response.status_code == status.HTTP_201_CREATED
 
-        # Create connection
+        # Create connection using logical node_id, not database id
         connection_data = {
-            "source_node_id": node1,
-            "target_node_id": node2,
+            "source_node_id": "node1",
+            "target_node_id": "node2",
             "connection_type": "default",
         }
 
@@ -1039,6 +1053,7 @@ class TestFlowConnections:
             json=connection_data,
             headers=backend_service_account_headers,
         )
+        assert connection_response.status_code == status.HTTP_201_CREATED
         connection_id = connection_response.json()["id"]
 
         # Delete the connection
@@ -1256,7 +1271,7 @@ class TestFlowAuthentication:
     def test_publish_flow_requires_authentication(self, client):
         """Test that publishing flows requires authentication."""
         fake_id = str(uuid.uuid4())
-        response = client.post(f"v1/cms/flows/{fake_id}/publish")
+        response = client.put(f"v1/cms/flows/{fake_id}", json={"publish": True})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_clone_flow_requires_authentication(self, client):

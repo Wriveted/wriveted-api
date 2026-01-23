@@ -508,8 +508,8 @@ def test_list_flows(client, backend_service_account_headers):
     )
 
     # Now publish the first flow
-    publish_response = client.post(
-        f"v1/cms/flows/{flow_id}/publish",
+    publish_response = client.put(
+        f"v1/cms/flows/{flow_id}",
         json={"publish": True},
         headers=backend_service_account_headers,
     )
@@ -564,8 +564,8 @@ def test_publish_flow(client, backend_service_account_headers):
     flow_id = create_response.json()["id"]
 
     # Publish flow
-    response = client.post(
-        f"v1/cms/flows/{flow_id}/publish",
+    response = client.put(
+        f"v1/cms/flows/{flow_id}",
         json={"publish": True},
         headers=backend_service_account_headers,
     )
@@ -580,8 +580,8 @@ def test_publish_flow(client, backend_service_account_headers):
     assert get_response.json()["is_published"] is True
 
     # Unpublish flow
-    response = client.post(
-        f"v1/cms/flows/{flow_id}/publish",
+    response = client.put(
+        f"v1/cms/flows/{flow_id}",
         json={"publish": False},
         headers=backend_service_account_headers,
     )
@@ -618,7 +618,10 @@ def test_clone_flow(client, backend_service_account_headers):
     data = response.json()
     assert data["name"] == "Cloned Flow"
     assert data["version"] == "1.1"
-    assert data["flow_data"] == flow_data["flow_data"]
+    # flow_data is normalized to always include nodes and connections arrays
+    assert data["flow_data"]["test"] == "data"
+    assert "nodes" in data["flow_data"]
+    assert "connections" in data["flow_data"]
     assert data["id"] != original_flow_id  # Should be different ID
 
 

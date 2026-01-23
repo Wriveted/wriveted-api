@@ -18,7 +18,6 @@ Test Organization:
 
 import asyncio
 import uuid
-from typing import Any, Dict
 
 import pytest
 from sqlalchemy import text
@@ -143,8 +142,8 @@ class TestContentToChatWorkflow:
 
         # Step 4: Publish the flow
         print("   🚀 Publishing flow...")
-        publish_response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        publish_response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -251,8 +250,8 @@ class TestContentToChatWorkflow:
         flow_id = flow_response.json()["id"]
 
         # Publish and test flow
-        await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -337,8 +336,8 @@ class TestFlowDeploymentWorkflow:
             assert validation_response.status_code == status.HTTP_200_OK
 
         # Step 3: Publish flow
-        publish_response = await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        publish_response = await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -472,8 +471,8 @@ class TestAnalyticsWorkflow:
         flow_id = flow_response.json()["id"]
 
         # Step 2: Publish and use flow to generate session data
-        await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )
@@ -660,8 +659,8 @@ class TestErrorRecoveryWorkflows:
         flow_id = flow_response.json()["id"]
 
         # Publish flow
-        await async_client.post(
-            f"/v1/cms/flows/{flow_id}/publish",
+        await async_client.put(
+            f"/v1/cms/flows/{flow_id}",
             json={"publish": True},
             headers=backend_service_account_headers,
         )

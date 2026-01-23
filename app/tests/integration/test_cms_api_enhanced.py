@@ -452,8 +452,12 @@ class TestCMSAPIEnhanced:
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_cms_pagination(self, async_client, backend_service_account_headers):
+    async def test_cms_pagination(
+        self, async_client_authenticated_as_service_account: "AsyncClient"
+    ):
         """Test CMS API pagination functionality."""
+        client = async_client_authenticated_as_service_account
+
         # Create multiple content items for pagination testing
         content_items = []
         for i in range(15):  # Create more than default page size
@@ -464,19 +468,17 @@ class TestCMSAPIEnhanced:
                 "info": {"test_index": i},
             }
 
-            response = await async_client.post(
+            response = await client.post(
                 "/v1/cms/content",
                 json=content_data,
-                headers=backend_service_account_headers,
             )
             assert response.status_code == 201
             content_items.append(response.json()["id"])
 
         # Test pagination
-        response = await async_client.get(
+        response = await client.get(
             "/v1/cms/content",
             params={"limit": 5, "tags": "pagination"},
-            headers=backend_service_account_headers,
         )
 
         assert response.status_code == 200
@@ -495,15 +497,12 @@ class TestCMSAPIEnhanced:
 
         # Test second page using skip offset
         if pagination["total"] > 5:  # If there are more items than the limit
-            response = await async_client.get(
+            response = await client.get(
                 "/v1/cms/content",
                 params={"limit": 5, "skip": 5, "tags": "pagination"},
-                headers=backend_service_account_headers,
             )
             assert response.status_code == 200
 
         # Cleanup
         for content_id in content_items:
-            await async_client.delete(
-                f"/v1/cms/content/{content_id}", headers=backend_service_account_headers
-            )
+            await client.delete(f"/v1/cms/content/{content_id}")

@@ -16,8 +16,11 @@ from starlette import status
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_flow_data(async_session):
-    """Clean up flow data before and after each test."""
+def cleanup_flow_data(session):
+    """Clean up flow data before and after each test.
+
+    Uses synchronous session since tests use synchronous client fixture.
+    """
     cms_tables = [
         "flow_definitions",
         "flow_nodes",
@@ -26,28 +29,24 @@ async def cleanup_flow_data(async_session):
         "conversation_history",
     ]
 
-    await async_session.rollback()
+    session.rollback()
 
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             pass
-    await async_session.commit()
+    session.commit()
 
     yield
 
-    await async_session.rollback()
+    session.rollback()
     for table in cms_tables:
         try:
-            await async_session.execute(
-                text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
-            )
+            session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
         except Exception:
             pass
-    await async_session.commit()
+    session.commit()
 
 
 class TestFlowNodeExecutionContext:

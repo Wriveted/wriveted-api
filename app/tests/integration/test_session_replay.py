@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import FlowDefinition, ServiceAccount
+from app.models import FlowDefinition
 from app.models.cms import ConversationSession, FlowExecutionStep
 
 
