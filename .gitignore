@@ -65,3 +65,6 @@ examples/http-client.private.env.json
 
 # SQL scripts (usually one-off fixes)
 *.sql
+
+# AI assistant instructions
+AGENTS.md
