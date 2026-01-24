@@ -1,35 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -eo pipefail
-
-CLOUD_SQL_INSTANCE="wriveted-api:australia-southeast1:wriveted-development"
-POSTGRES_PORT="5432"
 
 if [[ -z "${PR_NUMBER}" ]]; then
   echo "PR_NUMBER is required" >&2
   exit 1
 fi
 
-if [[ -z "${POSTGRESQL_ROOT_PASSWORD}" ]]; then
-  echo "POSTGRESQL_ROOT_PASSWORD is required" >&2
+if [[ -z "${POSTGRESQL_PASSWORD}" ]]; then
+  echo "POSTGRESQL_PASSWORD is required" >&2
   exit 1
 fi
 
-PR_DATABASE="wriveted_pr_${PR_NUMBER}"
 POSTGRESQL_APP_USER="${POSTGRESQL_APP_USER:-cloudrun}"
+POSTGRESQL_USER="${POSTGRESQL_USER:-postgres}"
+PR_DATABASE="wriveted_pr_${PR_NUMBER}"
 
-proxy_connection_cleanup() {
-  echo "cleaning up cloud_sql_proxy connection"
-  kill "$(jobs -p)"
-}
-trap proxy_connection_cleanup EXIT SIGTERM SIGINT SIGQUIT
+socket_path="${POSTGRESQL_DATABASE_SOCKET_PATH:-}"
+project_id="${GCP_PROJECT_ID:-}"
+location="${GCP_LOCATION:-}"
+instance_id="${GCP_CLOUD_SQL_INSTANCE_ID:-}"
 
-echo "Downloading cloud_sql_proxy"
-curl -s "https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64" -o "${HOME}/cloud_sql_proxy"
-chmod +x "${HOME}/cloud_sql_proxy"
-"${HOME}/cloud_sql_proxy" -instances="${CLOUD_SQL_INSTANCE}=tcp:localhost:${POSTGRES_PORT}" &
+if [[ -z "${socket_path}" || -z "${project_id}" || -z "${location}" || -z "${instance_id}" ]]; then
+  echo "Cloud SQL socket configuration is required (POSTGRESQL_DATABASE_SOCKET_PATH, GCP_PROJECT_ID, GCP_LOCATION, GCP_CLOUD_SQL_INSTANCE_ID)." >&2
+  exit 1
+fi
 
-export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_ROOT_PASSWORD}@localhost/postgres"
+export SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@/postgres?host=${socket_path}/${project_id}:${location}:${instance_id}"
 export PR_DATABASE
 export POSTGRESQL_APP_USER
 
@@ -57,5 +54,5 @@ with engine.connect() as conn:
     conn.execute(text(f'GRANT ALL PRIVILEGES ON DATABASE "{db_name}" TO "{app_user}"'))
 PY
 
-export SQLALCHEMY_DATABASE_URI="postgresql://postgres:${POSTGRESQL_ROOT_PASSWORD}@localhost/${PR_DATABASE}"
+export POSTGRESQL_DATABASE="${PR_DATABASE}"
 scripts/run-migrations.sh

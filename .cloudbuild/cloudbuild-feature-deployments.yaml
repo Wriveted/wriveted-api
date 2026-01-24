@@ -35,22 +35,47 @@ steps:
       - push
       - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:pr-$_PR_NUMBER"
     id: PushPRTag
-  - name: "gcr.io/cloud-builders/docker"
-    id: RunPrMigration
-    entrypoint: bash
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: Deploy-PR-Migration-Job
+    entrypoint: gcloud
     args:
-      - -c
-      - |
-        docker run -i \
-        --network=cloudbuild \
-        -e POSTGRESQL_ROOT_PASSWORD=$$POSTGRESQL_ROOT_PASSWORD \
-        -e PR_NUMBER=$_PR_NUMBER \
-        -e POSTGRESQL_APP_USER=cloudrun \
-        --entrypoint bash \
-        --volume $(pwd)/.cloudbuild/scripts/:/scripts/ \
-        $_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-        -c '/scripts/database_migrate_pr.sh'
-    secretEnv: ["POSTGRESQL_ROOT_PASSWORD"]
+      - run
+      - jobs
+      - deploy
+      - wriveted-api-pr-migrate
+      - "--platform=managed"
+      - "--region=$_DEPLOY_REGION"
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - "--command=/bin/bash"
+      - "--args=-c,/app/scripts/run-pr-migrations.sh"
+      - "--tasks=1"
+      - "--max-retries=0"
+      - "--add-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
+      - >-
+        --set-env-vars=
+        POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,
+        POSTGRESQL_USER=postgres,
+        POSTGRESQL_DATABASE=wriveted_pr_$_PR_NUMBER,
+        POSTGRESQL_APP_USER=cloudrun,
+        PR_NUMBER=$_PR_NUMBER,
+        GCP_PROJECT_ID=$PROJECT_ID,
+        GCP_LOCATION=$_DEPLOY_REGION,
+        GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development
+      - >-
+        --set-secrets=
+        POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-root-password:latest,
+        SECRET_KEY=wriveted-api-secret-key:latest,
+        SENDGRID_API_KEY=sendgrid-api-key:latest,
+        SHOPIFY_HMAC_SECRET=shopify-hmac-secret:latest
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: Execute-PR-Migration-Job
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - wriveted-api-pr-migrate
+      - "--region=$_DEPLOY_REGION"
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
@@ -137,8 +162,6 @@ steps:
     id: SlackNotification
 availableSecrets:
   secretManager:
-    - versionName: projects/wriveted-api/secrets/wriveted-api-cloud-sql-root-password/versions/latest
-      env: "POSTGRESQL_ROOT_PASSWORD"
     - versionName: projects/wriveted-api/secrets/cloud-build-slack-app-webhook/versions/latest
       env: "SLACK_WEBHOOK"
 images:
