@@ -350,8 +350,12 @@ Performs operations without user interaction.
           "endpoint": "/v1/recommend",
           "method": "POST",
           "body": {
-            "wriveted_identifier": "{{user.school_id}}",
-            "age": "{{user.age}}"
+            "wriveted_identifier": "{{context.school_wriveted_id}}",
+            "age": "{{user.age_number}}",
+            "reading_abilities": "{{user.reading_ability_keys}}",
+            "hues": "{{user.hue_keys}}",
+            "recommendable_only": true,
+            "fallback": true
           }
         }
       }
@@ -372,19 +376,23 @@ Calls external services.
   "id": "get_recommendations",
   "type": "webhook",
   "content": {
-    "url": "https://api.wriveted.com/recommendations",
+    "url": "https://api.hueybooks.com/v1/recommend",
     "method": "POST",
     "headers": {
       "Authorization": "Bearer {secret:wriveted_api_token}"
     },
     "body": {
-      "user_id": "{user.id}",
-      "preferences": "{book_preferences}",
-      "age": "{user.age}"
+      "wriveted_identifier": "{context.school_wriveted_id}",
+      "age": "{user.age_number}",
+      "reading_abilities": "{user.reading_ability_keys}",
+      "hues": "{user.hue_keys}",
+      "recommendable_only": true,
+      "fallback": true
     },
     "response_mapping": {
-      "recommendations": "$.data.books",
-      "count": "$.data.total"
+      "temp.book_results": "$.books",
+      "temp.book_count": "$.count",
+      "temp.api_result.query": "$.query"
     },
     "timeout": 5000,
     "retry": {
@@ -447,24 +455,27 @@ Internal service integration for dynamic data and processing.
           "endpoint": "/v1/recommend",
           "method": "POST",
           "body": {
-            "user_id": "{{user.id}}",
-            "preferences": {
-              "genres": "{{temp.selected_genres}}",
-              "reading_level": "{{user.reading_level}}",
-              "age": "{{user.age}}"
-            },
+            "wriveted_identifier": "{{context.school_wriveted_id}}",
+            "age": "{{user.age_number}}",
+            "reading_abilities": "{{user.reading_ability_keys}}",
+            "hues": "{{user.hue_keys}}",
+            "recommendable_only": true,
+            "fallback": true
+          },
+          "query_params": {
             "limit": 5
           },
           "response_mapping": {
-            "recommendations": "recommendations",
-            "count": "recommendation_count"
+            "books": "temp.book_results",
+            "count": "temp.book_count",
+            "query": "temp.api_result.query"
           },
           "circuit_breaker": {
             "failure_threshold": 3,
             "timeout": 30.0
           },
           "fallback_response": {
-            "recommendations": [],
+            "books": [],
             "count": 0,
             "fallback": true
           }
@@ -503,28 +514,31 @@ Internal service integration for dynamic data and processing.
 
 ### Chatbot-Specific API Endpoints
 
+For chatflows, standardize on `/v1/recommend` and the HueyOutput response
+shape. The `/chatbot/*` endpoints are still available for legacy integrations,
+but are not required for the new flow engine.
+
 The system provides three specialized endpoints optimized for chatbot conversations:
 
-#### 1. Book Recommendations (`/chatbot/recommendations`)
+#### 1. Book Recommendations (`/v1/recommend`)
 
-Provides simplified book recommendations with chatbot-friendly response formats:
+Provides Huey book recommendations with the core response shape used by
+chatflows:
 
 ```json
 {
-  "user_id": "uuid",
-  "preferences": {
-    "genres": ["adventure", "mystery"],
-    "reading_level": "intermediate"
-  },
-  "limit": 5,
-  "exclude_isbns": ["978-1234567890"]
+  "wriveted_identifier": "uuid",
+  "age": 9,
+  "reading_abilities": ["TREEHOUSE"],
+  "hues": ["hue02_beautiful_whimsical"],
+  "recommendable_only": true,
+  "fallback": true
 }
 ```
 
 **Response includes:**
-- Book recommendations with simplified metadata
-- User's current reading level
-- Applied filters for transparency
+- Book recommendations with full Huey metadata
+- Applied query parameters for transparency
 - Fallback indication for error handling
 
 #### 2. Reading Assessment (`/chatbot/assessment/reading-level`)
