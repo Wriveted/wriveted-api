@@ -87,8 +87,13 @@ def get_async_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
 
+    async_uri = settings.SQLALCHEMY_ASYNC_URI
+    if async_uri is None:
+        raise ValueError("SQLALCHEMY_ASYNC_URI is required to build async sessions")
+    async_uri_str = async_uri.render_as_string(hide_password=False)
+
     return _get_async_session_maker(
-        str(settings.SQLALCHEMY_ASYNC_URI),
+        async_uri_str,
         settings.DATABASE_POOL_SIZE,
         settings.DATABASE_MAX_OVERFLOW,
     )
@@ -114,8 +119,13 @@ def get_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
 
+    database_uri = settings.SQLALCHEMY_DATABASE_URI
+    if database_uri is None:
+        raise ValueError("SQLALCHEMY_DATABASE_URI is required to build sessions")
+    database_uri_str = database_uri.render_as_string(hide_password=False)
+
     return _get_session_maker(
-        str(settings.SQLALCHEMY_DATABASE_URI),
+        database_uri_str,
         settings.DATABASE_POOL_SIZE,
         settings.DATABASE_MAX_OVERFLOW,
     )
