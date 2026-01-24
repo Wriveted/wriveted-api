@@ -1,0 +1,23 @@
+name: PR Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCR_ACCESS }}
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Run PR cleanup build
+        run: |
+          gcloud config set project wriveted-api
+          gcloud builds submit \
+            --config=.cloudbuild/cloudbuild-pr-cleanup.yaml \
+            --substitutions=_PR_NUMBER=${{ github.event.pull_request.number }}
