@@ -86,6 +86,7 @@ steps:
       - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - "--region=$_DEPLOY_REGION"
       - "--tag=pr-$_PR_NUMBER"
+      - "--no-traffic"
       - "--concurrency=25"
       - "--max-instances=3"
       - >-
@@ -125,6 +126,7 @@ steps:
       - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - "--region=$_DEPLOY_REGION"
       - "--tag=pr-$_PR_NUMBER"
+      - "--no-traffic"
       - "--concurrency=25"
       - "--max-instances=3"
       - "--args=app.internal_api:internal_app"
