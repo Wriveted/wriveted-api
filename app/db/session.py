@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from functools import lru_cache
 from typing import Optional
 
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
@@ -50,18 +51,18 @@ def database_connection(
     return engine, SessionLocal
 
 
-def get_async_session_maker(settings: Optional[Settings] = None):
-    if settings is None:
-        settings = get_settings()
-
+@lru_cache(maxsize=None)
+def _get_async_session_maker(
+    database_uri: str, pool_size: int, max_overflow: int
+) -> async_sessionmaker:
     engine = create_async_engine(
-        settings.SQLALCHEMY_ASYNC_URI,
+        database_uri,
         # Pool size is the maximum number of permanent connections to keep.
         # defaults to 5
-        pool_size=settings.DATABASE_POOL_SIZE,
+        pool_size=pool_size,
         # Temporarily exceeds the set pool_size if no connections are available.
         # Default is 10
-        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        max_overflow=max_overflow,
         # 'pool_recycle' is the maximum number of seconds a connection can persist.
         # Connections that live longer than the specified amount of time will be
         # reestablished on checkout.
@@ -82,20 +83,42 @@ def get_async_session_maker(settings: Optional[Settings] = None):
     )
 
 
-def get_session_maker(settings: Optional[Settings] = None):
+def get_async_session_maker(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
 
+    return _get_async_session_maker(
+        str(settings.SQLALCHEMY_ASYNC_URI),
+        settings.DATABASE_POOL_SIZE,
+        settings.DATABASE_MAX_OVERFLOW,
+    )
+
+
+@lru_cache(maxsize=None)
+def _get_session_maker(
+    database_uri: str, pool_size: int, max_overflow: int
+) -> sessionmaker:
     engine, SessionLocal = database_connection(
-        settings.SQLALCHEMY_DATABASE_URI,
-        pool_size=settings.DATABASE_POOL_SIZE,
-        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        database_uri,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
     )
     SQLAlchemyInstrumentor().instrument(
         engine=engine,
         enable_commenter=True,
     )
     return SessionLocal
+
+
+def get_session_maker(settings: Optional[Settings] = None):
+    if settings is None:
+        settings = get_settings()
+
+    return _get_session_maker(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        settings.DATABASE_POOL_SIZE,
+        settings.DATABASE_MAX_OVERFLOW,
+    )
 
 
 def get_session():
