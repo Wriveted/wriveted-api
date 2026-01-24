@@ -43,14 +43,13 @@ steps:
       - jobs
       - deploy
       - wriveted-api-pr-migrate
-      - "--platform=managed"
       - "--region=$_DEPLOY_REGION"
       - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
       - "--command=/bin/bash"
       - "--args=-c,/app/scripts/run-pr-migrations.sh"
       - "--tasks=1"
       - "--max-retries=0"
-      - "--add-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
+      - "--set-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
       - >-
         --set-env-vars=
         POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,
