@@ -55,4 +55,9 @@ with engine.connect() as conn:
 PY
 
 export POSTGRESQL_DATABASE="${PR_DATABASE}"
+if [[ "${SKIP_MIGRATIONS:-false}" == "true" ]]; then
+  echo "Skipping migrations for ${PR_DATABASE}"
+  exit 0
+fi
+
 scripts/run-migrations.sh
