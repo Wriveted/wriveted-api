@@ -274,8 +274,7 @@ def upgrade():
     )
     op.replace_entity(public_notify_flow_event)
 
-    public_fuzzystrmatch = PGExtension(schema="public", signature="fuzzystrmatch")
-    op.drop_entity(public_fuzzystrmatch)
+    op.execute("DROP EXTENSION IF EXISTS fuzzystrmatch")
 
     # ### end Alembic commands ###
 
