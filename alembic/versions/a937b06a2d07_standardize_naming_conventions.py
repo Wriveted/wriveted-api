@@ -239,7 +239,7 @@ def upgrade():
     )
     op.drop_index(op.f("idx_schools_theme_id"), table_name="schools")
     op.drop_index(op.f("index_schools_by_country"), table_name="schools")
-    op.drop_index(op.f("ix_school_state"), table_name="schools")
+    op.execute("DROP INDEX IF EXISTS ix_school_state")
     op.create_index(
         "ix_schools_country_code_official_identifier",
         "schools",
