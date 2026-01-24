@@ -7,14 +7,13 @@ steps:
       - jobs
       - deploy
       - wriveted-api-pr-cleanup
-      - "--platform=managed"
       - "--region=$_DEPLOY_REGION"
       - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:pr-$_PR_NUMBER"
       - "--command=/bin/bash"
       - "--args=-c,/app/scripts/drop-pr-database.sh"
       - "--tasks=1"
       - "--max-retries=0"
-      - "--add-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
+      - "--set-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
       - >-
         --set-env-vars=
         POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,
