@@ -5,8 +5,8 @@ composite nodes, and theming system. This favors a curated Huey Books
 experience over direct Landbot conversion.
 
 ## Goals
-- Deliver the same user journey (welcome → preferences → recommendations →
-  fallback → save/share → restart).
+- Deliver the same user journey (welcome -> preferences -> recommendations ->
+  fallback -> save/share -> restart).
 - Use CMS content and tagging for dynamic questions and messages.
 - Use composite sub-flows with explicit contracts.
 - Keep the flow kid-friendly (target age ~11) and teacher-friendly (save/share).
@@ -22,6 +22,7 @@ experience over direct Landbot conversion.
 - `docs/chatflow-node-types.md` (runtime behavior)
 - `docs/node-schemas-reference.md` (node content schema)
 - `docs/composite-nodes-and-versioning.md` (composite patterns)
+ - `docs/chatbot-system.md` (legacy flow context + examples)
 
 ## High-Level Flow (Orchestrator)
 1. **Welcome**
@@ -33,13 +34,14 @@ experience over direct Landbot conversion.
 7. **Show Books (composite)**: carousel browse + like/dislike.
 8. **Save/Share (composite)**: capture name + show share options.
 9. **End**: feedback + restart option.
-10. **Fallback Chain**: if no books → fallback query → Huey picks → jokes.
+10. **Fallback Chain**: if no books -> fallback query -> Huey picks -> jokes.
 
 ## State Model (Proposed)
 Use stable namespaces to avoid conflicts.
 
 ### Context
-- `context.school_id`
+- `context.school_wriveted_id` (UUID for `/v1/recommend`)
+- `context.school_db_id` (optional, returned by API)
 - `context.school_name`
 - `context.experiments` (object)
 
@@ -62,7 +64,7 @@ Use stable namespaces to avoid conflicts.
 ## Composite Sub-Flows and Contracts
 
 ### 1) Init
-- **Entry requirements**: `context.school_id`
+- **Entry requirements**: `context.school_wriveted_id`
 - **Outputs**:
   - `context.school_name`
   - `temp.flags.*`
@@ -90,7 +92,7 @@ Use stable namespaces to avoid conflicts.
   - `user.age_number`
   - `user.reading_ability_level`
   - `user.hue_profile`
-  - `context.school_id`
+  - `context.school_wriveted_id`
 - **Outputs**:
   - `temp.book_results`
   - `temp.book_count`
@@ -135,7 +137,7 @@ Use `set_variable`, `aggregate`, and `api_call` to manage state.
 ### Webhook Nodes
 Use for recommendation calls when no internal action exists:
 - `POST /v1/recommend` (payload from user/context state)
-- `response_mapping` → `temp.book_results`, `temp.book_count`, etc.
+- `response_mapping` -> `temp.book_results`, `temp.book_count`, etc.
 
 ## CMS Content Plan
 
@@ -180,23 +182,79 @@ Use `source: random` with `info_filters`:
 ```
 
 ## Theming
-Create a dedicated theme (e.g., “Huey Bookbot”) in CMS themes:
+Create a dedicated theme (e.g., "Huey Bookbot") in CMS themes:
 - Warm, friendly colors with strong contrast for accessibility.
 - Large, readable font sizes for kids.
 - Friendly Huey avatar + subtle animations.
 
-## Data Integration
-- **School config**: internal API call to fetch school settings and flags.
-- **Recommendation API**: `/v1/recommend` (POST) with:
-  - `age`, `reading_ability`, `hues`, `school_id`.
-- **Save/Share**: generate a share payload (text + optional link).
+## Current API Integration (No New Endpoints)
+Use the existing API surfaces; do not add new endpoints for this flow.
+
+### School Context
+- `GET /v1/school/{wriveted_identifier}/bot`
+  - Public-friendly response: name, bookbot type, experiments, supporter status.
+  - Use this to decide which flow/theme to load at session start.
+- `GET /v1/school/{wriveted_identifier}/bookbot`
+  - Full bookbot metadata for admin usage (auth required).
+  - Use in CMS/admin previews.
+- `GET /v1/school/{wriveted_identifier}/exists`
+  - Optional preflight check for public chat links.
+
+### Recommendations
+- `POST /v1/recommend` (auth required)
+- Request (example):
+```json
+{
+  "wriveted_identifier": "11111111-2222-3333-4444-555555555555",
+  "age": 9,
+  "reading_abilities": ["TREEHOUSE"],
+  "hues": ["hue02_beautiful_whimsical", "hue05_funny_comic"],
+  "recommendable_only": true,
+  "exclude_isbns": [],
+  "fallback": true
+}
+```
+- Response (shape):
+```json
+{
+  "count": 5,
+  "query": {
+    "school_id": 123,
+    "hues": ["hue02_beautiful_whimsical", "hue05_funny_comic"],
+    "reading_abilities": ["TREEHOUSE"],
+    "age": 9,
+    "recommendable_only": true,
+    "exclude_isbns": [],
+    "limit": 10
+  },
+  "books": [
+    {
+      "work_id": 12345,
+      "isbn": "9780394820378",
+      "cover_url": "https://example.com/cover.jpg",
+      "display_title": "The Phantom Tollbooth",
+      "authors_string": "Norton Juster",
+      "summary": "Short Huey summary",
+      "labels": {}
+    }
+  ]
+}
+```
+- Flow mapping:
+  - `books` -> `temp.book_results`
+  - `count` -> `temp.book_count`
+  - `query` -> `temp.api_result.query`
+
+### Save/Share
+- Generate a share payload in-flow and keep it in `temp.share_payload`.
+- Store only share intent in API if needed later (no new endpoint required).
 
 ## Share Payload Format
 Store the payload in `temp.share_payload` and reference it from the share step.
 
 ```json
 {
-  "title": "Huey’s Book Picks",
+  "title": "Huey's Book Picks",
   "subtitle": "Based on what you told me, here are your top picks.",
   "items": [
     {
@@ -207,7 +265,7 @@ Store the payload in `temp.share_payload` and reference it from the share step.
     }
   ],
   "link": "https://hueybooks.com/recommendations/abc123",
-  "copy_text": "Huey’s Book Picks\\n- The Phantom Tollbooth — Norton Juster (9780394820378)"
+  "copy_text": "Huey's Book Picks\\n- The Phantom Tollbooth - Norton Juster (9780394820378)"
 }
 ```
 
@@ -221,13 +279,45 @@ Notes:
    - Add `items_source` for carousel input.
 2. **Carousel display** in UI:
    - Rendering book cards + like/dislike.
+3. **Share payload rendering** in Huey Books app:
+   - Display share modal with copy + share options.
+4. **Contract visibility for composites**:
+   - Ensure UI shows entry requirements + outputs (editor clarity).
 
-## Build Order
-1. Seed CMS content (welcome, preference questions, fallbacks).
-2. Create sub-flows for Age, Reading Ability, Hues, Book Query, Show Books.
-3. Create orchestrator flow and connect composites + fallbacks.
-4. Implement UI support for `image_choice` + `carousel` with dynamic options.
-5. Add integration tests covering happy path and fallback path.
+## Expanded Implementation Plan (Current API)
+### Phase 1: Content + Flow Skeleton (CMS/Admin)
+1. Seed CMS content (welcome, preference questions, fallbacks, jokes).
+2. Define composite sub-flows with explicit `entry_requirements` and `outputs`.
+3. Build the orchestrator flow and wire composites + fallbacks.
+4. Ensure all composite node contracts are documented in `info.contract`.
+
+### Phase 2: Recommendation Integration (API + Flow)
+1. Map reading ability choices to `ReadingAbilityKey` values.
+2. Aggregate `user.hue_profile` into `hues` list for `/v1/recommend`.
+3. Add a webhook/action node using `/v1/recommend` with `fallback: true`.
+4. Normalize `books` into `temp.book_results` (card-ready shape).
+
+### Phase 3: UI Support (Admin UI + Huey Books App)
+1. Admin UI builder:
+   - Support `options_source` / `items_source` in question nodes.
+   - Render carousel previews (card list).
+   - Display composite contracts in the editor.
+2. Huey Books chatflow runtime:
+   - Implement carousel question input with like/dislike.
+   - Render share payload from `temp.share_payload`.
+   - Apply the "Huey Bookbot" theme to this flow.
+
+### Phase 4: Tests + Seed Data
+1. Add integration test seeds for CMS content + flow creation.
+2. Add API tests for the `/v1/recommend` webhook payload mapping.
+3. Add UI tests:
+   - Admin UI flow builder + test-flow runtime.
+   - Huey Books chatflow happy path + fallback path.
+
+## Suggested Tests
+- API: integration test for flow webhook -> `/v1/recommend` mapping.
+- CMS: contract validation tests for composite nodes.
+- UI: carousel render + share payload banner in Huey Books app.
 
 ## Validation Checklist
 - Welcome loads, theme applied, Huey avatar visible.
