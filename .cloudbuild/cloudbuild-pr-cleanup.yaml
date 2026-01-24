@@ -1,0 +1,42 @@
+steps:
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: Deploy-PR-Cleanup-Job
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - wriveted-api-pr-cleanup
+      - "--platform=managed"
+      - "--region=$_DEPLOY_REGION"
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:pr-$_PR_NUMBER"
+      - "--command=/bin/bash"
+      - "--args=-c,/app/scripts/drop-pr-database.sh"
+      - "--tasks=1"
+      - "--max-retries=0"
+      - "--add-cloudsql-instances=${PROJECT_ID}:${_DEPLOY_REGION}:wriveted-development"
+      - >-
+        --set-env-vars=
+        POSTGRESQL_DATABASE_SOCKET_PATH=/cloudsql,
+        POSTGRESQL_USER=postgres,
+        POSTGRESQL_DATABASE=wriveted_pr_$_PR_NUMBER,
+        PR_NUMBER=$_PR_NUMBER,
+        GCP_PROJECT_ID=$PROJECT_ID,
+        GCP_LOCATION=$_DEPLOY_REGION,
+        GCP_CLOUD_SQL_INSTANCE_ID=wriveted-development
+      - >-
+        --set-secrets=
+        POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-root-password:latest
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: Execute-PR-Cleanup-Job
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - wriveted-api-pr-cleanup
+      - "--region=$_DEPLOY_REGION"
+substitutions:
+  _GCR_HOSTNAME: asia.gcr.io
+  _SERVICE_NAME: wriveted-api-development
+  _DEPLOY_REGION: australia-southeast1
