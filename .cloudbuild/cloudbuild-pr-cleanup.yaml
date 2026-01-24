@@ -40,3 +40,6 @@ substitutions:
   _GCR_HOSTNAME: asia.gcr.io
   _SERVICE_NAME: wriveted-api-development
   _DEPLOY_REGION: australia-southeast1
+  _PR_NUMBER: "0"
+options:
+  substitutionOption: ALLOW_LOOSE
