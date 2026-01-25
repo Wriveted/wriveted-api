@@ -175,9 +175,9 @@ class ConditionNodeProcessor:
         """Map condition path to connection type."""
         from app.models.cms import ConnectionType
 
-        if path == "option_0":
+        if path == "$0":
             return ConnectionType.OPTION_0
-        elif path == "option_1":
+        elif path == "$1":
             return ConnectionType.OPTION_1
         else:
             return ConnectionType.DEFAULT
