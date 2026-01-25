@@ -452,6 +452,7 @@ class SessionStartResponse(BaseModel):
     next_node: Optional[Dict[str, Any]] = None
     theme_id: Optional[UUID4] = None
     theme: Optional[Dict[str, Any]] = None  # Full theme config if available
+    flow_name: Optional[str] = None  # Flow name for display purposes
 
 
 class SessionStateUpdate(BaseModel):

@@ -170,6 +170,7 @@ async def start_conversation(
             next_node=initial_node,
             theme_id=theme_id,
             theme=theme_config,
+            flow_name=flow.name if flow else None,
         )
 
     except HTTPException:
