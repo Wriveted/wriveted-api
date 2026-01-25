@@ -274,6 +274,7 @@ def reset_global_state_sync():
         signal.alarm(30)  # 30 second timeout
 
         try:
+            from app.db.session import reset_async_session_makers
             from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
             from app.services.chat_runtime import reset_chat_runtime
@@ -281,6 +282,7 @@ def reset_global_state_sync():
             from app.services.webhook_notifier import reset_webhook_notifier
 
             logger.debug("Starting sync global state reset...")
+            reset_async_session_makers()
             reset_event_listener()
             logger.debug("Reset event listener (sync)")
             reset_chat_runtime()
@@ -305,11 +307,14 @@ def reset_global_state_sync():
         # Clean up after test with timeout
         signal.alarm(30)  # 30 second timeout
         try:
+            from app.db.session import reset_async_session_makers
+
             reset_event_listener()
             reset_chat_runtime()
             reset_chat_repository()
             reset_api_client()
             reset_webhook_notifier()
+            reset_async_session_makers()
             logger.debug("Cleaned up global state after test (sync)")
         except TimeoutError:
             logger.error("Global state cleanup timed out")
@@ -332,6 +337,7 @@ async def reset_global_state():
     try:
 
         async def reset_state():
+            from app.db.session import reset_async_session_makers
             from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
             from app.services.chat_runtime import reset_chat_runtime
@@ -339,6 +345,7 @@ async def reset_global_state():
             from app.services.webhook_notifier import reset_webhook_notifier
 
             logger.debug("Starting global state reset...")
+            reset_async_session_makers()
             reset_event_listener()
             logger.debug("Reset event listener")
             reset_chat_runtime()
@@ -366,6 +373,7 @@ async def reset_global_state():
     try:
 
         async def cleanup_state():
+            from app.db.session import reset_async_session_makers
             from app.repositories.chat_repository import reset_chat_repository
             from app.services.api_client import reset_api_client
             from app.services.chat_runtime import reset_chat_runtime
@@ -377,6 +385,7 @@ async def reset_global_state():
             reset_chat_repository()
             reset_api_client()
             reset_webhook_notifier()
+            reset_async_session_makers()
             logger.debug("Cleaned up global state after test")
 
         await asyncio.wait_for(cleanup_state(), timeout=30.0)

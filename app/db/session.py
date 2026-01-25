@@ -6,7 +6,7 @@ from weakref import WeakKeyDictionary
 
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import URL, create_engine
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
 
@@ -55,7 +55,9 @@ def database_connection(
 
 _async_session_makers: dict[
     tuple[str, int, int],
-    WeakKeyDictionary[asyncio.AbstractEventLoop, async_sessionmaker],
+    WeakKeyDictionary[
+        asyncio.AbstractEventLoop, tuple[AsyncEngine, async_sessionmaker]
+    ],
 ] = {}
 
 
@@ -74,7 +76,7 @@ def _get_async_session_maker(
     loop = _get_current_loop()
     cached = loop_cache.get(loop)
     if cached is not None:
-        return cached
+        return cached[1]
 
     engine = create_async_engine(
         database_uri,
@@ -102,8 +104,20 @@ def _get_async_session_maker(
     session_maker = async_sessionmaker(
         engine, autoflush=False, autocommit=False, expire_on_commit=False
     )
-    loop_cache[loop] = session_maker
+    loop_cache[loop] = (engine, session_maker)
     return session_maker
+
+
+def reset_async_session_makers() -> None:
+    for loop_cache in _async_session_makers.values():
+        for engine, _ in loop_cache.values():
+            try:
+                engine.sync_engine.dispose()
+            except Exception as exc:
+                logger.warning(
+                    "Failed to dispose async engine", error=str(exc), exc_info=True
+                )
+    _async_session_makers.clear()
 
 
 def get_async_session_maker(settings: Optional[Settings] = None):
