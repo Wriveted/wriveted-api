@@ -26,10 +26,11 @@ API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/v1")
 
 
 def msg_node(node_id: str, text: str, x: int, y: int) -> Dict[str, Any]:
+    """Create a message node with direct text content."""
     return {
         "id": node_id,
         "type": "message",
-        "content": {"messages": [{"content": text}]},
+        "content": {"text": text},
         "position": {"x": x, "y": y},
     }
 
@@ -178,12 +179,12 @@ def build_learning_hub_flow(
             "hub_route",
             conditions=[
                 {
-                    "if": {"var": "temp.activity_choice", "eq": "books"},
-                    "then": "option_0",
+                    "if": "temp.activity_choice == 'books'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.activity_choice", "eq": "ciphers"},
-                    "then": "option_1",
+                    "if": "temp.activity_choice == 'ciphers'",
+                    "then": "$1",
                 },
             ],
             default_path="default",
@@ -232,10 +233,8 @@ def build_learning_hub_flow(
         ),
         condition_node(
             "hub_another_route",
-            conditions=[
-                {"if": {"var": "temp.try_another", "eq": "yes"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.try_another == 'yes'", "then": "$0"}],
+            default_path="$1",
             x=2400,
             y=0,
         ),
