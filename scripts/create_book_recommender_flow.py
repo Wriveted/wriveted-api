@@ -22,10 +22,15 @@ API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/v1")
 
 
 def msg_node(node_id: str, text: str, x: int, y: int) -> Dict[str, Any]:
+    """Create a message node with direct text content.
+
+    Uses content.text format which is the standard for direct text messages.
+    The builder UI and test modal both support this format.
+    """
     return {
         "id": node_id,
         "type": "message",
-        "content": {"messages": [{"content": text}]},
+        "content": {"text": text},
         "position": {"x": x, "y": y},
     }
 
@@ -144,16 +149,16 @@ def build_book_recommender_flow(theme_id: Optional[str]) -> Dict[str, Any]:
             "rec_route",
             conditions=[
                 {
-                    "if": {"var": "temp.preferred_genre", "eq": "adventure"},
-                    "then": "option_0",
+                    "if": "temp.preferred_genre == 'adventure'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.preferred_genre", "eq": "fantasy"},
-                    "then": "option_1",
+                    "if": "temp.preferred_genre == 'fantasy'",
+                    "then": "$1",
                 },
                 {
-                    "if": {"var": "temp.preferred_genre", "eq": "mystery"},
-                    "then": "option_2",
+                    "if": "temp.preferred_genre == 'mystery'",
+                    "then": "$2",
                 },
             ],
             default_path="default",
