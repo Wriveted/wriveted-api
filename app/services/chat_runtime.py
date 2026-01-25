@@ -1075,7 +1075,12 @@ class ChatRuntime:
                     db, response["next_node"], session
                 )
                 session = await self._refresh_session(db, session)
-                result["messages"] = [next_result] if next_result else []
+                # Extract messages from result if it's a messages-type response,
+                # otherwise wrap the result in a list for consistency
+                if next_result and next_result.get("type") == "messages":
+                    result["messages"] = next_result.get("messages", [])
+                else:
+                    result["messages"] = [next_result] if next_result else []
 
                 # Determine the correct session position:
                 # If the processed node (e.g., message) has a next_node that's a question,
@@ -1154,16 +1159,11 @@ class ChatRuntime:
                                 db, chained_next_node, session
                             )
                             session = await self._refresh_session(db, session)
-                            # Collect any messages
-                            if auto_result and auto_result.get("messages"):
-                                if isinstance(result["messages"], list):
-                                    result["messages"].extend(
-                                        [auto_result]
-                                        if not isinstance(
-                                            auto_result.get("messages"), list
-                                        )
-                                        else auto_result.get("messages", [])
-                                    )
+                            # Collect any messages from the auto-processed result
+                            if auto_result and auto_result.get("type") == "messages":
+                                result["messages"].extend(
+                                    auto_result.get("messages", [])
+                                )
                             # Update position and continue
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
@@ -1184,7 +1184,12 @@ class ChatRuntime:
                                 db, chained_next_node, session
                             )
                             session = await self._refresh_session(db, session)
-                            if msg_result:
+                            # Extract and append actual messages from the result
+                            if msg_result and msg_result.get("type") == "messages":
+                                result["messages"].extend(
+                                    msg_result.get("messages", [])
+                                )
+                            elif msg_result:
                                 result["messages"].append(msg_result)
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
