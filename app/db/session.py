@@ -1,6 +1,8 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 from typing import Optional
+from weakref import WeakKeyDictionary
 
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import URL, create_engine
@@ -51,10 +53,29 @@ def database_connection(
     return engine, SessionLocal
 
 
-@lru_cache(maxsize=None)
+_async_session_makers: dict[
+    tuple[str, int, int],
+    WeakKeyDictionary[asyncio.AbstractEventLoop, async_sessionmaker],
+] = {}
+
+
+def _get_current_loop() -> asyncio.AbstractEventLoop:
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.get_event_loop()
+
+
 def _get_async_session_maker(
     database_uri: str, pool_size: int, max_overflow: int
 ) -> async_sessionmaker:
+    cache_key = (database_uri, pool_size, max_overflow)
+    loop_cache = _async_session_makers.setdefault(cache_key, WeakKeyDictionary())
+    loop = _get_current_loop()
+    cached = loop_cache.get(loop)
+    if cached is not None:
+        return cached
+
     engine = create_async_engine(
         database_uri,
         # Pool size is the maximum number of permanent connections to keep.
@@ -78,9 +99,11 @@ def _get_async_session_maker(
         engine=engine.sync_engine, enable_commenter=True, commenter_options={}
     )
 
-    return async_sessionmaker(
+    session_maker = async_sessionmaker(
         engine, autoflush=False, autocommit=False, expire_on_commit=False
     )
+    loop_cache[loop] = session_maker
+    return session_maker
 
 
 def get_async_session_maker(settings: Optional[Settings] = None):

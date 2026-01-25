@@ -54,8 +54,29 @@ class FlowEventListener:
     async def connect(self) -> None:
         """Establish connection to PostgreSQL for listening to notifications."""
         try:
+            socket_path = self.settings.POSTGRESQL_DATABASE_SOCKET_PATH
+            if socket_path is not None:
+                project = self.settings.GCP_PROJECT_ID
+                location = self.settings.GCP_LOCATION
+                instance_id = self.settings.GCP_CLOUD_SQL_INSTANCE_ID
+                if project and location and instance_id:
+                    host = f"{socket_path}/{project}:{location}:{instance_id}"
+                else:
+                    host = str(socket_path)
+                self.connection = await asyncpg.connect(
+                    user=self.settings.POSTGRESQL_USER,
+                    password=self.settings.POSTGRESQL_PASSWORD,
+                    database=self.settings.POSTGRESQL_DATABASE,
+                    host=host,
+                    port=self.settings.POSTGRESQL_PORT,
+                )
+                logger.info("Connected to PostgreSQL for event listening via socket")
+                return
+
             # Parse the database URL for asyncpg connection
             db_url = self.settings.SQLALCHEMY_ASYNC_URI
+            if db_url is None:
+                raise ValueError("SQLALCHEMY_ASYNC_URI is required for event listening")
 
             # Remove the +asyncpg part for asyncpg.connect and unhide the password
             connection_url = db_url.render_as_string(False).replace(
