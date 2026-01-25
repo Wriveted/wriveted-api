@@ -256,7 +256,7 @@ def build_rich_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check1",
-            conditions=[{"if": "temp.greet_answer1 == 'hello'", "then": "$0"}],
+            conditions=[{"if": "temp['greet_answer1'] == 'hello'", "then": "$0"}],
             default_path="$1",
             x=900,
             y=0,
@@ -289,7 +289,7 @@ def build_rich_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check2",
-            conditions=[{"if": "temp.greet_answer2 == 'adios'", "then": "$0"}],
+            conditions=[{"if": "temp['greet_answer2'] == 'adios'", "then": "$0"}],
             default_path="$1",
             x=2100,
             y=0,

@@ -284,7 +284,7 @@ def build_rich_numbers_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "num_check1",
-            conditions=[{"if": "temp.num_answer1 == '3'", "then": "$0"}],
+            conditions=[{"if": "temp['num_answer1'] == '3'", "then": "$0"}],
             default_path="$1",
             x=900,
             y=0,
@@ -313,7 +313,7 @@ def build_rich_numbers_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "num_check2",
-            conditions=[{"if": "temp.num_answer2 == '7'", "then": "$0"}],
+            conditions=[{"if": "temp['num_answer2'] == '7'", "then": "$0"}],
             default_path="$1",
             x=2100,
             y=0,
