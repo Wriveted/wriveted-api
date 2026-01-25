@@ -25,10 +25,15 @@ API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/v1")
 
 
 def msg_node(node_id: str, text: str, x: int, y: int) -> Dict[str, Any]:
+    """Create a message node with direct text content.
+
+    Uses content.text format which is the standard for direct text messages.
+    The builder UI and test modal both support this format.
+    """
     return {
         "id": node_id,
         "type": "message",
-        "content": {"messages": [{"content": text}]},
+        "content": {"text": text},
         "position": {"x": x, "y": y},
     }
 
@@ -155,10 +160,8 @@ def build_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check1",
-            conditions=[
-                {"if": {"var": "temp.greet_answer1", "eq": "hola"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.greet_answer1 == 'hola'", "then": "$0"}],
+            default_path="$1",
             x=900,
             y=0,
         ),
@@ -201,10 +204,8 @@ def build_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check2",
-            conditions=[
-                {"if": {"var": "temp.greet_answer2", "eq": "dias"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.greet_answer2 == 'dias'", "then": "$0"}],
+            default_path="$1",
             x=2400,
             y=0,
         ),
@@ -274,95 +275,321 @@ def build_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
     }
 
 
+def script_node(
+    node_id: str,
+    code: str,
+    x: int,
+    y: int,
+    inputs: Optional[Dict[str, str]] = None,
+    outputs: Optional[List[str]] = None,
+    description: str = "",
+) -> Dict[str, Any]:
+    """Create a SCRIPT node for frontend execution."""
+    return {
+        "id": node_id,
+        "type": "script",
+        "content": {
+            "code": code,
+            "language": "javascript",
+            "sandbox": "strict",
+            "inputs": inputs or {},
+            "outputs": outputs or [],
+            "timeout": 10000,
+            "description": description,
+        },
+        "position": {"x": x, "y": y},
+    }
+
+
+# Spanish numbers data for the quiz
+SPANISH_NUMBERS = [
+    {"num": 1, "spanish": "uno", "english": "one", "pronunciation": "OO-no"},
+    {"num": 2, "spanish": "dos", "english": "two", "pronunciation": "DOHS"},
+    {"num": 3, "spanish": "tres", "english": "three", "pronunciation": "TREHS"},
+    {"num": 4, "spanish": "cuatro", "english": "four", "pronunciation": "KWAH-troh"},
+    {"num": 5, "spanish": "cinco", "english": "five", "pronunciation": "SEEN-koh"},
+    {"num": 6, "spanish": "seis", "english": "six", "pronunciation": "SAYS"},
+    {"num": 7, "spanish": "siete", "english": "seven", "pronunciation": "see-EH-tay"},
+    {"num": 8, "spanish": "ocho", "english": "eight", "pronunciation": "OH-choh"},
+    {"num": 9, "spanish": "nueve", "english": "nine", "pronunciation": "NWAY-bay"},
+    {"num": 10, "spanish": "diez", "english": "ten", "pronunciation": "dee-EHS"},
+]
+
+# JavaScript code to shuffle and manage the quiz
+SHUFFLE_QUIZ_CODE = """
+// Shuffle array using Fisher-Yates algorithm
+function shuffle(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Spanish numbers data
+const numbers = [
+    {num: 1, spanish: "uno", english: "one"},
+    {num: 2, spanish: "dos", english: "two"},
+    {num: 3, spanish: "tres", english: "three"},
+    {num: 4, spanish: "cuatro", english: "four"},
+    {num: 5, spanish: "cinco", english: "five"},
+    {num: 6, spanish: "seis", english: "six"},
+    {num: 7, spanish: "siete", english: "seven"},
+    {num: 8, spanish: "ocho", english: "eight"},
+    {num: 9, spanish: "nueve", english: "nine"},
+    {num: 10, spanish: "diez", english: "ten"}
+];
+
+// Shuffle the numbers for random quiz order
+const shuffled = shuffle(numbers);
+
+return {
+    quiz_order: shuffled,
+    current_index: 0,
+    score: 0,
+    total: 10
+};
+"""
+
+GET_CURRENT_QUESTION_CODE = """
+// Get the current question from the shuffled order
+const order = inputs.quiz_order || [];
+const index = inputs.current_index || 0;
+
+if (index >= order.length) {
+    return { done: true, question: null };
+}
+
+const current = order[index];
+
+// Generate wrong options (2 random other numbers)
+const allNumbers = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
+const wrongOptions = allNumbers
+    .filter(n => n !== current.spanish)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 2);
+
+// Shuffle correct answer with wrong options
+const options = [current.spanish, ...wrongOptions].sort(() => Math.random() - 0.5);
+
+return {
+    done: false,
+    question_text: "What is '" + current.english + "' in Spanish?",
+    correct_answer: current.spanish,
+    options: options,
+    number: current.num,
+    progress: (index + 1) + " of " + order.length
+};
+"""
+
+
 def build_numbers_flow(theme_id: Optional[str]) -> Dict[str, Any]:
-    """Lesson 2: Numbers 1-10 in Spanish."""
+    """Lesson 2: Numbers 1-10 in Spanish with randomized quiz loop."""
     nodes = [
+        # Introduction
         msg_node(
             "num_intro",
-            "Welcome to Spanish Numbers! Let's count from 1 to 10.",
+            "Welcome to Spanish Numbers! Let's learn to count from 1 to 10.",
             0,
             0,
         ),
+        # Teach 1-5
         msg_node(
             "num_1to5",
-            "1=Uno, 2=Dos, 3=Tres, 4=Cuatro, 5=Cinco. Say them out loud: OO-no, DOHS, TREHS, KWAH-troh, SEEN-koh.",
+            "Let's start with 1-5:\n\n1 = Uno (OO-no)\n2 = Dos (DOHS)\n3 = Tres (TREHS)\n4 = Cuatro (KWAH-troh)\n5 = Cinco (SEEN-koh)\n\nSay them out loud!",
             300,
             0,
         ),
-        question_node(
-            "num_quiz1",
-            "What is 'three' in Spanish?",
-            "temp.num_answer1",
-            "choice",
-            600,
-            0,
-            options=[
-                {"label": "Tres", "value": "tres"},
-                {"label": "Dos", "value": "dos"},
-                {"label": "Cuatro", "value": "cuatro"},
-            ],
-        ),
-        condition_node(
-            "num_check1",
-            conditions=[
-                {"if": {"var": "temp.num_answer1", "eq": "tres"}, "then": "option_0"}
-            ],
-            default_path="option_1",
-            x=900,
-            y=0,
-        ),
-        msg_node(
-            "num_correct1",
-            "Correcto! Tres means three.",
-            1200,
-            -120,
-        ),
-        msg_node(
-            "num_wrong1",
-            "Not quite. Tres means three. Dos is two, Cuatro is four.",
-            1200,
-            120,
-        ),
+        # Teach 6-10
         msg_node(
             "num_6to10",
-            "6=Seis, 7=Siete, 8=Ocho, 9=Nueve, 10=Diez. Say them: SAYS, see-EH-tay, OH-choh, NWAY-bay, dee-EHS.",
+            "Now 6-10:\n\n6 = Seis (SAYS)\n7 = Siete (see-EH-tay)\n8 = Ocho (OH-choh)\n9 = Nueve (NWAY-bay)\n10 = Diez (dee-EHS)\n\nPractice saying these!",
+            600,
+            0,
+        ),
+        # Quiz intro
+        msg_node(
+            "num_quiz_intro",
+            "Now let's test your knowledge! I'll ask you about each number in random order. Let's see how many you can get right!",
+            900,
+            0,
+        ),
+        # Initialize quiz with shuffled order (SCRIPT node)
+        script_node(
+            "num_init_quiz",
+            SHUFFLE_QUIZ_CODE,
+            1200,
+            0,
+            outputs=["quiz_order", "current_index", "score", "total"],
+            description="Shuffle numbers for random quiz order",
+        ),
+        # Store quiz state
+        action_node(
+            "num_store_quiz",
+            [
+                {
+                    "type": "set_variable",
+                    "variable": "temp.quiz_order",
+                    "value": "{{output.quiz_order}}",
+                },
+                {"type": "set_variable", "variable": "temp.current_index", "value": 0},
+                {"type": "set_variable", "variable": "temp.score", "value": 0},
+            ],
             1500,
             0,
         ),
-        question_node(
-            "num_quiz2",
-            "What is 'eight' in Spanish?",
-            "temp.num_answer2",
-            "choice",
+        # === QUIZ LOOP START ===
+        # Get current question (SCRIPT node)
+        script_node(
+            "num_get_question",
+            GET_CURRENT_QUESTION_CODE,
             1800,
             0,
-            options=[
-                {"label": "Seis", "value": "seis"},
-                {"label": "Ocho", "value": "ocho"},
-                {"label": "Nueve", "value": "nueve"},
-            ],
+            inputs={
+                "quiz_order": "temp.quiz_order",
+                "current_index": "temp.current_index",
+            },
+            outputs=["done", "question_text", "correct_answer", "options", "progress"],
+            description="Get current question from shuffled order",
         ),
-        condition_node(
-            "num_check2",
-            conditions=[
-                {"if": {"var": "temp.num_answer2", "eq": "ocho"}, "then": "option_0"}
+        # Store question data
+        action_node(
+            "num_store_question",
+            [
+                {
+                    "type": "set_variable",
+                    "variable": "temp.quiz_done",
+                    "value": "{{output.done}}",
+                },
+                {
+                    "type": "set_variable",
+                    "variable": "temp.question_text",
+                    "value": "{{output.question_text}}",
+                },
+                {
+                    "type": "set_variable",
+                    "variable": "temp.correct_answer",
+                    "value": "{{output.correct_answer}}",
+                },
+                {
+                    "type": "set_variable",
+                    "variable": "temp.options",
+                    "value": "{{output.options}}",
+                },
+                {
+                    "type": "set_variable",
+                    "variable": "temp.progress",
+                    "value": "{{output.progress}}",
+                },
             ],
-            default_path="option_1",
-            x=2100,
+            2100,
+            0,
+        ),
+        # Check if quiz is done
+        condition_node(
+            "num_check_done",
+            conditions=[{"if": "temp.quiz_done == true", "then": "$0"}],
+            default_path="$1",
+            x=2400,
             y=0,
         ),
+        # Show progress message
         msg_node(
-            "num_correct2",
-            "Muy bien! Ocho means eight.",
-            2400,
-            -120,
-        ),
-        msg_node(
-            "num_wrong2",
-            "Close! Ocho means eight. Seis is six, Nueve is nine.",
-            2400,
+            "num_progress",
+            "Question {{temp.progress}}",
+            2700,
             120,
         ),
+        # Ask the question
+        question_node(
+            "num_ask",
+            "{{temp.question_text}}",
+            "temp.user_answer",
+            "choice",
+            3000,
+            120,
+            options=[
+                {"label": "{{temp.options[0]}}", "value": "{{temp.options[0]}}"},
+                {"label": "{{temp.options[1]}}", "value": "{{temp.options[1]}}"},
+                {"label": "{{temp.options[2]}}", "value": "{{temp.options[2]}}"},
+            ],
+        ),
+        # Check answer using CEL
+        condition_node(
+            "num_check_answer",
+            conditions=[
+                {"if": "temp.user_answer == temp.correct_answer", "then": "$0"}
+            ],
+            default_path="$1",
+            x=3300,
+            y=120,
+        ),
+        # Correct answer
+        msg_node(
+            "num_correct",
+            "Correcto! {{temp.correct_answer}} is right!",
+            3600,
+            0,
+        ),
+        # Wrong answer
+        msg_node(
+            "num_wrong",
+            "Not quite! The answer was {{temp.correct_answer}}.",
+            3600,
+            240,
+        ),
+        # Increment score (correct path)
+        action_node(
+            "num_inc_score",
+            [
+                {"type": "increment", "variable": "temp.score", "amount": 1},
+            ],
+            3900,
+            0,
+        ),
+        # Increment index (both paths merge here)
+        action_node(
+            "num_next",
+            [
+                {"type": "increment", "variable": "temp.current_index", "amount": 1},
+            ],
+            4200,
+            120,
+        ),
+        # Loop back to get next question
+        # (connection goes back to num_get_question)
+        # === QUIZ COMPLETE ===
+        # Calculate final score message
+        msg_node(
+            "num_results",
+            "Quiz complete! You got {{temp.score}} out of 10 correct!",
+            2700,
+            -120,
+        ),
+        # Conditional feedback based on score
+        condition_node(
+            "num_score_check",
+            conditions=[
+                {"if": "temp.score >= 8", "then": "$0"},
+            ],
+            default_path="$1",
+            x=3000,
+            y=-120,
+        ),
+        msg_node(
+            "num_excellent",
+            "Excelente! You're a Spanish numbers master!",
+            3300,
+            -240,
+        ),
+        msg_node(
+            "num_good_try",
+            "Buen trabajo! Keep practicing and you'll master them all!",
+            3300,
+            0,
+        ),
+        # Mark complete
         action_node(
             "num_mark_complete",
             [
@@ -370,33 +597,51 @@ def build_numbers_flow(theme_id: Optional[str]) -> Dict[str, Any]:
                     "type": "set_variable",
                     "variable": "temp.completed.numbers",
                     "value": True,
-                }
+                },
+                {
+                    "type": "set_variable",
+                    "variable": "temp.numbers_score",
+                    "value": "{{temp.score}}",
+                },
             ],
-            2700,
-            0,
+            3600,
+            -120,
         ),
         msg_node(
             "num_wrap",
             "Numbers lesson complete! You can now count 1-10 in Spanish!",
-            3000,
-            0,
+            3900,
+            -120,
         ),
     ]
 
     connections = [
+        # Teaching section
         connection("num_intro", "num_1to5"),
-        connection("num_1to5", "num_quiz1"),
-        connection("num_quiz1", "num_check1"),
-        connection("num_check1", "num_correct1", "$0"),
-        connection("num_check1", "num_wrong1", "$1"),
-        connection("num_correct1", "num_6to10"),
-        connection("num_wrong1", "num_6to10"),
-        connection("num_6to10", "num_quiz2"),
-        connection("num_quiz2", "num_check2"),
-        connection("num_check2", "num_correct2", "$0"),
-        connection("num_check2", "num_wrong2", "$1"),
-        connection("num_correct2", "num_mark_complete"),
-        connection("num_wrong2", "num_mark_complete"),
+        connection("num_1to5", "num_6to10"),
+        connection("num_6to10", "num_quiz_intro"),
+        connection("num_quiz_intro", "num_init_quiz"),
+        connection("num_init_quiz", "num_store_quiz"),
+        connection("num_store_quiz", "num_get_question"),
+        # Quiz loop
+        connection("num_get_question", "num_store_question"),
+        connection("num_store_question", "num_check_done"),
+        connection("num_check_done", "num_results", "$0"),  # Done -> show results
+        connection("num_check_done", "num_progress", "$1"),  # Not done -> continue quiz
+        connection("num_progress", "num_ask"),
+        connection("num_ask", "num_check_answer"),
+        connection("num_check_answer", "num_correct", "$0"),
+        connection("num_check_answer", "num_wrong", "$1"),
+        connection("num_correct", "num_inc_score"),
+        connection("num_inc_score", "num_next"),
+        connection("num_wrong", "num_next"),
+        connection("num_next", "num_get_question"),  # Loop back!
+        # Results section
+        connection("num_results", "num_score_check"),
+        connection("num_score_check", "num_excellent", "$0"),
+        connection("num_score_check", "num_good_try", "$1"),
+        connection("num_excellent", "num_mark_complete"),
+        connection("num_good_try", "num_mark_complete"),
         connection("num_mark_complete", "num_wrap"),
     ]
 
@@ -446,10 +691,8 @@ def build_colors_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "color_check1",
-            conditions=[
-                {"if": {"var": "temp.color_answer1", "eq": "green"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.color_answer1 == 'green'", "then": "$0"}],
+            default_path="$1",
             x=900,
             y=0,
         ),
@@ -486,10 +729,8 @@ def build_colors_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "color_check2",
-            conditions=[
-                {"if": {"var": "temp.color_answer2", "eq": "negro"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.color_answer2 == 'negro'", "then": "$0"}],
+            default_path="$1",
             x=2100,
             y=0,
         ),
@@ -603,12 +844,12 @@ def build_spanish_hub_flow(
             "hub_route",
             conditions=[
                 {
-                    "if": {"var": "temp.lesson_choice", "eq": "greetings"},
-                    "then": "option_0",
+                    "if": "temp.lesson_choice == 'greetings'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.lesson_choice", "eq": "numbers"},
-                    "then": "option_1",
+                    "if": "temp.lesson_choice == 'numbers'",
+                    "then": "$1",
                 },
             ],
             default_path="default",
@@ -658,11 +899,11 @@ def build_spanish_hub_flow(
             "hub_continue_route",
             conditions=[
                 {
-                    "if": {"var": "temp.continue_choice", "eq": "more"},
-                    "then": "option_0",
+                    "if": "temp.continue_choice == 'more'",
+                    "then": "$0",
                 }
             ],
-            default_path="option_1",
+            default_path="$1",
             x=2400,
             y=0,
         ),
