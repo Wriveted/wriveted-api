@@ -71,8 +71,11 @@ def init_logging(settings: Settings):
         # Don't need a timestamp as cloudrun already adds one
         # structlog.processors.TimeStamper(fmt='iso'),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
     ]
+    if settings.LOG_AS_JSON:
+        shared_processors.append(structlog.processors.format_exc_info)
+    else:
+        shared_processors.append(structlog.processors.ExceptionPrettyPrinter())
 
     logconfig_dict = {
         "version": 1,
