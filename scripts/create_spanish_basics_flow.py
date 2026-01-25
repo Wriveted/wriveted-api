@@ -160,7 +160,7 @@ def build_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check1",
-            conditions=[{"if": "temp.greet_answer1 == 'hola'", "then": "$0"}],
+            conditions=[{"if": "temp['greet_answer1'] == 'hola'", "then": "$0"}],
             default_path="$1",
             x=900,
             y=0,
@@ -204,7 +204,7 @@ def build_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "greet_check2",
-            conditions=[{"if": "temp.greet_answer2 == 'dias'", "then": "$0"}],
+            conditions=[{"if": "temp['greet_answer2'] == 'dias'", "then": "$0"}],
             default_path="$1",
             x=2400,
             y=0,
@@ -691,7 +691,7 @@ def build_colors_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "color_check1",
-            conditions=[{"if": "temp.color_answer1 == 'green'", "then": "$0"}],
+            conditions=[{"if": "temp['color_answer1'] == 'green'", "then": "$0"}],
             default_path="$1",
             x=900,
             y=0,
@@ -729,7 +729,7 @@ def build_colors_flow(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "color_check2",
-            conditions=[{"if": "temp.color_answer2 == 'negro'", "then": "$0"}],
+            conditions=[{"if": "temp['color_answer2'] == 'negro'", "then": "$0"}],
             default_path="$1",
             x=2100,
             y=0,
