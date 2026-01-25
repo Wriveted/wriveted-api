@@ -6,6 +6,8 @@ set -e
 # Env vars to enable buildkit for docker-compose
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
+export DATABASE_POOL_SIZE=2
+export DATABASE_MAX_OVERFLOW=0
 
 # Conditional tag variable for image cache
 if [[ -n "${PR_NUMBER}" ]]; then

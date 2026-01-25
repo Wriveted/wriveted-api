@@ -26,6 +26,8 @@ services:
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE-10}
+      - DATABASE_MAX_OVERFLOW=${DATABASE_MAX_OVERFLOW-10}
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
@@ -52,6 +54,8 @@ services:
       - SQLALCHEMY_ASYNC_URI=postgresql+asyncpg://postgres:password@db/postgres
       - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE-10}
+      - DATABASE_MAX_OVERFLOW=${DATABASE_MAX_OVERFLOW-10}
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
@@ -89,6 +93,8 @@ services:
       - POSTGRESQL_PASSWORD=password
       - POSTGRESQL_SERVER=db
       - SQLALCHEMY_ASYNC_URI=postgresql+asyncpg://postgres:password@db/postgres
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE-10}
+      - DATABASE_MAX_OVERFLOW=${DATABASE_MAX_OVERFLOW-10}
       - SECRET_KEY=CHrUJmNw1haKVSorf3ooW-D6eRooePyo-V8II--We78
       - SENDGRID_API_KEY=unused-key-set-for-testing
       - SHOPIFY_HMAC_SECRET=unused-key-for-testing
