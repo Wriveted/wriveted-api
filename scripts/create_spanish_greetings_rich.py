@@ -358,7 +358,78 @@ def build_rich_greetings_flow(theme_id: Optional[str]) -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    import json
+def create_or_update_flow(
+    token: str,
+    flow_data: Dict[str, Any],
+    api_base: str,
+    flow_id: Optional[str] = None,
+    visibility: str = "public",
+) -> Dict[str, Any]:
+    """Create a new flow or update an existing one."""
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    print(json.dumps(build_rich_greetings_flow(None), indent=2))
+    flow_data["visibility"] = visibility
+    flow_data["publish"] = True
+
+    if flow_id:
+        response = requests.put(
+            f"{api_base}/cms/flows/{flow_id}",
+            headers=headers,
+            json=flow_data,
+            timeout=30,
+        )
+        action = "Updated"
+    else:
+        response = requests.post(
+            f"{api_base}/cms/flows", headers=headers, json=flow_data, timeout=30
+        )
+        action = "Created"
+
+    if response.status_code not in (200, 201):
+        print(f"Error: {response.status_code}")
+        print(response.text)
+        return {}
+
+    result = response.json()
+    print(f"{action} flow: {result.get('name')} (ID: {result.get('id')})")
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create or update Spanish Greetings (Rich) flow via API."
+    )
+    parser.add_argument("token", help="JWT token for CMS API")
+    parser.add_argument(
+        "--flow-id",
+        dest="flow_id",
+        help="Existing flow ID to update (creates new if not provided)",
+    )
+    parser.add_argument(
+        "--theme-id", dest="theme_id", help="Optional theme ID to attach"
+    )
+    parser.add_argument(
+        "--api-base",
+        dest="api_base",
+        default=API_BASE,
+        help="API base URL (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--json-only",
+        action="store_true",
+        help="Only print JSON output, don't call API",
+    )
+    args = parser.parse_args()
+
+    flow_data = build_rich_greetings_flow(args.theme_id)
+
+    if args.json_only:
+        import json
+
+        print(json.dumps(flow_data, indent=2))
+    else:
+        create_or_update_flow(args.token, flow_data, args.api_base, args.flow_id)
+
+
+if __name__ == "__main__":
+    main()
