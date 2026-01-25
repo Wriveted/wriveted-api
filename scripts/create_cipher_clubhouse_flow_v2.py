@@ -65,10 +65,11 @@ MORSE_CODE = {
 
 
 def msg_node(node_id: str, text: str, x: int, y: int) -> Dict[str, Any]:
+    """Create a message node with direct text content."""
     return {
         "id": node_id,
         "type": "message",
-        "content": {"messages": [{"content": text}]},
+        "content": {"text": text},
         "position": {"x": x, "y": y},
     }
 
@@ -498,10 +499,8 @@ def build_morse_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "morse_sos_check",
-            conditions=[
-                {"if": {"var": "temp.morse_sos", "eq": "sos"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.morse_sos == 'sos'", "then": "$0"}],
+            default_path="$1",
             x=1200,
             y=0,
         ),
@@ -582,11 +581,11 @@ def build_morse_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
         condition_node(
             "morse_decode_check",
             conditions=[
-                {"if": {"var": "temp.morse_answer", "eq": "HELLO"}, "then": "option_0"},
-                {"if": {"var": "temp.morse_answer", "eq": "hello"}, "then": "option_0"},
-                {"if": {"var": "temp.morse_answer", "eq": "Hello"}, "then": "option_0"},
+                {"if": "temp.morse_answer == 'HELLO'", "then": "$0"},
+                {"if": "temp.morse_answer == 'hello'", "then": "$0"},
+                {"if": "temp.morse_answer == 'Hello'", "then": "$0"},
             ],
-            default_path="option_1",
+            default_path="$1",
             x=3900,
             y=0,
         ),
@@ -709,10 +708,8 @@ def build_caesar_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "caesar_check",
-            conditions=[
-                {"if": {"var": "temp.caesar_answer", "eq": "j"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.caesar_answer == 'j'", "then": "$0"}],
+            default_path="$1",
             x=1500,
             y=0,
         ),
@@ -739,11 +736,11 @@ def build_caesar_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
         condition_node(
             "caesar_decode_check",
             conditions=[
-                {"if": {"var": "temp.caesar_decode", "eq": "CAT"}, "then": "option_0"},
-                {"if": {"var": "temp.caesar_decode", "eq": "cat"}, "then": "option_0"},
-                {"if": {"var": "temp.caesar_decode", "eq": "Cat"}, "then": "option_0"},
+                {"if": "temp.caesar_decode == 'CAT'", "then": "$0"},
+                {"if": "temp.caesar_decode == 'cat'", "then": "$0"},
+                {"if": "temp.caesar_decode == 'Cat'", "then": "$0"},
             ],
-            default_path="option_1",
+            default_path="$1",
             x=2400,
             y=0,
         ),
@@ -853,10 +850,8 @@ def build_atbash_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
         ),
         condition_node(
             "atbash_check",
-            conditions=[
-                {"if": {"var": "temp.atbash_answer", "eq": "n"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.atbash_answer == 'n'", "then": "$0"}],
+            default_path="$1",
             x=1200,
             y=0,
         ),
@@ -884,19 +879,19 @@ def build_atbash_flow_v2(theme_id: Optional[str]) -> Dict[str, Any]:
             "atbash_decode_check",
             conditions=[
                 {
-                    "if": {"var": "temp.atbash_decode", "eq": "HELLO"},
-                    "then": "option_0",
+                    "if": "temp.atbash_decode == 'HELLO'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.atbash_decode", "eq": "hello"},
-                    "then": "option_0",
+                    "if": "temp.atbash_decode == 'hello'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.atbash_decode", "eq": "Hello"},
-                    "then": "option_0",
+                    "if": "temp.atbash_decode == 'Hello'",
+                    "then": "$0",
                 },
             ],
-            default_path="option_1",
+            default_path="$1",
             x=2100,
             y=0,
         ),
@@ -1021,12 +1016,12 @@ def build_hub_flow_v2(
             "hq_route",
             conditions=[
                 {
-                    "if": {"var": "temp.mission_choice", "eq": "morse"},
-                    "then": "option_0",
+                    "if": "temp.mission_choice == 'morse'",
+                    "then": "$0",
                 },
                 {
-                    "if": {"var": "temp.mission_choice", "eq": "caesar"},
-                    "then": "option_1",
+                    "if": "temp.mission_choice == 'caesar'",
+                    "then": "$1",
                 },
             ],
             default_path="default",
@@ -1056,10 +1051,8 @@ def build_hub_flow_v2(
         ),
         condition_node(
             "hq_loop_check",
-            conditions=[
-                {"if": {"var": "temp.another", "eq": "yes"}, "then": "option_0"}
-            ],
-            default_path="option_1",
+            conditions=[{"if": "temp.another == 'yes'", "then": "$0"}],
+            default_path="$1",
             x=2400,
             y=0,
         ),
