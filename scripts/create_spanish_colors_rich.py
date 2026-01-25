@@ -425,36 +425,58 @@ def build_rich_colors_flow(theme_id: Optional[str]) -> Dict[str, Any]:
     }
 
 
-def create_flow(
+def create_or_update_flow(
     token: str,
     flow_data: Dict[str, Any],
     api_base: str,
+    flow_id: Optional[str] = None,
     school_id: Optional[str] = None,
     visibility: str = "public",
 ) -> Dict[str, Any]:
+    """Create a new flow or update an existing one."""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     if school_id:
         flow_data["school_id"] = school_id
     flow_data["visibility"] = visibility
+    flow_data["publish"] = True
 
-    response = requests.post(
-        f"{api_base}/cms/flows", headers=headers, json=flow_data, timeout=30
-    )
+    if flow_id:
+        response = requests.put(
+            f"{api_base}/cms/flows/{flow_id}",
+            headers=headers,
+            json=flow_data,
+            timeout=30,
+        )
+        action = "Updated"
+        expected_status = 200
+    else:
+        response = requests.post(
+            f"{api_base}/cms/flows", headers=headers, json=flow_data, timeout=30
+        )
+        action = "Created"
+        expected_status = 201
 
-    if response.status_code != 201:
-        print(f"Error creating flow: {response.status_code}")
+    if response.status_code != expected_status:
+        print(f"Error: {response.status_code}")
         print(response.text)
         sys.exit(1)
 
-    return response.json()
+    result = response.json()
+    print(f"{action} flow: {result.get('name')} (ID: {result.get('id')})")
+    return result
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create enhanced Spanish Colors flow via API."
+        description="Create or update Spanish Colors (Rich) flow via API."
     )
     parser.add_argument("token", help="JWT token for CMS API")
+    parser.add_argument(
+        "--flow-id",
+        dest="flow_id",
+        help="Existing flow ID to update (creates new if not provided)",
+    )
     parser.add_argument(
         "--school-id", dest="school_id", help="School ID to own this flow"
     )
@@ -470,22 +492,28 @@ def main() -> None:
     parser.add_argument(
         "--api-base", dest="api_base", default=API_BASE, help="API base URL"
     )
+    parser.add_argument(
+        "--json-only",
+        action="store_true",
+        help="Only print JSON output, don't call API",
+    )
     args = parser.parse_args()
 
-    flow = create_flow(
-        args.token,
-        build_rich_colors_flow(args.theme_id),
-        args.api_base,
-        args.school_id,
-        args.visibility,
-    )
+    flow_data = build_rich_colors_flow(args.theme_id)
 
-    print("Created Spanish Colors (Rich) flow:")
-    print(f"- {flow['name']} (ID: {flow['id']})")
-    print(f"  Visibility: {args.visibility}, School: {args.school_id or 'None'}")
-    print(
-        f"\nBuilder URL: http://localhost:3000/admin/chatflows/flows/{flow['id']}/builder/"
-    )
+    if args.json_only:
+        import json
+
+        print(json.dumps(flow_data, indent=2))
+    else:
+        create_or_update_flow(
+            args.token,
+            flow_data,
+            args.api_base,
+            args.flow_id,
+            args.school_id,
+            args.visibility,
+        )
 
 
 if __name__ == "__main__":

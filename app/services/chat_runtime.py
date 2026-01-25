@@ -130,12 +130,30 @@ class MessageNodeProcessor(NodeProcessor):
                     message["delay"] = msg_config["delay"]
                 messages.append(message)
 
-        # Fallback: check for direct "text" in node content
-        if not messages and node_content.get("text"):
-            raw_text = node_content["text"]
-            # Apply variable substitution from session state
-            rendered_text = self.runtime.substitute_variables(raw_text, session_state)
-            messages.append({"type": "text", "text": rendered_text})
+        # Fallback: check for direct "text" or "rich_text" in node content
+        if not messages:
+            if node_content.get("rich_text"):
+                raw_rich = node_content["rich_text"]
+                rendered_rich = self.runtime.substitute_variables(
+                    raw_rich, session_state
+                )
+                fallback = node_content.get("fallback_text", "")
+                if fallback:
+                    fallback = self.runtime.substitute_variables(
+                        fallback, session_state
+                    )
+                messages.append(
+                    {
+                        "type": "text",
+                        "content": {"rich_text": rendered_rich, "text": fallback},
+                    }
+                )
+            elif node_content.get("text"):
+                raw_text = node_content["text"]
+                rendered_text = self.runtime.substitute_variables(
+                    raw_text, session_state
+                )
+                messages.append({"type": "text", "text": rendered_text})
 
         # Record the message in history
         await chat_repo.add_interaction_history(
@@ -1268,7 +1286,12 @@ class ChatRuntime:
                 if next_node:
                     next_result = await self.process_node(db, next_node, session)
                     session = await self._refresh_session(db, session)
-                    result["messages"] = [next_result] if next_result else []
+
+                    # Extract messages properly from the result
+                    if next_result and next_result.get("type") == "messages":
+                        result["messages"] = next_result.get("messages", [])
+                    else:
+                        result["messages"] = [next_result] if next_result else []
 
                     # Determine session position: if the processed node's next_node is a QUESTION,
                     # position the session at that QUESTION so user input goes there
@@ -1277,6 +1300,14 @@ class ChatRuntime:
                     if chained_next and isinstance(chained_next, FlowNode):
                         if chained_next.node_type == NodeType.QUESTION:
                             session_position = chained_next.node_id
+                            # Set input_request for the chained question
+                            q_content = chained_next.content or {}
+                            result["input_request"] = {
+                                "input_type": q_content.get("input_type", "text"),
+                                "variable": q_content.get("variable", ""),
+                                "options": q_content.get("options", []),
+                                "question": q_content.get("question", {}),
+                            }
 
                     result["current_node_id"] = session_position
 
