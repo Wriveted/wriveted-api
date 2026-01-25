@@ -205,6 +205,33 @@ size(temp.items) > 0
 has(user.email) && user.email.endsWith("@company.com")
 ```
 
+#### CEL Variable Naming Limitation
+
+**Important**: The cel-python library has a parsing limitation with identifiers that end in digits. Variable names like `answer1`, `quiz_answer2`, or `option_3` will cause parsing errors when accessed with dot notation.
+
+**Problematic (will fail)**:
+```
+temp.answer1 == 'correct'
+temp.quiz_answer2 == 'yes'
+```
+
+**Solutions**:
+
+1. **Use bracket notation** (recommended for existing variables):
+```
+temp['answer1'] == 'correct'
+temp['quiz_answer2'] == 'yes'
+```
+
+2. **Avoid trailing digits in variable names** (recommended for new flows):
+```
+temp.answer_one == 'correct'
+temp.quiz_answer_second == 'yes'
+temp.first_answer == 'correct'
+```
+
+This limitation only affects CEL expressions in CONDITION nodes. Variable storage and template substitution (`{{ temp.answer1 }}`) work normally with any variable name.
+
 ### JSON Conditions (Legacy)
 For backward compatibility, JSON-based conditions are also supported:
 ```json

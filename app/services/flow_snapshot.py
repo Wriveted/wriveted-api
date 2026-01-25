@@ -140,12 +140,79 @@ async def build_snapshot_from_db(
 async def materialize_snapshot(
     session: AsyncSession, flow_id: UUID, snapshot: Dict[str, Any]
 ) -> None:
-    """Idempotently apply snapshot nodes/connections to canonical tables.
+    """Apply snapshot nodes/connections to canonical tables.
 
-    Upserts nodes and connections present in the snapshot.
+    Performs a full replacement: deletes nodes/connections not in the snapshot,
+    then upserts those that are present.
     """
+    from sqlalchemy import delete
+
     nodes = snapshot.get("nodes", []) or []
     connections = snapshot.get("connections", []) or snapshot.get("edges", []) or []
+
+    # Collect node IDs from the new snapshot
+    new_node_ids = set()
+    for node in nodes:
+        node_id = _extract_node_id(node)
+        if node_id:
+            new_node_ids.add(node_id)
+
+    # Delete nodes not in the new snapshot
+    if new_node_ids:
+        await session.execute(
+            delete(FlowNode).where(
+                FlowNode.flow_id == flow_id,
+                ~FlowNode.node_id.in_(new_node_ids),
+            )
+        )
+    else:
+        # If no nodes in snapshot, delete all nodes for this flow
+        await session.execute(delete(FlowNode).where(FlowNode.flow_id == flow_id))
+
+    # Collect connection identifiers from the new snapshot
+    new_connections = set()
+    for conn in connections:
+        data = _safe_dict(conn.get("data"))
+        source = conn.get("source") or conn.get("source_node_id") or ""
+        target = conn.get("target") or conn.get("target_node_id") or ""
+        raw_type = (
+            conn.get("connection_type")
+            or data.get("connection_type")
+            or conn.get("type")
+            or data.get("type")
+        )
+        ctype = token_to_enum(raw_type)
+        if source and target:
+            new_connections.add((source, target, ctype))
+
+    # Delete connections not in the new snapshot
+    if new_connections:
+        # Get existing connections for this flow
+        result = await session.execute(
+            select(
+                FlowConnection.id,
+                FlowConnection.source_node_id,
+                FlowConnection.target_node_id,
+                FlowConnection.connection_type,
+            ).where(FlowConnection.flow_id == flow_id)
+        )
+        existing = result.all()
+        ids_to_delete = [
+            row[0]
+            for row in existing
+            if (row[1], row[2], row[3]) not in new_connections
+        ]
+        if ids_to_delete:
+            await session.execute(
+                delete(FlowConnection).where(FlowConnection.id.in_(ids_to_delete))
+            )
+    else:
+        # If no connections in snapshot, delete all connections for this flow
+        await session.execute(
+            delete(FlowConnection).where(FlowConnection.flow_id == flow_id)
+        )
+
+    await session.flush()
 
     # Upsert nodes
     for node in nodes:
