@@ -1095,6 +1095,14 @@ class ChatRuntime:
                     and next_result.get("type") == "question"
                 ):
                     awaiting_input = True
+                    # Add input_request for direct question nodes
+                    q_content = response["next_node"].content or {}
+                    result["input_request"] = {
+                        "input_type": q_content.get("input_type", "text"),
+                        "variable": q_content.get("variable", ""),
+                        "options": q_content.get("options", []),
+                        "question": q_content.get("question", {}),
+                    }
                 if chained_next_node:
                     # Handle FlowNode objects
                     if isinstance(chained_next_node, FlowNode):
@@ -1102,6 +1110,14 @@ class ChatRuntime:
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
                             awaiting_input = True
+                            # Add input_request for chained question nodes
+                            q_content = chained_next_node.content or {}
+                            result["input_request"] = {
+                                "input_type": q_content.get("input_type", "text"),
+                                "variable": q_content.get("variable", ""),
+                                "options": q_content.get("options", []),
+                                "question": q_content.get("question", {}),
+                            }
                     # Handle dict results (e.g., from composite node sub-flows)
                     elif isinstance(chained_next_node, dict):
                         if chained_next_node.get("type") == "question":
@@ -1117,6 +1133,15 @@ class ChatRuntime:
                                         else sub_flow_id
                                     )
                                 awaiting_input = True
+                                # Add input_request from dict question
+                                result["input_request"] = {
+                                    "input_type": chained_next_node.get(
+                                        "input_type", "text"
+                                    ),
+                                    "variable": chained_next_node.get("variable", ""),
+                                    "options": chained_next_node.get("options", []),
+                                    "question": chained_next_node.get("question", {}),
+                                }
 
                 result["current_node_id"] = session_position
 
@@ -1136,7 +1161,7 @@ class ChatRuntime:
                     # If next node is a FlowNode
                     if isinstance(chained_next_node, FlowNode):
                         if chained_next_node.node_type == NodeType.QUESTION:
-                            # Stop at question - already handled above
+                            # Stop at question and include its content in response
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
                             session = await self._refresh_session(db, session)
@@ -1148,6 +1173,14 @@ class ChatRuntime:
                                 current_flow_id=session_flow_id,
                                 expected_revision=session.revision,
                             )
+                            # Add question content to input_request for frontend
+                            q_content = chained_next_node.content or {}
+                            result["input_request"] = {
+                                "input_type": q_content.get("input_type", "text"),
+                                "variable": q_content.get("variable", ""),
+                                "options": q_content.get("options", []),
+                                "question": q_content.get("question", {}),
+                            }
                             awaiting_input = True
                             break
                         elif chained_next_node.node_type in (
