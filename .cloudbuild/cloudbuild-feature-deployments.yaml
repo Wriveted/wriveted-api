@@ -101,9 +101,10 @@ steps:
         GCP_CLOUD_TASKS_NAME=background-tasks,
         WRIVETED_INTERNAL_API=https://wriveted-api-development-internal-lg5ntws4da-ts.a.run.app,
         NIELSEN_API_URL=https://ws.nielsenbookdataonline.com/BDOLRest/RESTwebServices/BDOLrequest,
-        NIELSEN_CLIENT_ID=WrivetedWebServices
+        NIELSEN_CLIENT_ID=WrivetedWebServices,
+        CSRF_SKIP_COOKIE_VALIDATION=True
       - >-
-        --set-secrets=        
+        --set-secrets=
         POSTGRESQL_PASSWORD=wriveted-api-cloud-sql-password:latest,
         SECRET_KEY=wriveted-api-secret-key:latest,
         SENDGRID_API_KEY=sendgrid-api-key:latest,
