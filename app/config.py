@@ -108,6 +108,8 @@ class Settings(BaseSettings):
                 f"{project}:{location}:{cloud_sql_instance_id}"
             )
             query = {"host": f"{socket_path}/{cloud_sql_instance_connection}"}
+            db_host = None
+            db_port = None
 
         # Assemble it all together:
         url_object = URL.create(
@@ -156,6 +158,8 @@ class Settings(BaseSettings):
                 f"{project}:{location}:{cloud_sql_instance_id}"
             )
             query = {"host": f"{socket_path}/{cloud_sql_instance_connection}"}
+            db_host = None
+            db_port = None
 
         # Assemble it all together:
         url_object = URL.create(
