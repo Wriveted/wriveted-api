@@ -104,7 +104,7 @@ async def start_conversation(
 
         # Load theme if flow has one configured
         theme_id = None
-        theme_config = None
+        theme_response = None
         flow = await crud.flow.aget(session, session_data.flow_id)
         if flow and flow.flow_data:
             # Theme ID can be in flow_data.theme_id or info.theme_id
@@ -116,7 +116,7 @@ async def start_conversation(
                         if isinstance(theme_id_str, str)
                         else theme_id_str
                     )
-                    # Load the theme config
+                    # Load the theme
                     theme_result = await session.execute(
                         select(ChatTheme).where(
                             ChatTheme.id == theme_id, ChatTheme.is_active == True
@@ -124,7 +124,14 @@ async def start_conversation(
                     )
                     theme = theme_result.scalar_one_or_none()
                     if theme:
-                        theme_config = theme.config
+                        # Return full theme object for frontend
+                        theme_response = {
+                            "id": str(theme.id),
+                            "name": theme.name,
+                            "config": theme.config,
+                            "logo_url": theme.logo_url,
+                            "avatar_url": theme.avatar_url,
+                        }
                 except (ValueError, TypeError):
                     logger.warning(
                         "Invalid theme_id in flow",
@@ -169,7 +176,7 @@ async def start_conversation(
             csrf_token=csrf_token,  # Include in response for cross-origin scenarios
             next_node=initial_node,
             theme_id=theme_id,
-            theme=theme_config,
+            theme=theme_response,
             flow_name=flow.name if flow else None,
         )
 
