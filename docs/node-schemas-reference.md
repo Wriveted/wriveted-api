@@ -114,11 +114,11 @@ class ConditionNodeContent(BaseModel):
   "conditions": [
     {
       "if": {"var": "user.age", "gte": 18},
-      "then": "option_0"
+      "then": "$0"
     },
     {
       "if": {"var": "user.country", "eq": "NZ"},
-      "then": "option_1"
+      "then": "$1"
     }
   ],
   "default_path": "option_2"
@@ -131,10 +131,10 @@ class ConditionNodeContent(BaseModel):
   "conditions": [
     {
       "if": "user.age >= 18 && user.country == 'NZ'",
-      "then": "option_0"
+      "then": "$0"
     }
   ],
-  "default_path": "option_1"
+  "default_path": "$1"
 }
 ```
 
@@ -142,7 +142,7 @@ class ConditionNodeContent(BaseModel):
 - **Conditions Array** (required): List of condition objects evaluated in order
   - Each condition has:
     - `if`: Condition expression (CEL or JSON Logic format)
-    - `then`: Connection path to follow (`option_0`, `option_1`, etc.)
+    - `then`: Connection path to follow (`$0`, `$1`, etc.)
 - **Default Path** (required): Fallback path if no conditions match
 - **Logic Type** (implicit): Conditions evaluated sequentially (first match wins)
 
@@ -498,7 +498,7 @@ class WebhookNodeContent(BaseModel):
 
 ## 8. Flow Entry Point
 
-Flows do not use a dedicated START node. Instead, the `entry_node_id` field on the flow definition specifies which node to begin execution at. This should point directly to the first meaningful node (typically a MESSAGE or QUESTION node).
+Flows specify their entry point via `entry_node_id`, which should point directly to the first meaningful node (typically a MESSAGE or QUESTION node).
 
 ```json
 {
@@ -524,7 +524,7 @@ For composite nodes, execution begins at the first node in the `nodes` array.
 Nodes connect via `FlowConnection` with types:
 
 - `DEFAULT`: Standard connection
-- `OPTION_0`, `OPTION_1`, `OPTION_2`, `OPTION_3`: Condition branches
+- `OPTION_0`, `OPTION_1`: Condition branches (paths `$0` and `$1`)
 - `SUCCESS`, `FAILURE`: Action/webhook outcomes
 - `TIMEOUT`: Timeout branch
 - `ERROR`: Error handling branch
@@ -575,7 +575,6 @@ Based on UX assessment and user needs:
 5. 🟠 **ACTION** - Medium priority (multiple action types)
 6. 🟠 **COMPOSITE** - Medium priority (complex mapping)
 7. 🟠 **WEBHOOK** - Medium priority (external integrations)
-8. ⚪ **START** - Low priority (necessity under review)
 
 ---
 

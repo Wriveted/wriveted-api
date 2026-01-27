@@ -545,10 +545,10 @@ def test_publish_flow(client, backend_service_account_headers):
             "nodes": [
                 {
                     "id": "start",
-                    "type": "start",
+                    "type": "message",
+                    "content": {"text": "Welcome to the test flow"},
                     "data": {
                         "name": "Start Node",
-                        "message": "Welcome to the test flow",
                     },
                     "position": {"x": 100, "y": 100},
                 }

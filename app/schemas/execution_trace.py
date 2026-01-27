@@ -83,14 +83,6 @@ class WebhookExecutionDetails(BaseModel):
     error: Optional[str] = None
 
 
-class StartExecutionDetails(BaseModel):
-    """Execution details for START nodes."""
-
-    type: Literal["start"] = "start"
-    entry_point: bool = True
-    initial_context: Dict[str, Any] = Field(default_factory=dict)
-
-
 class CompositeExecutionDetails(BaseModel):
     """Execution details for COMPOSITE nodes."""
 
@@ -107,7 +99,6 @@ ExecutionDetails = Union[
     MessageExecutionDetails,
     ActionExecutionDetails,
     WebhookExecutionDetails,
-    StartExecutionDetails,
     CompositeExecutionDetails,
 ]
 

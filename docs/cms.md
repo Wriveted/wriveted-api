@@ -113,7 +113,6 @@ Individual nodes within a flow.
 
 ```sql
 CREATE TYPE enum_flow_node_type AS ENUM (
-    'start',
     'message',
     'question',
     'condition',
@@ -174,10 +173,10 @@ Node content examples:
   "conditions": [
     {
       "if": "user.age >= 13",
-      "then": "option_0"
+      "then": "$0"
     }
   ],
-  "default_path": "option_1"
+  "default_path": "$1"
 }
 
 // Action Node
@@ -763,7 +762,11 @@ Body: {
 Response: {
   "session_id": "uuid",
   "session_token": "token",
-  "next_node": {...}
+  "csrf_token": "token",
+  "next_node": {...},
+  "theme_id": "uuid",
+  "theme": {...},
+  "flow_name": "Welcome Flow"
 }
 
 # Get session state
@@ -785,10 +788,13 @@ Body: {
 Response: {
   "messages": [...],
   "input_request": {
-    "type": "buttons|text|file",
-    "options": [...]
+    "input_type": "text|button|file|choice|number|email|date|slider|image_choice|carousel|multiple_choice|continue",
+    "variable": "temp.answer",
+    "options": [...],
+    "question": {...}
   },
-  "session_ended": false
+  "session_ended": false,
+  "current_node_id": "node_id"
 }
 
 # Get conversation history

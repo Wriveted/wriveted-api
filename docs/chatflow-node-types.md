@@ -18,7 +18,7 @@ This document describes the supported node types in the chatflow system, their c
 
 ## Flow Entry Point
 
-Flows specify their entry point via the `entry_node_id` field, which should point directly to the first meaningful node (typically a MESSAGE or QUESTION node). There is no dedicated START node type - the runtime begins execution at whatever node `entry_node_id` references.
+Flows specify their entry point via the `entry_node_id` field, which should point directly to the first meaningful node (typically a MESSAGE or QUESTION node).
 
 ```json
 {
@@ -56,8 +56,6 @@ Displays one or more messages to the user.
   "wait_for_ack": false
 }
 ```
-
-Note: `config.endpoint` is relative to the `WRIVETED_INTERNAL_API` base URL.
 
 **Option 2: Direct Text (fallback)**
 ```json
@@ -175,14 +173,14 @@ Evaluates conditions and branches the flow based on session state.
   "conditions": [
     {
       "if": "temp.age >= 18",
-      "then": "option_0"
+      "then": "$0"
     },
     {
       "if": "temp.age < 18",
-      "then": "option_1"
+      "then": "$1"
     }
   ],
-  "default_path": "option_0"
+  "default_path": "$0"
 }
 ```
 
@@ -192,8 +190,15 @@ Evaluates conditions and branches the flow based on session state.
 |-------|------|----------|---------|-------------|
 | `conditions` | array | **Yes** | `[]` | Array of condition rules |
 | `conditions[].if` | string | **Yes** | - | CEL expression or JSON condition |
-| `conditions[].then` | string | **Yes** | - | Path to take if true (`option_0`, `option_1`, etc.) |
+| `conditions[].then` | string | **Yes** | - | Path to take if true (`$0`, `$1`, etc.) |
 | `default_path` | string | No | - | Path if no conditions match |
+
+### Connection Path Mapping
+
+Condition paths map to connection types:
+- `$0` → `OPTION_0`
+- `$1` → `OPTION_1`
+- Anything else → `DEFAULT`
 
 ### CEL Expressions (Recommended)
 Uses Common Expression Language (CEL) for condition evaluation:
@@ -257,9 +262,9 @@ For backward compatibility, JSON-based conditions are also supported:
 | `not` | Logical NOT |
 
 ### Connection Types
-- `option_0` → `$0` connection (OPTION_0)
-- `option_1` → `$1` connection (OPTION_1)
-- `default` → `default` connection (DEFAULT)
+- `$0` → `OPTION_0`
+- `$1` → `OPTION_1`
+- `default` → `DEFAULT`
 
 ---
 
@@ -311,6 +316,8 @@ Executes backend actions like setting variables or triggering events.
 | `delete_variable` | `variable` | - | Remove a variable from state |
 | `aggregate` | `expression`, `target` | - | Aggregate list values using CEL expressions |
 | `api_call` | `config.endpoint` | `config.method`, `config.headers`, `config.query_params`, `config.body`, `config.response_mapping`, `config.response_variable`, `config.error_variable` | Make an internal API call |
+
+Note: `config.endpoint` is relative to the `WRIVETED_INTERNAL_API` base URL.
 
 ### Aggregate Action
 

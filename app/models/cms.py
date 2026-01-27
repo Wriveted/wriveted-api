@@ -46,7 +46,6 @@ class ExecutionContext(CaseInsensitiveStringEnum):
 
 
 class NodeType(CaseInsensitiveStringEnum):
-    START = "start"
     MESSAGE = "message"
     QUESTION = "question"
     CONDITION = "condition"

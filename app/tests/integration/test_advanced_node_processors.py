@@ -896,7 +896,7 @@ class TestConditionNodeProcessor:
             context={},
         )
 
-        # assert result["target_path"] == "adult_verified"  # Updated for new API
+        assert result["condition_result"] is True
 
     @pytest.mark.asyncio
     async def test_logical_or_condition(
@@ -933,7 +933,7 @@ class TestConditionNodeProcessor:
             context={},
         )
 
-        # assert result["target_path"] == "has_permissions"  # Updated for new API
+        assert result["condition_result"] is True
 
     @pytest.mark.asyncio
     async def test_logical_not_condition(
@@ -964,7 +964,7 @@ class TestConditionNodeProcessor:
             context={},
         )
 
-        # assert result["target_path"] == "user_allowed"  # Updated for new API
+        assert result["condition_result"] is True
 
     @pytest.mark.asyncio
     async def test_in_condition(

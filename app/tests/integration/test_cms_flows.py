@@ -375,8 +375,9 @@ class TestFlowPublishing:
                 "nodes": [
                     {
                         "id": "start",
-                        "type": "start",
-                        "data": {"name": "Start Node", "message": "Welcome"},
+                        "type": "message",
+                        "content": {"text": "Welcome"},
+                        "data": {"name": "Start Node"},
                         "position": {"x": 100, "y": 100},
                     }
                 ],
@@ -412,8 +413,9 @@ class TestFlowPublishing:
                 "nodes": [
                     {
                         "id": "start",
-                        "type": "start",
-                        "data": {"name": "Start Node", "message": "Welcome"},
+                        "type": "message",
+                        "content": {"text": "Welcome"},
+                        "data": {"name": "Start Node"},
                         "position": {"x": 100, "y": 100},
                     }
                 ],
@@ -468,10 +470,10 @@ class TestFlowPublishing:
                 "nodes": [
                     {
                         "id": "start",
-                        "type": "start",
+                        "type": "message",
+                        "content": {"text": "Welcome to versioned flow"},
                         "data": {
                             "name": "Start Node",
-                            "message": "Welcome to versioned flow",
                         },
                         "position": {"x": 100, "y": 100},
                     }

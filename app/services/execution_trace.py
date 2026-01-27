@@ -371,8 +371,6 @@ class ExecutionTraceService:
             return self._build_action_details(result, node_content)
         elif node_type_lower == "webhook":
             return self._build_webhook_details(result, node_content)
-        elif node_type_lower == "start":
-            return self._build_start_details(result, node_content)
         else:
             return {"type": node_type_lower, "raw": result}
 
@@ -481,16 +479,6 @@ class ExecutionTraceService:
             "response_body": response_body,
             "duration_ms": result.get("duration_ms"),
             "error": result.get("error"),
-        }
-
-    def _build_start_details(
-        self, result: Dict[str, Any], content: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Build start node execution details."""
-        return {
-            "type": "start",
-            "entry_point": True,
-            "initial_context": result.get("initial_context", {}),
         }
 
     def efficient_state_copy(self, state: Dict[str, Any]) -> Dict[str, Any]:

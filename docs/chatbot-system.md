@@ -112,7 +112,7 @@ Performance benefits of frontend execution:
 - **`cms_content`**: Stores all content types (jokes, facts, questions, quotes, messages, prompts)
 - **`cms_content_variants`**: A/B testing variants with performance tracking
 - **`flow_definitions`**: Chatbot flow definitions (replacing Landbot flows)
-- **`flow_nodes`**: Individual nodes within flows (start, message, question, condition, action, webhook, composite, script)
+- **`flow_nodes`**: Individual nodes within flows (message, question, condition, action, webhook, composite, script)
 - **`flow_connections`**: Connections between nodes with conditional logic
 - **`conversation_sessions`**: Active chat sessions with state management and concurrency control
 - **`conversation_history`**: Complete interaction history

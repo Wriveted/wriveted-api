@@ -542,11 +542,6 @@ class WebhookExecutionDetails(BaseModel):
     duration_ms: Optional[int] = None
     error: Optional[str] = None
 
-class StartExecutionDetails(BaseModel):
-    type: Literal["start"] = "start"
-    entry_point: bool = True
-    initial_context: Dict[str, Any] = Field(default_factory=dict)
-
 # Union type for execution details
 ExecutionDetails = (
     ConditionExecutionDetails |
@@ -554,8 +549,7 @@ ExecutionDetails = (
     QuestionExecutionDetails |
     MessageExecutionDetails |
     ActionExecutionDetails |
-    WebhookExecutionDetails |
-    StartExecutionDetails
+    WebhookExecutionDetails
 )
 
 # Response schemas
@@ -608,7 +602,7 @@ Response:
             "ended_at": "2025-01-15T10:35:00Z",
             "total_steps": 12,
             "has_errors": false,
-            "path_summary": ["start", "welcome", "ask_genre", "check_genre", "fantasy_path", "end"]
+            "path_summary": ["welcome", "ask_genre", "check_genre", "fantasy_path", "end"]
         }
     ],
     "total": 150,
