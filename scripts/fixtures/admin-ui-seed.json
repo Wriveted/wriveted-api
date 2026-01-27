@@ -1,0 +1,297 @@
+{
+  "seed_key": "admin-ui-demo",
+  "school": {
+    "seed_key": "admin-ui-school",
+    "name": "Admin UI Test School",
+    "wriveted_identifier": "84a5ade6-7f75-4155-831a-1d84c6256fc3",
+    "state": "active",
+    "bookbot_type": "huey_books",
+    "info": {
+      "location": {
+        "country": "NZ",
+        "state": "Canterbury",
+        "city": "Christchurch"
+      }
+    }
+  },
+  "class_groups": [
+    {
+      "seed_key": "admin-ui-class",
+      "name": "Admin UI Test Class",
+      "join_code": "TEST01"
+    }
+  ],
+  "users": [
+    {
+      "label": "wriveted_admin",
+      "type": "wriveted_admin",
+      "email": "wriveted-admin@local.test",
+      "name": "Wriveted Admin"
+    },
+    {
+      "label": "school_admin",
+      "type": "school_admin",
+      "email": "school-admin@local.test",
+      "name": "School Admin",
+      "school_seed_key": "admin-ui-school"
+    },
+    {
+      "label": "educator",
+      "type": "educator",
+      "email": "educator@local.test",
+      "name": "Test Educator",
+      "school_seed_key": "admin-ui-school"
+    },
+    {
+      "label": "parent",
+      "type": "parent",
+      "email": "parent@local.test",
+      "name": "Test Parent"
+    },
+    {
+      "label": "student",
+      "type": "student",
+      "email": "student@local.test",
+      "name": "Test Student",
+      "username": "student1",
+      "school_seed_key": "admin-ui-school",
+      "class_group": "Admin UI Test Class",
+      "parent_email": "parent@local.test"
+    },
+    {
+      "label": "public_reader",
+      "type": "public_reader",
+      "email": "public-reader@local.test",
+      "name": "Public Reader"
+    },
+    {
+      "label": "supporter",
+      "type": "supporter",
+      "email": "supporter@local.test",
+      "name": "Supporter"
+    }
+  ],
+  "hues": [
+    {
+      "key": "hue08_charming_courageous",
+      "name": "Charming & Courageous"
+    }
+  ],
+  "reading_abilities": [
+    {
+      "key": "TREEHOUSE",
+      "name": "Treehouse"
+    }
+  ],
+  "works": [
+    {
+      "seed_key": "lost-map",
+      "title": "The Lost Map",
+      "isbn": "9780000000001",
+      "cover_url": "https://placehold.co/400x600/png?text=The+Lost+Map",
+      "labelset": {
+        "min_age": 9,
+        "max_age": 12,
+        "hues": [
+          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+        ],
+        "reading_abilities": ["TREEHOUSE"]
+      }
+    },
+    {
+      "seed_key": "space-explorers",
+      "title": "Space Explorers",
+      "isbn": "9780000000002",
+      "cover_url": "https://placehold.co/400x600/png?text=Space+Explorers",
+      "labelset": {
+        "min_age": 9,
+        "max_age": 12,
+        "hues": [
+          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+        ],
+        "reading_abilities": ["TREEHOUSE"]
+      }
+    },
+    {
+      "seed_key": "mystery-museum",
+      "title": "Mystery at the Museum",
+      "isbn": "9780000000003",
+      "cover_url": "https://placehold.co/400x600/png?text=Mystery+at+the+Museum",
+      "labelset": {
+        "min_age": 9,
+        "max_age": 12,
+        "hues": [
+          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+        ],
+        "reading_abilities": ["TREEHOUSE"]
+      }
+    }
+  ],
+  "collections": [
+    {
+      "seed_key": "admin-ui-school-collection",
+      "name": "Admin UI Test Collection",
+      "school_seed_key": "admin-ui-school",
+      "items": [
+        {"isbn": "9780000000001", "copies_total": 5, "copies_available": 3},
+        {"isbn": "9780000000002", "copies_total": 4, "copies_available": 4},
+        {"isbn": "9780000000003", "copies_total": 6, "copies_available": 5}
+      ]
+    }
+  ],
+  "booklists": [
+    {
+      "seed_key": "admin-ui-booklist",
+      "name": "Admin UI Test Booklist",
+      "type": "school",
+      "sharing": "public",
+      "school_seed_key": "admin-ui-school",
+      "items": [
+        {"isbn": "9780000000001", "order": 1},
+        {"isbn": "9780000000002", "order": 2},
+        {"isbn": "9780000000003", "order": 3}
+      ]
+    }
+  ],
+  "cms_content": [
+    {
+      "seed_key": "admin_ui_welcome",
+      "type": "message",
+      "visibility": "school",
+      "status": "published",
+      "tags": ["admin-ui", "demo"],
+      "content": {
+        "messages": [
+          {"type": "text", "text": "Welcome to the Huey Books demo content!"}
+        ]
+      }
+    },
+    {
+      "seed_key": "admin_ui_genre_question",
+      "type": "question",
+      "visibility": "school",
+      "status": "published",
+      "tags": ["admin-ui", "demo"],
+      "content": {
+        "question": {"text": "What kind of stories do you enjoy most?"},
+        "input_type": "choice",
+        "options": [
+          {"label": "Fantasy", "value": "fantasy"},
+          {"label": "Mystery", "value": "mystery"},
+          {"label": "Adventure", "value": "adventure"}
+        ],
+        "variable": "temp.genre"
+      }
+    },
+    {
+      "seed_key": "admin_ui_fact",
+      "type": "fact",
+      "visibility": "school",
+      "status": "published",
+      "tags": ["admin-ui", "demo"],
+      "content": {
+        "fact": {"text": "Did you know? Reading 20 minutes a day grows vocabulary fast."}
+      }
+    }
+  ],
+  "flows": [
+    {
+      "seed_key": "admin-ui-demo-flow",
+      "name": "Admin UI Demo Flow",
+      "description": "Simple demo flow for admin UI testing.",
+      "version": "1.0.0",
+      "entry_node_id": "welcome",
+      "visibility": "school",
+      "school_seed_key": "admin-ui-school",
+      "flow_data": {
+        "nodes": [
+          {
+            "id": "welcome",
+            "type": "message",
+            "content": {
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Welcome to the Huey Books demo flow!"
+                }
+              ]
+            },
+            "position": {"x": 200, "y": 100}
+          },
+          {
+            "id": "ask_genre",
+            "type": "question",
+            "content": {
+              "question": {"text": "Pick a genre you like:"},
+              "input_type": "choice",
+              "options": [
+                {"label": "Fantasy", "value": "fantasy"},
+                {"label": "Mystery", "value": "mystery"}
+              ],
+              "variable": "temp.genre"
+            },
+            "position": {"x": 450, "y": 100}
+          },
+          {
+            "id": "genre_branch",
+            "type": "condition",
+            "content": {
+              "conditions": [
+                {"if": "temp.genre == 'fantasy'", "then": "$0"},
+                {"if": "temp.genre == 'mystery'", "then": "$1"}
+              ],
+              "default_path": "default"
+            },
+            "position": {"x": 700, "y": 100}
+          },
+          {
+            "id": "fantasy_msg",
+            "type": "message",
+            "content": {
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Great choice! Fantasy stories are full of magic and adventure."
+                }
+              ]
+            },
+            "position": {"x": 950, "y": 40}
+          },
+          {
+            "id": "mystery_msg",
+            "type": "message",
+            "content": {
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Mysteries are the best! Time to crack the case."
+                }
+              ]
+            },
+            "position": {"x": 950, "y": 140}
+          },
+          {
+            "id": "default_msg",
+            "type": "message",
+            "content": {
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Thanks for sharing! Let's find some great books."
+                }
+              ]
+            },
+            "position": {"x": 950, "y": 240}
+          }
+        ],
+        "connections": [
+          {"source": "welcome", "target": "ask_genre", "type": "default"},
+          {"source": "ask_genre", "target": "genre_branch", "type": "default"},
+          {"source": "genre_branch", "target": "fantasy_msg", "type": "$0"},
+          {"source": "genre_branch", "target": "mystery_msg", "type": "$1"},
+          {"source": "genre_branch", "target": "default_msg", "type": "default"}
+        ]
+      }
+    }
+  ]
+}
