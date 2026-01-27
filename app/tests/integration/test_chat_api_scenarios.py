@@ -777,28 +777,31 @@ class TestChatAPIScenarios:
         assert len(messages) > 0, f"No messages in response: {final_response}"
         print(f"DEBUG: Messages: {messages}")
 
-        # Navigate to the actual message content in the nested structure
-        # messages[0] is the outer message wrapper
-        # messages[0]["messages"][0] is the actual message
-        # messages[0]["messages"][0]["content"]["messages"][0]["content"] is the text content
-        outer_message = messages[0]
-        inner_messages = outer_message.get("messages", [])
-        assert (
-            len(inner_messages) > 0
-        ), f"No inner messages in response: {outer_message}"
+        def extract_texts(payload_messages):
+            texts = []
+            for message in payload_messages:
+                if not isinstance(message, dict):
+                    continue
+                content = message.get("content")
+                if isinstance(content, dict):
+                    text_value = content.get("text")
+                    if isinstance(text_value, str):
+                        texts.append(text_value)
+                    inner_messages = content.get("messages", [])
+                    for inner in inner_messages:
+                        if isinstance(inner, dict):
+                            inner_text = inner.get("content")
+                            if isinstance(inner_text, str):
+                                texts.append(inner_text)
+                if isinstance(message.get("text"), str):
+                    texts.append(message["text"])
+            return texts
 
-        message = inner_messages[0]
-        content_obj = message.get("content", {})
-        content_messages = content_obj.get("messages", [])
-        assert (
-            len(content_messages) > 0
-        ), f"No content messages in response: {content_obj}"
-
-        text_message = content_messages[0]
-        message_content = text_message.get("content", "")
-        print(f"DEBUG: Message content: {message_content}")
+        extracted_texts = extract_texts(messages)
+        assert extracted_texts, f"No message text extracted from response: {messages}"
+        combined = " ".join(extracted_texts)
 
         # Check that variables have been substituted
-        assert "8" in message_content
-        assert "Advanced" in message_content
-        assert "Science Fiction" in message_content
+        assert "8" in combined
+        assert "Advanced" in combined
+        assert "Science Fiction" in combined

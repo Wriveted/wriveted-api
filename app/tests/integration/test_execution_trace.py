@@ -65,12 +65,6 @@ async def trace_test_flow(async_client, backend_service_account_headers):
         "flow_data": {
             "nodes": [
                 {
-                    "id": "start",
-                    "type": "start",
-                    "content": {},
-                    "position": {"x": 100, "y": 100},
-                },
-                {
                     "id": "greeting",
                     "type": "message",
                     "content": {"messages": [{"type": "text", "content": "Hello!"}]},
@@ -84,11 +78,10 @@ async def trace_test_flow(async_client, backend_service_account_headers):
                 },
             ],
             "connections": [
-                {"source": "start", "target": "greeting", "type": "default"},
                 {"source": "greeting", "target": "question", "type": "default"},
             ],
         },
-        "entry_node_id": "start",
+        "entry_node_id": "greeting",
     }
 
     response = await async_client.post(
@@ -128,7 +121,7 @@ class TestExecutionTraceService:
             session_token=f"test-{uuid.uuid4().hex[:8]}",
             flow_id=uuid.UUID(trace_test_flow["id"]),
             status=SessionStatus.ACTIVE,
-            current_node_id="start",
+            current_node_id="greeting",
             state={"trace_enabled": True},
         )
         async_session.add(session)
@@ -138,21 +131,21 @@ class TestExecutionTraceService:
         step = await service.record_step(
             db=async_session,
             session_id=session.id,
-            node_id="start",
-            node_type="start",
+            node_id="greeting",
+            node_type="message",
             step_number=1,
             state_before={},
             state_after={"initialized": True},
-            execution_details={"type": "start", "entry_point": True},
+            execution_details={"type": "message"},
             connection_type="default",
-            next_node_id="greeting",
+            next_node_id="question",
             started_at=datetime.utcnow(),
             duration_ms=10,
         )
 
         assert step is not None
-        assert step.node_id == "start"
-        assert step.node_type == "start"
+        assert step.node_id == "greeting"
+        assert step.node_type == "message"
         assert step.step_number == 1
         assert step.duration_ms == 10
 
@@ -224,7 +217,6 @@ class TestExecutionTraceService:
         # Record multiple steps
         for i, (node_id, node_type) in enumerate(
             [
-                ("start", "start"),
                 ("greeting", "message"),
                 ("question", "question"),
             ],
@@ -247,12 +239,11 @@ class TestExecutionTraceService:
         # Get the trace
         trace = await service.get_session_trace(async_session, session.id)
 
-        assert trace["total_steps"] == 3
-        assert trace["total_duration_ms"] == 60  # 10 + 20 + 30
-        assert len(trace["steps"]) == 3
-        assert trace["steps"][0]["node_id"] == "start"
-        assert trace["steps"][1]["node_id"] == "greeting"
-        assert trace["steps"][2]["node_id"] == "question"
+        assert trace["total_steps"] == 2
+        assert trace["total_duration_ms"] == 30  # 10 + 20
+        assert len(trace["steps"]) == 2
+        assert trace["steps"][0]["node_id"] == "greeting"
+        assert trace["steps"][1]["node_id"] == "question"
 
     async def test_list_flow_sessions(self, async_session, trace_test_flow):
         """Test listing sessions for a flow with filtering."""
@@ -475,12 +466,12 @@ class TestSessionReplayAPI:
         await service.record_step(
             db=async_session,
             session_id=session.id,
-            node_id="start",
-            node_type="start",
+            node_id="greeting",
+            node_type="message",
             step_number=1,
             state_before={},
             state_after={},
-            execution_details={"type": "start"},
+            execution_details={"type": "message"},
         )
         await async_session.commit()
 

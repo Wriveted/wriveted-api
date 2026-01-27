@@ -265,15 +265,17 @@ class ConditionNodeProcessor:
         # Handle logical operators
         if "and" in condition:
             conditions = condition["and"]
-            return all(
+            results = [
                 await self._evaluate_condition(c, session_state) for c in conditions
-            )
+            ]
+            return all(results)
 
         if "or" in condition:
             conditions = condition["or"]
-            return any(
+            results = [
                 await self._evaluate_condition(c, session_state) for c in conditions
-            )
+            ]
+            return any(results)
 
         if "not" in condition:
             return not await self._evaluate_condition(condition["not"], session_state)

@@ -42,7 +42,6 @@ def _extract_node_type(node: Dict[str, Any]) -> NodeType:
 
     type_key = str(raw_type or "message").upper()
     type_map = {
-        "START": NodeType.START,
         "MESSAGE": NodeType.MESSAGE,
         "QUESTION": NodeType.QUESTION,
         "CONDITION": NodeType.CONDITION,

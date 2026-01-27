@@ -489,9 +489,7 @@ class CRUDFlow(CRUDBase[FlowDefinition, FlowCreate, FlowUpdate]):
             # Safely extract source flow attributes to avoid lazy loading issues
             # Use explicit getattr with defaults to be defensive
             source_description = getattr(source_flow, "description", "") or ""
-            source_entry_node_id = (
-                getattr(source_flow, "entry_node_id", "start") or "start"
-            )
+            source_entry_node_id = getattr(source_flow, "entry_node_id", None)
             source_info = getattr(source_flow, "info", {}) or {}
             source_flow_data = getattr(source_flow, "flow_data", {}) or {}
 
