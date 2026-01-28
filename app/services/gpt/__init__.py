@@ -8,7 +8,6 @@ from pydantic import ValidationError
 from structlog import get_logger
 
 import app.api.works
-from app import crud
 from app.config import get_settings
 from app.models.labelset import LabelOrigin
 from app.models.work import Work

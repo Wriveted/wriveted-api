@@ -119,7 +119,7 @@ async def start_conversation(
                     # Load the theme
                     theme_result = await session.execute(
                         select(ChatTheme).where(
-                            ChatTheme.id == theme_id, ChatTheme.is_active == True
+                            ChatTheme.id == theme_id, ChatTheme.is_active.is_(True)
                         )
                     )
                     theme = theme_result.scalar_one_or_none()

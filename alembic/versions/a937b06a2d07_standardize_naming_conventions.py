@@ -9,7 +9,6 @@ Create Date: 2026-01-09 11:13:23.636592
 import sqlalchemy as sa
 from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
-from sqlalchemy import text as sql_text
 from sqlalchemy.dialects import postgresql
 
 from alembic import op

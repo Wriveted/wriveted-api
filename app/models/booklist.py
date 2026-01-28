@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from fastapi_permissions import All, Allow, Authenticated
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func, select, text
@@ -11,6 +11,12 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 from app.db import Base
 from app.models.booklist_work_association import BookListItem
 from app.schemas import CaseInsensitiveStringEnum
+
+if TYPE_CHECKING:
+    from app.models.school import School
+    from app.models.service_account import ServiceAccount
+    from app.models.user import User
+    from app.models.work import Work
 
 
 class ListType(CaseInsensitiveStringEnum):

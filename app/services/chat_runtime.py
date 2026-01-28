@@ -9,6 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
 from app import crud
+from app.models.cms import (
+    CMSContent,
+    ConnectionType,
+    ContentType,
+    ConversationSession,
+    FlowConnection,
+    FlowNode,
+    InteractionType,
+    NodeType,
+    SessionStatus,
+)
+from app.repositories.chat_repository import chat_repo
+from app.repositories.cms_repository import CMSRepositoryImpl
+from app.services.execution_trace import execution_trace_service
+from app.services.variable_resolver import create_session_resolver
 
 
 class FlowNotFoundError(Exception):
@@ -25,22 +40,6 @@ def sanitize_user_input(user_input: str) -> str:
     """
     return html.escape(user_input) if user_input else user_input
 
-
-from app.models.cms import (
-    CMSContent,
-    ConnectionType,
-    ContentType,
-    ConversationSession,
-    FlowConnection,
-    FlowNode,
-    InteractionType,
-    NodeType,
-    SessionStatus,
-)
-from app.repositories.chat_repository import chat_repo
-from app.repositories.cms_repository import CMSRepositoryImpl
-from app.services.execution_trace import execution_trace_service
-from app.services.variable_resolver import create_session_resolver
 
 logger = get_logger()
 

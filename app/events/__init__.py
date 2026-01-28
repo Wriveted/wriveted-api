@@ -6,7 +6,6 @@ and webhook notification system.
 """
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -86,8 +85,6 @@ def setup_event_handlers(app: FastAPI) -> None:
     This can be called during application initialization to register
     application-specific event handlers.
     """
-    event_listener = get_event_listener()
-
     # Add any custom event handlers here
     # Example:
     # event_listener.register_handler("session_started", custom_session_handler)

@@ -258,7 +258,7 @@ class InternalApiClient:
         # Parse response
         try:
             return response.json()
-        except:
+        except ValueError:
             return {
                 "status": response.status_code,
                 "text": response.text[:1000] if response.text else None,

@@ -40,7 +40,7 @@ async def create_missing_editions(session, new_edition_data: list[EditionCreateI
             clean = get_definitive_isbn(edition.isbn)
             edition.isbn = clean
             isbns.add(clean)
-        except:
+        except Exception:
             logger.warning("Invalid isbn provided: " + edition.isbn)
             continue
 
@@ -135,7 +135,7 @@ def clean_isbns(isbns: list[str]) -> set[str]:
     for isbn in isbns:
         try:
             cleaned_isbns.add(get_definitive_isbn(isbn))
-        except:
+        except Exception:
             continue
     return cleaned_isbns
 

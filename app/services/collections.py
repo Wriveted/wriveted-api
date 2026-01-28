@@ -57,7 +57,6 @@ async def update_collection(
             collection_id=str(collection.id),
             collection_name=collection.name,
         )
-    summary_counts = {"added": 0, "removed": 0, "updated": 0}
     # If provided, update the items one by one
     # First process in bulk editions added or updated by ISBN (could add support for bulk update by ID if needed)
 
@@ -334,39 +333,6 @@ async def get_collection_info_with_criteria(
         "hydrated_and_labeled": result.labelled,
         "recommendable": result.recommendable,
     }
-
-    # Start from CollectionItem which has fewer records
-    query = (
-        select(Work, Edition, LabelSet)
-        .join(
-            CollectionItem, CollectionItem.collection_id == collection_id
-        )  # Start with CollectionItem
-        .join(Edition, Edition.isbn == CollectionItem.edition_isbn)
-        .join(Work, Work.id == Edition.work_id)
-        .join(
-            LabelSet, LabelSet.work_id == Work.id, isouter=True
-        )  # Outer join because labeling is optional
-        .distinct(Work.id)
-    )
-
-    # Filter as early as possible
-    if is_hydrated:
-        query = query.where(Edition.title.is_not(None))
-        query = query.where(Edition.cover_url.is_not(None))
-
-    if is_labelled:
-        query = (
-            query.where(LabelSet.hues.any())
-            .where(LabelSet.reading_abilities.any())
-            .where(LabelSet.min_age >= 0)
-            .where(LabelSet.max_age > 0)
-            .where(LabelSet.huey_summary.is_not(None))
-        )
-
-    if is_recommendable:
-        query = query.where(LabelSet.recommend_status == RecommendStatus.GOOD)
-
-    return query
 
 
 async def get_collection_items_also_in_booklist(

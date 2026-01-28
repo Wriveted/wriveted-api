@@ -343,7 +343,7 @@ async def hydrate_bulk(session, isbns_to_hydrate: list[str] = []):
 
             try:
                 isbn = get_definitive_isbn(isbn)
-            except:
+            except Exception:
                 logger.warning(f"Invalid ISBN {isbn}. Skipping...")
                 continue
 
