@@ -10,7 +10,7 @@ Handles ACTION nodes with various action types including:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Union
+from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger

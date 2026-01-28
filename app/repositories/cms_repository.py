@@ -180,8 +180,8 @@ class CMSRepositoryImpl(CMSRepository):
             select(FlowDefinition)
             .where(
                 and_(
-                    FlowDefinition.is_published == True,
-                    FlowDefinition.is_active == True,
+                    FlowDefinition.is_published.is_(True),
+                    FlowDefinition.is_active.is_(True),
                 )
             )
             .order_by(FlowDefinition.created_at.desc())
@@ -232,7 +232,7 @@ class CMSRepositoryImpl(CMSRepository):
         query = select(CMSContent).where(CMSContent.type == content_type)
 
         if active_only:
-            query = query.where(CMSContent.is_active == True)
+            query = query.where(CMSContent.is_active.is_(True))
 
         if tags:
             # PostgreSQL array overlap operator
@@ -263,7 +263,9 @@ class CMSRepositoryImpl(CMSRepository):
 
         query = (
             select(CMSContent)
-            .where(and_(CMSContent.type == content_type, CMSContent.is_active == True))
+            .where(
+                and_(CMSContent.type == content_type, CMSContent.is_active.is_(True))
+            )
             .order_by(func.random())
             .limit(1)
         )
@@ -306,7 +308,7 @@ class CMSRepositoryImpl(CMSRepository):
         # Start with base conditions
         conditions = [
             CMSContent.type == content_type,
-            CMSContent.is_active == True,
+            CMSContent.is_active.is_(True),
         ]
 
         # Build visibility conditions

@@ -313,7 +313,7 @@ class EmailNotificationService:
                 email_data_dict = email_data
 
             # Use internal SendGrid method
-            return await self._send_email_via_sendgrid(email_data)
+            return await self._send_email_via_sendgrid(email_data_dict)
 
         except Exception as e:
             logger.error(

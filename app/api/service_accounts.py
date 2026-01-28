@@ -49,7 +49,7 @@ async def get_service_accounts(
     logger.info("Listing service accounts", requester=current_account)
     query = service_account_repository.get_all_query(db=session)
     if not include_inactive:
-        query = query.where(ServiceAccount.is_active == True)
+        query = query.where(ServiceAccount.is_active.is_(True))
 
     query = service_account_repository.apply_pagination(
         query, skip=pagination.skip, limit=pagination.limit

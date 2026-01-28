@@ -127,6 +127,11 @@ markers = [
 
 line-length = 88
 target-version = "py311"
+exclude = [
+    "examples",
+    "scripts",
+    "tests",
+]
 
 [tool.ruff.lint]
 
@@ -139,7 +144,7 @@ ignore = ["E501"]
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
-exclude = [
-    "scripts",
-    "tests",
-    ]
+
+[tool.ruff.lint.per-file-ignores]
+"app/**/__init__.py" = ["F401"]
+"alembic/env.py" = ["E402"]

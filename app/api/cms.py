@@ -23,7 +23,7 @@ from app.api.dependencies.security import (
     get_current_active_user_or_service_account,
 )
 from app.models import ContentType, ServiceAccount
-from app.models.cms import ChatTheme, ContentVisibility, FlowDefinition
+from app.models.cms import ChatTheme, FlowDefinition
 from app.models.user import User, UserAccountType
 from app.repositories.cms_repository import CMSRepositoryImpl
 from app.schemas.cms import (
@@ -1099,7 +1099,7 @@ async def list_themes(
     """
     from sqlalchemy import select
 
-    query = select(ChatTheme).where(ChatTheme.is_active == True)
+    query = select(ChatTheme).where(ChatTheme.is_active.is_(True))
 
     if active is not None:
         query = query.where(ChatTheme.is_active == active)
