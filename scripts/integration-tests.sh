@@ -3,8 +3,19 @@
 # Set bash to exit immediately on any command failure
 set -e
 
-export DATABASE_POOL_SIZE=2
-export DATABASE_MAX_OVERFLOW=0
+POOL_SIZE=2
+MAX_OVERFLOW=0
+
+for arg in "$@"; do
+  if [[ "${arg}" == "--run-isolated-tests" ]]; then
+    POOL_SIZE=10
+    MAX_OVERFLOW=0
+    break
+  fi
+done
+
+export DATABASE_POOL_SIZE="${POOL_SIZE}"
+export DATABASE_MAX_OVERFLOW="${MAX_OVERFLOW}"
 
 # Allow local-only builds without remote cache pulls (avoids gcloud auth).
 # Set LOCAL_BUILD_ONLY=1 to skip cache_from usage.
