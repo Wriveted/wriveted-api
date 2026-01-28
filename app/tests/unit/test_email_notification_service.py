@@ -177,7 +177,9 @@ class TestEmailNotificationService:
         )
 
         assert result is True
-        service._send_email_via_sendgrid.assert_called_once_with(sample_email_data)
+        service._send_email_via_sendgrid.assert_called_once_with(
+            sample_email_data.model_dump()
+        )
 
     @pytest.mark.asyncio
     async def test_send_email_direct_failure(self, service, sample_email_data):
