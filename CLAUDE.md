@@ -42,6 +42,19 @@ Only Professional Comments Should Be used.
 - **Run API directly**: `uvicorn app.main:app --reload`
 - **Run internal API**: `gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker app.internal_api:internal_app`
 
+### Seed Test Data (Admin UI / Chatflows)
+Use the declarative fixture + seeder to create a consistent school, users, books, CMS content, and flows.
+
+**Config**: `scripts/fixtures/admin-ui-seed.json`  
+**Seeder**: `scripts/seed_admin_ui_data.py`
+
+```bash
+# Seed data and print JWTs for each user role
+docker compose run --rm --entrypoint python \
+  -v "$PWD/scripts:/app/scripts" \
+  api /app/scripts/seed_admin_ui_data.py --emit-tokens --tokens-format json
+```
+
 ### Configuring Local User Permissions
 To grant admin access for testing features like the CMS/chatflow builder in the admin UI:
 
@@ -200,4 +213,3 @@ The application consists of two separate FastAPI applications:
 ### Common Pitfalls
 - **Status Code Expectations**: Verify actual API behavior vs REST conventions
 - **Async/Await Consistency**: Ensure all database operations use proper async patterns
-
