@@ -35,13 +35,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
       - name: Check formatting with Ruff
-        uses: astral-sh/ruff-action@v3
-        with:
-          args: 'format --check'
+        run: poetry run ruff format --check .
       - name: Lint with Ruff
-        uses: astral-sh/ruff-action@v3
-        with:
-          args: 'check'
+        run: poetry run ruff check .
 
   integration-tests:
     runs-on: ubuntu-latest
