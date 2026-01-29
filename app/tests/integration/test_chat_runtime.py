@@ -233,7 +233,9 @@ def test_trace_recording_failure_does_not_break_interaction(
     response = client.post("/v1/chat/start", json={"flow_id": str(flow.id)})
     assert response.status_code == 201
     payload = response.json()
-    assert payload["messages"]
+    assert payload["session_token"]
+    assert payload["next_node"]
+    assert payload["next_node"]["type"] == "messages"
 
 
 def test_condition_paths_use_dollar_notation(client, session, cleanup_flow):
