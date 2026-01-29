@@ -195,6 +195,47 @@ def test_interact_returns_input_request_for_chained_question(
     assert payload["input_request"]["variable"] == "age"
 
 
+def test_trace_recording_failure_does_not_break_interaction(
+    client, session, cleanup_flow, monkeypatch
+):
+    created_flows, _ = cleanup_flow
+
+    flow = _create_flow(
+        session,
+        name="Trace Failure Flow",
+        entry_node_id="welcome",
+        flow_data={"nodes": [], "connections": []},
+        nodes=[
+            {
+                "node_id": "welcome",
+                "node_type": NodeType.MESSAGE,
+                "content": {"text": "Welcome!"},
+            }
+        ],
+        connections=[],
+    )
+    flow.trace_enabled = True
+    flow.trace_sample_rate = 100
+    session.commit()
+    created_flows.append(flow.id)
+
+    async def _fail_record_step_async(*args, **kwargs):
+        raise RuntimeError("trace write failed")
+
+    from app.services import chat_runtime as chat_runtime_module
+
+    monkeypatch.setattr(
+        chat_runtime_module.execution_trace_service,
+        "record_step_async",
+        _fail_record_step_async,
+    )
+
+    response = client.post("/v1/chat/start", json={"flow_id": str(flow.id)})
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["messages"]
+
+
 def test_condition_paths_use_dollar_notation(client, session, cleanup_flow):
     created_flows, _ = cleanup_flow
 
