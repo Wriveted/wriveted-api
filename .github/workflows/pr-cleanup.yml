@@ -14,7 +14,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCR_ACCESS }}
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
       - name: Run PR cleanup build
         run: |
           gcloud config set project wriveted-api
