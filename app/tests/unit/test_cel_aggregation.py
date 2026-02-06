@@ -647,3 +647,76 @@ class TestCelAggregationChatflowScenarios:
         assert result["math"] == 5
         assert result["science"] == 5
         assert result["art"] == 5
+
+
+class TestTopKeys:
+    """Tests for the top_keys CEL function used in hue profile ranking."""
+
+    def test_basic_ranking(self):
+        """Return keys ordered by descending value."""
+        context = {
+            "profile": {
+                "hue01_dark_suspense": 1.3,
+                "hue02_beautiful_whimsical": 1.5,
+                "hue03_dark_beautiful": 1.2,
+            }
+        }
+        result = evaluate_cel_expression("top_keys(profile, 3)", context)
+        assert result == [
+            "hue02_beautiful_whimsical",
+            "hue01_dark_suspense",
+            "hue03_dark_beautiful",
+        ]
+
+    def test_n_limits_results(self):
+        """Only the top N keys are returned."""
+        context = {
+            "scores": {"a": 10, "b": 30, "c": 20, "d": 5, "e": 25}
+        }
+        result = evaluate_cel_expression("top_keys(scores, 2)", context)
+        assert result == ["b", "e"]
+
+    def test_n_larger_than_dict(self):
+        """Requesting more keys than exist returns all keys."""
+        context = {"scores": {"x": 1, "y": 2}}
+        result = evaluate_cel_expression("top_keys(scores, 10)", context)
+        assert result == ["y", "x"]
+
+    def test_non_numeric_values_ignored(self):
+        """Keys with non-numeric values are excluded from ranking."""
+        context = {
+            "mixed": {"a": 5, "b": "high", "c": 10, "d": None, "e": 3}
+        }
+        result = evaluate_cel_expression("top_keys(mixed, 5)", context)
+        assert result == ["c", "a", "e"]
+
+    def test_empty_dict(self):
+        """Empty dict returns empty list."""
+        context = {"empty": {}}
+        result = evaluate_cel_expression("top_keys(empty, 3)", context)
+        assert result == []
+
+    def test_non_dict_returns_empty(self):
+        """Non-dict input returns empty list."""
+        from app.services.cel_evaluator import CUSTOM_CEL_FUNCTIONS
+
+        assert CUSTOM_CEL_FUNCTIONS["top_keys"]("not a dict") == []
+        assert CUSTOM_CEL_FUNCTIONS["top_keys"]([1, 2, 3]) == []
+
+    def test_huey_hue_profile_pipeline(self):
+        """End-to-end: merge preference hue_maps then rank with top_keys."""
+        context = {
+            "temp": {
+                "preference_answers": [
+                    {"hue_map": {"dark": 1.0, "whimsical": 0.2, "funny": 0.5}},
+                    {"hue_map": {"dark": 0.3, "whimsical": 0.8, "action": 0.9}},
+                    {"hue_map": {"whimsical": 0.5, "funny": 0.7}},
+                ]
+            }
+        }
+        merged = evaluate_cel_expression(
+            "merge(temp.preference_answers.map(x, x.hue_map))", context
+        )
+        # whimsical=1.5, dark=1.3, funny=1.2, action=0.9
+        result = evaluate_cel_expression("top_keys(profile, 2)", {"profile": merged})
+        assert result == ["whimsical", "dark"]
