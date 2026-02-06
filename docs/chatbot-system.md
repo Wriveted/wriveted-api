@@ -149,7 +149,7 @@ CREATE INDEX idx_conversation_sessions_state ON conversation_sessions USING GIN 
 
 ### 2. Chat Runtime Implementation
 
-#### Repository Layer (`app/crud/chat_repo.py`)
+#### Repository Layer (`app/repositories/chat_repository.py`)
 
 **ChatRepository** class provides:
 - Session CRUD operations with optimistic concurrency control
@@ -174,8 +174,8 @@ Key methods:
 - Integration with CMS content system
 
 **Core Node Processors:**
-- **MessageNodeProcessor**: Displays messages with CMS content integration
-- **QuestionNodeProcessor**: Handles user input and state updates
+- **MessageNodeProcessor**: Displays messages with CMS content integration, supports `book_list` type for rendering recommendation results
+- **QuestionNodeProcessor**: Handles user input and state updates. For choice-based inputs (`choice`, `image_choice`, `button`), stores the full option object (including custom fields like `age_number`, `hue_map`) rather than just the raw user input string. Options are persisted in `system._current_options` during `process()` and matched during `process_response()`.
 
 #### Extended Processors (`app/services/node_processors.py`)
 
@@ -225,7 +225,7 @@ RESTful chat interaction endpoints:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/chat/start` | Create session, return token + first messages |
+| POST | `/v1/chat/start` | Create session, return token + first messages + theme |
 | POST | `/v1/chat/sessions/{token}/interact` | Process user input, return response |
 | GET | `/v1/chat/sessions/{token}` | Get current session state |
 | POST | `/v1/chat/sessions/{token}/end` | End conversation session |
@@ -239,6 +239,8 @@ Features:
 - HTTP 409 for concurrency conflicts
 - Session token-based authentication
 - Comprehensive logging and monitoring
+- Server-side school name resolution: when `initial_state.context.school_wriveted_id` is provided, the school name is looked up from the database and injected into `context.school_name`
+- Theme loading: if the flow has a `theme_id` configured, the full theme config is returned in the start response
 
 ## Node Types and Flow Structure
 
@@ -578,10 +580,39 @@ Retrieves comprehensive user context for personalized conversations:
 
 These endpoints are designed as "internal API calls" within the Wriveted platform:
 
-- **Authentication**: Uses existing Wriveted authentication system
+- **Direct Service Calls**: Known internal endpoints (e.g., `/v1/recommend`) are called directly via the service layer, bypassing HTTP and authentication overhead entirely. This is essential for anonymous chatbot sessions that have no user credentials.
+- **Handler Registry**: Internal endpoint handlers are registered in `app/services/internal_api_handlers.py` using the `@internal_handler("/v1/recommend")` decorator pattern.
+- **HTTP Fallback**: For endpoints without a registered handler or for authenticated sessions, the action processor falls back to making an HTTP request with JWT authentication.
 - **Data Sources**: Leverages existing recommendation engine and user data
 - **Optimization**: Chatbot-specific response formats reduce payload size
 - **Fallback Handling**: Graceful degradation when services are unavailable
+
+#### Direct Service Call Architecture
+
+```
+Action Node (api_call)
+  │
+  ├─ Is auth_type "internal" and endpoint registered?
+  │    YES → Call handler directly with DB session (no HTTP, no auth)
+  │    NO  → Fall through to HTTP path
+  │
+  └─ HTTP path: Generate JWT → HTTP request → Parse response
+```
+
+To register a new internal handler:
+
+```python
+# app/services/internal_api_handlers.py
+@internal_handler("/v1/my-endpoint")
+async def handle_my_endpoint(
+    db: AsyncSession,
+    body: Dict[str, Any],
+    query_params: Dict[str, Any],
+) -> Dict[str, Any]:
+    # Call service layer directly
+    result = await my_service.do_work(db, **body)
+    return result
+```
 
 ## Variable Scoping & Resolution
 

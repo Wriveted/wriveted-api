@@ -228,18 +228,22 @@ Remove a variable from session
 ```
 
 #### 4. `api_call`
-Make internal API calls
+Make internal API calls. For known internal endpoints, the call is routed directly to the service layer without HTTP overhead. For other endpoints, a standard HTTP request is made.
+
 ```json
 {
   "type": "api_call",
   "config": {
-    "endpoint": "/v1/process-outbox-events",
+    "endpoint": "/v1/recommend",
     "method": "POST",
-    "headers": {
-      "Content-Type": "application/json"
-    },
+    "auth_type": "internal",
     "body": {
-      "key": "value"
+      "wriveted_identifier": "{{context.school_wriveted_id}}",
+      "age": "{{user.age_number}}"
+    },
+    "response_mapping": {
+      "books": "temp.book_results",
+      "count": "temp.book_count"
     },
     "response_variable": "temp.api_result"
   }
@@ -282,6 +286,7 @@ Aggregate values from a list using CEL (Common Expression Language) expressions.
 | `merge_last(list_of_dicts)` | Merge dicts with last value wins | `merge_last(temp.prefs)` |
 | `flatten(list_of_lists)` | Flatten nested lists | `flatten(temp.tags)` |
 | `collect(list)` | Alias for flatten | `collect(temp.items)` |
+| `top_keys(dict, n)` | Get top N keys by value from a dict | `top_keys(user.hue_profile, 5)` |
 
 **Real-World Example: Huey Preference Aggregation**
 ```json
@@ -307,7 +312,8 @@ Aggregate values from a list using CEL (Common Expression Language) expressions.
 - **Error Handling**:
   - Continue on error vs. abort
   - Error message variable
-- **API Call Endpoint**: Relative to `WRIVETED_INTERNAL_API`
+- **API Call Endpoint**: Relative to `WRIVETED_INTERNAL_API`. Internal endpoints with registered handlers (see `app/services/internal_api_handlers.py`) are called directly via the service layer.
+- **Auth Type** (optional): `"internal"` (default) for service-layer calls, or `"bearer"` for authenticated HTTP requests
 
 ---
 
@@ -544,7 +550,7 @@ All node types support variable interpolation using `{{variable.path}}` syntax:
 ```
 
 ### Variable Scopes
-- `user.*`: User profile data (persistent)
+- `user.*`: User profile data (persistent, writable by action nodes)
 - `session.*`: Session metadata (persistent)
 - `temp.*`: Temporary variables (cleared on session end)
 - `env.*`: Environment variables (read-only)

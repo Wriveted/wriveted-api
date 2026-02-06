@@ -145,14 +145,38 @@ Collects user input and stores it in session state.
 - `choice` - Select from options
 
 ### Variable Storage
-User responses are stored in `session.state.temp.{variable}`:
+User responses are stored in session state under the scope specified by the variable name. If no scope prefix is given, `temp` is used by default:
 ```json
 {
   "state": {
     "temp": {
-      "user_name": "Brian"
+      "user_name": "Brian",
+      "age_selection": {
+        "label": "8",
+        "value": "8",
+        "age_number": 8
+      }
     }
   }
+}
+```
+
+### Choice Option Matching
+
+For choice-based inputs (`choice`, `image_choice`, `button`), the runtime stores the **full option object** rather than just the raw user input string. This preserves custom fields defined on each option (e.g., `age_number`, `hue_map`, `description`).
+
+The matching flow:
+1. When a question node is processed, its options are stored in `system._current_options`
+2. When the user answers, `_match_option()` compares the input against each option's `value`, `label`, and `text` fields
+3. If a match is found, the entire option dict is stored as the variable value
+4. If no match is found, the raw input string is stored as a fallback
+
+This enables downstream nodes to access typed fields via dot notation:
+```json
+{
+  "type": "set_variable",
+  "variable": "user.age_number",
+  "value": "{{temp.age_selection.age_number}}"
 }
 ```
 
@@ -357,6 +381,7 @@ The `aggregate` action type evaluates CEL (Common Expression Language) expressio
 | `merge_last(list_of_dicts)` | Merge dicts with last value wins | `merge_last(temp.prefs)` |
 | `flatten(list_of_lists)` | Flatten nested lists | `flatten(temp.tags)` |
 | `collect(list)` | Alias for flatten | `collect(temp.items)` |
+| `top_keys(dict, n)` | Get top N keys by value from a dict | `top_keys(user.hue_profile, 5)` |
 
 **Real-World Example: Huey Preference Aggregation**
 ```json
@@ -578,7 +603,7 @@ Variables are organized into scopes:
 | Scope | Access | Description |
 |-------|--------|-------------|
 | `temp` | Read/Write | Temporary session variables (cleared on session end) |
-| `user` | Read-only | User profile data |
+| `user` | Read/Write | User profile data (writable by action nodes via `set_variable`) |
 | `context` | Read-only | Custom session context from `session.state.context` (populate via `initial_state`) |
 | `input` | Read-only | Input data for composite nodes |
 | `output` | Write | Output data for composite nodes |

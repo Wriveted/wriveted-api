@@ -32,6 +32,23 @@ Tokens are printed for each seeded user role (school admin, educator, student, e
 
 If a flow needs to be present in local UI testing, add it to the fixture JSON under `flows` and use the seeder. This keeps flow JSON in one place and avoids multiple scripts diverging over time.
 
+## External flow files
+
+For complex flows, the seed config supports a `flow_file` key that loads the flow definition from a separate JSON file in `scripts/fixtures/`:
+
+```json
+{
+  "flows": [
+    {
+      "flow_file": "huey-bookbot-flow.json",
+      "theme_seed_key": "huey-bookbot-theme"
+    }
+  ]
+}
+```
+
+The external JSON file should contain the full flow config including `seed_key`, `name`, `entry_node_id`, and `flow_data` with nodes and connections. The seeder merges any additional keys (like `theme_seed_key`) from the parent entry.
+
 ## About JSON fixtures and `.gitignore`
 `.gitignore` currently ignores `*.json`, so fixture JSON files must be added with:
 
