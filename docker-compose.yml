@@ -62,7 +62,7 @@ services:
       - METABASE_SECRET_KEY=unused-key-for-testing
       - SLACK_BOT_TOKEN=unused-key-for-testing
       - UVICORN_PORT=8000
-      - WRIVETED_INTERNAL_API=http://api:8000
+      - WRIVETED_INTERNAL_API=http://internal:8888
       - SQLALCHEMY_WARN_20=true
       - OPENAI_API_KEY=unused-test-key-for-testing
       - DEBUG=true

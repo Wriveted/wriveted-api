@@ -1311,17 +1311,14 @@ class ChatRuntime:
 
                 result["current_node_id"] = session_position
 
-                # Persist available options so process_response() can match full objects
+                # Persist available options so process_response() can match full objects.
+                # Always write (even empty) to clear stale options from a previous question.
                 options_to_store = (
                     result.get("input_request", {}).get("options", [])
                     if awaiting_input
                     else []
                 )
-                state_updates = (
-                    {"system": {"_current_options": options_to_store}}
-                    if options_to_store
-                    else {}
-                )
+                state_updates = {"system": {"_current_options": options_to_store}}
 
                 # Update session's current node position (and flow for sub-flow support)
                 session = await chat_repo.update_session_state(
@@ -1368,11 +1365,7 @@ class ChatRuntime:
                                     "question": q_content.get("question", {}),
                                 }
 
-                            q_state = (
-                                {"system": {"_current_options": q_options}}
-                                if q_options
-                                else {}
-                            )
+                            q_state = {"system": {"_current_options": q_options}}
                             session = await self._refresh_session(db, session)
                             session = await chat_repo.update_session_state(
                                 db,
@@ -1675,9 +1668,7 @@ class ChatRuntime:
                 if next_node.node_type == NodeType.QUESTION:
                     q_content = next_node.content or {}
                     options = q_content.get("options", [])
-                    state_updates = (
-                        {"system": {"_current_options": options}} if options else {}
-                    )
+                    state_updates = {"system": {"_current_options": options}}
                     await chat_repo.update_session_state(
                         db,
                         session_id=session.id,

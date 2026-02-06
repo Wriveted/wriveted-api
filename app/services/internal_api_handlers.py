@@ -48,7 +48,10 @@ async def handle_recommend(
             db=db, wriveted_id=data.wriveted_identifier
         )
 
-    limit = int(query_params.get("limit", 5))
+    try:
+        limit = max(1, min(int(query_params.get("limit", 5)), 50))
+    except (ValueError, TypeError):
+        limit = 5
     recommended_books, query_parameters = await get_recommendations_with_fallback(
         asession=db,
         account=None,
