@@ -495,20 +495,14 @@ def _ensure_theme(
     school: Optional[School],
     created_by: Optional[User],
 ) -> ChatTheme:
-    seed_key = config.get("seed_key")
-    theme = None
-    if seed_key:
-        theme = (
-            session.query(ChatTheme)
-            .filter(ChatTheme.name == config["name"])
-            .one_or_none()
-        )
-    if theme is None:
-        theme = (
-            session.query(ChatTheme)
-            .filter(ChatTheme.name == config["name"])
-            .one_or_none()
-        )
+    school_id = school.wriveted_identifier if school else None
+    q = session.query(ChatTheme).filter(ChatTheme.name == config["name"])
+    if school_id is not None:
+        q = q.filter(ChatTheme.school_id == school_id)
+    else:
+        q = q.filter(ChatTheme.school_id.is_(None))
+    theme = q.first()
+
     if theme is None:
         theme = ChatTheme(
             name=config["name"],
@@ -536,14 +530,18 @@ def _ensure_theme(
     return theme
 
 
-def _load_flow_config(config: dict, base_dir: Path) -> dict:
-    """If config has a 'flow_file' key, merge the external JSON into config."""
+def _load_flow_config(config: dict, base_dir: Path) -> Optional[dict]:
+    """If config has a 'flow_file' key, merge the external JSON into config.
+
+    Returns None when the referenced file is missing so the caller can skip it.
+    """
     flow_file = config.get("flow_file")
     if not flow_file:
         return config
     path = base_dir / flow_file
     if not path.exists():
-        raise FileNotFoundError(f"Flow file not found: {path}")
+        logger.warning("Flow file not found, skipping: %s", path)
+        return None
     external = json.loads(path.read_text())
     merged = {**external, **config}
     merged.pop("flow_file", None)
@@ -807,6 +805,8 @@ def main() -> None:
         fixtures_dir = config_path.parent
         for flow_cfg in config.get("flows", []):
             resolved_cfg = _load_flow_config(flow_cfg, fixtures_dir)
+            if resolved_cfg is None:
+                continue
             # Link theme to flow via flow_data.theme_id if theme_seed_key is specified
             theme_seed_key = resolved_cfg.get("theme_seed_key")
             if theme_seed_key and theme_seed_key in themes_by_seed_key:
