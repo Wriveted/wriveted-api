@@ -9,7 +9,7 @@ Handles ACTION nodes with various action types including:
 - aggregate: Aggregate values from a list using various operations
 """
 
-from datetime import datetime
+import datetime
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,21 @@ from app.services.chat_runtime import NodeProcessor
 from app.services.cloud_tasks import cloud_tasks
 
 logger = get_logger()
+
+
+def _extract_nested(data: Dict[str, Any], key_path: str) -> Any:
+    """Extract a value from a nested dict using dot notation."""
+    keys = key_path.split(".")
+    value = data
+    try:
+        for key in keys:
+            if isinstance(value, dict):
+                value = value.get(key)
+            else:
+                return None
+        return value
+    except (KeyError, TypeError):
+        return None
 
 
 class ActionNodeProcessor(NodeProcessor):
@@ -145,6 +160,11 @@ class ActionNodeProcessor(NodeProcessor):
 
         current_state = session.state or {}
 
+        # Inject db session and user ID for internal API calls
+        context = {**context, "db": db}
+        if session.user_id:
+            context["session_user_id"] = str(session.user_id)
+
         for i, action in enumerate(actions):
             action_type = action.get("type")
             action_id = f"{node_id}_action_{i}"
@@ -194,7 +214,7 @@ class ActionNodeProcessor(NodeProcessor):
 
         # Update session state if variables were modified
         if variables_updated:
-            current_state.update(variables_updated)
+            self._deep_merge(current_state, variables_updated)
             await chat_repo.update_session_state(
                 db,
                 session_id=session.id,
@@ -214,7 +234,7 @@ class ActionNodeProcessor(NodeProcessor):
                 "variables_updated": list(variables_updated.keys()),
                 "success": success,
                 "errors": errors,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.datetime.utcnow().isoformat(),
                 "processed_async": False,
             },
         )
@@ -233,9 +253,10 @@ class ActionNodeProcessor(NodeProcessor):
         value = action.get("value")
 
         if variable and value is not None:
-            # Substitute variables in value if it's a string
-            if isinstance(value, str):
-                value = self.runtime.substitute_variables(value, state)
+            # Recursively substitute variables in the value.
+            # substitute_object handles strings, lists, and dicts, and preserves
+            # typed values when the entire string is a single {{var}} reference.
+            value = self.runtime.substitute_object(value, state)
 
             self._set_nested_value(updates, variable, value)
             logger.debug(f"Set variable {variable} = {value}")
@@ -285,6 +306,51 @@ class ActionNodeProcessor(NodeProcessor):
     ) -> None:
         """Handle api_call action."""
         api_config_data = action.get("config", {})
+        auth_type = api_config_data.get("auth_type", "internal")
+
+        # For internal endpoints, try direct service call (bypasses HTTP + auth)
+        if auth_type == "internal":
+            from app.services.internal_api_handlers import INTERNAL_HANDLERS
+
+            endpoint = api_config_data.get("endpoint", "")
+            db = context.get("db")
+
+            if endpoint in INTERNAL_HANDLERS and db is not None:
+                resolved_body = self.runtime.substitute_object(
+                    api_config_data.get("body", {}), state
+                )
+                resolved_params = self.runtime.substitute_object(
+                    api_config_data.get("query_params", {}), state
+                )
+
+                result_data = await INTERNAL_HANDLERS[endpoint](
+                    db, resolved_body, resolved_params
+                )
+
+                response_mapping = api_config_data.get("response_mapping", {})
+                for response_path, variable_name in response_mapping.items():
+                    value = _extract_nested(result_data, response_path)
+                    if value is not None:
+                        self._set_nested_value(updates, variable_name, value)
+
+                logger.info(
+                    "Internal API call via direct service call",
+                    endpoint=endpoint,
+                    variables_updated=list(response_mapping.values()),
+                )
+                return
+
+        # For authenticated sessions, generate a short-lived JWT
+        if auth_type == "internal" and context.get("session_user_id"):
+            from app.services.security import create_access_token
+
+            token = create_access_token(
+                subject=f"Wriveted:User-Account:{context['session_user_id']}",
+                expires_delta=datetime.timedelta(minutes=5),
+            )
+            api_config_data = {**api_config_data}
+            api_config_data["auth_type"] = "bearer"
+            api_config_data["auth_config"] = {"token": token}
 
         # Create API call configuration
         api_config = ApiCallConfig(**api_config_data)
@@ -297,8 +363,9 @@ class ActionNodeProcessor(NodeProcessor):
         result = await api_client.execute_api_call(api_config, state, composite_scopes)
 
         if result.success:
-            # Update variables with API response
-            updates.update(result.variables_updated)
+            # Update variables with API response using nested paths
+            for var_name, var_value in result.variables_updated.items():
+                self._set_nested_value(updates, var_name, var_value)
             logger.info(
                 "API call successful",
                 endpoint=api_config.endpoint,
@@ -307,12 +374,16 @@ class ActionNodeProcessor(NodeProcessor):
         else:
             # Store error information
             error_var = api_config_data.get("error_variable", "api_error")
-            updates[error_var] = {
-                "error": result.error_message,
-                "status_code": result.status_code,
-                "timestamp": datetime.utcnow().isoformat(),
-                "fallback_used": result.fallback_used,
-            }
+            self._set_nested_value(
+                updates,
+                error_var,
+                {
+                    "error": result.error_message,
+                    "status_code": result.status_code,
+                    "timestamp": datetime.datetime.utcnow().isoformat(),
+                    "fallback_used": result.fallback_used,
+                },
+            )
             logger.error(
                 "API call failed",
                 endpoint=api_config.endpoint,
@@ -449,6 +520,14 @@ class ActionNodeProcessor(NodeProcessor):
             return f"flatten({data_expr})"
         else:
             raise ValueError(f"Unknown aggregate operation: {operation}")
+
+    def _deep_merge(self, base: Dict[str, Any], updates: Dict[str, Any]) -> None:
+        """Recursively merge updates into base dict, preserving existing nested keys."""
+        for key, value in updates.items():
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                self._deep_merge(base[key], value)
+            else:
+                base[key] = value
 
     def _get_nested_value(self, data: Dict[str, Any], key_path: str) -> Any:
         """Get nested value from dictionary using dot notation."""

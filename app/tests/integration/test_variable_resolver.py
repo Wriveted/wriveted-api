@@ -169,7 +169,7 @@ class TestVariableResolver:
 
         assert result["user_info"]["name"] == "John Doe"
         assert result["user_info"]["email"] == "john@example.com"
-        assert result["user_info"]["age"] == "30"
+        assert result["user_info"]["age"] == 30  # substitute_object preserves types
         assert result["context"]["locale"] == "en-US"
         assert result["context"]["device"] == "mobile"
 
@@ -199,8 +199,8 @@ class TestVariableResolver:
         result = variable_resolver.substitute_object(template)
 
         assert result["string_field"] == "John Doe"
-        assert result["numeric_field"] == "30"  # Note: substitution returns strings
-        assert result["boolean_field"] == "True"
+        assert result["numeric_field"] == 30  # substitute_object preserves types
+        assert result["boolean_field"] is True
         assert result["mixed_string"] == "User John Doe is 30 years old"
 
     def test_variable_scope_isolation(self):

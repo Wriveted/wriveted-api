@@ -95,6 +95,19 @@ def _cel_collect(items: List[Any]) -> List[Any]:
     return _cel_flatten(items)
 
 
+def _cel_top_keys(d: Dict[str, Any], n: int = 5) -> List[str]:
+    """Return the top N keys from a dict sorted by value descending.
+
+    Useful for converting a hue_profile dict (hue→weight) into a ranked
+    list of hue keys for the recommendation API.
+    """
+    if not isinstance(d, dict):
+        return []
+    numeric_items = [(k, v) for k, v in d.items() if isinstance(v, (int, float))]
+    numeric_items.sort(key=lambda pair: pair[1], reverse=True)
+    return [k for k, _ in numeric_items[:n]]
+
+
 # Registry of custom functions available in CEL expressions
 CUSTOM_CEL_FUNCTIONS: Dict[str, Callable] = {
     "sum": _cel_sum,
@@ -108,6 +121,7 @@ CUSTOM_CEL_FUNCTIONS: Dict[str, Callable] = {
     "merge_last": _cel_merge_last,
     "flatten": _cel_flatten,
     "collect": _cel_collect,
+    "top_keys": _cel_top_keys,
 }
 
 
@@ -174,6 +188,7 @@ def evaluate_cel_expression(
         - min(temp.quiz_results.map(x, x.time))
         - merge(selections.map(x, x.preferences))
         - flatten(items.map(x, x.tags))
+        - top_keys(user.hue_profile, 5)
     """
     try:
         if include_aggregation_functions:

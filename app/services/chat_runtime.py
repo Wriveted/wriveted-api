@@ -196,6 +196,21 @@ class MessageNodeProcessor(NodeProcessor):
     def _render_inline_message(
         self, msg_config: Dict[str, Any], session_state: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
+        message_type = msg_config.get("type", "text")
+
+        # Handle book_list type: resolve source variable to actual book data
+        if message_type == "book_list":
+            source_var = msg_config.get("source", "")
+            books = self.runtime.substitute_object(
+                f"{{{{{source_var}}}}}", session_state
+            )
+            if books and isinstance(books, list):
+                return {
+                    "type": "book_list",
+                    "content": {"books": books},
+                }
+            return None
+
         raw_content = None
         if "content" in msg_config:
             raw_content = msg_config.get("content")
@@ -214,7 +229,6 @@ class MessageNodeProcessor(NodeProcessor):
                 )
             }
 
-        message_type = msg_config.get("type", "text")
         return {
             "type": message_type,
             "content": content,
@@ -323,6 +337,24 @@ class QuestionNodeProcessor(NodeProcessor):
         if question_message is None and node_content.get("text"):
             question_message = {"text": node_content["text"]}
 
+        # Substitute variables in the question text (e.g. {{context.school_name}})
+        if question_message and question_message.get("text"):
+            question_message["text"] = self.runtime.substitute_variables(
+                question_message["text"], session_state
+            )
+
+        # For CMS random content, use question_text from CMS as the prompt
+        if fetched_content and (
+            not question_message or not question_message.get("text")
+        ):
+            cms_data = fetched_content.content or {}
+            cms_question_text = cms_data.get("question_text")
+            if cms_question_text:
+                if question_message:
+                    question_message["text"] = cms_question_text
+                else:
+                    question_message = {"text": cms_question_text}
+
         # Record question in history
         await chat_repo.add_interaction_history(
             db,
@@ -340,12 +372,40 @@ class QuestionNodeProcessor(NodeProcessor):
         # Determine variable for storing response
         variable = node_content.get("variable") or node_content.get("result_variable")
 
+        # Resolve options: from CMS content or inline node content
+        options = node_content.get("options", [])
+        if fetched_content and not options:
+            cms_content_data = fetched_content.content or {}
+            options = cms_content_data.get("answers", []) or cms_content_data.get(
+                "options", []
+            )
+
+        # Normalize CMS options: ensure label/value fields exist
+        if options:
+            for opt in options:
+                if "label" not in opt and "text" in opt:
+                    opt["label"] = opt["text"]
+                if "value" not in opt and "text" in opt:
+                    opt["value"] = opt["text"]
+
+        input_type = node_content.get("input_type", "text")
+
+        # Store resolved options in session for process_response() to match against.
+        # Both CMS-sourced and inline options need to be stored so _match_option
+        # can return the full option object (with fields like age_number, hue_map).
+        if options and input_type in ("choice", "image_choice", "button"):
+            await chat_repo.update_session_state(
+                db,
+                session_id=session.id,
+                state_updates={"system": {"_current_options": options}},
+            )
+
         return {
             "type": "question",
             "question": question_message,
             "content_id": content_id,
-            "input_type": node_content.get("input_type", "text"),
-            "options": node_content.get("options", []),
+            "input_type": input_type,
+            "options": options,
             "validation": node_content.get("validation", {}),
             "variable": variable,
             "node_id": node.node_id,
@@ -382,9 +442,13 @@ class QuestionNodeProcessor(NodeProcessor):
                 and value.startswith("${")
                 and value.endswith("}")
             ):
-                # Resolve variable reference like "${user.age}"
-                resolved_value = self.runtime.substitute_variables(value, session_state)
-                if resolved_value != value:  # Successfully resolved
+                # Convert ${var} syntax to {{var}} for the variable resolver
+                var_name = value[2:-1]
+                var_template = "{{" + var_name + "}}"
+                resolved_value = self.runtime.substitute_variables(
+                    var_template, session_state
+                )
+                if resolved_value != var_template:  # Successfully resolved
                     try:
                         resolved_filters[key] = int(resolved_value)
                     except (ValueError, TypeError):
@@ -573,17 +637,22 @@ class QuestionNodeProcessor(NodeProcessor):
             content_id=content_id if content_id else "no_content_id",
         )
         if variable_name:
-            # Store sanitized user input as the variable name in state
             sanitized_input = sanitize_user_input(user_input)
+
+            # For choice-based inputs, try to store the full option object
+            stored_value: Any = sanitized_input
+            if input_type in ("choice", "image_choice", "button"):
+                options = (session.state or {}).get("system", {}).get(
+                    "_current_options"
+                ) or []
+                stored_value = self._match_option(sanitized_input, options)
 
             # Check if variable name specifies a scope (e.g., "temp.name" or "user.age")
             if "." in variable_name:
-                # Variable name already includes scope, store as-is with nested structure
                 scope, var_key = variable_name.split(".", 1)
-                state_updates = {scope: {var_key: sanitized_input}}
+                state_updates = {scope: {var_key: stored_value}}
             else:
-                # No scope specified, default to 'temp' scope for question responses
-                state_updates = {"temp": {variable_name: sanitized_input}}
+                state_updates = {"temp": {variable_name: stored_value}}
 
             # Update session state
             updated_session = await chat_repo.update_session_state(
@@ -625,28 +694,47 @@ class QuestionNodeProcessor(NodeProcessor):
         # Check if any connections have conditions (indicating dynamic choice routing needed)
         has_conditional_connections = any(conn.conditions for conn in connections)
 
-        if input_type == "button" and has_conditional_connections:
-            # For button inputs with conditional connections, store the selected option value
-            choice_updates = {"temp": {"user_choice": user_input}}
-            updated_session = await chat_repo.update_session_state(
-                db,
-                session_id=session.id,
-                state_updates=choice_updates,
-                expected_revision=session.revision,
-            )
-            # Use updated session for condition evaluation
-            session = updated_session
+        next_connection = None
 
-            # Find matching connection using new dynamic logic
+        # For choice-based inputs, try option-index routing first
+        if input_type in ("choice", "image_choice", "button"):
+            options = (session.state or {}).get("system", {}).get(
+                "_current_options"
+            ) or node_content.get("options", [])
+            # Find which option was selected by matching user input
+            selected_index = None
+            for i, opt in enumerate(options):
+                if isinstance(opt, dict):
+                    if user_input in (
+                        opt.get("value"),
+                        opt.get("label"),
+                        opt.get("text"),
+                    ):
+                        selected_index = i
+                        break
+                elif str(opt) == user_input:
+                    selected_index = i
+                    break
+
+            # Map option index to connection type
+            option_connection_types = {
+                0: ConnectionType.OPTION_0,
+                1: ConnectionType.OPTION_1,
+            }
+            if selected_index in option_connection_types:
+                conn_type = option_connection_types[selected_index]
+                next_connection = await self.get_next_connection(db, node, conn_type)
+
+        # Condition-based routing as fallback
+        if not next_connection and has_conditional_connections:
             next_connection = await self._find_matching_connection(db, node, session)
-        else:
-            # For simple text inputs or button inputs without conditions, use first DEFAULT connection
-            next_connection = None
+
+        # Final fallback to DEFAULT connection
+        if not next_connection:
             for connection in connections:
                 if connection.connection_type == ConnectionType.DEFAULT:
                     next_connection = connection
                     break
-            # Fallback to first connection if no DEFAULT found
             if not next_connection and connections:
                 next_connection = connections[0]
         next_node = None
@@ -670,7 +758,7 @@ class QuestionNodeProcessor(NodeProcessor):
         session: ConversationSession,
     ) -> Optional[FlowConnection]:
         """Find connection that matches current session state conditions."""
-        from app.crud.chat import chat_repo
+        from app.repositories.chat_repository import chat_repo
         from app.services.variable_resolver import create_session_resolver
 
         # Get all outgoing connections from this node
@@ -743,6 +831,27 @@ class QuestionNodeProcessor(NodeProcessor):
                     return False
 
         return False
+
+    @staticmethod
+    def _match_option(user_input: str, options: List[Dict[str, Any]]) -> Any:
+        """Match user input against options and return the full option object.
+
+        Falls back to the raw text if no match is found.
+        """
+        if not options:
+            return user_input
+
+        for option in options:
+            if not isinstance(option, dict):
+                continue
+            if user_input in (
+                option.get("value"),
+                option.get("label"),
+                option.get("text"),
+            ):
+                return option
+
+        return user_input
 
     async def _render_question_message(
         self, content, session_state: Dict[str, Any]
@@ -1107,18 +1216,37 @@ class ChatRuntime:
                 chained_next_node = (
                     next_result.get("next_node") if next_result else None
                 )
-                if response["next_node"].node_type == NodeType.QUESTION or (
+                if response["next_node"].node_type == NodeType.QUESTION:
+                    awaiting_input = True
+                    # Use the processed result which has variable substitution
+                    # and normalized options, falling back to raw node content
+                    if next_result and next_result.get("type") == "question":
+                        result["input_request"] = {
+                            "input_type": next_result.get("input_type", "text"),
+                            "variable": next_result.get("variable", ""),
+                            "options": next_result.get("options", []),
+                            "question": next_result.get("question", {}),
+                        }
+                    else:
+                        q_content = response["next_node"].content or {}
+                        result["input_request"] = {
+                            "input_type": q_content.get("input_type", "text"),
+                            "variable": q_content.get("variable", ""),
+                            "options": q_content.get("options", []),
+                            "question": q_content.get("question", {}),
+                        }
+                elif (
                     isinstance(next_result, dict)
                     and next_result.get("type") == "question"
                 ):
+                    # Action/condition node auto-chained into a question
                     awaiting_input = True
-                    # Add input_request for direct question nodes
-                    q_content = response["next_node"].content or {}
+                    session_position = next_result.get("node_id", session_position)
                     result["input_request"] = {
-                        "input_type": q_content.get("input_type", "text"),
-                        "variable": q_content.get("variable", ""),
-                        "options": q_content.get("options", []),
-                        "question": q_content.get("question", {}),
+                        "input_type": next_result.get("input_type", "text"),
+                        "variable": next_result.get("variable", ""),
+                        "options": next_result.get("options", []),
+                        "question": next_result.get("question", {}),
                     }
                 if chained_next_node:
                     # Handle FlowNode objects
@@ -1127,14 +1255,35 @@ class ChatRuntime:
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
                             awaiting_input = True
-                            # Add input_request for chained question nodes
                             q_content = chained_next_node.content or {}
-                            result["input_request"] = {
-                                "input_type": q_content.get("input_type", "text"),
-                                "variable": q_content.get("variable", ""),
-                                "options": q_content.get("options", []),
-                                "question": q_content.get("question", {}),
-                            }
+
+                            # CMS random-source questions need process() to
+                            # fetch content and resolve options
+                            if q_content.get("source") == "random":
+                                session = await self._refresh_session(db, session)
+                                q_result = await self.process_node(
+                                    db, chained_next_node, session
+                                )
+                                session = await self._refresh_session(db, session)
+                                result["input_request"] = {
+                                    "input_type": q_result.get("input_type", "text"),
+                                    "variable": q_result.get("variable", ""),
+                                    "options": q_result.get("options", []),
+                                    "question": q_result.get("question", {}),
+                                }
+                            else:
+                                # Process inline questions for variable substitution
+                                session = await self._refresh_session(db, session)
+                                q_result = await self.process_node(
+                                    db, chained_next_node, session
+                                )
+                                session = await self._refresh_session(db, session)
+                                result["input_request"] = {
+                                    "input_type": q_result.get("input_type", "text"),
+                                    "variable": q_result.get("variable", ""),
+                                    "options": q_result.get("options", []),
+                                    "question": q_result.get("question", {}),
+                                }
                     # Handle dict results (e.g., from composite node sub-flows)
                     elif isinstance(chained_next_node, dict):
                         if chained_next_node.get("type") == "question":
@@ -1162,11 +1311,20 @@ class ChatRuntime:
 
                 result["current_node_id"] = session_position
 
+                # Persist available options so process_response() can match full objects.
+                # Always write (even empty) to clear stale options from a previous question.
+                options_to_store = (
+                    result.get("input_request", {}).get("options", [])
+                    if awaiting_input
+                    else []
+                )
+                state_updates = {"system": {"_current_options": options_to_store}}
+
                 # Update session's current node position (and flow for sub-flow support)
                 session = await chat_repo.update_session_state(
                     db,
                     session_id=session.id,
-                    state_updates={},  # No state changes, just position update
+                    state_updates=state_updates,
                     current_node_id=session_position,
                     current_flow_id=session_flow_id,
                     expected_revision=session.revision,
@@ -1178,26 +1336,45 @@ class ChatRuntime:
                     # If next node is a FlowNode
                     if isinstance(chained_next_node, FlowNode):
                         if chained_next_node.node_type == NodeType.QUESTION:
-                            # Stop at question and include its content in response
+                            # Stop at question and include its content
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
+                            q_content = chained_next_node.content or {}
+
+                            # CMS random-source questions need process() to
+                            # fetch content and resolve options
+                            if q_content.get("source") == "random":
+                                session = await self._refresh_session(db, session)
+                                q_result = await self.process_node(
+                                    db, chained_next_node, session
+                                )
+                                session = await self._refresh_session(db, session)
+                                q_options = q_result.get("options", [])
+                                result["input_request"] = {
+                                    "input_type": q_result.get("input_type", "text"),
+                                    "variable": q_result.get("variable", ""),
+                                    "options": q_options,
+                                    "question": q_result.get("question", {}),
+                                }
+                            else:
+                                q_options = q_content.get("options", [])
+                                result["input_request"] = {
+                                    "input_type": q_content.get("input_type", "text"),
+                                    "variable": q_content.get("variable", ""),
+                                    "options": q_options,
+                                    "question": q_content.get("question", {}),
+                                }
+
+                            q_state = {"system": {"_current_options": q_options}}
                             session = await self._refresh_session(db, session)
                             session = await chat_repo.update_session_state(
                                 db,
                                 session_id=session.id,
-                                state_updates={},
+                                state_updates=q_state,
                                 current_node_id=session_position,
                                 current_flow_id=session_flow_id,
                                 expected_revision=session.revision,
                             )
-                            # Add question content to input_request for frontend
-                            q_content = chained_next_node.content or {}
-                            result["input_request"] = {
-                                "input_type": q_content.get("input_type", "text"),
-                                "variable": q_content.get("variable", ""),
-                                "options": q_content.get("options", []),
-                                "question": q_content.get("question", {}),
-                            }
                             awaiting_input = True
                             break
                         elif chained_next_node.node_type in (
@@ -1489,10 +1666,13 @@ class ChatRuntime:
             next_node = result.get("next_node")
             if next_node and isinstance(next_node, FlowNode):
                 if next_node.node_type == NodeType.QUESTION:
+                    q_content = next_node.content or {}
+                    options = q_content.get("options", [])
+                    state_updates = {"system": {"_current_options": options}}
                     await chat_repo.update_session_state(
                         db,
                         session_id=session.id,
-                        state_updates={},
+                        state_updates=state_updates,
                         current_node_id=next_node.node_id,
                     )
 
