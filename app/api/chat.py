@@ -97,6 +97,38 @@ async def start_conversation(
             initial_state=session_data.initial_state,
         )
 
+        # Resolve school name from school_wriveted_id if not already set
+        session_state = conversation_session.state or {}
+        ctx = session_state.get("context", {})
+        school_wriveted_id = ctx.get("school_wriveted_id")
+        if school_wriveted_id and not ctx.get("school_name"):
+            try:
+                from app.repositories.school_repository import school_repository
+
+                school_obj = await school_repository.aget_by_wriveted_id_or_404(
+                    db=session, wriveted_id=school_wriveted_id
+                )
+                ctx["school_name"] = school_obj.name
+                session_state["context"] = ctx
+                await chat_repo.update_session_state(
+                    session,
+                    session_id=conversation_session.id,
+                    state_updates=session_state,
+                    expected_revision=conversation_session.revision,
+                )
+                # Refresh session to pick up updated state
+                refreshed = await chat_repo.get_session_by_id(
+                    session, conversation_session.id
+                )
+                if refreshed:
+                    conversation_session = refreshed
+            except Exception as e:
+                logger.warning(
+                    "Could not resolve school name",
+                    school_wriveted_id=school_wriveted_id,
+                    error=str(e),
+                )
+
         # Get initial node
         initial_node = await chat_runtime.get_initial_node(
             session, session_data.flow_id, conversation_session

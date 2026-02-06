@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 from uuid import UUID
 
 from sqlalchemy import and_
@@ -14,6 +15,7 @@ from app.models.booklist import BookList, ListSharingType, ListType
 from app.models.booklist_work_association import BookListItem
 from app.models.class_group import ClassGroup
 from app.models.cms import (
+    ChatTheme,
     CMSContent,
     ContentStatus,
     ContentType,
@@ -44,6 +46,7 @@ from app.models.wriveted_admin import WrivetedAdmin
 from app.services.flow_utils import token_to_enum
 
 DEFAULT_CONFIG_PATH = Path("scripts/fixtures/admin-ui-seed.json")
+DEFAULT_QUESTIONS_CSV = Path("AI-Questions.csv")
 
 
 def _info_with_seed(info: Optional[dict], seed_key: Optional[str]) -> dict:
@@ -274,6 +277,7 @@ def _ensure_work_and_edition(
                 work=work,
                 min_age=label_cfg.get("min_age"),
                 max_age=label_cfg.get("max_age"),
+                huey_summary=label_cfg.get("huey_summary", ""),
                 hue_origin=LabelOrigin.HUMAN,
                 reading_ability_origin=LabelOrigin.HUMAN,
             )
@@ -284,6 +288,8 @@ def _ensure_work_and_edition(
                 labelset.min_age = label_cfg.get("min_age")
             if label_cfg.get("max_age") is not None:
                 labelset.max_age = label_cfg.get("max_age")
+            if label_cfg.get("huey_summary") is not None:
+                labelset.huey_summary = label_cfg["huey_summary"]
 
         reading_keys = label_cfg.get("reading_abilities") or []
         labelset.reading_abilities = [reading_abilities[key] for key in reading_keys]
@@ -483,6 +489,67 @@ def _ensure_cms_content(
     return content
 
 
+def _ensure_theme(
+    session,
+    config: dict,
+    school: Optional[School],
+    created_by: Optional[User],
+) -> ChatTheme:
+    seed_key = config.get("seed_key")
+    theme = None
+    if seed_key:
+        theme = (
+            session.query(ChatTheme)
+            .filter(ChatTheme.name == config["name"])
+            .one_or_none()
+        )
+    if theme is None:
+        theme = (
+            session.query(ChatTheme)
+            .filter(ChatTheme.name == config["name"])
+            .one_or_none()
+        )
+    if theme is None:
+        theme = ChatTheme(
+            name=config["name"],
+            description=config.get("description"),
+            school_id=school.wriveted_identifier if school else None,
+            config=config.get("config", {}),
+            logo_url=config.get("logo_url"),
+            avatar_url=config.get("avatar_url"),
+            is_active=config.get("is_active", True),
+            is_default=config.get("is_default", False),
+            version=config.get("version", "1.0"),
+            created_by=created_by.id if created_by else None,
+        )
+        session.add(theme)
+        session.flush()
+    else:
+        theme.description = config.get("description", theme.description)
+        theme.config = config.get("config", theme.config)
+        if config.get("logo_url") is not None:
+            theme.logo_url = config["logo_url"]
+        if config.get("avatar_url") is not None:
+            theme.avatar_url = config["avatar_url"]
+        if "is_active" in config:
+            theme.is_active = config["is_active"]
+    return theme
+
+
+def _load_flow_config(config: dict, base_dir: Path) -> dict:
+    """If config has a 'flow_file' key, merge the external JSON into config."""
+    flow_file = config.get("flow_file")
+    if not flow_file:
+        return config
+    path = base_dir / flow_file
+    if not path.exists():
+        raise FileNotFoundError(f"Flow file not found: {path}")
+    external = json.loads(path.read_text())
+    merged = {**external, **config}
+    merged.pop("flow_file", None)
+    return merged
+
+
 def _ensure_flow(
     session,
     config: dict,
@@ -511,6 +578,7 @@ def _ensure_flow(
             school_id=school.wriveted_identifier if school else None,
             created_by=created_by.id if created_by else None,
             trace_enabled=config.get("trace_enabled", False),
+            is_published=config.get("is_published", True),
         )
         session.add(flow)
         session.flush()
@@ -524,6 +592,8 @@ def _ensure_flow(
             flow.visibility = ContentVisibility(config["visibility"])
         if config.get("info") or seed_key:
             flow.info = _info_with_seed(config.get("info", flow.info or {}), seed_key)
+        if "is_published" in config:
+            flow.is_published = config["is_published"]
 
     session.query(FlowConnection).filter(FlowConnection.flow_id == flow.id).delete()
     session.query(FlowNode).filter(FlowNode.flow_id == flow.id).delete()
@@ -559,6 +629,66 @@ def _ensure_flow(
 
     session.flush()
     return flow
+
+
+def _seed_airtable_questions(session, csv_path: Path) -> int:
+    """Seed CMS preference questions from Airtable CSV export.
+
+    Returns the number of questions inserted.
+    """
+    if not csv_path.exists():
+        return 0
+
+    # Import parsing logic from migration script
+    sys_path_orig = sys.path[:]
+    try:
+        from scripts.migrate_airtable_questions import load_questions_from_csv
+    except ImportError:
+        # Fallback: add parent dir to path
+        sys.path.insert(0, str(csv_path.parent.parent))
+        try:
+            from scripts.migrate_airtable_questions import load_questions_from_csv
+        except ImportError:
+            print("Warning: Could not import migration script, skipping questions")
+            return 0
+        finally:
+            sys.path = sys_path_orig
+
+    questions = load_questions_from_csv(csv_path)
+    if not questions:
+        return 0
+
+    # Check for existing airtable questions
+    existing = (
+        session.query(CMSContent)
+        .filter(CMSContent.info["source"].astext == "airtable")
+        .count()
+    )
+    if existing > 0:
+        print(f"  Found {existing} existing Airtable questions, replacing...")
+        session.query(CMSContent).filter(
+            CMSContent.info["source"].astext == "airtable"
+        ).delete(synchronize_session="fetch")
+        session.flush()
+
+    count = 0
+    for q in questions:
+        content = CMSContent(
+            id=q["id"],
+            type=q["type"],
+            content=q["content"],
+            tags=q["tags"],
+            is_active=q["is_active"],
+            status=q["status"],
+            visibility=q["visibility"],
+            school_id=q["school_id"],
+            info=q["info"],
+        )
+        session.add(content)
+        count += 1
+
+    session.flush()
+    return count
 
 
 def _parse_args() -> argparse.Namespace:
@@ -659,9 +789,33 @@ def main() -> None:
             cms_school = schools.get(cms_cfg.get("school_seed_key")) or school
             _ensure_cms_content(session, cms_cfg, cms_school, admin_user)
 
+        # Seed Airtable preference questions if CSV exists
+        questions_csv = config_path.parent.parent / "AI-Questions.csv"
+        if not questions_csv.exists():
+            questions_csv = DEFAULT_QUESTIONS_CSV
+        q_count = _seed_airtable_questions(session, questions_csv)
+        if q_count:
+            print(f"  Seeded {q_count} preference questions from CSV")
+
+        # Seed themes
+        themes_by_seed_key: dict[str, ChatTheme] = {}
+        for theme_cfg in config.get("themes", []):
+            theme = _ensure_theme(session, theme_cfg, None, admin_user)
+            if theme_cfg.get("seed_key"):
+                themes_by_seed_key[theme_cfg["seed_key"]] = theme
+
+        fixtures_dir = config_path.parent
         for flow_cfg in config.get("flows", []):
-            flow_school = schools.get(flow_cfg.get("school_seed_key")) or school
-            _ensure_flow(session, flow_cfg, flow_school, admin_user)
+            resolved_cfg = _load_flow_config(flow_cfg, fixtures_dir)
+            # Link theme to flow via flow_data.theme_id if theme_seed_key is specified
+            theme_seed_key = resolved_cfg.get("theme_seed_key")
+            if theme_seed_key and theme_seed_key in themes_by_seed_key:
+                theme = themes_by_seed_key[theme_seed_key]
+                flow_data = resolved_cfg.get("flow_data", {})
+                flow_data["theme_id"] = str(theme.id)
+                resolved_cfg["flow_data"] = flow_data
+            flow_school = schools.get(resolved_cfg.get("school_seed_key")) or school
+            _ensure_flow(session, resolved_cfg, flow_school, admin_user)
 
         session.commit()
 

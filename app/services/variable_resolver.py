@@ -240,6 +240,10 @@ class VariableResolver:
         """
         Recursively substitute variables in complex objects.
 
+        When the entire value is a single variable reference (e.g. "{{user.age}}"),
+        the raw typed value is returned (int, dict, list, etc.) instead of a string.
+        Mixed templates like "Hello {{user.name}}" still return strings.
+
         Args:
             obj: Object to process (dict, list, string, etc.)
             preserve_unresolved: If True, keep unresolved variables as-is
@@ -248,6 +252,25 @@ class VariableResolver:
             Object with variables substituted
         """
         if isinstance(obj, str):
+            # Check if the entire string is a single variable reference
+            stripped = obj.strip()
+            match = self.variable_pattern.fullmatch(stripped)
+            if match:
+                variable_str = match.group(1).strip()
+                try:
+                    variable_ref = self.parse_variable_reference(variable_str)
+                    value = self.resolve_variable(variable_ref)
+                    if value is not None:
+                        return value
+                    elif preserve_unresolved:
+                        return obj
+                    else:
+                        return None
+                except VariableValidationError:
+                    if preserve_unresolved:
+                        return obj
+                    return None
+            # Multiple references or mixed text — fall back to string substitution
             return self.substitute_variables(obj, preserve_unresolved)
         elif isinstance(obj, dict):
             return {

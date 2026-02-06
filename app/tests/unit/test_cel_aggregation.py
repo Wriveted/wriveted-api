@@ -420,6 +420,7 @@ class TestCelContextCreation:
             "merge_last",
             "flatten",
             "collect",
+            "top_keys",
         }
         assert set(CUSTOM_CEL_FUNCTIONS.keys()) == expected_functions
 

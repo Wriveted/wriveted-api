@@ -5,11 +5,11 @@ Provides secure, authenticated API calls to internal Wriveted services
 with proper authentication, error handling, and response processing.
 """
 
-import logging
 from typing import Any, Dict, Optional
 
 import httpx
 from pydantic import BaseModel
+from structlog import get_logger
 
 from app.config import get_settings
 from app.services.circuit_breaker import (
@@ -18,7 +18,7 @@ from app.services.circuit_breaker import (
     get_circuit_breaker,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 class ApiCallConfig(BaseModel):
@@ -68,7 +68,11 @@ class InternalApiClient:
 
     def __init__(self):
         self.settings = get_settings()
-        self.base_url = self.settings.WRIVETED_INTERNAL_API
+        self.base_url = (
+            str(self.settings.WRIVETED_INTERNAL_API)
+            if self.settings.WRIVETED_INTERNAL_API
+            else None
+        )
         self.session: Optional[httpx.AsyncClient] = None
 
     async def initialize(self) -> None:

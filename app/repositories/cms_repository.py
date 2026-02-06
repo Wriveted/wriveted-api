@@ -374,7 +374,7 @@ class CMSRepositoryImpl(CMSRepository):
 
                     json_filter = json.dumps({key: value})
                     conditions.append(
-                        text("info @> :json_filter::jsonb").bindparams(
+                        text("info @> cast(:json_filter as jsonb)").bindparams(
                             json_filter=json_filter
                         )
                     )

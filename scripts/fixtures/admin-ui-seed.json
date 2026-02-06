@@ -72,58 +72,186 @@
     }
   ],
   "hues": [
-    {
-      "key": "hue08_charming_courageous",
-      "name": "Charming & Courageous"
-    }
+    {"key": "hue01_dark_suspense", "name": "Dark Suspense"},
+    {"key": "hue02_beautiful_whimsical", "name": "Beautiful & Whimsical"},
+    {"key": "hue03_dark_beautiful", "name": "Dark & Beautiful"},
+    {"key": "hue04_joyful_charming", "name": "Joyful & Charming"},
+    {"key": "hue05_funny_comic", "name": "Funny Comic"},
+    {"key": "hue06_dark_gritty", "name": "Dark & Gritty"},
+    {"key": "hue07_silly_charming", "name": "Silly & Charming"},
+    {"key": "hue08_charming_courageous", "name": "Charming & Courageous"},
+    {"key": "hue09_charming_playful", "name": "Charming & Playful"},
+    {"key": "hue10_inspiring", "name": "Inspiring"},
+    {"key": "hue11_realistic_hope", "name": "Realistic Hope"},
+    {"key": "hue12_funny_quirky", "name": "Funny & Quirky"},
+    {"key": "hue13_informative", "name": "Informative"}
   ],
   "reading_abilities": [
-    {
-      "key": "TREEHOUSE",
-      "name": "Treehouse"
-    }
+    {"key": "SPOT", "name": "Spot"},
+    {"key": "CAT_HAT", "name": "Cat in the Hat"},
+    {"key": "TREEHOUSE", "name": "Treehouse"},
+    {"key": "CHARLIE_CHOCOLATE", "name": "Charlie Chocolate"},
+    {"key": "HARRY_POTTER", "name": "Harry Potter"}
   ],
   "works": [
     {
       "seed_key": "lost-map",
       "title": "The Lost Map",
       "isbn": "9780000000001",
-      "cover_url": "https://placehold.co/400x600/png?text=The+Lost+Map",
+      "cover_url": "https://placehold.co/400x600/e8d5b7/333?text=The+Lost+Map",
       "labelset": {
-        "min_age": 9,
+        "min_age": 7,
         "max_age": 12,
+        "huey_summary": "An adventurous quest through hidden lands where two friends follow a mysterious old map to find a lost treasure.",
         "hues": [
-          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+          {"key": "hue08_charming_courageous", "ordinal": "primary"},
+          {"key": "hue10_inspiring", "ordinal": "secondary"}
         ],
-        "reading_abilities": ["TREEHOUSE"]
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE"]
       }
     },
     {
       "seed_key": "space-explorers",
       "title": "Space Explorers",
       "isbn": "9780000000002",
-      "cover_url": "https://placehold.co/400x600/png?text=Space+Explorers",
+      "cover_url": "https://placehold.co/400x600/1a1a2e/e0e0ff?text=Space+Explorers",
       "labelset": {
-        "min_age": 9,
-        "max_age": 12,
+        "min_age": 8,
+        "max_age": 13,
+        "huey_summary": "A thrilling journey through the solar system with a crew of young astronauts discovering alien life on Europa.",
         "hues": [
-          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+          {"key": "hue13_informative", "ordinal": "primary"},
+          {"key": "hue08_charming_courageous", "ordinal": "secondary"}
         ],
-        "reading_abilities": ["TREEHOUSE"]
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE", "HARRY_POTTER"]
       }
     },
     {
       "seed_key": "mystery-museum",
       "title": "Mystery at the Museum",
       "isbn": "9780000000003",
-      "cover_url": "https://placehold.co/400x600/png?text=Mystery+at+the+Museum",
+      "cover_url": "https://placehold.co/400x600/2d2d44/ffd700?text=Mystery+Museum",
       "labelset": {
-        "min_age": 9,
+        "min_age": 8,
         "max_age": 12,
+        "huey_summary": "A suspenseful mystery set in a grand museum where paintings come alive at night and a stolen artifact must be found.",
         "hues": [
-          {"key": "hue08_charming_courageous", "ordinal": "primary"}
+          {"key": "hue01_dark_suspense", "ordinal": "primary"},
+          {"key": "hue03_dark_beautiful", "ordinal": "secondary"}
         ],
-        "reading_abilities": ["TREEHOUSE"]
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE"]
+      }
+    },
+    {
+      "seed_key": "silly-pets-club",
+      "title": "The Silly Pets Club",
+      "isbn": "9780000000004",
+      "cover_url": "https://placehold.co/400x600/fff5cc/333?text=Silly+Pets+Club",
+      "labelset": {
+        "min_age": 5,
+        "max_age": 9,
+        "huey_summary": "A laugh-out-loud story about a group of quirky pets who start their own secret club and get into hilarious misadventures.",
+        "hues": [
+          {"key": "hue05_funny_comic", "ordinal": "primary"},
+          {"key": "hue07_silly_charming", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["SPOT", "CAT_HAT", "TREEHOUSE"]
+      }
+    },
+    {
+      "seed_key": "enchanted-garden",
+      "title": "The Enchanted Garden",
+      "isbn": "9780000000005",
+      "cover_url": "https://placehold.co/400x600/d4edda/2d5a27?text=Enchanted+Garden",
+      "labelset": {
+        "min_age": 6,
+        "max_age": 11,
+        "huey_summary": "A magical garden hidden behind an old stone wall holds secrets, talking flowers, and a gentle fairy who needs help.",
+        "hues": [
+          {"key": "hue02_beautiful_whimsical", "ordinal": "primary"},
+          {"key": "hue04_joyful_charming", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["CAT_HAT", "TREEHOUSE", "CHARLIE_CHOCOLATE"]
+      }
+    },
+    {
+      "seed_key": "robot-friends",
+      "title": "Robot Friends Forever",
+      "isbn": "9780000000006",
+      "cover_url": "https://placehold.co/400x600/cce5ff/003366?text=Robot+Friends",
+      "labelset": {
+        "min_age": 7,
+        "max_age": 11,
+        "huey_summary": "In a world where kids build their own robots, a shy inventor creates a robot best friend who teaches everyone about kindness.",
+        "hues": [
+          {"key": "hue09_charming_playful", "ordinal": "primary"},
+          {"key": "hue04_joyful_charming", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE"]
+      }
+    },
+    {
+      "seed_key": "dark-tower-secret",
+      "title": "The Dark Tower's Secret",
+      "isbn": "9780000000007",
+      "cover_url": "https://placehold.co/400x600/1a1a1a/cc0000?text=Dark+Tower",
+      "labelset": {
+        "min_age": 10,
+        "max_age": 14,
+        "huey_summary": "A gripping tale of survival as three teens explore an abandoned tower and uncover a dark secret buried for centuries.",
+        "hues": [
+          {"key": "hue06_dark_gritty", "ordinal": "primary"},
+          {"key": "hue01_dark_suspense", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["CHARLIE_CHOCOLATE", "HARRY_POTTER"]
+      }
+    },
+    {
+      "seed_key": "ocean-diary",
+      "title": "My Ocean Diary",
+      "isbn": "9780000000008",
+      "cover_url": "https://placehold.co/400x600/e0f0ff/006699?text=Ocean+Diary",
+      "labelset": {
+        "min_age": 8,
+        "max_age": 13,
+        "huey_summary": "A heartfelt diary of a young marine biologist who documents her first summer studying dolphins and protecting the reef.",
+        "hues": [
+          {"key": "hue11_realistic_hope", "ordinal": "primary"},
+          {"key": "hue10_inspiring", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE", "HARRY_POTTER"]
+      }
+    },
+    {
+      "seed_key": "joke-quest",
+      "title": "The Great Joke Quest",
+      "isbn": "9780000000009",
+      "cover_url": "https://placehold.co/400x600/fff0f5/cc3366?text=Joke+Quest",
+      "labelset": {
+        "min_age": 6,
+        "max_age": 10,
+        "huey_summary": "A wacky adventure where a kid must collect the funniest jokes in the world to save their town from a grumpy wizard.",
+        "hues": [
+          {"key": "hue12_funny_quirky", "ordinal": "primary"},
+          {"key": "hue05_funny_comic", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["CAT_HAT", "TREEHOUSE"]
+      }
+    },
+    {
+      "seed_key": "starlight-dragon",
+      "title": "The Starlight Dragon",
+      "isbn": "9780000000010",
+      "cover_url": "https://placehold.co/400x600/2c003e/ffd700?text=Starlight+Dragon",
+      "labelset": {
+        "min_age": 7,
+        "max_age": 12,
+        "huey_summary": "A beautiful tale of a girl who befriends a dragon made of starlight and together they illuminate the darkest corners of the kingdom.",
+        "hues": [
+          {"key": "hue03_dark_beautiful", "ordinal": "primary"},
+          {"key": "hue02_beautiful_whimsical", "ordinal": "secondary"}
+        ],
+        "reading_abilities": ["TREEHOUSE", "CHARLIE_CHOCOLATE"]
       }
     }
   ],
@@ -135,7 +263,14 @@
       "items": [
         {"isbn": "9780000000001", "copies_total": 5, "copies_available": 3},
         {"isbn": "9780000000002", "copies_total": 4, "copies_available": 4},
-        {"isbn": "9780000000003", "copies_total": 6, "copies_available": 5}
+        {"isbn": "9780000000003", "copies_total": 6, "copies_available": 5},
+        {"isbn": "9780000000004", "copies_total": 3, "copies_available": 2},
+        {"isbn": "9780000000005", "copies_total": 4, "copies_available": 3},
+        {"isbn": "9780000000006", "copies_total": 3, "copies_available": 3},
+        {"isbn": "9780000000007", "copies_total": 2, "copies_available": 1},
+        {"isbn": "9780000000008", "copies_total": 3, "copies_available": 2},
+        {"isbn": "9780000000009", "copies_total": 4, "copies_available": 4},
+        {"isbn": "9780000000010", "copies_total": 3, "copies_available": 2}
       ]
     }
   ],
@@ -149,7 +284,14 @@
       "items": [
         {"isbn": "9780000000001", "order": 1},
         {"isbn": "9780000000002", "order": 2},
-        {"isbn": "9780000000003", "order": 3}
+        {"isbn": "9780000000003", "order": 3},
+        {"isbn": "9780000000004", "order": 4},
+        {"isbn": "9780000000005", "order": 5},
+        {"isbn": "9780000000006", "order": 6},
+        {"isbn": "9780000000007", "order": 7},
+        {"isbn": "9780000000008", "order": 8},
+        {"isbn": "9780000000009", "order": 9},
+        {"isbn": "9780000000010", "order": 10}
       ]
     }
   ],
@@ -191,6 +333,44 @@
       "tags": ["admin-ui", "demo"],
       "content": {
         "fact": {"text": "Did you know? Reading 20 minutes a day grows vocabulary fast."}
+      }
+    }
+  ],
+  "themes": [
+    {
+      "seed_key": "huey-bookbot-theme",
+      "name": "Huey Bookbot",
+      "description": "Kid-friendly teal and pink theme matching the production Huey chatbot.",
+      "avatar_url": "https://storage.googleapis.com/wriveted-huey-media/chat/huey-avatar.png",
+      "config": {
+        "colors": {
+          "primary": "#F22555",
+          "secondary": "#E02678",
+          "background": "#D6F3F3",
+          "backgroundAlt": "#ffffff",
+          "botBubble": "#ffffff",
+          "userBubble": "#ADD6D3",
+          "userBubbleText": "#000000",
+          "botBubbleText": "#34495E",
+          "border": "#b8e6e6",
+          "text": "#2F324A",
+          "textMuted": "#6b7280",
+          "header": "#9CC6C8",
+          "headerText": "#2F324A"
+        },
+        "typography": {
+          "fontFamily": "Nunito, 'Segoe UI', Roboto, sans-serif"
+        },
+        "bubbles": {
+          "borderRadius": 14,
+          "spacing": 12,
+          "padding": "12px 18px"
+        },
+        "bot": {
+          "name": "Huey",
+          "avatar": "https://storage.googleapis.com/wriveted-huey-media/chat/huey-avatar.png",
+          "typingIndicator": "dots"
+        }
       }
     }
   ],
@@ -292,6 +472,10 @@
           {"source": "genre_branch", "target": "default_msg", "type": "default"}
         ]
       }
+    },
+    {
+      "flow_file": "huey-bookbot-flow.json",
+      "theme_seed_key": "huey-bookbot-theme"
     }
   ]
 }
