@@ -1218,23 +1218,14 @@ class ChatRuntime:
                 )
                 if response["next_node"].node_type == NodeType.QUESTION:
                     awaiting_input = True
-                    # Use the processed result which has variable substitution
-                    # and normalized options, falling back to raw node content
+                    # Use the processed result (has variable substitution and
+                    # normalized options), falling back to raw node content
                     if next_result and next_result.get("type") == "question":
-                        result["input_request"] = {
-                            "input_type": next_result.get("input_type", "text"),
-                            "variable": next_result.get("variable", ""),
-                            "options": next_result.get("options", []),
-                            "question": next_result.get("question", {}),
-                        }
+                        result["input_request"] = self._build_input_request(next_result)
                     else:
-                        q_content = response["next_node"].content or {}
-                        result["input_request"] = {
-                            "input_type": q_content.get("input_type", "text"),
-                            "variable": q_content.get("variable", ""),
-                            "options": q_content.get("options", []),
-                            "question": q_content.get("question", {}),
-                        }
+                        result["input_request"] = self._build_input_request(
+                            response["next_node"].content or {}
+                        )
                 elif (
                     isinstance(next_result, dict)
                     and next_result.get("type") == "question"
@@ -1242,12 +1233,7 @@ class ChatRuntime:
                     # Action/condition node auto-chained into a question
                     awaiting_input = True
                     session_position = next_result.get("node_id", session_position)
-                    result["input_request"] = {
-                        "input_type": next_result.get("input_type", "text"),
-                        "variable": next_result.get("variable", ""),
-                        "options": next_result.get("options", []),
-                        "question": next_result.get("question", {}),
-                    }
+                    result["input_request"] = self._build_input_request(next_result)
                 if chained_next_node:
                     # Handle FlowNode objects
                     if isinstance(chained_next_node, FlowNode):
@@ -1255,35 +1241,13 @@ class ChatRuntime:
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
                             awaiting_input = True
-                            q_content = chained_next_node.content or {}
-
-                            # CMS random-source questions need process() to
-                            # fetch content and resolve options
-                            if q_content.get("source") == "random":
-                                session = await self._refresh_session(db, session)
-                                q_result = await self.process_node(
-                                    db, chained_next_node, session
-                                )
-                                session = await self._refresh_session(db, session)
-                                result["input_request"] = {
-                                    "input_type": q_result.get("input_type", "text"),
-                                    "variable": q_result.get("variable", ""),
-                                    "options": q_result.get("options", []),
-                                    "question": q_result.get("question", {}),
-                                }
-                            else:
-                                # Process inline questions for variable substitution
-                                session = await self._refresh_session(db, session)
-                                q_result = await self.process_node(
-                                    db, chained_next_node, session
-                                )
-                                session = await self._refresh_session(db, session)
-                                result["input_request"] = {
-                                    "input_type": q_result.get("input_type", "text"),
-                                    "variable": q_result.get("variable", ""),
-                                    "options": q_result.get("options", []),
-                                    "question": q_result.get("question", {}),
-                                }
+                            (
+                                result["input_request"],
+                                _,
+                                session,
+                            ) = await self._resolve_question_node(
+                                db, chained_next_node, session
+                            )
                     # Handle dict results (e.g., from composite node sub-flows)
                     elif isinstance(chained_next_node, dict):
                         if chained_next_node.get("type") == "question":
@@ -1299,15 +1263,9 @@ class ChatRuntime:
                                         else sub_flow_id
                                     )
                                 awaiting_input = True
-                                # Add input_request from dict question
-                                result["input_request"] = {
-                                    "input_type": chained_next_node.get(
-                                        "input_type", "text"
-                                    ),
-                                    "variable": chained_next_node.get("variable", ""),
-                                    "options": chained_next_node.get("options", []),
-                                    "question": chained_next_node.get("question", {}),
-                                }
+                                result["input_request"] = self._build_input_request(
+                                    chained_next_node
+                                )
 
                 result["current_node_id"] = session_position
 
@@ -1337,35 +1295,15 @@ class ChatRuntime:
                     # If next node is a FlowNode
                     if isinstance(chained_next_node, FlowNode):
                         if chained_next_node.node_type == NodeType.QUESTION:
-                            # Stop at question and include its content
                             session_position = chained_next_node.node_id
                             session_flow_id = chained_next_node.flow_id
-                            q_content = chained_next_node.content or {}
-
-                            # CMS random-source questions need process() to
-                            # fetch content and resolve options
-                            if q_content.get("source") == "random":
-                                session = await self._refresh_session(db, session)
-                                q_result = await self.process_node(
-                                    db, chained_next_node, session
-                                )
-                                session = await self._refresh_session(db, session)
-                                q_options = q_result.get("options", [])
-                                result["input_request"] = {
-                                    "input_type": q_result.get("input_type", "text"),
-                                    "variable": q_result.get("variable", ""),
-                                    "options": q_options,
-                                    "question": q_result.get("question", {}),
-                                }
-                            else:
-                                q_options = q_content.get("options", [])
-                                result["input_request"] = {
-                                    "input_type": q_content.get("input_type", "text"),
-                                    "variable": q_content.get("variable", ""),
-                                    "options": q_options,
-                                    "question": q_content.get("question", {}),
-                                }
-
+                            (
+                                result["input_request"],
+                                q_options,
+                                session,
+                            ) = await self._resolve_question_node(
+                                db, chained_next_node, session
+                            )
                             q_state = {"system": {"_current_options": q_options}}
                             session = await self._refresh_session(db, session)
                             session = await chat_repo.update_session_state(
@@ -1483,12 +1421,9 @@ class ChatRuntime:
                     if next_node.node_type == NodeType.QUESTION:
                         awaiting_input = True
                         if next_result and next_result.get("type") == "question":
-                            result["input_request"] = {
-                                "input_type": next_result.get("input_type", "text"),
-                                "variable": next_result.get("variable", ""),
-                                "options": next_result.get("options", []),
-                                "question": next_result.get("question", {}),
-                            }
+                            result["input_request"] = self._build_input_request(
+                                next_result
+                            )
                     elif (
                         isinstance(next_result, dict)
                         and next_result.get("type") == "question"
@@ -1496,12 +1431,7 @@ class ChatRuntime:
                         # ACTION/CONDITION node auto-chained into a question
                         awaiting_input = True
                         session_position = next_result.get("node_id", session_position)
-                        result["input_request"] = {
-                            "input_type": next_result.get("input_type", "text"),
-                            "variable": next_result.get("variable", ""),
-                            "options": next_result.get("options", []),
-                            "question": next_result.get("question", {}),
-                        }
+                        result["input_request"] = self._build_input_request(next_result)
 
                     # Persist session position and options when awaiting input
                     # (the chaining loop below handles its own persistence)
@@ -1529,34 +1459,13 @@ class ChatRuntime:
                             session_position = chained_next.node_id
                             session_flow_id = chained_next.flow_id
                             awaiting_input = True
-                            q_content = chained_next.content or {}
-
-                            if q_content.get("source") == "random":
-                                session = await self._refresh_session(db, session)
-                                q_result = await self.process_node(
-                                    db, chained_next, session
-                                )
-                                session = await self._refresh_session(db, session)
-                                result["input_request"] = {
-                                    "input_type": q_result.get("input_type", "text"),
-                                    "variable": q_result.get("variable", ""),
-                                    "options": q_result.get("options", []),
-                                    "question": q_result.get("question", {}),
-                                }
-                            else:
-                                session = await self._refresh_session(db, session)
-                                q_result = await self.process_node(
-                                    db, chained_next, session
-                                )
-                                session = await self._refresh_session(db, session)
-                                result["input_request"] = {
-                                    "input_type": q_result.get("input_type", "text"),
-                                    "variable": q_result.get("variable", ""),
-                                    "options": q_result.get("options", []),
-                                    "question": q_result.get("question", {}),
-                                }
-
-                            q_options = result["input_request"].get("options", [])
+                            (
+                                result["input_request"],
+                                q_options,
+                                session,
+                            ) = await self._resolve_question_node(
+                                db, chained_next, session
+                            )
                             q_state = {"system": {"_current_options": q_options}}
                             session = await self._refresh_session(db, session)
                             session = await chat_repo.update_session_state(
@@ -1798,17 +1707,17 @@ class ChatRuntime:
         if entry_node:
             result = await self.process_node(db, entry_node, session)
 
-            # If the entry node is a message leading into a question, advance position
+            # If the entry node leads into a question, process it and advance position
             next_node = result.get("next_node")
             if next_node and isinstance(next_node, FlowNode):
                 if next_node.node_type == NodeType.QUESTION:
-                    q_content = next_node.content or {}
-                    options = q_content.get("options", [])
-                    state_updates = {"system": {"_current_options": options}}
+                    _, options, session = await self._resolve_question_node(
+                        db, next_node, session
+                    )
                     await chat_repo.update_session_state(
                         db,
                         session_id=session.id,
-                        state_updates=state_updates,
+                        state_updates={"system": {"_current_options": options}},
                         current_node_id=next_node.node_id,
                     )
 
@@ -1816,6 +1725,30 @@ class ChatRuntime:
             return self._serialize_node_result(result)
 
         return None
+
+    @staticmethod
+    def _build_input_request(source: Dict[str, Any]) -> Dict[str, Any]:
+        """Build an input_request dict from a question result or raw node content."""
+        return {
+            "input_type": source.get("input_type", "text"),
+            "variable": source.get("variable", ""),
+            "options": source.get("options", []),
+            "question": source.get("question", {}),
+        }
+
+    async def _resolve_question_node(
+        self, db: AsyncSession, question_node: FlowNode, session: ConversationSession
+    ) -> tuple:
+        """Process a question FlowNode, returning (input_request, options, session).
+
+        Handles CMS content fetching, variable substitution, and option
+        normalization by running the node through process_node().
+        """
+        session = await self._refresh_session(db, session)
+        q_result = await self.process_node(db, question_node, session)
+        session = await self._refresh_session(db, session)
+        input_request = self._build_input_request(q_result or {})
+        return input_request, input_request["options"], session
 
     def _serialize_node_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Serialize node processing result, converting FlowNode objects to dicts."""
