@@ -63,5 +63,6 @@ async def handle_recommend(
 
     return {
         "count": len(recommended_books),
+        "query": query_parameters,
         "books": [book.model_dump(mode="json") for book in recommended_books],
     }
