@@ -293,6 +293,7 @@ async def interact_with_session(
             session_ended=response.get("session_ended", False),
             current_node_id=response.get("current_node_id"),
             session_updated=response.get("session_updated"),
+            wait_for_acknowledgment=response.get("wait_for_acknowledgment", False),
         )
 
     except IntegrityError:

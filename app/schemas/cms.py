@@ -475,6 +475,7 @@ class InteractionResponse(BaseModel):
     session_ended: bool = False
     current_node_id: Optional[str] = None
     session_updated: Optional[Dict[str, Any]] = None
+    wait_for_acknowledgment: bool = False
 
 
 class ConversationHistoryDetail(BaseModel):
