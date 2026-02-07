@@ -135,21 +135,6 @@ psql postgresql://postgres:password@localhost/postgres -c "SELECT 1"
 - School Admin token limited to school-specific resources
 - Service accounts have specific scopes based on type
 
-## Alternative: Legacy E2E Setup
-
-The `setup_test_environment.py` script in the project root is an older, minimal setup used for Playwright E2E testing. It creates a different test school (ID `784039ba-7eda-406d-9058-efe65f62f034`) with fewer user roles. **Prefer the seed script above for most development work.**
-
-If you need the legacy setup:
-
-```bash
-poetry run python3 setup_test_environment.py
-```
-
-Related legacy scripts:
-- `get_user_token.py` -- Quick user token generator
-- `get_service_token.py` -- Quick service token generator
-- `scripts/get_auth_token.py` -- Legacy token generator (hardcoded user)
-
 ## API Documentation
 
 For full API documentation, see:
