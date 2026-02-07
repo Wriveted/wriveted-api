@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Wriveted CMS is designed to manage dynamic chatbot content and flows, replacing the Landbot platform with a custom, flexible solution. This system handles content creation, flow management, conversation state, and analytics.
+The Wriveted CMS manages dynamic chatbot content and flows. It replaced the Landbot platform with a custom solution handling content creation, flow management, conversation state, and analytics.
 
 ## Database Schema
 
@@ -21,16 +21,20 @@ CREATE TABLE cms_content (
     content JSONB NOT NULL,
     info JSONB DEFAULT '{}' NOT NULL, -- Note: field is 'info', not 'metadata'
     tags TEXT[] DEFAULT '{}',
+    search_document TSVECTOR, -- Full-text search; maintained by trigger (see app/db/functions.py)
     is_active BOOLEAN DEFAULT true,
     status enum_cms_content_status DEFAULT 'draft',
     version INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by UUID REFERENCES users(id),
+    school_id UUID REFERENCES schools(wriveted_identifier) ON DELETE CASCADE, -- Multi-tenant ownership
+    visibility enum_cms_content_visibility DEFAULT 'wriveted', -- See Content Visibility & Ownership section
     INDEX idx_content_type (type),
     INDEX idx_content_tags USING GIN (tags),
     INDEX idx_content_active (is_active),
-    INDEX idx_content_status (status)
+    INDEX idx_content_status (status),
+    INDEX ix_cms_content_search_document USING GIN (search_document)
 );
 ```
 
@@ -86,7 +90,7 @@ CREATE TABLE cms_content_variants (
 ### Flow Management Tables
 
 #### flow_definitions
-Stores chatbot flow definitions (replacing Landbot's diagram structure).
+Stores chatbot flow definitions as directed graphs of nodes and connections.
 
 ```sql
 CREATE TABLE flow_definitions (
@@ -812,6 +816,8 @@ Body: {
 
 ### Analytics Endpoints
 
+All analytics endpoints are defined in `app/api/analytics.py` and served under `/v1/cms/`. The service layer (`app/services/analytics.py`) implements real SQL queries for flow-level and dashboard metrics. Content-level analytics (A/B testing, usage patterns) and the export system return placeholder data -- the endpoints and response shapes are stable but the underlying calculations use simulated values.
+
 #### Flow Analytics
 
 ```python
@@ -889,166 +895,43 @@ Response: {
 #### Node Analytics
 
 ```python
-# Get node engagement metrics
+# Get node engagement metrics (real SQL queries via AnalyticsService)
 GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics
 Query params:
   - start_date: date (optional)
   - end_date: date (optional)
-Response: {
-  "node_id": "string",
-  "visits": 1250,
-  "interactions": 1100,
-  "bounce_rate": 0.12,
-  "average_time_spent": 25.5,
-  "response_distribution": {
-    "option_a": 0.45,
-    "option_b": 0.35,
-    "other": 0.20
-  }
-}
+# Returns: visits, interactions, bounce_rate, average_time_spent, response_distribution
 
-# Get node response analytics
+# Get node response analytics (placeholder -- returns hardcoded data)
 GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics/responses
-Response: {
-  "node_id": "string",
-  "response_patterns": [...],
-  "sentiment_analysis": {...},
-  "popular_responses": [...]
-}
 
-# Get node path analytics (user journey)
+# Get node path analytics (placeholder -- returns hardcoded data)
 GET /v1/cms/flows/{flow_id}/nodes/{node_id}/analytics/paths
-Response: {
-  "node_id": "string",
-  "incoming_paths": [...],
-  "outgoing_paths": [...],
-  "path_efficiency": 0.78
-}
 ```
 
-#### Content Analytics
+#### Content Analytics (placeholder implementations)
+
+Content-level analytics endpoints exist but return simulated data. There is no content impression/interaction tracking table yet, so metrics are derived from content ID hashes rather than real usage data. Sentiment analysis values are hardcoded.
 
 ```python
-# Get content engagement metrics
-GET /v1/cms/content/{content_id}/analytics
-Query params:
-  - start_date: date (optional)
-  - end_date: date (optional)
-Response: {
-  "content_id": "uuid",
-  "impressions": 1500,
-  "interactions": 1200,
-  "engagement_rate": 0.80,
-  "sentiment_analysis": {
-    "positive": 0.7,
-    "neutral": 0.2,
-    "negative": 0.1
-  },
-  "usage_contexts": {
-    "welcome_flow": 0.4,
-    "question_flow": 0.35,
-    "other": 0.25
-  }
-}
-
-# Get A/B test results for content variants
-GET /v1/cms/content/{content_id}/analytics/ab-test
-Response: {
-  "content_id": "uuid",
-  "test_status": "active",
-  "test_results": {
-    "variant_a": {
-      "traffic_percentage": 50,
-      "conversion_rate": 0.123,
-      "engagement_rate": 0.67,
-      "sample_size": 500
-    },
-    "variant_b": {
-      "traffic_percentage": 50,
-      "conversion_rate": 0.145,
-      "engagement_rate": 0.72,
-      "sample_size": 485
-    }
-  },
-  "statistical_significance": {
-    "confidence_level": 0.95,
-    "p_value": 0.032,
-    "is_significant": true
-  },
-  "winning_variant": "variant_b",
-  "confidence_level": 0.95
-}
-
-# Get content usage patterns
-GET /v1/cms/content/{content_id}/analytics/usage
-Response: {
-  "content_id": "uuid",
-  "usage_frequency": 25,
-  "time_patterns": {
-    "hourly_distribution": {
-      "morning": 0.25,
-      "afternoon": 0.35,
-      "evening": 0.4
-    },
-    "daily_distribution": {
-      "weekdays": 0.7,
-      "weekends": 0.3
-    }
-  },
-  "context_distribution": {
-    "welcome_sequence": 0.3,
-    "main_conversation": 0.5,
-    "closing_sequence": 0.2
-  },
-  "user_segments": {
-    "children_7_12": 0.4,
-    "teens_13_17": 0.35,
-    "adults": 0.25
-  }
-}
+GET /v1/cms/content/{content_id}/analytics          # Engagement metrics (params: start_date, end_date)
+GET /v1/cms/content/{content_id}/analytics/ab-test   # A/B test results (queries real variants, simulates stats)
+GET /v1/cms/content/{content_id}/analytics/usage     # Usage patterns (hardcoded distributions)
 ```
 
 #### Dashboard & Real-time Analytics
 
 ```python
-# Get dashboard overview metrics
+# Get dashboard overview metrics (real SQL queries)
 GET /v1/cms/analytics/dashboard
-Response: {
-  "overview": {
-    "total_flows": 23,
-    "total_content": 450,
-    "active_sessions": 145,
-    "engagement_rate": 0.73
-  },
-  "top_performing": [
-    {"flow_id": "uuid", "name": "Onboarding Flow", "completion_rate": 0.89, "sessions": 1200},
-    {"flow_id": "uuid", "name": "Product Discovery", "completion_rate": 0.76, "sessions": 890}
-  ],
-  "recent_activity": {
-    "new_sessions_today": 245,
-    "content_created_this_week": 5,
-    "flows_published_this_week": 2
-  }
-}
+# Returns: flow/content counts, active sessions, engagement rate (from completed/total),
+# top performing flows by completion rate, recent activity summary.
+# Note: "recent_activity.content_created_this_week" and "flows_published_this_week" are placeholders.
 
-# Get real-time system metrics
+# Get real-time system metrics (partially real)
 GET /v1/cms/analytics/real-time
-Response: {
-  "timestamp": "2025-08-09T12:34:56Z",
-  "active_sessions": 145,
-  "current_interactions": 290,
-  "response_time": 145,
-  "error_rate": 0.002,
-  "sessions_last_hour": 234,
-  "top_active_flows": [
-    {"flow_id": "uuid", "name": "Welcome Flow", "active_sessions": 45},
-    {"flow_id": "uuid", "name": "Support Flow", "active_sessions": 32}
-  ],
-  "real_time_events": [
-    {"timestamp": "2025-08-09T12:34:30Z", "event": "session_started", "flow_id": "uuid"},
-    {"timestamp": "2025-08-09T12:33:45Z", "event": "conversion", "flow_id": "uuid"}
-  ]
-}
+# Active sessions count and top active flows use real SQL queries.
+# The "real_time_events" array is simulated -- not backed by an actual event stream.
 
 # Get top-performing content
 GET /v1/cms/analytics/content/top
@@ -1056,24 +939,6 @@ Query params:
   - limit: int (default: 10, max: 50)
   - metric: engagement|impressions (default: engagement)
   - days: int (default: 30, max: 90)
-Response: {
-  "top_content": [
-    {
-      "content_id": "uuid",
-      "type": "joke",
-      "title": "Why don't scientists trust atoms?",
-      "engagement_score": 0.89,
-      "impressions": 1500,
-      "tags": ["science", "humor"]
-    }
-  ],
-  "metric": "engagement",
-  "time_period": {
-    "start_date": "2025-07-10",
-    "end_date": "2025-08-09",
-    "days": 30
-  }
-}
 
 # Get top-performing flows
 GET /v1/cms/analytics/flows/top
@@ -1081,188 +946,30 @@ Query params:
   - limit: int (default: 5, max: 20)
   - metric: completion_rate|sessions (default: completion_rate)
   - days: int (default: 30, max: 90)
-Response: {
-  "top_flows": [
-    {
-      "flow_id": "uuid",
-      "name": "Onboarding Flow v2",
-      "version": "2.1",
-      "completion_rate": 0.89,
-      "total_sessions": 1200,
-      "completed_sessions": 1068
-    }
-  ],
-  "metric": "completion_rate",
-  "time_period": {
-    "start_date": "2025-07-10",
-    "end_date": "2025-08-09",
-    "days": 30
-  }
-}
 ```
 
-#### Export & Data Analysis
+#### Export & Data Analysis (placeholder implementation)
+
+The export system has endpoints and response shapes defined but does not actually generate files. The service generates fake export IDs and simulated progress/status. These endpoints exist as scaffolding for a future background-job-based export system.
 
 ```python
-# Export analytics data
-GET /v1/cms/analytics/export
-Query params:
-  - format: csv|json|xlsx (default: csv)
-  - flow_ids: comma-separated flow IDs (optional)
-  - start_date: date (optional)
-  - end_date: date (optional)
-Response: {
-  "export_id": "export-12345abc",
-  "status": "preparing",
-  "format": "csv",
-  "estimated_completion": "2025-08-09T12:37:00Z",
-  "download_url": "/downloads/analytics-export-12345abc.csv",
-  "file_size_estimate": "2.5MB",
-  "records_count": 15000
-}
+GET  /v1/cms/analytics/export                      # General export (params: format, flow_ids, dates)
+GET  /v1/cms/analytics/exports/{export_id}/status   # Export status check
+POST /v1/cms/flows/{flow_id}/analytics/export       # Flow-specific export
+POST /v1/cms/content/analytics/export               # Content analytics export
+POST /v1/cms/analytics/export                       # General export (POST variant)
 
-# Get export status
-GET /v1/cms/analytics/exports/{export_id}/status
-Response: {
-  "export_id": "export-12345abc",
-  "status": "completed|processing|failed",
-  "progress": 100,
-  "created_at": "2025-08-09T12:34:00Z",
-  "estimated_completion": "2025-08-09T12:37:00Z"
-}
-
-# Create flow-specific export
-POST /v1/cms/flows/{flow_id}/analytics/export
-Body: {
-  "format": "csv",
-  "include_raw_data": true,
-  "date_range": {
-    "start_date": "2025-07-01",
-    "end_date": "2025-08-01"
-  },
-  "include_sections": ["sessions", "interactions", "performance"]
-}
-Response: {
-  "export_id": "flow-export-67890def",
-  "status": "preparing",
-  "estimated_completion": "2025-08-09T12:40:00Z"
-}
-
-# Create content analytics export
-POST /v1/cms/content/analytics/export
-Body: {
-  "format": "json",
-  "content_filters": {
-    "content_types": ["joke", "fact"],
-    "tags": ["science", "humor"],
-    "min_engagement_score": 0.7
-  },
-  "include_variants": true
-}
-Response: {
-  "export_id": "content-export-abcde123",
-  "status": "preparing",
-  "download_url": "/downloads/content-analytics-abcde123.json"
-}
-
-# Get filtered analytics summary
-GET /v1/cms/analytics/summary
-Query params:
-  - start_date: date (optional)
-  - end_date: date (optional)
-  - user_segment: string (optional)
-  - age_range: string (optional, e.g., "7-12")
-Response: {
-  "date_range": {
-    "start": "2025-07-10",
-    "end": "2025-08-09"
-  },
-  "filters": {
-    "user_segment": "students",
-    "age_range": "7-12"
-  },
-  "summary": {
-    "total_sessions": 1500,
-    "completion_rate": 0.73,
-    "engagement_rate": 0.68,
-    "avg_session_duration": 145.5
-  }
-}
-
-# Get paginated session analytics
-GET /v1/cms/analytics/sessions
-Query params:
-  - limit: int (default: 10, max: 100)
-  - offset: int (default: 0)
-  - flow_id: uuid (optional filter)
-  - status: active|completed|abandoned (optional filter)
-Response: {
-  "data": [
-    {
-      "session_id": "uuid",
-      "flow_id": "uuid",
-      "duration": 180,
-      "completed": true,
-      "user_segment": "student",
-      "started_at": "2025-08-09T10:30:00Z"
-    }
-  ],
-  "pagination": {
-    "limit": 10,
-    "offset": 0,
-    "total": 1500,
-    "has_next": true
-  }
-}
+# Placeholder endpoints that return hardcoded data (no service layer calls):
+GET  /v1/cms/analytics/summary                      # Filtered summary (params: dates, user_segment, age_range)
+GET  /v1/cms/analytics/sessions                     # Paginated sessions (params: limit, offset, flow_id, status)
+GET  /v1/cms/analytics/content                      # Filtered content analytics (params: content_type, tags)
 ```
 
-#### Analytics Error Responses
+### Webhook Notifications
 
-```python
-# Common error responses
-400 Bad Request: {
-  "detail": "Invalid date range: start_date must be before end_date"
-}
+The system supports internal webhook delivery for flow events via the `WebhookNotifier` service (`app/services/webhook_notifier.py`). This service delivers HTTP POST requests with JSON payloads and HMAC signatures when flow events occur (e.g., session started, node changed).
 
-404 Not Found: {
-  "detail": "Flow with id 'invalid-uuid' not found"
-}
-
-422 Validation Error: {
-  "detail": [
-    {
-      "loc": ["query", "granularity"],
-      "msg": "value is not a valid enumeration member",
-      "type": "type_error.enum"
-    }
-  ]
-}
-
-500 Internal Server Error: {
-  "detail": "Error retrieving analytics data: Database connection failed"
-}
-```
-
-### Webhook Integration
-
-```python
-# Register webhook
-POST /v1/cms/webhooks
-Body: {
-  "url": "https://example.com/webhook",
-  "events": ["session.started", "session.completed"],
-  "headers": {...}
-}
-
-# List webhooks
-GET /v1/cms/webhooks
-
-# Test webhook
-POST /v1/cms/webhooks/{webhook_id}/test
-
-# Delete webhook
-DELETE /v1/cms/webhooks/{webhook_id}
-```
+Webhook notification is configured programmatically -- there are no user-facing API endpoints for webhook registration. See `docs/chatbot-system.md` for details on the event system and webhook payload structure.
 
 ## Integration Points
 
@@ -1275,32 +982,11 @@ DELETE /v1/cms/webhooks/{webhook_id}
 
 ### External Services
 
-**Analytics Services**
-   - Google Analytics
-   - Mixpanel
-   - Custom analytics
+Analytics is handled by the built-in `AnalyticsService` (`app/services/analytics.py`) with endpoints under `/v1/cms/`. External analytics integrations (e.g., Google Analytics, Mixpanel) are not currently implemented.
 
-## Migration Strategy
+## Migration History
 
-1. **Phase 1: Content Migration**
-   - Extract all content from Landbot (done)
-   - Import into cms_content table
-   - Map content IDs
-
-2. **Phase 2: Flow Migration**
-   - Convert Landbot flow JSON to new format
-   - Create flow_definitions
-   - Rebuild nodes and connections
-
-3. **Phase 3: Runtime Implementation**
-   - Build conversation engine
-   - Implement state management
-   - Add analytics tracking
-
-4. **Phase 4: Testing & Rollout**
-   - A/B test against Landbot
-   - Gradual migration of users
-   - Performance optimization
+The CMS replaced the Landbot platform. Migration from Landbot was completed using `scripts/migrate_landbot_data_v2.py`, which converted 732KB of Landbot data into 54 nodes and 59 connections with zero data loss. The Huey Bookbot flow has since been rebuilt as a native flow in `scripts/fixtures/huey-bookbot-flow.json`.
 
 ## Performance Considerations
 

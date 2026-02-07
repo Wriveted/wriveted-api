@@ -66,6 +66,29 @@ The public API is available at `http://localhost:8000`. The seed script prints J
 
 > **Note:** The `api` service volume-mounts `./app` so code changes are live without rebuild. The `scripts/` directory is _not_ mounted by default -- the seed command above uses `-v` to mount it explicitly.
 
+### Running without Docker
+
+```bash
+# Public API
+uvicorn app.main:app --reload
+
+# Internal API
+gunicorn --workers=1 --worker-class=uvicorn.workers.UvicornWorker app.internal_api:internal_app
+```
+
+### Configuring local admin access
+
+To grant admin access for testing the CMS/chatflow builder in the admin UI:
+
+```sql
+UPDATE users SET type = 'WRIVETED' WHERE email = 'your-email@example.com';
+
+INSERT INTO wriveted_admins (id)
+SELECT id FROM users WHERE email = 'your-email@example.com';
+```
+
+After updating, log out and back in to get a new JWT with updated permissions.
+
 ## Chatflow runtime
 
 The chat runtime (`app/services/chat_runtime.py`) drives Huey's interactive reading-preference conversations. Flows are directed graphs of nodes (messages, questions, actions, conditions) defined in the admin UI and stored as JSON.
@@ -90,7 +113,10 @@ CMS content (questions, messages, jokes, facts) is managed via the API and surfa
 
 ### Unit tests (no database required)
 
+Unit tests require several environment variables to be set. Use the helper script:
+
 ```bash
+source scripts/setup-test-env.sh
 poetry run pytest app/tests/unit/ -v
 ```
 
@@ -102,7 +128,21 @@ The recommended way to run integration tests -- provides a proper environment wi
 bash scripts/integration-tests.sh
 ```
 
+If you don't have GCR credentials (e.g. first-time setup), skip remote Docker cache pulls:
+
+```bash
+LOCAL_BUILD_ONLY=1 bash scripts/integration-tests.sh
+```
+
 Ensure no conflicting PostgreSQL containers are running on port 5432.
+
+### Isolated tests
+
+Some tests require isolation from other tests (e.g. connection pool stress tests). These are marked with `@pytest.mark.isolated` and skipped during normal test runs. CI runs them separately:
+
+```bash
+bash scripts/integration-tests.sh --run-isolated-tests
+```
 
 ### Single test
 
@@ -117,6 +157,8 @@ Requires a running Docker stack with seeded data:
 ```bash
 python scripts/test_huey_flow_e2e.py
 ```
+
+See [docs/testing-credentials.md](docs/testing-credentials.md) for test data setup and authentication tokens.
 
 ## Database migrations
 
