@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Wriveted CMS is designed to manage dynamic chatbot content and flows, replacing the Landbot platform with a custom, flexible solution. This system handles content creation, flow management, conversation state, and analytics.
+The Wriveted CMS manages dynamic chatbot content and flows. It replaced the Landbot platform with a custom solution handling content creation, flow management, conversation state, and analytics.
 
 ## Database Schema
 
@@ -21,16 +21,20 @@ CREATE TABLE cms_content (
     content JSONB NOT NULL,
     info JSONB DEFAULT '{}' NOT NULL, -- Note: field is 'info', not 'metadata'
     tags TEXT[] DEFAULT '{}',
+    search_document TSVECTOR, -- Full-text search; maintained by trigger (see app/db/functions.py)
     is_active BOOLEAN DEFAULT true,
     status enum_cms_content_status DEFAULT 'draft',
     version INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by UUID REFERENCES users(id),
+    school_id UUID REFERENCES schools(wriveted_identifier) ON DELETE CASCADE, -- Multi-tenant ownership
+    visibility enum_cms_content_visibility DEFAULT 'wriveted', -- See Content Visibility & Ownership section
     INDEX idx_content_type (type),
     INDEX idx_content_tags USING GIN (tags),
     INDEX idx_content_active (is_active),
-    INDEX idx_content_status (status)
+    INDEX idx_content_status (status),
+    INDEX ix_cms_content_search_document USING GIN (search_document)
 );
 ```
 
@@ -86,7 +90,7 @@ CREATE TABLE cms_content_variants (
 ### Flow Management Tables
 
 #### flow_definitions
-Stores chatbot flow definitions (replacing Landbot's diagram structure).
+Stores chatbot flow definitions as directed graphs of nodes and connections.
 
 ```sql
 CREATE TABLE flow_definitions (
@@ -1243,26 +1247,11 @@ Response: {
 }
 ```
 
-### Webhook Integration
+### Webhook Notifications
 
-```python
-# Register webhook
-POST /v1/cms/webhooks
-Body: {
-  "url": "https://example.com/webhook",
-  "events": ["session.started", "session.completed"],
-  "headers": {...}
-}
+The system supports internal webhook delivery for flow events via the `WebhookNotifier` service (`app/services/webhook_notifier.py`). This service delivers HTTP POST requests with JSON payloads and HMAC signatures when flow events occur (e.g., session started, node changed).
 
-# List webhooks
-GET /v1/cms/webhooks
-
-# Test webhook
-POST /v1/cms/webhooks/{webhook_id}/test
-
-# Delete webhook
-DELETE /v1/cms/webhooks/{webhook_id}
-```
+Webhook notification is configured programmatically -- there are no user-facing API endpoints for webhook registration. See `docs/chatbot-system.md` for details on the event system and webhook payload structure.
 
 ## Integration Points
 
@@ -1275,32 +1264,11 @@ DELETE /v1/cms/webhooks/{webhook_id}
 
 ### External Services
 
-**Analytics Services**
-   - Google Analytics
-   - Mixpanel
-   - Custom analytics
+Analytics is handled by the built-in `AnalyticsService` (`app/services/analytics.py`) with endpoints under `/v1/cms/`. External analytics integrations (e.g., Google Analytics, Mixpanel) are not currently implemented.
 
-## Migration Strategy
+## Migration History
 
-1. **Phase 1: Content Migration**
-   - Extract all content from Landbot (done)
-   - Import into cms_content table
-   - Map content IDs
-
-2. **Phase 2: Flow Migration**
-   - Convert Landbot flow JSON to new format
-   - Create flow_definitions
-   - Rebuild nodes and connections
-
-3. **Phase 3: Runtime Implementation**
-   - Build conversation engine
-   - Implement state management
-   - Add analytics tracking
-
-4. **Phase 4: Testing & Rollout**
-   - A/B test against Landbot
-   - Gradual migration of users
-   - Performance optimization
+The CMS replaced the Landbot platform. Migration from Landbot was completed using `scripts/migrate_landbot_data_v2.py`, which converted 732KB of Landbot data into 54 nodes and 59 connections with zero data loss. The Huey Bookbot flow has since been rebuilt as a native flow in `scripts/fixtures/huey-bookbot-flow.json`.
 
 ## Performance Considerations
 

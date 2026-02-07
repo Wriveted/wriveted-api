@@ -36,11 +36,11 @@ The system uses a hybrid execution model optimized for the FastAPI/PostgreSQL/Cl
 │          │                   │                   │          │
 │          ▼                   ▼                   ▼          │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │              Chat Engine (Hybrid)                    │  │
+│  │              Chat Engine                             │  │
 │  ├───────────────────────────────────────────────────────┤  │
-│  │  SYNC: MESSAGE, QUESTION, CONDITION                  │  │
-│  │  ASYNC: ACTION, WEBHOOK → Cloud Tasks               │  │
-│  │  MIXED: COMPOSITE (sync coord, async processing)    │  │
+│  │  SYNC: MESSAGE, QUESTION, CONDITION, ACTION          │  │
+│  │  SYNC: WEBHOOK (with circuit breaker)                │  │
+│  │  SYNC: COMPOSITE (nested sub-flow execution)         │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                          │                ▲                 │
 │                          ▼                │                 │
@@ -59,19 +59,21 @@ The system uses a hybrid execution model optimized for the FastAPI/PostgreSQL/Cl
                                  ▼
                     ┌─────────────────────┐
                     │   Cloud Tasks       │
-                    │ • Async Node Exec   │
-                    │ • Webhook Calls     │
                     │ • Background Tasks  │
+                    │ • (Async node exec  │
+                    │    infrastructure   │
+                    │    ready, not yet   │
+                    │    primary path)    │
                     └─────────────────────┘
 ```
 
 ### Execution Model
 
-The system supports three execution contexts:
+All node types currently execute synchronously on the backend during the `/chat/sessions/{token}/interact` API call. Cloud Tasks infrastructure exists for future async offloading but is not the primary execution path.
 
-- **Frontend Execution**: MESSAGE, QUESTION, and SCRIPT nodes are designed to execute in the browser (instant, no server call)
-- **Backend Execution**: WEBHOOK, ACTION, and CONDITION nodes execute server-side (secure, async via Cloud Tasks)
-- **Mixed Execution**: COMPOSITE nodes coordinate both frontend and backend operations
+- **Backend (Synchronous)**: All node types (MESSAGE, QUESTION, CONDITION, ACTION, WEBHOOK, COMPOSITE) execute server-side during the interact request. ACTION nodes execute via recursive `process_node()` calls in `chat_runtime.py`.
+- **Frontend Execution (Planned)**: MESSAGE, QUESTION, and SCRIPT nodes are designed to execute in the browser in a future iteration.
+- **Cloud Tasks (Infrastructure Ready)**: The async processing framework exists for ACTION and WEBHOOK nodes but is not currently the default path.
 
 #### Execution Context Implementation Status
 
@@ -131,6 +133,7 @@ CREATE TABLE conversation_sessions (
     flow_id UUID REFERENCES flow_definitions(id) NOT NULL,
     session_token VARCHAR(255) UNIQUE NOT NULL,
     current_node_id VARCHAR(255),
+    current_flow_id UUID REFERENCES flow_definitions(id), -- Tracks sub-flow context
     state JSONB NOT NULL DEFAULT '{}',
     info JSONB NOT NULL DEFAULT '{}', -- Note: field is 'info', not 'metadata'
     started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -138,7 +141,10 @@ CREATE TABLE conversation_sessions (
     ended_at TIMESTAMP WITH TIME ZONE,
     status enum_conversation_session_status DEFAULT 'active',
     revision INTEGER NOT NULL DEFAULT 1, -- For optimistic concurrency control
-    state_hash VARCHAR(44), -- Full SHA-256 hash in base64 (256 bits / 6 bits per char = 44 chars)
+    state_hash VARCHAR(44), -- Full SHA-256 hash in base64
+    trace_enabled BOOLEAN NOT NULL DEFAULT false,
+    trace_level VARCHAR(20) DEFAULT 'standard',
+    flow_version VARCHAR(50), -- Flow version at session start for replay accuracy
     INDEX idx_session_user (user_id),
     INDEX idx_session_status (status),
     INDEX idx_session_token (session_token)
@@ -177,12 +183,12 @@ Key methods:
 - **MessageNodeProcessor**: Displays messages with CMS content integration, supports `book_list` type for rendering recommendation results
 - **QuestionNodeProcessor**: Handles user input and state updates. For choice-based inputs (`choice`, `image_choice`, `button`), stores the full option object (including custom fields like `age_number`, `hue_map`) rather than just the raw user input string. Options are persisted in `system._current_options` during `process()` and matched during `process_response()`.
 
-#### Extended Processors (`app/services/node_processors.py`)
+#### Additional Processors
 
-- **ConditionNodeProcessor**: Flow branching based on session state
-- **ActionNodeProcessor**: State manipulation with idempotency keys for async execution
-- **WebhookNodeProcessor**: External HTTP API integration with secret injection and circuit breaker
-- **CompositeNodeProcessor**: Executing multiple nodes in sequence with proper scoping
+- **ActionNodeProcessor** (`app/services/action_processor.py`, extends `NodeProcessor`): Handles `set_variable`, `api_call`, and `aggregate` actions. Executes synchronously via recursive `process_node()` calls.
+- **ConditionNodeProcessor** (`app/services/node_processors.py`, standalone class): Flow branching based on CEL expression evaluation against session state.
+- **WebhookNodeProcessor** (`app/services/node_processors.py`, standalone class): External HTTP API integration with circuit breaker pattern, secret injection, and response mapping.
+- **CompositeNodeProcessor** (`app/services/node_processors.py`, standalone class): Sub-flow execution with explicit I/O variable scoping.
 
 #### Security-Enhanced Processors
 
@@ -197,9 +203,9 @@ Key methods:
 - Circuit breaker pattern with secure fallback responses
 - Request/response logging without exposing sensitive data
 
-#### Node Input Validation System ✅ IMPLEMENTED
+#### Node Input Validation System
 
-**Rigorous Node Processor Input Validation** with comprehensive error prevention:
+Input validation for all node types:
 
 - **Pydantic-based validation schemas** for content-bearing node types (Message, Question, Condition, Action, Webhook, Composite, Script)
 - **CEL-based business rules engine** for flexible, configurable validation rules
@@ -305,7 +311,7 @@ Collects input from the user.
 ```
 
 #### 3. Condition Node
-Branches flow based on logic.
+Branches flow based on CEL (Common Expression Language) expressions evaluated by `app/services/cel_evaluator.py`.
 
 ```json
 {
@@ -314,20 +320,15 @@ Branches flow based on logic.
   "content": {
     "conditions": [
       {
-        "if": {
-          "and": [
-            {"var": "user.age", "gte": 13},
-            {"var": "user.age", "lt": 18}
-          ]
-        },
-        "then": "teen_content"
+        "if": "user.age >= 13 && user.age < 18",
+        "then": "$0"
       },
       {
-        "if": {"var": "user.age", "gte": 18},
-        "then": "adult_content"
+        "if": "user.age >= 18",
+        "then": "$1"
       }
     ],
-    "else": "child_content"
+    "default_path": "default"
   }
 }
 ```
@@ -543,7 +544,7 @@ chatflows:
 - Applied query parameters for transparency
 - Fallback indication for error handling
 
-#### 2. Reading Assessment (`/chatbot/assessment/reading-level`)
+#### 2. Reading Assessment (`/v1/chatbot/assessment/reading-level`)
 
 Analyzes user responses to determine reading level with detailed feedback:
 
@@ -566,7 +567,7 @@ Analyzes user responses to determine reading level with detailed feedback:
 - Personalized recommendations and next steps
 - Strength/improvement area identification
 
-#### 3. User Profile Data (`/chatbot/users/{user_id}/profile`)
+#### 3. User Profile Data (`/v1/chatbot/users/{user_id}/profile`)
 
 Retrieves comprehensive user context for personalized conversations:
 
@@ -629,34 +630,28 @@ Composite nodes use explicit I/O to prevent variable scope pollution:
 
 ### State Structure
 
+Session state uses scoped namespaces. The top-level keys in the `state` JSONB column are:
+
 ```json
 {
-  "session": {
-    "id": "uuid",
-    "started_at": "2024-01-20T10:00:00Z",
-    "current_node": "ask_preference",
-    "history": ["welcome", "ask_name"],
-    "status": "active"
+  "system": {
+    "_current_options": [],
+    "_current_node_id": "ask_preference"
   },
   "user": {
-    "id": "user-123",
     "name": "John Doe",
-    "age": 15,
-    "school_id": "school-456"
-  },
-  "variables": {
-    "book_preferences": ["adventure", "mystery"],
-    "reading_level": "intermediate",
-    "quiz_score": 8
+    "age_number": 9,
+    "reading_ability_keys": ["TREEHOUSE"],
+    "hue_keys": ["hue02_beautiful_whimsical"]
   },
   "context": {
-    "channel": "web",
-    "locale": "en-US",
-    "timezone": "America/New_York"
+    "school_wriveted_id": "uuid",
+    "school_name": "Example School"
   },
   "temp": {
-    "current_book": {...},
-    "loop_index": 2
+    "book_results": [...],
+    "book_count": 5,
+    "api_result": {"query": {...}}
   }
 }
 ```
@@ -939,16 +934,16 @@ Robust fallback handling for external webhook calls with failure threshold and t
 #### Core Chat Runtime (MVP)
 - **Chat Repository**: Complete with optimistic concurrency control and full SHA-256 state hashing
 - **Chat Runtime Service**: Main orchestration engine with pluggable node processors
-- **Extended Node Processors**: All processor types implemented with async support
+- **Node Processors**: All processor types implemented (synchronous execution during interact request)
 - **Updated Chat API**: All endpoints with CSRF protection and secure session management
 - **Database Schema Updates**: Session concurrency support with proper state integrity
 - **Comprehensive Testing**: Integration tests covering core functionality
 
-#### Async Processing Architecture
-- **Cloud Tasks Integration**: Full async processing for ACTION and WEBHOOK nodes ✅
-- **Idempotency Protection**: Prevents duplicate side effects on task retries
-- **Event Ordering**: Revision-based task validation prevents out-of-order execution
-- **Fallback Mechanisms**: Graceful degradation to sync processing when needed
+#### Processing Architecture
+- **Synchronous Execution**: ACTION and WEBHOOK nodes execute synchronously during the interact request via recursive `process_node()` calls
+- **Cloud Tasks Infrastructure**: Async processing framework exists for future offloading of long-running operations
+- **Idempotency Protection**: Idempotency key format (`session_id:node_id:revision`) for deduplication
+- **Event Ordering**: Revision-based validation prevents out-of-order execution
 
 #### Security Implementation
 - **CSRF Protection**: Double-submit cookie pattern for state-changing endpoints
@@ -959,11 +954,11 @@ Robust fallback handling for external webhook calls with failure threshold and t
   - Production deployment requires wiring up secret resolver in application startup
   - See `app/services/variable_resolver.py` lines 393-416 for implementation example
 
-#### Node Input Validation System ✅ COMPLETED
-- **Rigorous Input Validation**: Pydantic-based schemas for all node types prevent runtime errors
-- **CEL Business Rules Engine**: Configurable validation rules for security, accessibility, logic, and performance
-- **Comprehensive Validation Reports**: Field-level error messages with suggested fixes
-- **Integration**: All node processors validate input before execution with severity levels (ERROR, WARNING, INFO)
+#### Node Input Validation
+- **Pydantic Schemas**: Input validation for all content-bearing node types
+- **CEL Business Rules**: Configurable validation rules for security, accessibility, logic, and performance
+- **Validation Reports**: Field-level error messages with suggested fixes
+- **Severity Levels**: ERROR (blocks processing), WARNING (logs issues), INFO (guidance)
 
 #### Data Migration
 - **Migration Complete**: Successfully migrated all Landbot data (732KB, 54 nodes, 59 connections)
@@ -971,54 +966,39 @@ Robust fallback handling for external webhook calls with failure threshold and t
 - **Validation**: All flow logic preserved and tested
 
 #### Real-time Event System
-- **Database Triggers**: notify_flow_event function with comprehensive event data
-- **Event Listener**: PostgreSQL NOTIFY/LISTEN with connection management
-- **Webhook Notifications**: HTTP delivery with HMAC signatures and retries
-- **FastAPI Integration**: Lifespan management with automatic startup/shutdown
+- **Database Triggers**: `notify_flow_event` function triggers on `conversation_sessions` changes
+- **Event Listener**: Real-time PostgreSQL NOTIFY/LISTEN via `FlowEventListener` (`app/services/event_listener.py`)
+- **Webhook Notifications**: `WebhookNotifier` (`app/services/webhook_notifier.py`) with HMAC signatures and retries
 - **Event Types**: session_started, node_changed, session_status_changed, session_deleted
+- **Integration**: Wired into FastAPI lifespan via `app/events/__init__.py`
 
-### ✅ Recently Completed (Production-Ready Features)
-
-#### Database Events & Real-time Notifications ✅ PRODUCTION-READY
-- **PostgreSQL Triggers**: notify_flow_event function triggers on conversation_sessions changes
-- **Event Listener**: Real-time PostgreSQL NOTIFY/LISTEN for flow state changes
-- **Webhook Notifications**: HTTP webhook delivery with retries and HMAC signatures
-- **Event Types**: session_started, node_changed, session_status_changed, session_deleted
-- **Integration**: FastAPI lifespan management with automatic startup/shutdown
-- **Usage**: Actively integrated in `app/events/__init__.py` and wired into FastAPI app
-
-#### Variable Substitution Enhancement ✅ PRODUCTION-READY
-- **Variable Scope System**: Complete support for all scopes (`{{user.}}`, `{{context.}}`, `{{temp.}}`, `{{input.}}`, `{{output.}}`, `{{local.}}`)
-- **Secret References**: `{{secret:key}}` syntax supported ⚠️ (see Security section - wiring required)
-- **Validation**: Input validation and error handling for malformed variable references
+#### Variable Substitution
+- **Variable Scope System**: Supports `{{user.}}`, `{{context.}}`, `{{temp.}}`, `{{system.}}`, `{{input.}}`, `{{output.}}`, `{{local.}}`
+- **Secret References**: `{{secret:key}}` syntax supported in framework (Google Secret Manager integration not yet wired up -- see Security section)
+- **Type Preservation**: `substitute_object` preserves non-string types for single `{{var}}` references; `substitute_variables` always returns strings
 - **Nested Access**: Dot notation support for nested object access patterns
-- **Usage**: Active in all node processors for variable resolution
 
-#### Enhanced Node Processors ✅ PRODUCTION-READY
-- **CompositeNodeProcessor**: Explicit I/O mapping with variable scoping (276 lines implementation)
-- **Circuit Breaker Patterns**: Resilient webhook calls with failure detection and fallback responses
-- **API Call Action Type**: Internal service integration with authentication and response mapping
-- **Variable Scope System**: Complete support for all scopes with validation and nested access
-- **Testing**: Comprehensive integration tests covering all node types
+#### Enhanced Node Processors
+- **CompositeNodeProcessor**: Explicit I/O mapping with variable scoping
+- **Circuit Breaker**: `WebhookNodeProcessor` uses `CircuitBreaker` from `app/services/circuit_breaker.py` for resilient external calls
+- **API Call Action Type**: Internal service integration via `@internal_handler` registry, with HTTP fallback
+- **Testing**: Unit and integration tests covering core node types
 
-#### Wriveted Platform Integration ✅ PRODUCTION-READY
-- **Chatbot API Endpoints**: Three specialized endpoints registered in `app/api/chatbot_integrations.py`
-  - `/chatbot/recommendations`: Book recommendations with chatbot-optimized responses
-  - `/chatbot/assessment/reading-level`: Reading level assessment with detailed feedback
-  - `/chatbot/users/{user_id}/profile`: User profile data for conversation context
-- **Internal API Integration**: Uses existing Wriveted services internally (recommendations, user management)
+#### Wriveted Platform Integration
+- **Chatbot API Endpoints**: Three specialized endpoints in `app/api/chatbot_integrations.py`
+  - `/v1/chatbot/recommendations`: Book recommendations with chatbot-optimized responses
+  - `/v1/chatbot/assessment/reading-level`: Reading level assessment with detailed feedback
+  - `/v1/chatbot/users/{user_id}/profile`: User profile data for conversation context
+- **Internal API Integration**: `@internal_handler("/v1/recommend")` bypasses HTTP for anonymous sessions
 - **API Routing**: Integrated into main API router at `app/api/external_api_router.py`
-- **Authentication**: Proper authentication via `get_current_active_user_or_service_account`
+- **Authentication**: Requires `get_current_active_user_or_service_account`
 
-### ❌ Planned (Post-MVP)
+### Remaining Work
 
-#### Advanced Features
-- **Production Deployment**: Deploy runtime to staging environment
 - **Performance Testing**: Load testing for concurrent sessions
-- **Complex Flows**: Test all 17 migrated composite nodes from Landbot
-- **Wriveted Integration**: Book recommendations and user data integration
-- **Admin Interface**: CMS management and flow builder UI
-- **Analytics Dashboard**: Real-time conversation flow analytics
+- **Frontend Execution**: Client-side processing for MESSAGE/QUESTION nodes (currently all server-side)
+- **Secret Manager Wiring**: Connect `{{secret:key}}` resolution to Google Secret Manager at application startup
+- **Webhook Registration API**: Endpoints for managing webhook subscriptions (service layer exists, API not exposed)
 
 ## Security Considerations
 
@@ -1068,7 +1048,7 @@ Robust fallback handling for external webhook calls with failure threshold and t
 3. Test secret injection in development environment
 4. Document secret key naming conventions for team
 
-#### CORS & CSRF Protection ✅ IMPLEMENTED
+#### CORS & CSRF Protection
 For the `/chat/sessions/{token}/interact` endpoint and other state-changing chat operations:
 
 **Implementation Details** (`app/security/csrf.py`):
