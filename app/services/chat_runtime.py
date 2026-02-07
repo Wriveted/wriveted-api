@@ -1489,6 +1489,36 @@ class ChatRuntime:
                                 "options": next_result.get("options", []),
                                 "question": next_result.get("question", {}),
                             }
+                    elif (
+                        isinstance(next_result, dict)
+                        and next_result.get("type") == "question"
+                    ):
+                        # ACTION/CONDITION node auto-chained into a question
+                        awaiting_input = True
+                        session_position = next_result.get("node_id", session_position)
+                        result["input_request"] = {
+                            "input_type": next_result.get("input_type", "text"),
+                            "variable": next_result.get("variable", ""),
+                            "options": next_result.get("options", []),
+                            "question": next_result.get("question", {}),
+                        }
+
+                    # Persist session position and options when awaiting input
+                    # (the chaining loop below handles its own persistence)
+                    if awaiting_input:
+                        options_to_store = result.get("input_request", {}).get(
+                            "options", []
+                        )
+                        q_state = {"system": {"_current_options": options_to_store}}
+                        session = await self._refresh_session(db, session)
+                        session = await chat_repo.update_session_state(
+                            db,
+                            session_id=session.id,
+                            state_updates=q_state,
+                            current_node_id=session_position,
+                            current_flow_id=session_flow_id,
+                            expected_revision=session.revision,
+                        )
 
                     # Chain through non-interactive nodes until question or end
                     while chained_next and not awaiting_input:
