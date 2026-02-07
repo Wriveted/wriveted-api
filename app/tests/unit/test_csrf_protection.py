@@ -59,15 +59,13 @@ def test_validate_csrf_token_missing_header(monkeypatch):
     assert "header" in exc.value.detail
 
 
-def test_validate_csrf_token_missing_cookie(monkeypatch):
+def test_validate_csrf_token_missing_cookie_accepts_header_only(monkeypatch):
+    """When cookie is absent (cross-origin), header-only validation succeeds."""
     _set_csrf_skip(monkeypatch, False)
     request = _make_request(headers={"X-CSRF-Token": "abc"})
 
-    with pytest.raises(HTTPException) as exc:
-        validate_csrf_token(request)
-
-    assert exc.value.status_code == 403
-    assert "cookie" in exc.value.detail
+    # Should not raise — header-only is accepted for cross-origin scenarios
+    validate_csrf_token(request)
 
 
 def test_validate_csrf_token_mismatch(monkeypatch):

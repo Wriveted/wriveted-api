@@ -416,28 +416,43 @@ def _ensure_booklist(
                 config.get("info", booklist.info or {}), seed_key
             )
 
+    # Build a map of work_id → desired order_id from the config
+    from sqlalchemy import text
+
+    desired_items: dict[int, int] = {}
     for idx, item in enumerate(config.get("items", []), start=1):
         edition = editions_by_isbn.get(item["isbn"])
         if not edition or not edition.work_id:
             continue
-        order_id = item.get("order", idx)
-        existing = (
-            session.query(BookListItem)
-            .filter(
-                BookListItem.booklist_id == booklist.id,
-                BookListItem.work_id == edition.work_id,
-            )
-            .one_or_none()
-        )
-        if existing is None:
-            existing = BookListItem(
-                booklist=booklist,
-                work_id=edition.work_id,
-                order_id=order_id,
-            )
-            session.add(existing)
+        desired_items[edition.work_id] = item.get("order", idx)
+
+    # Defer unique constraint, then update or insert each item
+    session.execute(text("SET CONSTRAINTS ALL DEFERRED"))
+
+    existing_by_work = {
+        bli.work_id: bli
+        for bli in session.query(BookListItem)
+        .filter(BookListItem.booklist_id == booklist.id)
+        .all()
+    }
+
+    for work_id, order_id in desired_items.items():
+        bli = existing_by_work.pop(work_id, None)
+        if bli is not None:
+            bli.order_id = order_id
         else:
-            existing.order_id = order_id
+            session.add(
+                BookListItem(
+                    booklist_id=booklist.id,
+                    work_id=work_id,
+                    order_id=order_id,
+                )
+            )
+
+    # Remove items no longer in the config
+    for bli in existing_by_work.values():
+        session.delete(bli)
+
     return booklist
 
 

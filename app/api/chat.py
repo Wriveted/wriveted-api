@@ -175,12 +175,13 @@ async def start_conversation(
         csrf_token = generate_csrf_token()
 
         # Set CSRF token cookie (httponly=False required for double-submit pattern)
-        # In debug mode, use lax samesite to allow cross-port local development
+        # Production: SameSite=none allows cross-origin cookie sending (requires Secure)
+        # Debug: SameSite=lax for cross-port local development without HTTPS
         response.set_cookie(
             "csrf_token",
             csrf_token,
             httponly=False,
-            samesite="lax" if settings.DEBUG else "strict",
+            samesite="lax" if settings.DEBUG else "none",
             secure=not settings.DEBUG,
             max_age=3600 * 24,  # 24 hours
         )
