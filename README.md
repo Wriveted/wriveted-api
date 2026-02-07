@@ -20,23 +20,36 @@ The core API for the [Huey Books](https://hueybooks.com) reading recommendation 
 
 Both are deployed as separate Cloud Run services backed by PostgreSQL (Cloud SQL), with Google Cloud Tasks providing queuing between them.
 
+The API is designed for use by Library Management Systems, Wriveted staff (via scripts or admin UI), and end users via Huey the Bookbot and other Wriveted applications.
+
 <p align="center">
   <img alt="Deployment Context" src="https://github.com/Wriveted/wriveted-api/blob/main/.github/context.png?raw=true" width="70%" />
+</p>
+
+<p align="center">
+  <img alt="Containers" src="https://github.com/Wriveted/wriveted-api/blob/main/.github/containers.png?raw=true" width="70%" />
 </p>
 
 ### Key domain areas
 
 | Domain | Description |
 |--------|-------------|
-| **Users** | Joined-table inheritance: Student, Educator, Parent, SchoolAdmin, etc. |
+| **Users** | [Joined-table inheritance](https://docs.sqlalchemy.org/en/14/orm/inheritance.html#joined-table-inheritance): Student, Educator, Parent, SchoolAdmin, etc. |
 | **Books** | Work / Edition / CollectionItem hierarchy with AI-powered Labels |
 | **Schools & Collections** | Library collections, class groups, activity tracking |
 | **Chatflows** | Flow-based conversation engine powering Huey the Bookbot |
 | **CMS** | Content management for chatflow questions, jokes, facts, messages |
 
+## Data
+
+The SQLAlchemy models at [`app/models/`](https://github.com/Wriveted/wriveted-api/tree/main/app/models) are the best starting point for understanding the schema. A [scrubbed dataset](https://storage.googleapis.com/wriveted-huey-media/data/huey-books-scrubed-postgres_localhost-2024_07_13_18_14_43-dump.sql) of labelled book data (fits on a free Supabase instance) is available for development.
+
 ## Quick start
 
 ```bash
+# Install Python dependencies
+poetry install
+
 # Build and start the stack (API + internal + PostgreSQL)
 docker compose up -d --build
 
@@ -137,9 +150,21 @@ poetry run pre-commit run --all-files
 
 ## Authentication & authorization
 
-- **Firebase Authentication** -- users authenticate via Firebase, then exchange the token for a Wriveted JWT at `/v1/auth/firebase`.
-- **RBAC** -- role-based access control with principals (`user-xyz`, `school-1`). Endpoints define ACLs specifying required permissions per role.
+- **Firebase Authentication** -- users authenticate via [Firebase](https://console.firebase.google.com/u/2/project/wriveted-api/authentication/users) (Google SSO or passwordless email), then exchange the token for a Wriveted JWT at `/v1/auth/firebase`.
+- **RBAC** -- role-based access control with principals (`user-xyz`, `school-1`). Models define ACLs:
+
+  ```python
+  def __acl__(self):
+      return [
+          (Allow, "role:admin", "update"),
+          (Allow, f"school:{self.id}", "read"),
+          (Deny, "role:student", "delete"),
+      ]
+  ```
+
 - **Service Accounts** -- long-lived tokens for LMS integrations.
+
+Utility script `scripts/get_auth_token.py` can generate an auth token for any user.
 
 ## Deployment
 
@@ -163,12 +188,24 @@ gcloud run deploy wriveted-api \
 ### Production database migrations
 
 ```bash
+gcloud --project wriveted-api auth application-default login
+
 # Start Cloud SQL proxy
 cloud_sql_proxy -instances=wriveted-api:australia-southeast1:wriveted=tcp:5432
 
-# Apply migrations through the proxy
+# Apply migrations through the proxy (password in Secret Manager)
 export SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@localhost/postgres
 poetry run alembic upgrade head
+```
+
+The Cloud Run service uses a restricted `cloudrun` database role:
+
+```sql
+ALTER ROLE cloudrun WITH NOCREATEDB NOCREATEROLE;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cloudrun;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cloudrun;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO cloudrun;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO cloudrun;
 ```
 
 Production logs: [Cloud Run console](https://console.cloud.google.com/run/detail/australia-southeast1/wriveted-api/logs?project=wriveted-api)
