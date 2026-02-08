@@ -255,7 +255,9 @@ def resolve_composite_refs(flow_config: dict, seed_key_to_id: dict[str, str]) ->
             resolved += 1
             print(f"  Resolved {seed_key} → {seed_key_to_id[seed_key]}")
         else:
-            print(f"  Warning: No flow ID found for seed_key '{seed_key}'")
+            print(f"  Error: No flow ID found for seed_key '{seed_key}'")
+            print("  Deploy would produce a broken flow. Aborting.")
+            sys.exit(1)
     if resolved:
         print(f"  {resolved} composite reference(s) resolved")
     return flow_config
@@ -422,10 +424,16 @@ def main():
     # [3/4] Main Flow
     print("\n[3/4] Main Flow")
     flow_config = load_flow_config()
-    if seed_key_to_id:
+    has_composite = any(
+        n.get("type") == "composite" and n.get("content", {}).get("composite_flow_seed_key")
+        for n in flow_config.get("flow_data", {}).get("nodes", [])
+    )
+    if has_composite:
+        if not seed_key_to_id:
+            print("  Error: Flow has composite nodes but no sub-flow IDs available")
+            print("  Deploy would produce a broken flow. Aborting.")
+            sys.exit(1)
         resolve_composite_refs(flow_config, seed_key_to_id)
-    else:
-        print("  Warning: No sub-flow IDs available — composite refs not resolved")
     flow_id = deploy_flow(client, flow_config, theme_id, args.dry_run)
 
     # [4/4] Questions
