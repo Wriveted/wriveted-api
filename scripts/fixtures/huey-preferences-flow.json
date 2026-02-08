@@ -1,0 +1,134 @@
+{
+  "seed_key": "huey-preferences",
+  "name": "Huey Preferences",
+  "description": "Shows three preference image questions and aggregates hue scores.",
+  "version": "1.0.0",
+  "entry_node_id": "pref_intro",
+  "visibility": "wriveted",
+  "flow_data": {
+    "nodes": [
+      {
+        "id": "pref_intro",
+        "type": "message",
+        "content": {
+          "messages": [
+            {"type": "text", "text": "Now for the fun part! I'm going to show you some pictures. \ud83d\ude04"},
+            {"type": "text", "text": "Just pick the ones that appeal to you - there are no wrong answers!"}
+          ]
+        },
+        "position": {"x": 100, "y": 300}
+      },
+      {
+        "id": "pref_q_one",
+        "type": "question",
+        "content": {
+          "source": "random",
+          "source_config": {
+            "type": "question",
+            "tags": ["huey-preference"],
+            "info_filters": {
+              "min_age": "${user.age_number}",
+              "max_age": "${user.age_number}"
+            },
+            "exclude_from": "temp.shown_question_ids"
+          },
+          "track_shown_in": "temp.shown_question_ids",
+          "variable": "temp.current_answer",
+          "input_type": "image_choice"
+        },
+        "position": {"x": 300, "y": 300}
+      },
+      {
+        "id": "store_pref_one",
+        "type": "action",
+        "content": {
+          "actions": [
+            {"type": "set_variable", "variable": "temp.pref_one_hue", "value": "{{temp.current_answer.hue_map}}"}
+          ]
+        },
+        "position": {"x": 500, "y": 300}
+      },
+      {
+        "id": "pref_q_two",
+        "type": "question",
+        "content": {
+          "source": "random",
+          "source_config": {
+            "type": "question",
+            "tags": ["huey-preference"],
+            "info_filters": {
+              "min_age": "${user.age_number}",
+              "max_age": "${user.age_number}"
+            },
+            "exclude_from": "temp.shown_question_ids"
+          },
+          "track_shown_in": "temp.shown_question_ids",
+          "variable": "temp.current_answer",
+          "input_type": "image_choice"
+        },
+        "position": {"x": 700, "y": 300}
+      },
+      {
+        "id": "store_pref_two",
+        "type": "action",
+        "content": {
+          "actions": [
+            {"type": "set_variable", "variable": "temp.pref_two_hue", "value": "{{temp.current_answer.hue_map}}"}
+          ]
+        },
+        "position": {"x": 900, "y": 300}
+      },
+      {
+        "id": "pref_q_three",
+        "type": "question",
+        "content": {
+          "source": "random",
+          "source_config": {
+            "type": "question",
+            "tags": ["huey-preference"],
+            "info_filters": {
+              "min_age": "${user.age_number}",
+              "max_age": "${user.age_number}"
+            },
+            "exclude_from": "temp.shown_question_ids"
+          },
+          "track_shown_in": "temp.shown_question_ids",
+          "variable": "temp.current_answer",
+          "input_type": "image_choice"
+        },
+        "position": {"x": 1100, "y": 300}
+      },
+      {
+        "id": "store_pref_three",
+        "type": "action",
+        "content": {
+          "actions": [
+            {"type": "set_variable", "variable": "temp.pref_three_hue", "value": "{{temp.current_answer.hue_map}}"}
+          ]
+        },
+        "position": {"x": 1300, "y": 300}
+      },
+      {
+        "id": "aggregate_prefs",
+        "type": "action",
+        "content": {
+          "actions": [
+            {"type": "aggregate", "expression": "merge([temp.pref_one_hue, temp.pref_two_hue, temp.pref_three_hue])", "target": "user.hue_profile"},
+            {"type": "aggregate", "expression": "top_keys(user.hue_profile, 5)", "target": "user.hue_keys"},
+            {"type": "set_variable", "variable": "user.reading_ability_keys", "value": ["{{user.reading_ability_key}}"]}
+          ]
+        },
+        "position": {"x": 1500, "y": 300}
+      }
+    ],
+    "connections": [
+      {"source": "pref_intro", "target": "pref_q_one", "type": "default"},
+      {"source": "pref_q_one", "target": "store_pref_one", "type": "default"},
+      {"source": "store_pref_one", "target": "pref_q_two", "type": "default"},
+      {"source": "pref_q_two", "target": "store_pref_two", "type": "default"},
+      {"source": "store_pref_two", "target": "pref_q_three", "type": "default"},
+      {"source": "pref_q_three", "target": "store_pref_three", "type": "default"},
+      {"source": "store_pref_three", "target": "aggregate_prefs", "type": "default"}
+    ]
+  }
+}

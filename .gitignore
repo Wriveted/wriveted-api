@@ -53,6 +53,7 @@ e2e_tests/
 *.json
 !pyproject.toml
 !package.json
+!scripts/fixtures/*.json
 landbot_extraction_output/
 
 # Credentials (should never be committed)

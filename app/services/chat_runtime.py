@@ -1212,7 +1212,7 @@ class ChatRuntime:
                 # If the processed node (e.g., message) has a next_node that's a question,
                 # position the session at that question node so user input goes there
                 session_position = response["next_node"].node_id
-                session_flow_id: Optional[UUID] = None
+                session_flow_id: Optional[UUID] = response["next_node"].flow_id
                 chained_next_node = (
                     next_result.get("next_node") if next_result else None
                 )
@@ -1230,9 +1230,17 @@ class ChatRuntime:
                     isinstance(next_result, dict)
                     and next_result.get("type") == "question"
                 ):
-                    # Action/condition node auto-chained into a question
+                    # Action/condition/composite node auto-chained into a question
                     awaiting_input = True
                     session_position = next_result.get("node_id", session_position)
+                    # Preserve sub-flow context when a composite node returns a question directly
+                    sub_flow_id = next_result.get("sub_flow_id")
+                    if sub_flow_id:
+                        session_flow_id = (
+                            UUID(sub_flow_id)
+                            if isinstance(sub_flow_id, str)
+                            else sub_flow_id
+                        )
                     result["input_request"] = self._build_input_request(next_result)
                 if chained_next_node:
                     # Handle FlowNode objects
@@ -1644,8 +1652,9 @@ class ChatRuntime:
         session = await self._refresh_session(db, session)
 
         if return_result:
+            # Extract actual messages from the result
             if return_result.get("type") == "messages":
-                result["messages"].append(return_result)
+                result["messages"].extend(return_result.get("messages", []))
             else:
                 result["messages"].append(return_result)
 
@@ -1654,11 +1663,18 @@ class ChatRuntime:
             while next_node:
                 if isinstance(next_node, FlowNode):
                     if next_node.node_type == NodeType.QUESTION:
-                        # Update session position to question
+                        # Build input_request and persist options
+                        (
+                            result["input_request"],
+                            q_options,
+                            session,
+                        ) = await self._resolve_question_node(db, next_node, session)
+                        q_state = {"system": {"_current_options": q_options}}
+                        session = await self._refresh_session(db, session)
                         session = await chat_repo.update_session_state(
                             db,
                             session_id=session.id,
-                            state_updates={},
+                            state_updates=q_state,
                             current_node_id=next_node.node_id,
                             current_flow_id=next_node.flow_id,
                             expected_revision=session.revision,
@@ -1680,14 +1696,47 @@ class ChatRuntime:
                         )
                     else:
                         break
+                elif (
+                    isinstance(next_node, dict) and next_node.get("type") == "question"
+                ):
+                    # Dict question result from composite node sub-flow
+                    node_id = next_node.get("node_id")
+                    sub_flow_id = return_result.get("sub_flow_id")
+                    if node_id:
+                        result["current_node_id"] = node_id
+                        flow_id = (
+                            (
+                                UUID(sub_flow_id)
+                                if isinstance(sub_flow_id, str)
+                                else sub_flow_id
+                            )
+                            if sub_flow_id
+                            else None
+                        )
+                        options = next_node.get("options", [])
+                        session = await chat_repo.update_session_state(
+                            db,
+                            session_id=session.id,
+                            state_updates={"system": {"_current_options": options}},
+                            current_node_id=node_id,
+                            current_flow_id=flow_id,
+                            expected_revision=session.revision,
+                        )
+                    result["input_request"] = self._build_input_request(next_node)
+                    result["awaiting_input"] = True
+                    break
                 else:
                     break
 
             # If no next node after processing, check for another parent level
             if not next_node and not result.get("awaiting_input"):
                 result["session_ended"] = True
-                # Recursively check for more parent flows
-                if flow_stack:
+                # Re-read session flow_stack: the return node may have been a
+                # composite that pushed new entries (e.g., recommendation sub-flow
+                # ran entirely within CompositeNodeProcessor)
+                session = await self._refresh_session(db, session)
+                current_stack = session.info.get("flow_stack", [])
+                if current_stack:
                     return await self._try_return_to_parent_flow(db, session, result)
 
         return result

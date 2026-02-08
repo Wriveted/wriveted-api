@@ -29,6 +29,17 @@ from app.services.cloud_tasks import cloud_tasks
 logger = get_logger()
 
 
+def _strip_unresolved_templates(obj: Any) -> Any:
+    """Replace unresolved {{...}} template strings with None."""
+    if isinstance(obj, str) and "{{" in obj and "}}" in obj:
+        return None
+    elif isinstance(obj, dict):
+        return {k: _strip_unresolved_templates(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_strip_unresolved_templates(v) for v in obj]
+    return obj
+
+
 def _extract_nested(data: Dict[str, Any], key_path: str) -> Any:
     """Extract a value from a nested dict using dot notation."""
     keys = key_path.split(".")
@@ -319,13 +330,26 @@ class ActionNodeProcessor(NodeProcessor):
                 resolved_body = self.runtime.substitute_object(
                     api_config_data.get("body", {}), state
                 )
+                resolved_body = _strip_unresolved_templates(resolved_body)
                 resolved_params = self.runtime.substitute_object(
                     api_config_data.get("query_params", {}), state
                 )
 
-                result_data = await INTERNAL_HANDLERS[endpoint](
-                    db, resolved_body, resolved_params
-                )
+                try:
+                    result_data = await INTERNAL_HANDLERS[endpoint](
+                        db, resolved_body, resolved_params
+                    )
+                except Exception as e:
+                    logger.error(
+                        "Internal handler failed",
+                        endpoint=endpoint,
+                        error=str(e),
+                    )
+                    fallback = api_config_data.get("fallback_response")
+                    if fallback is not None:
+                        result_data = fallback
+                    else:
+                        raise
 
                 response_mapping = api_config_data.get("response_mapping", {})
                 for response_path, variable_name in response_mapping.items():
