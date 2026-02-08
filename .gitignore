@@ -34,6 +34,7 @@ archive/
 # Temporary debug/test scripts
 debug_*.py
 test_*.py
+!app/tests/**/test_*.py
 fix_*.py
 activate_*.py
 get_*_token.py
@@ -53,6 +54,7 @@ e2e_tests/
 *.json
 !pyproject.toml
 !package.json
+!scripts/fixtures/*.json
 landbot_extraction_output/
 
 # Credentials (should never be committed)

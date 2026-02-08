@@ -555,7 +555,7 @@ def _load_flow_config(config: dict, base_dir: Path) -> Optional[dict]:
         return config
     path = base_dir / flow_file
     if not path.exists():
-        logger.warning("Flow file not found, skipping: %s", path)
+        print(f"  Warning: Flow file not found, skipping: {path}")
         return None
     external = json.loads(path.read_text())
     merged = {**external, **config}
@@ -642,6 +642,42 @@ def _ensure_flow(
 
     session.flush()
     return flow
+
+
+def _resolve_composite_flow_refs(
+    session, flows_by_seed_key: dict[str, "FlowDefinition"]
+) -> None:
+    """Resolve composite_flow_seed_key in composite nodes to actual flow UUIDs.
+
+    After all flows are created, scan composite nodes for seed_key references
+    and replace them with the corresponding flow's UUID.
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+
+    for flow in flows_by_seed_key.values():
+        nodes = (
+            session.query(FlowNode)
+            .filter(
+                FlowNode.flow_id == flow.id,
+                FlowNode.node_type == NodeType.COMPOSITE,
+            )
+            .all()
+        )
+        for node in nodes:
+            content = node.content or {}
+            seed_key = content.get("composite_flow_seed_key")
+            if not seed_key:
+                continue
+            target_flow = flows_by_seed_key.get(seed_key)
+            if not target_flow:
+                print(f"  Warning: composite_flow_seed_key '{seed_key}' not found")
+                continue
+            node.content = {
+                **content,
+                "composite_flow_id": str(target_flow.id),
+            }
+            flag_modified(node, "content")
+    session.flush()
 
 
 def _seed_airtable_questions(session, csv_path: Path) -> int:
@@ -818,6 +854,7 @@ def main() -> None:
                 themes_by_seed_key[theme_cfg["seed_key"]] = theme
 
         fixtures_dir = config_path.parent
+        flows_by_seed_key: dict[str, FlowDefinition] = {}
         for flow_cfg in config.get("flows", []):
             resolved_cfg = _load_flow_config(flow_cfg, fixtures_dir)
             if resolved_cfg is None:
@@ -830,7 +867,12 @@ def main() -> None:
                 flow_data["theme_id"] = str(theme.id)
                 resolved_cfg["flow_data"] = flow_data
             flow_school = schools.get(resolved_cfg.get("school_seed_key")) or school
-            _ensure_flow(session, resolved_cfg, flow_school, admin_user)
+            flow = _ensure_flow(session, resolved_cfg, flow_school, admin_user)
+            if resolved_cfg.get("seed_key"):
+                flows_by_seed_key[resolved_cfg["seed_key"]] = flow
+
+        # Resolve composite_flow_seed_key references to actual flow UUIDs
+        _resolve_composite_flow_refs(session, flows_by_seed_key)
 
         session.commit()
 

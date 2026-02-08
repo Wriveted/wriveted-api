@@ -334,6 +334,74 @@
       "content": {
         "fact": {"text": "Did you know? Reading 20 minutes a day grows vocabulary fast."}
       }
+    },
+    {
+      "seed_key": "pref_dragons_vs_unicorns",
+      "type": "question",
+      "visibility": "wriveted",
+      "status": "published",
+      "tags": ["huey-preference"],
+      "info": {"min_age": 5, "max_age": 14},
+      "content": {
+        "question_text": "Which picture do you like more?",
+        "min_age": 5,
+        "max_age": 14,
+        "answers": [
+          {"text": "Dragons!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/dragons.png", "hue_map": {"hue01_dark_suspense": 0.8, "hue06_dark_gritty": 0.5}},
+          {"text": "Unicorns!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/unicorns.png", "hue_map": {"hue02_beautiful_whimsical": 0.8, "hue04_joyful_charming": 0.5}}
+        ]
+      }
+    },
+    {
+      "seed_key": "pref_space_vs_ocean",
+      "type": "question",
+      "visibility": "wriveted",
+      "status": "published",
+      "tags": ["huey-preference"],
+      "info": {"min_age": 5, "max_age": 14},
+      "content": {
+        "question_text": "Which world would you explore?",
+        "min_age": 5,
+        "max_age": 14,
+        "answers": [
+          {"text": "Outer Space!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/space.png", "hue_map": {"hue10_inspiring": 0.7, "hue13_informative": 0.6}},
+          {"text": "Deep Ocean!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/ocean.png", "hue_map": {"hue03_dark_beautiful": 0.7, "hue02_beautiful_whimsical": 0.5}}
+        ]
+      }
+    },
+    {
+      "seed_key": "pref_funny_vs_mystery",
+      "type": "question",
+      "visibility": "wriveted",
+      "status": "published",
+      "tags": ["huey-preference"],
+      "info": {"min_age": 5, "max_age": 14},
+      "content": {
+        "question_text": "What kind of story sounds more fun?",
+        "min_age": 5,
+        "max_age": 14,
+        "answers": [
+          {"text": "Something hilarious!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/funny.png", "hue_map": {"hue05_funny_comic": 0.8, "hue07_silly_charming": 0.6}},
+          {"text": "A tricky mystery!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/mystery.png", "hue_map": {"hue01_dark_suspense": 0.6, "hue08_charming_courageous": 0.5}}
+        ]
+      }
+    },
+    {
+      "seed_key": "pref_hero_vs_team",
+      "type": "question",
+      "visibility": "wriveted",
+      "status": "published",
+      "tags": ["huey-preference"],
+      "info": {"min_age": 5, "max_age": 14},
+      "content": {
+        "question_text": "Which story would you pick?",
+        "min_age": 5,
+        "max_age": 14,
+        "answers": [
+          {"text": "A brave hero alone!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/hero.png", "hue_map": {"hue08_charming_courageous": 0.8, "hue10_inspiring": 0.5}},
+          {"text": "A team of friends!", "image_url": "https://storage.googleapis.com/wriveted-huey-media/chat/preferences/team.png", "hue_map": {"hue09_charming_playful": 0.7, "hue04_joyful_charming": 0.6}}
+        ]
+      }
     }
   ],
   "themes": [
@@ -473,6 +541,9 @@
         ]
       }
     },
+    {"flow_file": "huey-profile-flow.json"},
+    {"flow_file": "huey-preferences-flow.json"},
+    {"flow_file": "huey-recommendation-flow.json"},
     {
       "flow_file": "huey-bookbot-flow.json",
       "theme_seed_key": "huey-bookbot-theme"

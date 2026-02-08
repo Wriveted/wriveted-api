@@ -1,0 +1,152 @@
+{
+  "seed_key": "huey-recommendation",
+  "name": "Huey Recommendation",
+  "description": "Queries for book recommendations with fallback, displays results.",
+  "version": "1.0.0",
+  "entry_node_id": "good_choices_msg",
+  "visibility": "wriveted",
+  "flow_data": {
+    "nodes": [
+      {
+        "id": "good_choices_msg",
+        "type": "message",
+        "content": {
+          "messages": [
+            {"type": "text", "text": "Good choices! \ud83e\udd29"}
+          ]
+        },
+        "position": {"x": 100, "y": 300}
+      },
+      {
+        "id": "searching_msg",
+        "type": "message",
+        "content": {
+          "wait_for_ack": true,
+          "messages": [
+            {"type": "text", "text": "OK, I'm looking for books you'll love..."},
+            {"type": "image", "content": {"url": "https://storage.googleapis.com/wriveted-huey-media/chat/gifs/Robot(640x640).gif", "alt": "Huey searching for books..."}}
+          ]
+        },
+        "position": {"x": 300, "y": 300}
+      },
+      {
+        "id": "book_query",
+        "type": "action",
+        "content": {
+          "actions": [{
+            "type": "api_call",
+            "config": {
+              "endpoint": "/v1/recommend",
+              "method": "POST",
+              "body": {
+                "wriveted_identifier": "{{context.school_wriveted_id}}",
+                "age": "{{user.age_number}}",
+                "reading_abilities": "{{user.reading_ability_keys}}",
+                "hues": "{{user.hue_keys}}",
+                "recommendable_only": true,
+                "fallback": false
+              },
+              "query_params": {"limit": 5},
+              "response_mapping": {
+                "books": "temp.book_results",
+                "count": "temp.book_count"
+              },
+              "fallback_response": {"books": [], "count": 0},
+              "circuit_breaker": {"failure_threshold": 3, "timeout": 30.0}
+            }
+          }]
+        },
+        "position": {"x": 500, "y": 300}
+      },
+      {
+        "id": "check_results",
+        "type": "condition",
+        "content": {
+          "conditions": [
+            {"if": "temp.book_count > 0", "then": "$0"}
+          ],
+          "default_path": "default"
+        },
+        "position": {"x": 700, "y": 300}
+      },
+      {
+        "id": "show_books",
+        "type": "message",
+        "content": {
+          "messages": [
+            {"type": "text", "text": "I found {{temp.book_count}} books for you! \ud83d\udcda"},
+            {"type": "book_list", "source": "temp.book_results"}
+          ]
+        },
+        "position": {"x": 900, "y": 150}
+      },
+      {
+        "id": "fallback_query",
+        "type": "action",
+        "content": {
+          "actions": [{
+            "type": "api_call",
+            "config": {
+              "endpoint": "/v1/recommend",
+              "method": "POST",
+              "body": {
+                "wriveted_identifier": "{{context.school_wriveted_id}}",
+                "age": "{{user.age_number}}",
+                "reading_abilities": "{{user.reading_ability_keys}}",
+                "fallback": true
+              },
+              "response_mapping": {
+                "books": "temp.fallback_results",
+                "count": "temp.fallback_count"
+              },
+              "fallback_response": {"books": [], "count": 0}
+            }
+          }]
+        },
+        "position": {"x": 900, "y": 450}
+      },
+      {
+        "id": "check_fallback",
+        "type": "condition",
+        "content": {
+          "conditions": [
+            {"if": "temp.fallback_count > 0", "then": "$0"}
+          ],
+          "default_path": "default"
+        },
+        "position": {"x": 1100, "y": 450}
+      },
+      {
+        "id": "show_fallback_books",
+        "type": "message",
+        "content": {
+          "messages": [
+            {"type": "text", "text": "I found {{temp.fallback_count}} books you might enjoy! \ud83d\udcda"},
+            {"type": "book_list", "source": "temp.fallback_results"}
+          ]
+        },
+        "position": {"x": 1300, "y": 350}
+      },
+      {
+        "id": "no_books_msg",
+        "type": "message",
+        "content": {
+          "messages": [
+            {"type": "text", "text": "I'm sorry, I couldn't find any books right now. But don't worry - ask your teacher or librarian for recommendations!"}
+          ]
+        },
+        "position": {"x": 1300, "y": 550}
+      }
+    ],
+    "connections": [
+      {"source": "good_choices_msg", "target": "searching_msg", "type": "default"},
+      {"source": "searching_msg", "target": "book_query", "type": "default"},
+      {"source": "book_query", "target": "check_results", "type": "default"},
+      {"source": "check_results", "target": "show_books", "type": "$0"},
+      {"source": "check_results", "target": "fallback_query", "type": "default"},
+      {"source": "fallback_query", "target": "check_fallback", "type": "default"},
+      {"source": "check_fallback", "target": "show_fallback_books", "type": "$0"},
+      {"source": "check_fallback", "target": "no_books_msg", "type": "default"}
+    ]
+  }
+}
