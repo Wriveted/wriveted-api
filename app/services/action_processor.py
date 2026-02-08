@@ -349,7 +349,7 @@ class ActionNodeProcessor(NodeProcessor):
                     result_data = await INTERNAL_HANDLERS[endpoint](
                         db, resolved_body, resolved_params
                     )
-                except Exception as e:
+                except Exception:
                     logger.error(
                         "Internal handler failed",
                         endpoint=endpoint,
