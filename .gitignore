@@ -34,6 +34,7 @@ archive/
 # Temporary debug/test scripts
 debug_*.py
 test_*.py
+!app/tests/**/test_*.py
 fix_*.py
 activate_*.py
 get_*_token.py

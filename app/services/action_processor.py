@@ -10,6 +10,7 @@ Handles ACTION nodes with various action types including:
 """
 
 import datetime
+import re
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,9 +30,17 @@ from app.services.cloud_tasks import cloud_tasks
 logger = get_logger()
 
 
+_TEMPLATE_RE = re.compile(r"\{\{.*?\}\}")
+
+
 def _strip_unresolved_templates(obj: Any) -> Any:
-    """Replace unresolved {{...}} template strings with None."""
-    if isinstance(obj, str) and "{{" in obj and "}}" in obj:
+    """Replace unresolved ``{{...}}`` template strings with ``None``.
+
+    Only matches actual template syntax (``{{var}}``) — stray ``{{`` or ``}}``
+    in isolation are left untouched.  Recursively processes dicts and lists.
+    """
+    if isinstance(obj, str) and _TEMPLATE_RE.search(obj):
+        logger.debug("Stripping unresolved template", value=obj)
         return None
     elif isinstance(obj, dict):
         return {k: _strip_unresolved_templates(v) for k, v in obj.items()}
@@ -334,6 +343,7 @@ class ActionNodeProcessor(NodeProcessor):
                 resolved_params = self.runtime.substitute_object(
                     api_config_data.get("query_params", {}), state
                 )
+                resolved_params = _strip_unresolved_templates(resolved_params)
 
                 try:
                     result_data = await INTERNAL_HANDLERS[endpoint](
@@ -343,7 +353,7 @@ class ActionNodeProcessor(NodeProcessor):
                     logger.error(
                         "Internal handler failed",
                         endpoint=endpoint,
-                        error=str(e),
+                        exc_info=True,
                     )
                     fallback = api_config_data.get("fallback_response")
                     if fallback is not None:
