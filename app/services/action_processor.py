@@ -85,8 +85,11 @@ class ActionNodeProcessor(NodeProcessor):
         node_content = node.content or {}
         actions = node_content.get("actions", [])
 
-        # Determine if this should be processed asynchronously
-        async_actions = {"api_call", "external_service", "heavy_computation"}
+        # Determine if this should be processed asynchronously.
+        # Note: api_call is intentionally excluded — chat flows need synchronous
+        # results (e.g. book recommendations) so the flow can continue immediately.
+        # Use the explicit "async": true flag on individual actions if needed.
+        async_actions = {"external_service", "heavy_computation"}
         should_async = any(
             action.get("type") in async_actions or action.get("async", False)
             for action in actions
