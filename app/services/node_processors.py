@@ -663,6 +663,17 @@ class CompositeNodeProcessor:
                     messages = result.get("messages", [])
                     all_messages.extend(messages)
 
+                    # Pause processing if the message requests acknowledgment
+                    if result.get("wait_for_acknowledgment"):
+                        final_result = {
+                            "type": "messages",
+                            "messages": all_messages,
+                            "wait_for_acknowledgment": True,
+                            "node_id": result.get("node_id"),
+                            "next_node": result.get("next_node"),
+                        }
+                        break
+
                     # Check if there's a next node to process
                     next_node = result.get("next_node")
                     if next_node:

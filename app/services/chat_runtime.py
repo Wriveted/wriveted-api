@@ -1657,6 +1657,23 @@ class ChatRuntime:
             else:
                 result["messages"].append(return_result)
 
+            # Pause if the return node (e.g. composite sub-flow) requests ack.
+            # Save the session position at the paused node in the sub-flow so
+            # that the MESSAGE branch of process_interaction can resume correctly.
+            if return_result.get("wait_for_acknowledgment"):
+                paused_node_id = return_result.get("node_id")
+                if paused_node_id:
+                    session = await chat_repo.update_session_state(
+                        db,
+                        session_id=session.id,
+                        state_updates={},
+                        current_node_id=paused_node_id,
+                        expected_revision=session.revision,
+                    )
+                result["wait_for_acknowledgment"] = True
+                result["current_node_id"] = paused_node_id
+                return result
+
             # Continue processing chain until question or end.
             # Track the result that produced next_node so we can
             # extract sub_flow_id from the correct source.
@@ -1688,12 +1705,24 @@ class ChatRuntime:
                         NodeType.MESSAGE,
                         NodeType.ACTION,
                         NodeType.CONDITION,
+                        NodeType.COMPOSITE,
                     ):
                         node_result = await self.process_node(db, next_node, session)
                         session = await self._refresh_session(db, session)
                         if node_result:
-                            result["messages"].append(node_result)
+                            if node_result.get("type") == "messages":
+                                result["messages"].extend(
+                                    node_result.get("messages", [])
+                                )
+                            else:
+                                result["messages"].append(node_result)
                         source_result = node_result
+
+                        # Pause if the result requests acknowledgment
+                        if node_result and node_result.get("wait_for_acknowledgment"):
+                            result["wait_for_acknowledgment"] = True
+                            break
+
                         next_node = (
                             node_result.get("next_node") if node_result else None
                         )
